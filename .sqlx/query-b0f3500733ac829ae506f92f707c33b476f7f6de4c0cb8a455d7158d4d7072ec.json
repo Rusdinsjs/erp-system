@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rental_billing_periods \n            SET status = 'invoiced', invoice_number = $2, invoice_date = $3, due_date = $4, updated_at = $5\n            WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Date",
+        "Date",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b0f3500733ac829ae506f92f707c33b476f7f6de4c0cb8a455d7158d4d7072ec"
+}

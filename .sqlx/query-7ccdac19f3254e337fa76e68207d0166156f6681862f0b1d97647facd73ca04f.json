@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE rentals SET \n                status = 'returned',\n                returned_by = $2,\n                returned_at = NOW(),\n                actual_end_date = $3,\n                total_days = $4,\n                subtotal = $5,\n                penalty_amount = $6,\n                total_amount = $7,\n                updated_at = NOW()\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Int4",
+        "Numeric",
+        "Numeric",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7ccdac19f3254e337fa76e68207d0166156f6681862f0b1d97647facd73ca04f"
+}

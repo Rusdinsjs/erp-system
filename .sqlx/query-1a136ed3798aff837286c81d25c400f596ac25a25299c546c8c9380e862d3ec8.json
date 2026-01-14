@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO rental_handovers (\n                id, rental_id, handover_type, condition_rating, condition_notes,\n                photos, has_damage, damage_description, damage_photos,\n                recorded_by, recorded_at, signature_data, created_at\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rental_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "handover_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "condition_rating",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "condition_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "photos",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "has_damage",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "damage_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "damage_photos",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "recorded_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "recorded_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "signature_data",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Jsonb",
+        "Bool",
+        "Text",
+        "Jsonb",
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1a136ed3798aff837286c81d25c400f596ac25a25299c546c8c9380e862d3ec8"
+}

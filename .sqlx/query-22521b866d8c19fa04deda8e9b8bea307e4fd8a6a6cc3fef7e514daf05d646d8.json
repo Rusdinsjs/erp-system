@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rental_timesheets \n            SET status = 'submitted', checker_notes = $2, checker_at = $3, updated_at = $3\n            WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "22521b866d8c19fa04deda8e9b8bea307e4fd8a6a6cc3fef7e514daf05d646d8"
+}

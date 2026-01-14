@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rental_billing_periods SET\n                total_operating_hours = $2,\n                total_standby_hours = $3,\n                total_overtime_hours = $4,\n                total_breakdown_hours = $5,\n                total_hm_km_usage = $6,\n                working_days = $7,\n                rate_basis = $8,\n                hourly_rate = $9,\n                minimum_hours = $10,\n                overtime_multiplier = $11,\n                standby_multiplier = $12,\n                breakdown_penalty_per_day = $13,\n                billable_hours = $14,\n                shortfall_hours = $15,\n                base_amount = $16,\n                standby_amount = $17,\n                overtime_amount = $18,\n                breakdown_penalty_amount = $19,\n                mobilization_fee = $20,\n                demobilization_fee = $21,\n                other_charges = $22,\n                other_charges_description = $23,\n                subtotal = $24,\n                discount_percentage = $25,\n                discount_amount = $26,\n                tax_percentage = $27,\n                tax_amount = $28,\n                total_amount = $29,\n                status = 'calculated',\n                calculated_by = $30,\n                calculated_at = $31,\n                updated_at = $31\n            WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int4",
+        "Varchar",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "822575b9304935b753738c0269dfb2a7358060cd18aa2b67c20665779eddf976"
+}

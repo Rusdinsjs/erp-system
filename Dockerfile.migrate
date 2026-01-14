@@ -1,0 +1,20 @@
+# Migrate Dockerfile
+FROM rust:alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache musl-dev openssl-dev pkgconfig
+
+# Install sqlx-cli
+RUN cargo install sqlx-cli --no-default-features --features rustls,postgres
+
+FROM alpine:3.19
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates libgcc
+
+COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
+COPY migrations ./migrations
+
+CMD ["sqlx", "migrate", "run"]

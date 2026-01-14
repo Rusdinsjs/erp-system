@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE rentals SET status = 'overdue', updated_at = NOW()\n            WHERE status = 'rented_out' AND expected_end_date < CURRENT_DATE\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "4f9a37f84fcead4438dc307f0cda33e3e9921fba011f25e0cddaf5f74d993644"
+}

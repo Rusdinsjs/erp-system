@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM rental_handovers WHERE rental_id = $1 AND handover_type = 'dispatch'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rental_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "handover_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "condition_rating",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "condition_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "photos",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "has_damage",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "damage_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "damage_photos",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "recorded_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "recorded_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "signature_data",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5eae7bcefdd948fa8a7733655c29b758f9a39e355bd1d87ea2858a9bb3e4900a"
+}

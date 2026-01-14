@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rental_billing_periods \n            SET status = 'approved', approved_by = $2, approved_at = $3, notes = $4, updated_at = $3\n            WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41a8fcbce4bb0997c92db39181888f556cac47ca5820d6647fc9ac5980522551"
+}

@@ -1,0 +1,136 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM rental_rates WHERE asset_id = $1 AND is_active = true LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "rate_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "rate_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "minimum_duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "deposit_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "late_fee_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "rate_basis",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "minimum_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "overtime_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "standby_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 17,
+        "name": "breakdown_penalty_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 18,
+        "name": "hours_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 19,
+        "name": "days_per_month",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "4f75f8fd03ed6e889ec1f08966128877ef691a5343d7c7161bfcd0bc39230e61"
+}

@@ -1,0 +1,204 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM rental_timesheets \n            WHERE rental_id = $1\n            AND ($2::date IS NULL OR work_date >= $2)\n            AND ($3::date IS NULL OR work_date <= $3)\n            ORDER BY work_date ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rental_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "work_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 4,
+        "name": "end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 5,
+        "name": "operating_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "standby_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "overtime_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "breakdown_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "hm_km_start",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "hm_km_end",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "hm_km_usage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "operation_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 13,
+        "name": "breakdown_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "work_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "work_location",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 16,
+        "name": "photos",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 17,
+        "name": "checker_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 18,
+        "name": "checker_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "checker_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "verifier_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 21,
+        "name": "verifier_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "verifier_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 23,
+        "name": "verifier_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 24,
+        "name": "client_pic_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 25,
+        "name": "client_approved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 26,
+        "name": "client_signature",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 27,
+        "name": "client_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 28,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 29,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 30,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f117647fca6f9b3100e74dd0d4a46c668a7d7c4e5acf2a19d3faf70b1bf1b841"
+}

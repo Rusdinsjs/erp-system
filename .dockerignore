@@ -1,0 +1,4 @@
+target
+web-admin/node_modules
+.git
+.env

@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rental_timesheets \n            SET verifier_id = $2, verifier_at = $3, verifier_status = $4, \n                verifier_notes = $5, status = $6, updated_at = $3\n            WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Varchar",
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e4b37b75cccd0b67e230f1fc951201b8ad9ef5abac04b4a33de1ec5bd568e91a"
+}

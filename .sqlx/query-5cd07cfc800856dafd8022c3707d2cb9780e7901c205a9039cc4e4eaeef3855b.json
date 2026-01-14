@@ -1,0 +1,148 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO rental_rates (\n                id, name, category_id, asset_id, rate_type, rate_amount, currency,\n                minimum_duration, deposit_percentage, late_fee_per_day, is_active,\n                created_at, updated_at\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "rate_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "rate_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "minimum_duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "deposit_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "late_fee_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "rate_basis",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "minimum_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "overtime_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "standby_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 17,
+        "name": "breakdown_penalty_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 18,
+        "name": "hours_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 19,
+        "name": "days_per_month",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Numeric",
+        "Varchar",
+        "Int4",
+        "Numeric",
+        "Numeric",
+        "Bool",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5cd07cfc800856dafd8022c3707d2cb9780e7901c205a9039cc4e4eaeef3855b"
+}

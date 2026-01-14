@@ -1,0 +1,2 @@
+-- This migration is skipped due to data format issues
+-- Placeholder to allow migrations 020+ to run

@@ -1,0 +1,232 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO rentals (\n                id, rental_number, asset_id, client_id, rental_rate_id, status,\n                request_date, start_date, expected_end_date, actual_end_date,\n                daily_rate, total_days, subtotal, deposit_amount, deposit_returned,\n                penalty_amount, total_amount, requested_by, approved_by, approved_at,\n                rejection_reason, dispatched_by, dispatched_at, returned_by, returned_at,\n                agreement_document, delivery_note, invoice_number, notes, created_at, updated_at\n            ) VALUES (\n                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,\n                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31\n            )\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rental_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "client_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "rental_rate_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "request_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "expected_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "actual_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 10,
+        "name": "daily_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "total_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "subtotal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "deposit_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "deposit_returned",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "penalty_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "total_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 17,
+        "name": "requested_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 18,
+        "name": "approved_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 19,
+        "name": "approved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "rejection_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 21,
+        "name": "dispatched_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 22,
+        "name": "dispatched_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 23,
+        "name": "returned_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 24,
+        "name": "returned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "agreement_document",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 26,
+        "name": "delivery_note",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 27,
+        "name": "invoice_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 28,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 29,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 30,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Date",
+        "Date",
+        "Date",
+        "Date",
+        "Numeric",
+        "Int4",
+        "Numeric",
+        "Numeric",
+        "Bool",
+        "Numeric",
+        "Numeric",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Timestamptz",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "85cbc21a2f6bb2e6b9e96c44366ca51b682c6942f5c283966b6456aa15a5dd6c"
+}
