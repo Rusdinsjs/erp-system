@@ -1,0 +1,109 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE chart_of_accounts\n            SET \n                name = COALESCE($2, name),\n                parent_id = COALESCE($3, parent_id),\n                is_active = COALESCE($4, is_active),\n                description = COALESCE($5, description),\n                updated_at = NOW()\n            WHERE id = $1\n            RETURNING id, code, name, account_type as \"account_type: AccountType\", \n                      normal_balance as \"normal_balance: NormalBalance\", parent_id, \n                      is_active, description, currency, created_at, updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "account_type: AccountType",
+        "type_info": {
+          "Custom": {
+            "name": "account_type",
+            "kind": {
+              "Enum": [
+                "asset",
+                "liability",
+                "equity",
+                "revenue",
+                "expense"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "normal_balance: NormalBalance",
+        "type_info": {
+          "Custom": {
+            "name": "normal_balance",
+            "kind": {
+              "Enum": [
+                "debit",
+                "credit"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "currency",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Uuid",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5dadbe095121922792d7afaa35491806353be859bf6358d1bbe67def3996d6e9"
+}

@@ -3,11 +3,13 @@ import { useState, lazy, Suspense, useEffect } from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import {
-    LayoutDashboard, Package, FolderTree, Wrench, Users, LogOut, Menu, X,
+    LayoutDashboard, Package, FolderTree, Users, LogOut, Menu, X,
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
-    Calendar as CalendarIcon,
+    Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
+    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, ClipboardList
 } from 'lucide-react';
+import { PageLoading } from '../components/ui';
 
 // Import all views
 const DashboardView = lazy(() => import('./Dashboard').then(m => ({ default: m.Dashboard })));
@@ -29,8 +31,18 @@ const EmployeesView = lazy(() => import('./Employees').then(m => ({ default: m.E
 const DepartmentsView = lazy(() => import('./Departments').then(m => ({ default: m.Departments })));
 const AttendanceView = lazy(() => import('./Attendance/AttendanceDashboard'));
 const LeaveDashboardView = lazy(() => import('./Leaves/LeaveDashboard'));
-// const RentalBilling = lazy(() => import('./Finance/RentalBilling'));
-// const RentalTimesheets = lazy(() => import('./Rentals/RentalTimesheets'));
+const ChartOfAccountsView = lazy(() => import('./Finance/ChartOfAccounts').then(m => ({ default: m.ChartOfAccounts })));
+const JournalEntriesView = lazy(() => import('./Finance/JournalEntries').then(m => ({ default: m.JournalEntries })));
+const JournalEntryFormView = lazy(() => import('./Finance/JournalEntryForm').then(m => ({ default: m.JournalEntryForm })));
+const GeneralLedgerView = lazy(() => import('./Finance/GeneralLedger').then(m => ({ default: m.GeneralLedger })));
+const TrialBalanceView = lazy(() => import('./Finance/TrialBalance').then(m => ({ default: m.TrialBalance })));
+const FinancialReportsView = lazy(() => import('./Finance/FinancialReports').then(m => ({ default: m.FinancialReports })));
+
+// Placeholder for new Kledo-style views (to be created)
+const CashBankView = lazy(() => import('./Finance/CashBank').then(m => ({ default: m.CashBank })));
+const SalesView = lazy(() => import('./Finance/Sales').then(m => ({ default: m.Sales })));
+const PurchasesView = lazy(() => import('./Finance/Purchases').then(m => ({ default: m.Purchases })));
+const ExpensesView = lazy(() => import('./Finance/Expenses').then(m => ({ default: m.Expenses })));
 
 // Define the available tabs
 type TabId =
@@ -51,6 +63,19 @@ type TabId =
     | 'users'
     | 'audit'
     | 'departments'
+    | 'finance'
+    | 'journal-entries'
+    | 'journal-form'
+    | 'general-ledger'
+    | 'trial-balance'
+    | 'financial-reports'
+    | 'cash-bank'
+    | 'sales'
+    | 'purchases'
+    | 'expenses'
+    | 'sales-quotes'
+    | 'purchase-orders'
+    | 'asset-lifecycle'
     | 'profile';
 
 interface NavItem {
@@ -78,15 +103,33 @@ const isNavGroup = (entry: NavEntry): entry is NavGroup => {
 // Navigation structure
 const navItems: NavEntry[] = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'assets', icon: Package, label: 'Aset' },
     {
-        id: 'operations',
-        label: 'Operasional',
-        icon: Wrench,
+        id: 'asset_management_group',
+        label: 'Aset Tetap',
+        icon: Package,
         children: [
-            { id: 'work-orders', icon: Wrench, label: 'Work Orders' },
+            { id: 'assets', icon: Package, label: 'Daftar Aset' },
+            { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)' },
             { id: 'rentals', icon: Truck, label: 'Rental Aset' },
-            { id: 'loans', icon: HandMetal, label: 'Peminjaman' },
+            { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal' },
+        ]
+    },
+    {
+        id: 'finance_group',
+        label: 'Akuntansi',
+        icon: FolderTree,
+        children: [
+            { id: 'cash-bank', icon: Wallet, label: 'Kas & Bank' },
+            { id: 'sales', icon: ShoppingCart, label: 'Penjualan' },
+            { id: 'sales-quotes', icon: Calculator, label: 'Penawaran' },
+            { id: 'purchases', icon: ShoppingBag, label: 'Pembelian' },
+            { id: 'purchase-orders', icon: ClipboardList, label: 'Pesanan Pembelian' },
+            { id: 'expenses', icon: Receipt, label: 'Biaya' },
+            { id: 'finance', icon: FolderTree, label: 'Daftar Akun' },
+            { id: 'journal-entries', icon: FileText, label: 'Jurnal Umum' },
+            { id: 'general-ledger', icon: ArrowLeftRight, label: 'Buku Besar' },
+            { id: 'trial-balance', icon: Scale, label: 'Neraca Saldo' },
+            { id: 'financial-reports', icon: TrendingUp, label: 'Laporan Keuangan' },
         ]
     },
     {
@@ -94,6 +137,7 @@ const navItems: NavEntry[] = [
         label: 'HRD',
         icon: Users,
         children: [
+            { id: 'employees', icon: Users, label: 'Karyawan' },
             { id: 'attendance', icon: Clock, label: 'Absensi' },
             { id: 'leaves', icon: CalendarIcon, label: 'Cuti / Izin' },
         ]
@@ -123,14 +167,14 @@ const navItems: NavEntry[] = [
     },
 ];
 
-export function AdminDashboard() {
+export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<TabId>('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-        operations: true,
-        hrd_group: true,
+        asset_management_group: false,
+        hrd_group: false,
         master_data: false,
-        approval_group: true,
+        finance_group: true,
         settings_group: false
     });
     const [notifOpen, setNotifOpen] = useState(false);
@@ -154,6 +198,7 @@ export function AdminDashboard() {
             setActiveTab('assets');
             setSelectedAssetId(lifecycleMatch.params.id);
             setSelectedWorkOrderId(null);
+            setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
             return;
         }
 
@@ -162,37 +207,43 @@ export function AdminDashboard() {
             setActiveTab('work-orders');
             setSelectedWorkOrderId(woMatch.params.id);
             setSelectedAssetId(null);
-            setOpenGroups(prev => ({ ...prev, operations: true }));
+            setOpenGroups(prev => ({ ...prev, maintenance_group: true }));
             return;
         }
 
-        // 2. Handle Standard Tabs
-        const segment = path.split('/')[1] || 'dashboard';
-
-        // Find matching tab and group
-        let foundTab: TabId | null = null;
-        let foundGroup: string | null = null;
-
-        for (const item of navItems) {
-            if (isNavGroup(item)) {
-                const child = item.children.find(c => c.id === segment);
-                if (child) {
-                    foundTab = child.id;
-                    foundGroup = item.id;
-                    break;
-                }
-            } else {
-                if (item.id === segment) {
-                    foundTab = item.id;
-                    break;
-                }
-            }
+        const journalNewMatch = matchPath('/finance/journals/new', path);
+        if (journalNewMatch) {
+            setActiveTab('journal-form');
+            setOpenGroups(prev => ({ ...prev, finance_group: true }));
+            setSelectedAssetId(null);
+            setSelectedWorkOrderId(null);
+            return;
         }
 
-        if (foundTab) {
+        const journalListMatch = matchPath('/finance/journals', path);
+        if (journalListMatch) {
+            setActiveTab('journal-entries');
+            setOpenGroups(prev => ({ ...prev, finance_group: true }));
+            setSelectedAssetId(null);
+            setSelectedWorkOrderId(null);
+            return;
+        }
+
+        // 2. Handle Simple Tabs
+        const segments = path.split('/').filter(Boolean);
+        const lastSegment = segments[segments.length - 1];
+
+        if (lastSegment) {
+            const foundTab = lastSegment as TabId;
             setActiveTab(foundTab);
+
+            // Auto-expand group if child is active
+            const foundGroup = navItems.find(entry =>
+                isNavGroup(entry) && entry.children.some(child => child.id === foundTab)
+            ) as NavGroup | undefined;
+
             if (foundGroup) {
-                setOpenGroups(prev => ({ ...prev, [foundGroup]: true }));
+                setOpenGroups(prev => ({ ...prev, [foundGroup.id]: true }));
             }
             setSelectedAssetId(null);
             setSelectedWorkOrderId(null);
@@ -273,18 +324,14 @@ export function AdminDashboard() {
                     <group.icon size={20} />
                     {sidebarOpen && (
                         <>
-                            <span className="flex-1 text-left font-medium">{group.label}</span>
-                            {group.showBadge && (
-                                <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
-                                    !
-                                </span>
-                            )}
+                            <span className="font-medium flex-1 text-left">{group.label}</span>
                             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </>
                     )}
                 </button>
-                {isOpen && sidebarOpen && (
-                    <div className="ml-4 mt-1 space-y-1">
+
+                {sidebarOpen && isOpen && (
+                    <div className="mt-1 ml-4 border-l border-slate-800 pl-2 space-y-1">
                         {visibleChildren.map(child => renderNavItem(child, true))}
                     </div>
                 )}
@@ -292,14 +339,14 @@ export function AdminDashboard() {
         );
     };
 
-    // Render Content based on Active Tab
+    // Main Content Renderer
     const renderContent = () => {
-        // Handle sub-views with IDs
-        if (selectedWorkOrderId) {
-            return <WorkOrderDetailsView workOrderId={selectedWorkOrderId} />;
-        }
-        if (selectedAssetId) {
+        // Special case for deep views
+        if (activeTab === 'assets' && selectedAssetId) {
             return <AssetLifecycleView assetId={selectedAssetId} />;
+        }
+        if (activeTab === 'work-orders' && selectedWorkOrderId) {
+            return <WorkOrderDetailsView workOrderId={selectedWorkOrderId} />;
         }
 
         switch (activeTab) {
@@ -319,13 +366,25 @@ export function AdminDashboard() {
             case 'users': return <UsersView />;
             case 'audit': return <AuditModeView />;
             case 'departments': return <DepartmentsView />;
+            case 'finance': return <ChartOfAccountsView />;
+            case 'journal-entries': return <JournalEntriesView />;
+            case 'journal-form': return <JournalEntryFormView />;
+            case 'general-ledger': return <GeneralLedgerView />;
+            case 'trial-balance': return <TrialBalanceView />;
+            case 'financial-reports': return <FinancialReportsView />;
+            case 'cash-bank': return <CashBankView />;
+            case 'sales': return <SalesView />;
+            case 'sales-quotes': return <SalesView />; // Reusing view for now, usually separate
+            case 'purchases': return <PurchasesView />;
+            case 'purchase-orders': return <PurchasesView />; // Reusing view for now
+            case 'expenses': return <ExpensesView />;
             case 'profile': return <ProfileView />;
             default: return <DashboardView />;
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex font-sans text-slate-200">
+        <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
             {/* Mobile Backdrop */}
             {sidebarOpen && (
                 <div
@@ -432,51 +491,49 @@ export function AdminDashboard() {
                         )}
                     </div>
 
-                    {/* User Info */}
-                    <div className="flex items-center gap-3 pl-4 border-l border-slate-800">
-                        <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg">
-                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    {/* User Profile */}
+                    <button
+                        onClick={() => setActiveTab('profile')}
+                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-700"
+                    >
+                        <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-sm">
+                            {user?.name?.charAt(0) || 'U'}
                         </div>
-                        <div className="hidden sm:block">
-                            <p className="text-sm font-medium text-white">{user?.name}</p>
-                            <p className="text-xs text-slate-400 capitalize">{user?.role}</p>
+                        <div className="hidden sm:block text-left">
+                            <p className="text-sm font-medium text-white leading-none mb-1">{user?.name}</p>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider leading-none">
+                                {user?.role}
+                            </p>
                         </div>
-                    </div>
+                    </button>
                 </header>
 
-                {/* Main Content Pane */}
-                <main className="flex-1 overflow-auto bg-slate-950 p-6">
-                    <Suspense fallback={
-                        <div className="flex h-full items-center justify-center text-slate-500">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500 mr-3"></div>
-                            <span>Loading...</span>
-                        </div>
-                    }>
+                {/* Main Content Area */}
+                <main className="flex-1 overflow-y-auto bg-slate-950 p-6 global-scrollbar">
+                    <Suspense fallback={<PageLoading />}>
                         {renderContent()}
                     </Suspense>
                 </main>
             </div>
 
-            {/* Logout Confirmation Modal */}
+            {/* Logout Modal */}
             {logoutModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-slate-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-slate-800">
-                        <h3 className="text-xl font-semibold text-white mb-2">Konfirmasi Logout</h3>
-                        <p className="text-slate-400 mb-6">
-                            Apakah Anda yakin ingin keluar dari aplikasi?
-                        </p>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
+                        <h3 className="text-xl font-bold text-white mb-2">Konfirmasi Logout</h3>
+                        <p className="text-slate-400 mb-6">Apakah Anda yakin ingin keluar dari sistem?</p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setLogoutModalOpen(false)}
-                                className="flex-1 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-colors"
+                                className="flex-1 px-4 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors"
                             >
                                 Batal
                             </button>
                             <button
                                 onClick={confirmLogout}
-                                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-medium rounded-xl transition-colors"
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-500 transition-colors"
                             >
-                                Logout
+                                Keluar
                             </button>
                         </div>
                     </div>
@@ -485,5 +542,3 @@ export function AdminDashboard() {
         </div>
     );
 }
-
-export default AdminDashboard;

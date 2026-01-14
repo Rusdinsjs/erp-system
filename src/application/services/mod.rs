@@ -55,3 +55,7 @@ pub mod attendance_service;
 pub use attendance_service::*;
 pub mod geofence_service;
 pub use geofence_service::*;
+pub mod finance_service;
+pub use finance_service::*;
+pub mod journal_service;
+pub use journal_service::*;

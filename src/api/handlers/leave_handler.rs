@@ -11,7 +11,7 @@ use crate::shared::errors::{AppError, AppResult};
 
 pub async fn request_leave(
     State(state): State<AppState>,
-    Extension(claims): Extension<UserClaims>,
+    Extension(_claims): Extension<UserClaims>,
     Json(req): Json<CreateLeaveRequest>,
 ) -> AppResult<Json<crate::domain::entities::LeaveRequest>> {
     let leave_req = state.leave_service.request_leave(req).await?;

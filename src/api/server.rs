@@ -17,6 +17,8 @@ use crate::application::services::{
     ConversionService,
     DataService,
     EmployeeService,
+    FinanceService,
+    JournalService, // Added
     LifecycleService,
     LoanService,
     LocationService, // Added
@@ -34,9 +36,10 @@ use crate::application::services::{
 use crate::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
 use crate::infrastructure::repositories::{
     ApprovalRepository, AssetRepository, AuditRepository, CategoryRepository, ClientRepository,
-    ConversionRepository, EmployeeRepository, LifecycleRepository, LoanRepository,
-    MaintenanceRepository, NotificationRepository, RbacRepository, RentalRepository,
-    SensorRepository, TimesheetRepository, UserRepository, WorkOrderRepository,
+    ConversionRepository, EmployeeRepository, FinanceRepository, JournalRepository,
+    LifecycleRepository, LoanRepository, MaintenanceRepository, NotificationRepository,
+    RbacRepository, RentalRepository, SensorRepository, TimesheetRepository, UserRepository,
+    WorkOrderRepository,
 };
 use crate::shared::utils::jwt::JwtConfig;
 use std::sync::Arc;
@@ -69,6 +72,8 @@ pub struct AppState {
     pub employee_service: EmployeeService,
     pub location_service: LocationService, // Added
     pub leave_service: crate::application::services::LeaveService,
+    pub finance_service: FinanceService, // Added
+    pub journal_service: JournalService, // Added
     pub pool: PgPool,
     pub ws_manager: Arc<crate::api::handlers::notification_ws::WebSocketManager>,
 }
@@ -154,6 +159,12 @@ impl AppState {
         let leave_service =
             crate::application::services::LeaveService::new(leave_repo, employee_repo);
 
+        let finance_repo = FinanceRepository::new(pool.clone());
+        let finance_service = FinanceService::new(finance_repo.clone());
+
+        let journal_repo = JournalRepository::new(pool.clone());
+        let journal_service = JournalService::new(journal_repo, finance_repo.clone());
+
         Self {
             asset_service,
             audit_service,
@@ -182,6 +193,8 @@ impl AppState {
             pool,
             ws_manager: Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new()),
             leave_service,
+            finance_service,
+            journal_service,
         }
     }
 }

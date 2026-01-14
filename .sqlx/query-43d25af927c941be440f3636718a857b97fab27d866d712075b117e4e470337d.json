@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO cash_bank_transactions (\n                id, transaction_number, transaction_type, date, amount, \n                from_account_id, to_account_id, account_id, contact_name, description\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            RETURNING id, transaction_number, transaction_type, date, \n                      amount::FLOAT8 as \"amount!\", from_account_id, to_account_id, \n                      account_id, contact_name, description, journal_entry_id, created_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "transaction_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "transaction_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "from_account_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "to_account_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "account_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "contact_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "journal_entry_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Date",
+        "Numeric",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "43d25af927c941be440f3636718a857b97fab27d866d712075b117e4e470337d"
+}

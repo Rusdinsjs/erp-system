@@ -8,6 +8,7 @@ use axum::{
     Extension, Router,
 };
 
+use crate::api::handlers::finance_handler;
 use crate::api::handlers::*;
 use crate::api::middleware::{
     auth_middleware,
@@ -207,6 +208,65 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/hrd/attendance/employee/:employee_id",
             get(attendance_handler::get_employee_history),
+        )
+        .route("/attendance/scan", post(attendance_handler::scan_face))
+        .route("/attendance/logs", get(attendance_handler::list_logs))
+        // Finance Routes
+        .route(
+            "/finance/accounts",
+            get(finance_handler::list_accounts).post(finance_handler::create_account),
+        )
+        .route(
+            "/finance/accounts/tree",
+            get(finance_handler::list_accounts_tree),
+        )
+        .route(
+            "/finance/accounts/:id",
+            put(finance_handler::update_account),
+        )
+        // Journal Entries
+        .route(
+            "/finance/journals",
+            get(journal_handler::list_journals).post(journal_handler::create_journal),
+        )
+        .route(
+            "/finance/journals/:id",
+            get(journal_handler::get_journal_details),
+        )
+        // Finance Reports
+        .route(
+            "/finance/reports/ledger/:account_id",
+            get(finance_report_handler::get_general_ledger),
+        )
+        .route(
+            "/finance/reports/trial-balance",
+            get(finance_report_handler::get_trial_balance),
+        )
+        .route(
+            "/finance/reports/balance-sheet",
+            get(finance_report_handler::get_balance_sheet),
+        )
+        .route(
+            "/finance/reports/income-statement",
+            get(finance_report_handler::get_income_statement),
+        )
+        // Operational Finance
+        .route(
+            "/finance/sales/invoices",
+            get(finance_handler::list_sales_invoices).post(finance_handler::create_sales_invoice),
+        )
+        .route(
+            "/finance/purchase/bills",
+            get(finance_handler::list_purchase_bills).post(finance_handler::create_purchase_bill),
+        )
+        .route(
+            "/finance/expenses",
+            get(finance_handler::list_expenses).post(finance_handler::create_expense),
+        )
+        .route(
+            "/finance/cash-bank",
+            get(finance_handler::list_cash_bank_transactions)
+                .post(finance_handler::create_cash_bank_transaction),
         )
         // Leave Management
         .route("/api/hrd/leaves", post(leave_handler::request_leave))
