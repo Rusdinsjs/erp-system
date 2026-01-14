@@ -87,6 +87,26 @@ impl FinanceRepository {
         Ok(rec)
     }
 
+    pub async fn find_by_code(&self, code: &str) -> DomainResult<Option<ChartOfAccount>> {
+        let rec = sqlx::query_as!(
+            ChartOfAccount,
+            r#"
+            SELECT 
+                id, code, name, account_type as "account_type: AccountType", 
+                normal_balance as "normal_balance: NormalBalance", parent_id, 
+                is_active, description, currency, created_at, updated_at
+            FROM chart_of_accounts
+            WHERE code = $1
+            "#,
+            code
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        Ok(rec)
+    }
+
     pub async fn update_account(
         &self,
         id: Uuid,

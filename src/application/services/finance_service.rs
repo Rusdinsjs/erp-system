@@ -11,11 +11,18 @@ use crate::infrastructure::repositories::FinanceRepository;
 #[derive(Clone)]
 pub struct FinanceService {
     repo: FinanceRepository,
+    journal_service: crate::application::services::JournalService,
 }
 
 impl FinanceService {
-    pub fn new(repo: FinanceRepository) -> Self {
-        Self { repo }
+    pub fn new(
+        repo: FinanceRepository,
+        journal_service: crate::application::services::JournalService,
+    ) -> Self {
+        Self {
+            repo,
+            journal_service,
+        }
     }
 
     pub async fn create_account(&self, req: CreateAccountRequest) -> DomainResult<ChartOfAccount> {
@@ -43,6 +50,10 @@ impl FinanceService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })
+    }
+
+    pub async fn find_by_code(&self, code: &str) -> DomainResult<Option<ChartOfAccount>> {
+        self.repo.find_by_code(code).await
     }
 
     pub async fn list_all(&self) -> DomainResult<Vec<ChartOfAccount>> {
@@ -209,21 +220,65 @@ impl FinanceService {
         &self,
         req: crate::domain::entities::CreateSalesInvoiceRequest,
     ) -> DomainResult<crate::domain::entities::SalesInvoice> {
-        let invoice = crate::domain::entities::SalesInvoice {
+        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let mut invoice = crate::domain::entities::SalesInvoice {
             id: Uuid::new_v4(),
-            invoice_number: req.invoice_number,
+            invoice_number: req.invoice_number.clone(),
             client_id: req.client_id,
             date: req.date,
             due_date: req.due_date,
-            subject: req.subject,
-            subtotal: req.items.iter().map(|i| i.quantity * i.unit_price).sum(),
+            subject: req.subject.clone(),
+            subtotal: total,
             tax: 0.0,
-            total_amount: req.items.iter().map(|i| i.quantity * i.unit_price).sum(),
+            total_amount: total,
             amount_paid: 0.0,
             status: "draft".to_string(),
             journal_entry_id: None,
             created_at: Utc::now(),
         };
+
+        // --- Automated Journaling Logic ---
+        // 1. Find Accounts (Piutang & Penjualan)
+        let receivable_acc = self.find_by_code("1-1200").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 1-1200 (Piutang) not found")
+        })?;
+        let sales_acc = self.find_by_code("4-1000").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 4-1000 (Penjualan) not found")
+        })?;
+
+        // 2. Prepare Journal Entry
+        use rust_decimal::prelude::FromPrimitive;
+        let decimal_total = rust_decimal::Decimal::from_f64(total).unwrap_or_default();
+
+        let journal_req = crate::domain::entities::journal::CreateJournalEntryRequest {
+            date: invoice.date,
+            description: format!(
+                "Penjualan: {} - {}",
+                invoice.invoice_number,
+                invoice.subject.as_deref().unwrap_or("-")
+            ),
+            reference: Some(invoice.invoice_number.clone()),
+            lines: vec![
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: receivable_acc.id,
+                    description: Some(format!("Piutang Penjualan {}", invoice.invoice_number)),
+                    debit: decimal_total,
+                    credit: rust_decimal::Decimal::ZERO,
+                },
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: sales_acc.id,
+                    description: Some(format!("Pendapatan Penjualan {}", invoice.invoice_number)),
+                    debit: rust_decimal::Decimal::ZERO,
+                    credit: decimal_total,
+                },
+            ],
+        };
+
+        // 3. Create Journal
+        let journal = self.journal_service.create_entry(journal_req, None).await?;
+        invoice.journal_entry_id = Some(journal.header.id);
+        invoice.status = "posted".to_string();
+
         self.repo.create_sales_invoice(&invoice).await
     }
 
@@ -231,10 +286,10 @@ impl FinanceService {
         &self,
         req: crate::domain::entities::CreatePurchaseBillRequest,
     ) -> DomainResult<crate::domain::entities::PurchaseBill> {
-        let total = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let bill = crate::domain::entities::PurchaseBill {
+        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let mut bill = crate::domain::entities::PurchaseBill {
             id: Uuid::new_v4(),
-            bill_number: req.bill_number,
+            bill_number: req.bill_number.clone(),
             vendor_id: req.vendor_id,
             date: req.date,
             due_date: req.due_date,
@@ -244,6 +299,46 @@ impl FinanceService {
             journal_entry_id: None,
             created_at: Utc::now(),
         };
+
+        // --- Automated Journaling Logic ---
+        // 1. Find Accounts (Beban & Utang Usaha)
+        // For simplicity, we use account from the first item or a generic "Purchases" account 5-1000
+        let purchase_acc = self.find_by_code("5-1000").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 5-1000 (Purchases) not found")
+        })?;
+        let payable_acc = self.find_by_code("2-1100").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 2-1100 (Utang Usaha) not found")
+        })?;
+
+        // 2. Prepare Journal Entry
+        use rust_decimal::prelude::FromPrimitive;
+        let decimal_total = rust_decimal::Decimal::from_f64(total).unwrap_or_default();
+
+        let journal_req = crate::domain::entities::journal::CreateJournalEntryRequest {
+            date: bill.date,
+            description: format!("Pembelian: {}", bill.bill_number),
+            reference: Some(bill.bill_number.clone()),
+            lines: vec![
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: purchase_acc.id,
+                    description: Some(format!("Beban Pembelian {}", bill.bill_number)),
+                    debit: decimal_total,
+                    credit: rust_decimal::Decimal::ZERO,
+                },
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: payable_acc.id,
+                    description: Some(format!("Utang Usaha {}", bill.bill_number)),
+                    debit: rust_decimal::Decimal::ZERO,
+                    credit: decimal_total,
+                },
+            ],
+        };
+
+        // 3. Create Journal
+        let journal = self.journal_service.create_entry(journal_req, None).await?;
+        bill.journal_entry_id = Some(journal.header.id);
+        bill.status = "posted".to_string();
+
         self.repo.create_purchase_bill(&bill).await
     }
 
@@ -251,18 +346,61 @@ impl FinanceService {
         &self,
         req: crate::domain::entities::CreateExpenseRequest,
     ) -> DomainResult<crate::domain::entities::Expense> {
-        let total = req.items.iter().map(|i| i.amount).sum();
-        let expense = crate::domain::entities::Expense {
+        let total: f64 = req.items.iter().map(|i| i.amount).sum();
+        let mut expense = crate::domain::entities::Expense {
             id: Uuid::new_v4(),
-            expense_number: req.expense_number,
+            expense_number: req.expense_number.clone(),
             date: req.date,
             pay_from_account_id: req.pay_from_account_id,
-            recipient: req.recipient,
+            recipient: req.recipient.clone(),
             total_amount: total,
             status: "paid".to_string(),
             journal_entry_id: None,
             created_at: Utc::now(),
         };
+
+        // --- Automated Journaling Logic ---
+        // For Expenses, we can have multiple items (different expense categories)
+        let mut lines = Vec::new();
+        use rust_decimal::prelude::FromPrimitive;
+
+        for item in &req.items {
+            let decimal_amount = rust_decimal::Decimal::from_f64(item.amount).unwrap_or_default();
+            lines.push(crate::domain::entities::journal::CreateJournalLineRequest {
+                account_id: item.account_id,
+                description: Some(
+                    item.description
+                        .clone()
+                        .unwrap_or_else(|| "Biaya".to_string()),
+                ),
+                debit: decimal_amount,
+                credit: rust_decimal::Decimal::ZERO,
+            });
+        }
+
+        // Kredit Kas/Bank
+        let decimal_total = rust_decimal::Decimal::from_f64(total).unwrap_or_default();
+        lines.push(crate::domain::entities::journal::CreateJournalLineRequest {
+            account_id: expense.pay_from_account_id,
+            description: Some(format!("Bayar Biaya {}", expense.expense_number)),
+            debit: rust_decimal::Decimal::ZERO,
+            credit: decimal_total,
+        });
+
+        let journal_req = crate::domain::entities::journal::CreateJournalEntryRequest {
+            date: expense.date,
+            description: format!(
+                "Biaya: {} - {}",
+                expense.expense_number,
+                expense.recipient.as_deref().unwrap_or("-")
+            ),
+            reference: Some(expense.expense_number.clone()),
+            lines,
+        };
+
+        let journal = self.journal_service.create_entry(journal_req, None).await?;
+        expense.journal_entry_id = Some(journal.header.id);
+
         self.repo.create_expense(&expense).await
     }
 

@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { Card, Button } from '../../components/ui';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, MoreVertical, Search } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, MoreVertical, Search, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function CashBank() {
     // In a real app, we'd filter COA for 'Cash & Bank' accounts
@@ -15,6 +17,34 @@ export function CashBank() {
         queryFn: financeApi.listCashBankTransactions
     });
 
+    const queryClient = useQueryClient();
+    const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+
+    const createAccountMutation = useMutation({
+        mutationFn: financeApi.createAccount,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['finance', 'accounts'] });
+            setIsAddAccountModalOpen(false);
+            toast.success('Akun berhasil ditambahkan');
+        },
+        onError: (err: any) => {
+            toast.error('Gagal menambah akun: ' + err.message);
+        }
+    });
+
+    const createTransferMutation = useMutation({
+        mutationFn: financeApi.createCashBankTransaction,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['finance', 'cash-bank-transactions'] });
+            setIsTransferModalOpen(false);
+            toast.success('Transfer berhasil dicatat');
+        },
+        onError: (err: any) => {
+            toast.error('Gagal mencatat transfer: ' + err.message);
+        }
+    });
+
     const cashAccounts = accounts?.filter(a => a.code.startsWith('1-11')) || [];
 
     const formatCurrency = (value: number) => {
@@ -25,6 +55,34 @@ export function CashBank() {
         }).format(value);
     };
 
+    const handleCreateAccount = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        createAccountMutation.mutate({
+            code: formData.get('code') as string,
+            name: formData.get('name') as string,
+            account_type: 'asset',
+            normal_balance: 'debit',
+            description: formData.get('description') as string,
+            currency: 'IDR',
+            parent_id: '',
+        });
+    };
+
+    const handleTransfer = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        createTransferMutation.mutate({
+            date: formData.get('date') as string,
+            amount: parseFloat(formData.get('amount') as string),
+            from_account_id: formData.get('from_account_id') as string,
+            to_account_id: formData.get('to_account_id') as string,
+            description: formData.get('description') as string,
+            transaction_type: 'transfer',
+            account_id: formData.get('from_account_id') as string,
+        });
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -33,12 +91,19 @@ export function CashBank() {
                     <p className="text-slate-400">Kelola saldo kas dan mutasi bank Anda</p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" className="gap-2 border-slate-700 text-slate-300">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsTransferModalOpen(true)}
+                        className="gap-2 border-slate-700 text-slate-300"
+                    >
                         Transfer Kas
                     </Button>
-                    <Button className="gap-2 bg-cyan-600 hover:bg-cyan-500">
+                    <Button
+                        onClick={() => setIsAddAccountModalOpen(true)}
+                        className="gap-2 bg-cyan-600 hover:bg-cyan-500"
+                    >
                         <Plus size={18} />
-                        Tambah Akun
+                        Tambah Kas & Bank
                     </Button>
                 </div>
             </div>
@@ -128,8 +193,8 @@ export function CashBank() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold ${t.transaction_type === 'receive' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                    t.transaction_type === 'send' ? 'bg-rose-500/10 text-rose-400' :
-                                                        'bg-blue-500/10 text-blue-400'
+                                                t.transaction_type === 'send' ? 'bg-rose-500/10 text-rose-400' :
+                                                    'bg-blue-500/10 text-blue-400'
                                                 }`}>
                                                 {t.transaction_type === 'receive' ? 'Terima' :
                                                     t.transaction_type === 'send' ? 'Kirim' : 'Transfer'}
@@ -152,6 +217,156 @@ export function CashBank() {
                     </table>
                 </div>
             </Card>
+            {/* Modal Tambah Akun */}
+            {isAddAccountModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-2xl">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white">Tambah Akun Kas/Bank</h2>
+                            <button onClick={() => setIsAddAccountModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Kode Akun</label>
+                                <input
+                                    name="code"
+                                    placeholder="1-11xxx"
+                                    required
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                                <p className="text-xs text-slate-500">Gunakan prefix 1-11 untuk Kas & Bank</p>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Nama Akun</label>
+                                <input
+                                    name="name"
+                                    placeholder="Contoh: Kas Kecil, BCA IDR"
+                                    required
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Deskripsi</label>
+                                <textarea
+                                    name="description"
+                                    rows={2}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsAddAccountModalOpen(false)}
+                                    className="flex-1 border-slate-800 text-slate-400"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={createAccountMutation.isPending}
+                                    className="flex-1 bg-cyan-600 hover:bg-cyan-500"
+                                >
+                                    {createAccountMutation.isPending ? 'Menyimpan...' : 'Simpan Akun'}
+                                </Button>
+                            </div>
+                        </form>
+                    </Card>
+                </div>
+            )}
+
+            {/* Modal Transfer */}
+            {isTransferModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 shadow-2xl">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white">Transfer Kas / Bank</h2>
+                            <button onClick={() => setIsTransferModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleTransfer} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Dari Akun</label>
+                                    <select
+                                        name="from_account_id"
+                                        required
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    >
+                                        <option value="">Pilih Sumber</option>
+                                        {cashAccounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name} ({acc.code})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Ke Akun</label>
+                                    <select
+                                        name="to_account_id"
+                                        required
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    >
+                                        <option value="">Pilih Tujuan</option>
+                                        {cashAccounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.name} ({acc.code})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Tanggal</label>
+                                    <input
+                                        name="date"
+                                        type="date"
+                                        required
+                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Jumlah Transfer</label>
+                                    <input
+                                        name="amount"
+                                        type="number"
+                                        placeholder="0"
+                                        required
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Keterangan</label>
+                                <textarea
+                                    name="description"
+                                    rows={2}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsTransferModalOpen(false)}
+                                    className="flex-1 border-slate-800 text-slate-400"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={createTransferMutation.isPending}
+                                    className="flex-1 bg-cyan-600 hover:bg-cyan-500"
+                                >
+                                    {createTransferMutation.isPending ? 'Memproses...' : 'Transfer Sekarang'}
+                                </Button>
+                            </div>
+                        </form>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

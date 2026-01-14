@@ -160,10 +160,9 @@ impl AppState {
             crate::application::services::LeaveService::new(leave_repo, employee_repo);
 
         let finance_repo = FinanceRepository::new(pool.clone());
-        let finance_service = FinanceService::new(finance_repo.clone());
-
         let journal_repo = JournalRepository::new(pool.clone());
         let journal_service = JournalService::new(journal_repo, finance_repo.clone());
+        let finance_service = FinanceService::new(finance_repo.clone(), journal_service.clone());
 
         Self {
             asset_service,
