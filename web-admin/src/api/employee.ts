@@ -14,6 +14,40 @@ export interface Employee {
     employment_status: EmploymentStatus;
     user_id?: string;
     is_active: boolean;
+
+    // Biodata
+    ktp_number?: string;
+    place_of_birth?: string;
+    date_of_birth?: string;
+    gender?: 'L' | 'P';
+    marital_status?: string;
+    religion?: string;
+    address?: string;
+    blood_type?: string;
+
+    // Emergency Contact
+    emergency_contact_name?: string;
+    emergency_contact_phone?: string;
+    emergency_contact_relation?: string;
+
+    // Employment
+    start_date?: string;
+    end_contract_date?: string;
+    is_manager: boolean;
+    manager_id?: string;
+
+    // Payroll
+    bank_account?: string;
+    bank_name?: string;
+    npwp?: string;
+    bpjs_kesehatan?: string;
+    bpjs_tenaga_kerja?: string;
+    basic_salary?: number;
+    is_allowance?: boolean;
+
+    // Education
+    education?: string;
+
     created_at: string;
     updated_at: string;
 }

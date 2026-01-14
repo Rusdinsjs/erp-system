@@ -110,6 +110,23 @@ impl MaintenanceRepository {
         .await
     }
 
+    pub async fn list_due_next_service(&self) -> Result<Vec<MaintenanceRecord>, sqlx::Error> {
+        sqlx::query_as::<_, MaintenanceRecord>(
+            r#"
+            SELECT * FROM maintenance_records 
+            WHERE next_service_date <= CURRENT_DATE 
+              AND status = 'completed'
+              AND NOT EXISTS (
+                  SELECT 1 FROM maintenance_work_orders 
+                  WHERE asset_id = maintenance_records.asset_id 
+                    AND status IN ('pending', 'approved', 'assigned', 'in_progress')
+              )
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn create(
         &self,
         record: &MaintenanceRecord,

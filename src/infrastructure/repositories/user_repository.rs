@@ -21,12 +21,13 @@ impl UserRepository {
             SELECT 
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
-                u.department, u.department_id, u.organization_id,
+                u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN employees e ON u.id = e.user_id
             WHERE u.id = $1
             "#,
         )
@@ -41,12 +42,13 @@ impl UserRepository {
             SELECT 
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
-                u.department, u.department_id, u.organization_id,
+                u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN employees e ON u.id = e.user_id
             WHERE u.email = $1
             "#,
         )
@@ -94,12 +96,13 @@ impl UserRepository {
             SELECT 
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
-                u.department, u.department_id, u.organization_id,
+                u.department, u.department_id, u.organization_id, e.id as employee_id,
                 NULL::text as phone, NULL::text as avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM inserted_user u
             LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN employees e ON u.id = e.user_id
             "#,
         )
         .bind(user.id)
@@ -168,12 +171,13 @@ impl UserRepository {
             SELECT 
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
-                u.department, u.department_id, u.organization_id,
+                u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM updated_user u
             LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN employees e ON u.id = e.user_id
             "#,
         )
         .bind(id)
@@ -206,12 +210,13 @@ impl UserRepository {
             SELECT 
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
-                u.department, u.department_id, u.organization_id,
+                u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM updated_user u
             LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN employees e ON u.id = e.user_id
             "#,
         )
         .bind(id)
@@ -235,12 +240,13 @@ impl UserRepository {
             SELECT 
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
-                u.department, u.department_id, u.organization_id,
+                u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM updated_user u
             LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN employees e ON u.id = e.user_id
             "#,
         )
         .bind(id)

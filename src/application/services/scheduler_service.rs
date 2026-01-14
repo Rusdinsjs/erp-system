@@ -5,20 +5,26 @@
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
 
-use crate::application::services::{LoanService, MaintenanceService};
+use crate::application::services::{LoanService, MaintenanceService, WorkOrderService};
 
 /// Scheduler service
 #[derive(Clone)]
 pub struct SchedulerService {
     loan_service: LoanService,
     maintenance_service: MaintenanceService,
+    work_order_service: WorkOrderService,
 }
 
 impl SchedulerService {
-    pub fn new(loan_service: LoanService, maintenance_service: MaintenanceService) -> Self {
+    pub fn new(
+        loan_service: LoanService,
+        maintenance_service: MaintenanceService,
+        work_order_service: WorkOrderService,
+    ) -> Self {
         Self {
             loan_service,
             maintenance_service,
+            work_order_service,
         }
     }
 
@@ -47,14 +53,49 @@ impl SchedulerService {
 
         // Job 2: Check maintenance due daily at 01:00
         let maintenance_service = self.maintenance_service.clone();
+        let work_order_service = self.work_order_service.clone();
+
         sched
             .add(Job::new_async("0 0 1 * * *", move |_uuid, _l| {
-                let service = maintenance_service.clone();
+                let m_service = maintenance_service.clone();
+                let wo_service = work_order_service.clone();
                 Box::pin(async move {
                     info!("Running scheduled job: Check Maintenance Due");
-                    match service.check_upcoming_maintenance().await {
-                        // We need to implement this
-                        Ok(_) => info!("Maintenance check completed"),
+                    match m_service.check_upcoming_maintenance().await {
+                        Ok(records) => {
+                            for record in &records {
+                                info!("Auto-creating Work Order for Asset: {}", record.asset_id);
+                                let req = crate::application::services::CreateWorkOrderRequest {
+                                    asset_id: record.asset_id,
+                                    wo_type: "preventive".to_string(),
+                                    priority: Some("medium".to_string()),
+                                    scheduled_date: record.next_service_date,
+                                    due_date: record
+                                        .next_service_date
+                                        .map(|d| d + chrono::Duration::days(3)),
+                                    problem_description: Some(format!(
+                                        "Automated preventive maintenance based on record {}.",
+                                        record.id
+                                    )),
+                                    estimated_hours: None,
+                                    estimated_cost: None,
+                                    safety_requirements: None,
+                                    lockout_tagout_required: None,
+                                    location_id: None,
+                                };
+
+                                if let Err(e) = wo_service.create(req, None).await {
+                                    error!(
+                                        "Failed to auto-create WO for asset {}: {}",
+                                        record.asset_id, e
+                                    );
+                                }
+                            }
+                            info!(
+                                "Maintenance check completed, processed {} records",
+                                records.len()
+                            );
+                        }
                         Err(e) => error!("Error checking maintenance: {}", e),
                     }
                 })

@@ -1,49 +1,36 @@
-# Build stage
-FROM rust:alpine AS builder
-
-WORKDIR /app
+# --- Build Stage ---
+FROM rust:slim-bookworm as builder
 
 # Install build dependencies
-RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconfig
-
-# Copy manifests
-COPY Cargo.toml ./
-
-# Create a dummy main.rs to cache dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
-RUN rm -rf src
-
-# Copy source code
-COPY src ./src
-COPY migrations ./migrations
-
-# Build the actual application
-RUN touch src/main.rs && cargo build --release
-
-# Runtime stage
-FROM alpine:3.19
+RUN apt-get update && apt-get install -y pkg-config libssl-dev protobuf-compiler && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates libgcc
+# Copy all files
+COPY . .
 
-# Copy the binary
-COPY --from=builder /app/target/release/asset-management /app/asset-management
+# Set SQLX_OFFLINE to true for builds without a live DB
+ENV SQLX_OFFLINE=true
+
+# Build the application
+# Note: We use --release for production optimization
+RUN cargo build --release
+
+# --- Runtime Stage ---
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y libssl3 ca-certificates curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the binary from the builder
+COPY --from=builder /app/target/release/management-system /app/management-system
+# Copy migrations for startup auto-migration
 COPY --from=builder /app/migrations /app/migrations
 
-# Create non-root user
-RUN addgroup -g 1000 app && adduser -u 1000 -G app -D app
-RUN chown -R app:app /app
-USER app
-
-# Expose port
+# Expose the API port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
-
-# Run the binary
-CMD ["./asset-management"]
+# Run the app
+CMD ["./management-system"]

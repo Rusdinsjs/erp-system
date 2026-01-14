@@ -21,13 +21,13 @@ async fn setup_test_app() -> Router {
 
     let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "test-secret".to_string());
 
-    let jwt_config = asset_management::shared::utils::jwt::JwtConfig {
+    let jwt_config = management_system::shared::utils::jwt::JwtConfig {
         secret: jwt_secret,
         expiry_hours: 24,
     };
 
-    let state = asset_management::api::server::AppState::new(pool, jwt_config);
-    asset_management::api::server::create_app(state)
+    let state = management_system::api::server::AppState::new(pool, jwt_config);
+    management_system::api::server::create_app(state)
 }
 
 /// Helper to login and get token

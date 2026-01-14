@@ -8,109 +8,74 @@ This document provides a high-level overview of the Asset Management System's cu
 
 ## 📋 Changelog
 
+### 2026-01-14 (Operations Automation & Podman Readiness)
+
+- **Maintenance Automation:**
+  - **Scheduler Service:** Implemented daily background job (01:00 AM) to auto-generate Preventive Work Orders for assets reaching their `next_service_date`.
+  - **Repository:** Added `list_due_next_service` logic to prevent duplicate SPKs and handle expired service dates.
+- **Loans Module Refinement:**
+  - **UI Integration:** Displaying Employee NIK in the loans table and detail views for better accountability.
+  - **Data Integrity:** Ensured `employee_id` linkage is robust across the checkout/checkin lifecycle.
+- **Rental Billing:**
+  - **Frontend:** Implemented `BillingPeriodForm` and modal-based generation for new billing cycles.
+  - **Audit Log:** Enhanced billing details with a historical timesheet audit log.
+- **Production & Podman:**
+  - **Dockerfile:** Upgraded to Rust 1.83-slim for `Cargo.lock` compatibility and added SQLx offline build support (`ENV SQLX_OFFLINE=true`).
+  - **Preparation:** Generated `.sqlx/` metadata to allow builds without a live database connection.
+  - **Compatibility:** Verified `start-dev.ps1` and `docker-compose.yml` stability using Podman.
+
 ### 2026-01-14 (Form Intelligence & Master Data)
 
-- **Departments Module (Create/Manage):**
-  - **Database:** Implemented `departments` table and API endpoints (`/api/departments`) with raw SQL handlers.
-  - **Frontend:** Created "Departments Manager" page (`Master Data -> Departemen`).
-  - **Integration:** Integrated dynamic Department selection in Asset Forms with "Quick Add" capability.
-- **Form Enhancements:**
-  - **Smart Attribute Templates:** Implemented auto-fill logic for asset specifications based on category (e.g., selecting "Crusher" pre-fills "Capacity", "Power", etc.).
-  - **Enhanced Select Component:** Added internal `onCreate` triggers to Dropdowns for seamless workflow (add item without leaving form).
-
-### 2026-01-14 (Form Intelligence & Master Data)
-
-- **Departments Module (Create/Manage):**
-  - **Database:** Implemented `departments` table and API endpoints (`/api/departments`) with raw SQL handlers.
-  - **Frontend:** Created "Departments Manager" page (`Master Data -> Departemen`).
-  - **Integration:** Integrated dynamic Department selection in Asset Forms with "Quick Add" capability.
-- **Form Enhancements:**
-  - **Smart Attribute Templates:** Implemented auto-fill logic for asset specifications based on category (e.g., selecting "Crusher" pre-fills "Capacity", "Power", etc.).
-  - **Enhanced Select Component:** Added internal `onCreate` triggers to Dropdowns for seamless workflow (add item without leaving form).
-
-### 2026-01-13 (Frontend Architecture Overhaul)
-
-- **100% Pure Tailwind CSS Migration:**
-  - Successfully migrated the entire `web-admin` application from Mantine UI to Pure Tailwind CSS.
-  - **Mantine Uninstalled:** Removed all `@mantine` dependencies, `postcss-preset-mantine`, and legacy theme files.
-  - **Custom UI Library:** Established a robust internal component library in `src/components/ui/` (Modal, Table, Toast, DateInput, etc.).
-- **Module UI Rewrites:**
-  - **Dashboard:** Modernized `StatCard`, `RecentActivity`, and `DashboardCharts` (using `recharts`).
-  - **Rentals:** Rebuilt `TimesheetReviewer` and `BillingReviewDetail` for evidence-based workflows.
-  - **Forms:** Migrated complex forms (`WorkOrderForm`, `AssetForm`) to use manual state management and native validation.
-- **Infrastructure Upgrades:**
-  - **Global Toast System:** Refactored notifications to support calls from API interceptors via Event Bus.
-  - **Performance:** Reduced bundle size by removing heavy component libraries.
-
-### 2026-01-13 (Backend & Locations)
-
-- **Location Module:** Full implementation (Building → Floor → Room hierarchy).
-- **Database:** Auto-migration enabled on startup.
-- **Fixes:** Resolved WebSocket race conditions and API endpoint mappings.
+- **Departments Module:** Implemented `departments` table and API endpoints with dynamic selection & "Quick Add" in Asset Forms.
+- **Smart Templates:** Added auto-fill logic for asset specs based on category templates.
 
 ---
 
 ## 🟢 Core Modules (Stable/Complete)
 
 ### 1. Asset Management (`src/api/handlers/asset_handler.rs`)
-- **Features:** CRUD, QR Codes, Lifecycle tracking.
-- **Frontend:** Pure Tailwind Data Grid with filtering and Actions.
+
+- **Features:** CRUD, QR Codes, Lifecycle tracking, Master Data (Category/Dept) integration.
 
 ### 2. Master Data Engine (Categories, Locations, Departments)
-- **Features:** Recursive Trees (Categories/Locations), Organizational Departments.
-- **Frontend:** Tree Views, DataTables, and Form Integrations.
+
+- **Features:** Recursive Trees, Smart Dropdowns with "Quick Add".
 
 ### 3. Authentication & RBAC
-- **Features:** JWT Auth + 4-Level Permission System (Admin, Manager, Supervisor, Operator).
-- **Frontend:** Secure Layouts and Route Guards.
 
-### 4. Lifecycle Management
-- **Features:** State machine transitions (Planning → Disposed).
-- **Frontend:** Drag-and-drop Kanban or Status-based workflow.
+- **Features:** JWT Auth + 4-Level Permission System.
 
 ---
 
-## 🟡 Advanced Modules (Feature Complete / Polishing)
+## 🔵 Advanced Modules (Automated & Polished)
 
-### 5. Work Order System
-- **Status:** **Feature Complete**
-- **Details:** Preventive maintenance, repair tickets, cost tracking (Labor + Parts).
-- **UI:** Tabbed interfaces for Tasks and Parts management.
+### 4. Work Order & Maintenance
 
-### 6. Loans Module (Internal Lending)
-- **Status:** **Frontend Complete / Backend Integrated**
-- **Features:** Employee Checkout/Checkin flow with condition logging.
-- **UI:** Unified dashboard for Active, Overdue, and Pending requests.
+- **Status:** **Automated**
+- **Details:** Auto-generation of preventive SPKs, full cost tracking, and asset name joins in backend queries.
 
-### 7. Rental & Client Management
-- **Status:** **High Fidelity UI**
-- **Features:**
-  - **Client & Rates:** Template-based pricing.
-  - **Timesheet Reviewer:** Split-screen evidence verification (Photo vs Log).
-  - **Billing:** Automated invoice generation base on hours (Op/St/Bk).
+### 5. Loans Module (Internal Lending)
+
+- **Status:** **Polished**
+- **Features:** NIK-integrated checkout, condition logging, and overdue tracking.
+
+### 6. Rental & Client Management
+
+- **Status:** **High Fidelity UI / Verified**
+- **Features:** Evidence-based timesheets, automated billing calculations, and invoice generation.
 
 ---
 
-## ⚪ Mobile App (`mobile/`)
-
-- **Status:** **Core Features Active**
-- **Capabilities:**
-  - Offline-first reporting.
-  - Photo evidence capture.
-  - QR Code scanning for asset lookup.
-  - Push Notifications (via WebSocket integration).
-
----
-
-## 🛠 Tech Stack
+## 🛠 Tech Stack & Environment
 
 - **Backend:** Rust (Axum, SQLx, Tokio)
-- **Database:** PostgreSQL + Redis (Caching)
-- **Frontend:** React (Vite, **Tailwind CSS v4**, React Query, Zustand)
-- **Infrastructure:** Docker Compose
+- **Database:** PostgreSQL (5436) + Redis (6382)
+- **Frontend:** React (Vite, Tailwind CSS v4, React Query)
+- **Container Engine:** Podman / Docker (supports `podman compose`)
 
-## 🔄 Handoff Notes
+## 🔄 Handoff & Linux Handoff Notes
 
-- **Toast System:** Use `showToast()` from `src/components/ui/Toast` for non-component notifications.
-- **Components:** All UI elements reside in `src/components/ui`. Avoid introducing new CSS libraries.
-- **Workflow:** Check `.agent/workflows/` for architectural references.
+- **Linux Pickup:** Since the project uses Podman on Windows, it will transition seamlessly to Linux. Use `podman compose up -d` to start the infrastructure.
+- **SQLx Offline:** If building in CI or a restricted environment, `cargo build` will use the `.sqlx` folder due to `SQLX_OFFLINE=true`.
+- **Database:** Migrations run automatically on backend startup. To run manually: `sqlx migrate run`.
+- **Backend Logs:** Check `backend.err.log` if `cargo run` fails.

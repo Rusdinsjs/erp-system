@@ -32,8 +32,10 @@ impl WorkOrderRepository {
     pub async fn list(&self, limit: i64, offset: i64) -> Result<Vec<WorkOrder>, sqlx::Error> {
         sqlx::query_as::<_, WorkOrder>(
             r#"
-            SELECT * FROM maintenance_work_orders
-            ORDER BY created_at DESC
+            SELECT w.*, a.name as asset_name 
+            FROM maintenance_work_orders w
+            LEFT JOIN assets a ON w.asset_id = a.id
+            ORDER BY w.created_at DESC
             LIMIT $1 OFFSET $2
             "#,
         )

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO rental_rates (\n                id, name, category_id, asset_id, rate_type, rate_amount, currency,\n                minimum_duration, deposit_percentage, late_fee_per_day, is_active,\n                created_at, updated_at\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n            RETURNING *\n            ",
+  "query": "\n            INSERT INTO rental_rates (\n                id, name, category_id, asset_id, rate_type, rate_amount, currency,\n                minimum_duration, deposit_percentage, late_fee_per_day, is_active,\n                rate_basis, minimum_hours, overtime_multiplier, standby_multiplier,\n                breakdown_penalty_per_day, hours_per_day, days_per_month,\n                created_at, updated_at\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)\n            RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -117,6 +117,13 @@
         "Numeric",
         "Numeric",
         "Bool",
+        "Varchar",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int4",
         "Timestamptz",
         "Timestamptz"
       ]
@@ -144,5 +151,5 @@
       true
     ]
   },
-  "hash": "5cd07cfc800856dafd8022c3707d2cb9780e7901c205a9039cc4e4eaeef3855b"
+  "hash": "005b921d27c5d0cf525fc77566ea06ad572eddf76acd956523b779818aaf1fad"
 }

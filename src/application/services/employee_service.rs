@@ -44,6 +44,42 @@ impl EmployeeService {
             employment_status: req.employment_status,
             user_id: req.user_id,
             is_active: true,
+
+            // Biodata
+            ktp_number: req.ktp_number,
+            place_of_birth: req.place_of_birth,
+            date_of_birth: req.date_of_birth,
+            gender: req.gender,
+            marital_status: req.marital_status,
+            religion: req.religion,
+            address: req.address,
+            blood_type: None, // Not in create request yet? Check DTO.
+
+            // Emergency
+            emergency_contact_name: None,
+            emergency_contact_phone: None,
+            emergency_contact_relation: None,
+
+            // Employment
+            start_date: req.start_date,
+            end_contract_date: req.end_contract_date,
+            is_manager: req.is_manager.unwrap_or(false),
+            manager_id: req.manager_id,
+
+            // Payroll
+            bank_account: req.bank_account,
+            bank_name: req.bank_name,
+            npwp: None,
+            bpjs_kesehatan: None,
+            bpjs_tenaga_kerja: None,
+            basic_salary: req.basic_salary,
+
+            // Education
+            education: None,
+
+            leave_balance: 12, // Default annual leave
+            leave_used: 0,
+
             created_at: Utc::now(),
             updated_at: Utc::now(),
             department_name: None,
@@ -101,6 +137,82 @@ impl EmployeeService {
         }
         if let Some(active) = req.is_active {
             employee.is_active = active;
+        }
+
+        // Biodata Updates
+        if let Some(ktp) = req.ktp_number {
+            employee.ktp_number = Some(ktp);
+        }
+        if let Some(pob) = req.place_of_birth {
+            employee.place_of_birth = Some(pob);
+        }
+        if let Some(dob) = req.date_of_birth {
+            employee.date_of_birth = Some(dob);
+        }
+        if let Some(gender) = req.gender {
+            employee.gender = Some(gender);
+        }
+        if let Some(status) = req.marital_status {
+            employee.marital_status = Some(status);
+        }
+        if let Some(rel) = req.religion {
+            employee.religion = Some(rel);
+        }
+        if let Some(addr) = req.address {
+            employee.address = Some(addr);
+        }
+        if let Some(blood) = req.blood_type {
+            employee.blood_type = Some(blood);
+        }
+
+        // Emergency Contact
+        if let Some(name) = req.emergency_contact_name {
+            employee.emergency_contact_name = Some(name);
+        }
+        if let Some(phone) = req.emergency_contact_phone {
+            employee.emergency_contact_phone = Some(phone);
+        }
+        if let Some(rel) = req.emergency_contact_relation {
+            employee.emergency_contact_relation = Some(rel);
+        }
+
+        // Employment Updates
+        if let Some(start) = req.start_date {
+            employee.start_date = Some(start);
+        }
+        if let Some(end) = req.end_contract_date {
+            employee.end_contract_date = Some(end);
+        }
+        if let Some(is_mgr) = req.is_manager {
+            employee.is_manager = is_mgr;
+        }
+        if let Some(mgr_id) = req.manager_id {
+            employee.manager_id = Some(mgr_id);
+        }
+
+        // Payroll Updates
+        if let Some(acc) = req.bank_account {
+            employee.bank_account = Some(acc);
+        }
+        if let Some(name) = req.bank_name {
+            employee.bank_name = Some(name);
+        }
+        if let Some(npwp) = req.npwp {
+            employee.npwp = Some(npwp);
+        }
+        if let Some(bpjs_k) = req.bpjs_kesehatan {
+            employee.bpjs_kesehatan = Some(bpjs_k);
+        }
+        if let Some(bpjs_tk) = req.bpjs_tenaga_kerja {
+            employee.bpjs_tenaga_kerja = Some(bpjs_tk);
+        }
+        if let Some(salary) = req.basic_salary {
+            employee.basic_salary = Some(salary);
+        }
+
+        // Education
+        if let Some(edu) = req.education {
+            employee.education = Some(edu);
         }
 
         self.repository.update(&employee).await

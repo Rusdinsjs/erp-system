@@ -5,7 +5,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import {
     LayoutDashboard, Package, FolderTree, Wrench, Users, LogOut, Menu, X,
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
-    Truck, HandMetal, Building2, MapPin, Scan, UserCircle
+    Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
+    Calendar as CalendarIcon,
 } from 'lucide-react';
 
 // Import all views
@@ -26,6 +27,10 @@ const LoansView = lazy(() => import('./Loans').then(m => ({ default: m.Loans }))
 const LocationsView = lazy(() => import('./Locations').then(m => ({ default: m.Locations })));
 const EmployeesView = lazy(() => import('./Employees').then(m => ({ default: m.Employees })));
 const DepartmentsView = lazy(() => import('./Departments').then(m => ({ default: m.Departments })));
+const AttendanceView = lazy(() => import('./Attendance/AttendanceDashboard'));
+const LeaveDashboardView = lazy(() => import('./Leaves/LeaveDashboard'));
+// const RentalBilling = lazy(() => import('./Finance/RentalBilling'));
+// const RentalTimesheets = lazy(() => import('./Rentals/RentalTimesheets'));
 
 // Define the available tabs
 type TabId =
@@ -38,6 +43,8 @@ type TabId =
     | 'clients'
     | 'loans'
     | 'employees'
+    | 'attendance'
+    | 'leaves'
     | 'conversions'
     | 'approvals'
     | 'reports'
@@ -83,12 +90,20 @@ const navItems: NavEntry[] = [
         ]
     },
     {
+        id: 'hrd_group',
+        label: 'HRD',
+        icon: Users,
+        children: [
+            { id: 'attendance', icon: Clock, label: 'Absensi' },
+            { id: 'leaves', icon: CalendarIcon, label: 'Cuti / Izin' },
+        ]
+    },
+    {
         id: 'master_data',
         label: 'Master Data',
         icon: Building2,
         children: [
             { id: 'clients', icon: Building2, label: 'Klien' },
-            { id: 'employees', icon: Users, label: 'Pegawai' },
             { id: 'locations', icon: MapPin, label: 'Lokasi' },
             { id: 'categories', icon: FolderTree, label: 'Kategori' },
             { id: 'departments', icon: Building2, label: 'Departemen' },
@@ -113,6 +128,7 @@ export function AdminDashboard() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
         operations: true,
+        hrd_group: true,
         master_data: false,
         approval_group: true,
         settings_group: false
@@ -296,6 +312,8 @@ export function AdminDashboard() {
             case 'clients': return <ClientsView />;
             case 'loans': return <LoansView />;
             case 'employees': return <EmployeesView />;
+            case 'attendance': return <AttendanceView />;
+            case 'leaves': return <LeaveDashboardView />;
             case 'approvals': return <ApprovalCenterView />;
             case 'reports': return <ReportsView />;
             case 'users': return <UsersView />;
@@ -319,17 +337,17 @@ export function AdminDashboard() {
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed lg:static inset-y-0 left-0 z-50
-                    bg-slate-900 border-r border-slate-800 text-white 
-                    transition-all duration-300 ease-in-out flex flex-col
-                    ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}
-                `}
+            fixed lg:static inset-y-0 left-0 z-50
+            bg-slate-900 border-r border-slate-800 text-white 
+            transition-all duration-300 ease-in-out flex flex-col
+            ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}
+        `}
             >
                 {/* Logo */}
                 <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
                     {sidebarOpen && (
                         <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                            Asset Manager
+                            Management System
                         </span>
                     )}
 

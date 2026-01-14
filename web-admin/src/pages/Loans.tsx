@@ -191,8 +191,8 @@ export function Loans() {
         <button
             onClick={() => setActiveTab(value)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === value
-                    ? danger ? 'bg-red-500/20 text-red-400' : 'bg-cyan-500/20 text-cyan-400'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? danger ? 'bg-red-500/20 text-red-400' : 'bg-cyan-500/20 text-cyan-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
         >
             {children}
@@ -290,7 +290,14 @@ export function Loans() {
                                     <TableTd>
                                         <div>
                                             <p className="font-medium text-white">{loan.asset_name || getAssetName(loan.asset_id)}</p>
-                                            <p className="text-xs text-slate-500">{loan.employee_name || loan.borrower_name || 'Anonymous'}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-xs text-slate-500">{loan.employee_name || loan.borrower_name || 'Anonymous'}</span>
+                                                {loan.employee_id && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded-md border border-slate-700">
+                                                        {employees.find(e => e.id === loan.employee_id)?.nik || 'NIK...'}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </TableTd>
                                     <TableTd>{loan.loan_date}</TableTd>
@@ -448,7 +455,14 @@ export function Loans() {
                             </div>
                             <div>
                                 <p className="text-xs text-slate-400 font-semibold uppercase">Peminjam</p>
-                                <p className="font-medium text-white">{selectedLoan.borrower_name || 'Anonymous'}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="font-medium text-white">{selectedLoan.employee_name || selectedLoan.borrower_name || 'Anonymous'}</p>
+                                    {selectedLoan.employee_id && (
+                                        <Badge variant="default" className="text-[10px]">
+                                            {employees.find(e => e.id === selectedLoan.employee_id)?.nik}
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

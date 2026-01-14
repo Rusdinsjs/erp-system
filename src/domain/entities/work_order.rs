@@ -118,6 +118,10 @@ pub struct WorkOrder {
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+
+    // Joined fields
+    #[sqlx(default)]
+    pub asset_name: Option<String>,
 }
 
 impl WorkOrder {
@@ -158,6 +162,7 @@ impl WorkOrder {
             completed_by: None,
             created_at: now,
             updated_at: now,
+            asset_name: None,
         }
     }
 

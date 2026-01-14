@@ -24,7 +24,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const connect = useCallback(() => {
         // Use window.location.hostname to support network access
         const hostname = window.location.hostname;
-        const wsUrl = import.meta.env.VITE_WS_URL || `ws://${hostname}:8080/ws`;
+        const wsUrl = import.meta.env.VITE_WS_URL || `ws://${hostname}:8082/ws`;
 
         // Close existing if any
         if (ws.current) {

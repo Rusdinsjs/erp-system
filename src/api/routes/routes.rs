@@ -183,6 +183,46 @@ pub fn create_router(state: AppState) -> Router {
                 .put(update_department)
                 .delete(delete_department),
         )
+        // HRD - Attendance
+        .route(
+            "/api/hrd/attendance/today",
+            get(attendance_handler::get_today_status),
+        )
+        .route(
+            "/api/hrd/attendance/check-in",
+            post(attendance_handler::check_in),
+        )
+        .route(
+            "/api/hrd/attendance/check-out",
+            post(attendance_handler::check_out),
+        )
+        .route(
+            "/api/hrd/attendance/history",
+            get(attendance_handler::get_my_history),
+        )
+        .route(
+            "/api/hrd/attendance/all-today",
+            get(attendance_handler::get_all_today),
+        )
+        .route(
+            "/api/hrd/attendance/employee/:employee_id",
+            get(attendance_handler::get_employee_history),
+        )
+        // Leave Management
+        .route("/api/hrd/leaves", post(leave_handler::request_leave))
+        .route("/api/hrd/leaves/my", get(leave_handler::my_leaves))
+        .route(
+            "/api/hrd/leaves/pending",
+            get(leave_handler::pending_leaves),
+        )
+        .route(
+            "/api/hrd/leaves/:id/approve",
+            post(leave_handler::approve_leave),
+        )
+        .route(
+            "/api/hrd/leaves/:id/reject",
+            post(leave_handler::reject_leave),
+        )
         // I'll rewrite this block more cleanly
         // RBAC
         .route("/api/rbac/roles", get(list_roles))

@@ -13,6 +13,7 @@ pub mod dashboard_handler;
 pub mod data_handler;
 pub mod employee_handler;
 pub mod health_handler;
+pub mod leave_handler;
 pub mod lifecycle_handler;
 pub mod loan_handler;
 pub mod lookup_handler;
@@ -58,3 +59,7 @@ pub mod location_handler;
 pub use location_handler::*;
 pub mod department_handler;
 pub use department_handler::*;
+
+pub mod attendance_handler;
+pub use attendance_handler::*;
+pub use leave_handler::*;

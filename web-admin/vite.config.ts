@@ -5,4 +5,19 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    port: 5174,
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@tanstack/react-query', 'lucide-react', 'clsx', 'tailwind-merge'],
+          charts: ['recharts'],
+          utils: ['dayjs', 'axios', 'zustand'],
+        },
+      },
+    },
+  },
 })

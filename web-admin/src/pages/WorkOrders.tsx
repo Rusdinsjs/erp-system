@@ -146,7 +146,7 @@ export function WorkOrders() {
                                 >
                                     <TableTd>
                                         <span className="font-medium text-white">
-                                            {record.asset?.name || record.asset_id}
+                                            {record.asset_name || record.asset?.name || record.asset_id}
                                         </span>
                                     </TableTd>
                                     <TableTd>{record.wo_type}</TableTd>

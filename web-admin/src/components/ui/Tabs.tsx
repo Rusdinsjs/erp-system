@@ -1,4 +1,3 @@
-// Tabs Component - Pure Tailwind
 import { type ReactNode, createContext, useContext, useState } from 'react';
 
 // Context for tabs
@@ -12,12 +11,27 @@ const TabsContext = createContext<TabsContextValue | null>(null);
 // Tabs Root
 interface TabsProps {
     children: ReactNode;
-    defaultValue: string;
+    defaultValue?: string;
+    value?: string;
+    onValueChange?: (value: string) => void;
     className?: string;
 }
 
-export function Tabs({ children, defaultValue, className = '' }: TabsProps) {
-    const [activeTab, setActiveTab] = useState(defaultValue);
+export function Tabs({ children, defaultValue, value, onValueChange, className = '' }: TabsProps) {
+    // If value is provided, it's controlled. Otherwise use internal state.
+    const isControlled = value !== undefined;
+    const [internalActiveTab, setInternalActiveTab] = useState(defaultValue || '');
+
+    const activeTab = isControlled ? value : internalActiveTab;
+
+    const setActiveTab = (tab: string) => {
+        if (!isControlled) {
+            setInternalActiveTab(tab);
+        }
+        if (onValueChange) {
+            onValueChange(tab);
+        }
+    };
 
     return (
         <TabsContext.Provider value={{ activeTab, setActiveTab }}>

@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 function Write-Green ($text) { Write-Host $text -ForegroundColor Green }
 function Write-Blue ($text) { Write-Host $text -ForegroundColor Cyan }
 
-Write-Blue ">>> Memulai Asset Management System..."
+Write-Blue ">>> Memulai Management System..."
 
 # 1. Pastikan Docker Containers (DB & Redis) berjalan
 Write-Green "1. Menjalankan Docker Service (DB & Redis)..."

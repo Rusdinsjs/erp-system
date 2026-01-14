@@ -16,12 +16,12 @@ async fn setup_test_app() -> Router {
         .expect("Failed to connect to DB");
 
     let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "test-secret".to_string());
-    let jwt_config = asset_management::shared::utils::jwt::JwtConfig {
+    let jwt_config = management_system::shared::utils::jwt::JwtConfig {
         secret: jwt_secret,
         expiry_hours: 24,
     };
 
-    let state = asset_management::api::server::AppState::new(pool.clone(), jwt_config);
+    let state = management_system::api::server::AppState::new(pool.clone(), jwt_config);
 
     // Fix passwords for test users (copy from admin which is known to work)
     // This is needed because the seed data hash might be incompatible/old
@@ -38,7 +38,7 @@ async fn setup_test_app() -> Router {
             .unwrap();
     }
 
-    asset_management::api::server::create_app(state)
+    management_system::api::server::create_app(state)
 }
 
 async fn get_token(app: Router, email: &str) -> (String, Router) {

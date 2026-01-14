@@ -81,6 +81,9 @@ pub struct User {
     pub department_id: Option<Uuid>,
     pub organization_id: Option<Uuid>,
 
+    #[sqlx(default)]
+    pub employee_id: Option<Uuid>, // Linked Employee ID
+
     // Profile
     pub phone: Option<String>,
     pub avatar_url: Option<String>,
@@ -108,6 +111,7 @@ impl User {
             department: None,
             department_id: None,
             organization_id: None,
+            employee_id: None,
             phone: None,
             avatar_url: None,
             is_active: true,

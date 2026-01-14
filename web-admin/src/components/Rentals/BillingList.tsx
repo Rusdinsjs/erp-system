@@ -5,6 +5,7 @@ import { Receipt, Eye } from 'lucide-react';
 import { billingApi } from '../../api/timesheet';
 import { rentalApi } from '../../api/rental';
 import { BillingReviewDetail } from './BillingReviewDetail';
+import { BillingPeriodForm } from './BillingPeriodForm';
 import {
     Table, TableHead, TableBody, TableRow, TableTh,
     Select,
@@ -18,6 +19,7 @@ import {
 export function BillingList() {
     const [selectedRental, setSelectedRental] = useState<string>('');
     const [viewingBillingId, setViewingBillingId] = useState<string | null>(null);
+    const [createModalOpen, setCreateModalOpen] = useState(false);
 
     const { data: rentals } = useQuery({
         queryKey: ['rentals', 'active'],
@@ -46,6 +48,7 @@ export function BillingList() {
                 <Button
                     leftIcon={<Receipt size={16} />}
                     disabled={!selectedRental}
+                    onClick={() => setCreateModalOpen(true)}
                 >
                     Generate New Billing Period
                 </Button>
@@ -105,6 +108,21 @@ export function BillingList() {
                             onClose={() => setViewingBillingId(null)}
                         />
                     </div>
+                )}
+            </Modal>
+
+            {/* Modal for Creating Billing Period */}
+            <Modal
+                isOpen={createModalOpen}
+                onClose={() => setCreateModalOpen(false)}
+                title="New Billing Period"
+            >
+                {selectedRental && (
+                    <BillingPeriodForm
+                        rentalId={selectedRental}
+                        onClose={() => setCreateModalOpen(false)}
+                        onSuccess={() => setCreateModalOpen(false)}
+                    />
                 )}
             </Modal>
         </div>

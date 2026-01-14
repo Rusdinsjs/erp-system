@@ -68,6 +68,7 @@ pub struct AppState {
     pub analytics_service: AnalyticsService,
     pub employee_service: EmployeeService,
     pub location_service: LocationService, // Added
+    pub leave_service: crate::application::services::LeaveService,
     pub pool: PgPool,
     pub ws_manager: Arc<crate::api::handlers::notification_ws::WebSocketManager>,
 }
@@ -132,8 +133,11 @@ impl AppState {
         let rental_service =
             RentalService::new(rental_repo.clone(), client_repo.clone(), asset_repo.clone());
         let data_service = DataService::new(asset_repo.clone());
-        let scheduler_service =
-            SchedulerService::new(loan_service.clone(), maintenance_service.clone());
+        let scheduler_service = SchedulerService::new(
+            loan_service.clone(),
+            maintenance_service.clone(),
+            work_order_service.clone(),
+        );
         let user_service = UserService::new(user_repo, rbac_repo);
         let report_service = ReportService::new(asset_repo.clone(), maintenance_repo.clone());
         let lifecycle_service = LifecycleService::new(lifecycle_repo.clone());
@@ -141,10 +145,14 @@ impl AppState {
         let billing_service = BillingService::new(timesheet_repo.clone(), rental_repo.clone());
         let client_service = ClientService::new(client_repo.clone());
         let analytics_service = AnalyticsService::new(pool.clone());
-        let employee_service = EmployeeService::new(employee_repo, user_service.clone());
+        let employee_service = EmployeeService::new(employee_repo.clone(), user_service.clone());
         let location_repo =
             crate::infrastructure::repositories::LocationRepository::new(pool.clone());
         let location_service = LocationService::new(location_repo);
+
+        let leave_repo = crate::infrastructure::repositories::LeaveRepository::new(pool.clone());
+        let leave_service =
+            crate::application::services::LeaveService::new(leave_repo, employee_repo);
 
         Self {
             asset_service,
@@ -173,6 +181,7 @@ impl AppState {
             location_service,
             pool,
             ws_manager: Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new()),
+            leave_service,
         }
     }
 }

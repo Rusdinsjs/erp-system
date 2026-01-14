@@ -17,6 +17,7 @@ pub enum AppError {
     Unauthorized(String),
     Forbidden(String),
     BadRequest(String),
+    NotFound(String),
     Internal(String),
 }
 
@@ -94,6 +95,7 @@ impl IntoResponse for AppError {
             Self::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", msg),
             Self::Forbidden(msg) => (StatusCode::FORBIDDEN, "FORBIDDEN", msg),
             Self::BadRequest(msg) => (StatusCode::BAD_REQUEST, "BAD_REQUEST", msg),
+            Self::NotFound(msg) => (StatusCode::NOT_FOUND, "NOT_FOUND", msg),
             Self::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", msg),
             Self::Domain(DomainError::Internal { message }) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", message)

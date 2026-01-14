@@ -14,22 +14,56 @@ import {
     Select,
     LoadingOverlay,
     useToast,
+    Tabs, TabsList, TabsTrigger, TabsContent,
+    DateInput,
+    Textarea
 } from '../components/ui';
+import dayjs from 'dayjs';
 
 interface Department {
     id: string;
     name: string;
 }
 
-const initialFormState = {
+const initialFormState: Partial<Employee> = {
     nik: '',
     name: '',
     email: '',
     phone: '',
     department_id: '',
     position: '',
-    employment_status: 'pkwt' as EmploymentStatus,
+    employment_status: 'pkwt',
     user_id: '',
+
+    // Biodata
+    ktp_number: '',
+    place_of_birth: '',
+    date_of_birth: '',
+    gender: 'L',
+    marital_status: '',
+    religion: '',
+    address: '',
+    blood_type: '',
+
+    // Emergency
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    emergency_contact_relation: '',
+
+    // Employment
+    start_date: '',
+    end_contract_date: '',
+    is_manager: false,
+    manager_id: '',
+
+    // Payroll
+    bank_account: '',
+    bank_name: '',
+    npwp: '',
+    bpjs_kesehatan: '',
+    bpjs_tenaga_kerja: '',
+    basic_salary: 0,
+    education: '',
 };
 
 const initialUserFormState = {
@@ -136,14 +170,9 @@ export function Employees() {
         setEditingEmployee(employee);
         setIsEditing(true);
         setFormData({
-            nik: employee.nik,
-            name: employee.name,
-            email: employee.email,
-            phone: employee.phone || '',
-            department_id: employee.department_id || '',
-            position: employee.position || '',
-            employment_status: employee.employment_status,
-            user_id: employee.user_id || '',
+            ...initialFormState, // Fill with defaults for new fields
+            ...employee, // Overwrite with existing data
+            basic_salary: Number(employee.basic_salary) || 0, // Ensure number
         });
         setModalOpen(true);
     };
@@ -205,6 +234,18 @@ export function Employees() {
         { value: 'lainnya', label: 'Lainnya' },
     ];
 
+    const genderOptions = [
+        { value: 'L', label: 'Laki-laki' },
+        { value: 'P', label: 'Perempuan' },
+    ];
+
+    const bloodOptions = [
+        { value: 'A', label: 'A' },
+        { value: 'B', label: 'B' },
+        { value: 'AB', label: 'AB' },
+        { value: 'O', label: 'O' },
+    ];
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -215,21 +256,18 @@ export function Employees() {
             </div>
 
             <Card padding="lg">
-                {/* Search */}
                 <div className="mb-4">
                     <div className="relative max-w-md">
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input
-                            type="text"
+                        <Input
                             placeholder="Cari nama, NIK, atau email..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none transition-all"
+                            className="pl-10"
                         />
                     </div>
                 </div>
 
-                {/* Table */}
                 <div className="relative">
                     <LoadingOverlay visible={loading} />
                     <Table>
@@ -275,7 +313,7 @@ export function Employees() {
                                                 leftIcon={<UserPlus size={14} />}
                                                 onClick={() => openUserModal(employee)}
                                             >
-                                                Buat Akun
+                                                Account
                                             </Button>
                                         )}
                                     </TableTd>
@@ -303,64 +341,226 @@ export function Employees() {
                 </div>
             </Card>
 
-            {/* Create/Edit Modal */}
+            {/* Create/Edit Modal with Tabs */}
             <Modal
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 title={isEditing ? "Edit Pegawai" : "Tambah Pegawai"}
+                size="lg"
             >
-                <div className="space-y-4">
-                    <Input
-                        label="NIK"
-                        placeholder="Contoh: 123456"
-                        value={formData.nik}
-                        onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
-                        required
-                    />
-                    <Input
-                        label="Nama"
-                        placeholder="Nama Lengkap"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                    />
-                    <Input
-                        label="Email"
-                        placeholder="email@perusahaan.com"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required
-                    />
-                    <Input
-                        label="Telepon"
-                        placeholder="0812..."
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                    <Select
-                        label="Departemen"
-                        placeholder="Pilih Departemen"
-                        value={formData.department_id}
-                        onChange={(val) => setFormData({ ...formData, department_id: val || '' })}
-                        options={deptOptions}
-                    />
-                    <Input
-                        label="Jabatan"
-                        placeholder="Contoh: Manager Operasional"
-                        value={formData.position}
-                        onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    />
-                    <Select
-                        label="Status Kerja"
-                        value={formData.employment_status}
-                        onChange={(val) => setFormData({ ...formData, employment_status: (val as EmploymentStatus) || 'pkwt' })}
-                        options={statusOptions}
-                    />
-                    <Button fullWidth onClick={isEditing ? handleUpdate : handleCreate} loading={submitting}>
-                        {isEditing ? "Update" : "Simpan"}
-                    </Button>
-                </div>
+                <Tabs defaultValue="personal" className="w-full">
+                    <TabsList className="mb-4">
+                        <TabsTrigger value="personal">Personal</TabsTrigger>
+                        <TabsTrigger value="employment">Pekerjaan</TabsTrigger>
+                        <TabsTrigger value="contact">Kontak</TabsTrigger>
+                        <TabsTrigger value="payroll">Payroll</TabsTrigger>
+                    </TabsList>
+
+                    <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {/* 1. PERSONAL DETAILS */}
+                        <TabsContent value="personal" className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="NIK"
+                                    placeholder="Nomor Induk Karyawan"
+                                    value={formData.nik}
+                                    onChange={(e) => setFormData({ ...formData, nik: e.target.value })}
+                                    required
+                                />
+                                <Input
+                                    label="KTP (NIK)"
+                                    placeholder="Nomor Identitas Kependudukan"
+                                    value={formData.ktp_number}
+                                    onChange={(e) => setFormData({ ...formData, ktp_number: e.target.value })}
+                                />
+                            </div>
+                            <Input
+                                label="Nama Lengkap"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                required
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Tempat Lahir"
+                                    value={formData.place_of_birth}
+                                    onChange={(e) => setFormData({ ...formData, place_of_birth: e.target.value })}
+                                />
+                                <DateInput
+                                    label="Tanggal Lahir"
+                                    value={formData.date_of_birth}
+                                    onChange={(val) => setFormData({ ...formData, date_of_birth: val ? dayjs(val).format('YYYY-MM-DD') : '' })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Select
+                                    label="Jenis Kelamin"
+                                    value={formData.gender}
+                                    onChange={(val) => setFormData({ ...formData, gender: val as any })}
+                                    options={genderOptions}
+                                />
+                                <Select
+                                    label="Golongan Darah"
+                                    value={formData.blood_type}
+                                    onChange={(val) => setFormData({ ...formData, blood_type: val })}
+                                    options={bloodOptions}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Agama"
+                                    value={formData.religion}
+                                    onChange={(e) => setFormData({ ...formData, religion: e.target.value })}
+                                />
+                                <Input
+                                    label="Status Perkawinan"
+                                    placeholder="Lajang/Menikah..."
+                                    value={formData.marital_status}
+                                    onChange={(e) => setFormData({ ...formData, marital_status: e.target.value })}
+                                />
+                            </div>
+                            <Textarea
+                                label="Alamat Domisili"
+                                value={formData.address}
+                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            />
+                        </TabsContent>
+
+                        {/* 2. EMPLOYMENT DETAILS */}
+                        <TabsContent value="employment" className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <Select
+                                    label="Departemen"
+                                    value={formData.department_id}
+                                    onChange={(val) => setFormData({ ...formData, department_id: val || '' })}
+                                    options={deptOptions}
+                                />
+                                <Input
+                                    label="Jabatan"
+                                    value={formData.position}
+                                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Select
+                                    label="Status Karyawan"
+                                    value={formData.employment_status}
+                                    onChange={(val) => setFormData({ ...formData, employment_status: (val as EmploymentStatus) || 'pkwt' })}
+                                    options={statusOptions}
+                                />
+                                <Input
+                                    label="Pendidikan Terakhir"
+                                    value={formData.education}
+                                    onChange={(e) => setFormData({ ...formData, education: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <DateInput
+                                    label="Tanggal Masuk"
+                                    value={formData.start_date}
+                                    onChange={(val) => setFormData({ ...formData, start_date: val ? dayjs(val).format('YYYY-MM-DD') : '' })}
+                                />
+                                <DateInput
+                                    label="Akhir Kontrak"
+                                    value={formData.end_contract_date}
+                                    onChange={(val) => setFormData({ ...formData, end_contract_date: val ? dayjs(val).format('YYYY-MM-DD') : '' })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Email Kantor"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+                        </TabsContent>
+
+                        {/* 3. CONTACT & EMERGENCY */}
+                        <TabsContent value="contact" className="space-y-4">
+                            <Input
+                                label="No. Telepon / WhatsApp"
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            />
+                            <div className="border-t border-slate-700 pt-4">
+                                <h4 className="text-sm font-semibold text-slate-300 mb-2">Kontak Darurat</h4>
+                                <div className="space-y-3">
+                                    <Input
+                                        label="Nama Kontak Darurat"
+                                        value={formData.emergency_contact_name}
+                                        onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                                    />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="No. Telepon"
+                                            value={formData.emergency_contact_phone}
+                                            onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                                        />
+                                        <Input
+                                            label="Hubungan"
+                                            placeholder="Ortu/Istri/Suami..."
+                                            value={formData.emergency_contact_relation}
+                                            onChange={(e) => setFormData({ ...formData, emergency_contact_relation: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        {/* 4. PAYROLL */}
+                        <TabsContent value="payroll" className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Nama Bank"
+                                    placeholder="BCA/Mandiri..."
+                                    value={formData.bank_name}
+                                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                                />
+                                <Input
+                                    label="No. Rekening"
+                                    value={formData.bank_account}
+                                    onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="NPWP"
+                                    value={formData.npwp}
+                                    onChange={(e) => setFormData({ ...formData, npwp: e.target.value })}
+                                />
+                                <Input
+                                    label="Gaji Pokok"
+                                    type="number"
+                                    value={formData.basic_salary}
+                                    onChange={(e) => setFormData({ ...formData, basic_salary: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="BPJS Kesehatan"
+                                    value={formData.bpjs_kesehatan}
+                                    onChange={(e) => setFormData({ ...formData, bpjs_kesehatan: e.target.value })}
+                                />
+                                <Input
+                                    label="BPJS Ketenagakerjaan"
+                                    value={formData.bpjs_tenaga_kerja}
+                                    onChange={(e) => setFormData({ ...formData, bpjs_tenaga_kerja: e.target.value })}
+                                />
+                            </div>
+                        </TabsContent>
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-700">
+                        <Button variant="ghost" onClick={() => setModalOpen(false)}>
+                            Batal
+                        </Button>
+                        <Button onClick={isEditing ? handleUpdate : handleCreate} loading={submitting}>
+                            {isEditing ? "Update Pegawai" : "Simpan Pegawai"}
+                        </Button>
+                    </div>
+                </Tabs>
             </Modal>
 
             {/* User Account Modal */}

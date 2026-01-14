@@ -51,19 +51,31 @@ services:
     environment:
       DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-management_system}
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      JWT_SECRET: ${JWT_SECRET:-management-system-secret-key-change-in-production}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 8080
-      ENVIRONMENT: ${ENVIRONMENT:-production}
-      RUST_LOG: ${RUST_LOG:-info}
-    ports:
-      - "${API_PORT:-8082}:8080"
+      ENVIRONMENT: production
+      RUST_LOG: info
+    expose:
+      - "8080"
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Frontend Web Admin
+  frontend:
+    build:
+      context: ./web-admin
+      dockerfile: Dockerfile
+    container_name: mgmt-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80" # Map host 8080 to container 80 (Nginx)
 
   # Database migrations (run once)
   migrate:

@@ -63,7 +63,7 @@ export function MainLayout() {
                             A
                         </div>
                         <span className={`font-bold text-lg transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
-                            Asset Manager
+                            Management System
                         </span>
                     </div>
                 </div>

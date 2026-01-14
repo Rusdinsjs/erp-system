@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                r.rental_number, \n                a.name as asset_name, \n                c.name as client_name \n            FROM rentals r\n            JOIN assets a ON r.asset_id = a.id\n            JOIN clients c ON r.client_id = c.id\n            WHERE r.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rental_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "asset_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "client_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "080a96a3548c4e023fcf2db3a16c09993ed885d1d8a43fe690c6f6a601eacc4c"
+}

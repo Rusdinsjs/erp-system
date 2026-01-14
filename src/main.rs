@@ -6,9 +6,9 @@ use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use asset_management::api::{create_app, AppState};
-use asset_management::shared::config::AppConfig;
-use asset_management::shared::utils::jwt::JwtConfig;
+use management_system::api::{create_app, AppState};
+use management_system::shared::config::AppConfig;
+use management_system::shared::utils::jwt::JwtConfig;
 
 #[tokio::main]
 async fn main() {

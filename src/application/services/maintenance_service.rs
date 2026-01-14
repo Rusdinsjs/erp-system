@@ -241,12 +241,13 @@ impl MaintenanceService {
             })
     }
 
-    /// Check upcoming maintenance (Background Task)
-    pub async fn check_upcoming_maintenance(&self) -> DomainResult<()> {
-        // Placeholder for background logic
-        // Logic: Find maintenance with scheduled_date = tomorrow/today and send notification
-        // For now just querying overdue to "touch" the repo
-        let _ = self.repository.list_overdue().await;
-        Ok(())
+    /// Check and process upcoming maintenance
+    pub async fn check_upcoming_maintenance(&self) -> DomainResult<Vec<MaintenanceRecord>> {
+        self.repository.list_due_next_service().await.map_err(|e| {
+            DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            }
+        })
     }
 }

@@ -32,7 +32,7 @@ export function Login() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
             <div className="w-full max-w-md">
-                <h1 className="text-3xl font-bold text-center text-white mb-8">Asset Management</h1>
+                <h1 className="text-3xl font-bold text-center text-white mb-8">Management System</h1>
                 <Card padding="lg" className="border-slate-800 bg-slate-900/50 backdrop-blur-sm">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <Input
