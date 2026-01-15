@@ -13,6 +13,7 @@ use crate::application::services::{
     AuthService,
     BillingService,
     CategoryService,
+    CategoryTemplateService,
     ClientService,
     ConversionService,
     DataService,
@@ -35,11 +36,11 @@ use crate::application::services::{
 };
 use crate::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
 use crate::infrastructure::repositories::{
-    ApprovalRepository, AssetRepository, AuditRepository, CategoryRepository, ClientRepository,
-    ConversionRepository, EmployeeRepository, FinanceRepository, JournalRepository,
-    LifecycleRepository, LoanRepository, MaintenanceRepository, NotificationRepository,
-    RbacRepository, RentalRepository, SensorRepository, TimesheetRepository, UserRepository,
-    WorkOrderRepository,
+    ApprovalRepository, AssetRepository, AuditRepository, CategoryRepository,
+    CategoryTemplateRepository, ClientRepository, ConversionRepository, EmployeeRepository,
+    FinanceRepository, JournalRepository, LifecycleRepository, LoanRepository,
+    MaintenanceRepository, NotificationRepository, RbacRepository, RentalRepository,
+    SensorRepository, TimesheetRepository, UserRepository, WorkOrderRepository,
 };
 use crate::shared::utils::jwt::JwtConfig;
 use std::sync::Arc;
@@ -53,6 +54,7 @@ pub struct AppState {
     pub audit_service: AuditService,
     pub billing_service: BillingService,
     pub category_service: CategoryService,
+    pub category_template_service: CategoryTemplateService,
     pub client_service: ClientService,
     pub conversion_service: ConversionService,
     pub lifecycle_service: LifecycleService,
@@ -84,6 +86,7 @@ impl AppState {
         let asset_repo = AssetRepository::new(pool.clone());
         let user_repo = UserRepository::new(pool.clone());
         let category_repo = CategoryRepository::new(pool.clone());
+        let category_template_repo = Arc::new(CategoryTemplateRepository::new(pool.clone()));
         let loan_repo = LoanRepository::new(pool.clone());
         let maintenance_repo = MaintenanceRepository::new(pool.clone());
         let work_order_repo = WorkOrderRepository::new(pool.clone());
@@ -116,6 +119,7 @@ impl AppState {
             jwt_config,
         );
         let category_service = CategoryService::new(category_repo);
+        let category_template_service = CategoryTemplateService::new(category_template_repo);
         let notification_service = NotificationService::new(notification_repo);
         let loan_service =
             LoanService::new(loan_repo, asset_repo.clone(), notification_service.clone());
@@ -169,6 +173,7 @@ impl AppState {
             audit_service,
             auth_service,
             category_service,
+            category_template_service,
             client_service,
             conversion_service,
             lifecycle_service,

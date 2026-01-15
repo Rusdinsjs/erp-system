@@ -426,4 +426,163 @@ impl FinanceService {
         };
         self.repo.create_cash_bank_transaction(&tx).await
     }
+    pub async fn list_sales_quotes(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::SalesQuote>> {
+        self.repo.list_sales_quotes().await
+    }
+
+    pub async fn create_sales_quote(
+        &self,
+        req: crate::domain::entities::CreateSalesQuoteRequest,
+    ) -> DomainResult<crate::domain::entities::SalesQuote> {
+        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let quote = crate::domain::entities::SalesQuote {
+            id: Uuid::new_v4(),
+            quote_number: req.quote_number,
+            client_id: req.client_id,
+            date: req.date,
+            expiry_date: req.expiry_date,
+            subject: req.subject,
+            subtotal: total,
+            tax: 0.0,
+            total_amount: total,
+            status: "draft".to_string(),
+            created_at: Utc::now(),
+        };
+        self.repo.create_sales_quote(&quote).await
+    }
+
+    pub async fn list_sales_orders(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::SalesOrder>> {
+        self.repo.list_sales_orders().await
+    }
+
+    pub async fn create_sales_order(
+        &self,
+        req: crate::domain::entities::CreateSalesOrderRequest,
+    ) -> DomainResult<crate::domain::entities::SalesOrder> {
+        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let order = crate::domain::entities::SalesOrder {
+            id: Uuid::new_v4(),
+            order_number: req.order_number,
+            quote_id: req.quote_id,
+            client_id: req.client_id,
+            date: req.date,
+            delivery_date: req.delivery_date,
+            subject: req.subject,
+            subtotal: total,
+            tax: 0.0,
+            total_amount: total,
+            status: "draft".to_string(),
+            created_at: Utc::now(),
+        };
+        self.repo.create_sales_order(&order).await
+    }
+
+    pub async fn list_sales_shipments(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::SalesShipment>> {
+        self.repo.list_sales_shipments().await
+    }
+
+    pub async fn create_sales_shipment(
+        &self,
+        req: crate::domain::entities::CreateSalesShipmentRequest,
+    ) -> DomainResult<crate::domain::entities::SalesShipment> {
+        let shipment = crate::domain::entities::SalesShipment {
+            id: Uuid::new_v4(),
+            shipment_number: req.shipment_number,
+            sales_order_id: req.sales_order_id,
+            client_id: None, // Logic to fetch from SO or Client can be added here
+            date: req.date,
+            courier_name: req.courier_name,
+            tracking_number: req.tracking_number,
+            status: "pending".to_string(),
+            created_at: Utc::now(),
+        };
+        self.repo.create_sales_shipment(&shipment).await
+    }
+
+    // --- Purchase Module ---
+
+    pub async fn list_purchase_quotes(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::PurchaseQuote>> {
+        self.repo.list_purchase_quotes().await
+    }
+
+    pub async fn create_purchase_quote(
+        &self,
+        req: crate::domain::entities::CreatePurchaseQuoteRequest,
+    ) -> DomainResult<crate::domain::entities::PurchaseQuote> {
+        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let quote = crate::domain::entities::PurchaseQuote {
+            id: Uuid::new_v4(),
+            quote_number: req.quote_number,
+            vendor_id: req.vendor_id,
+            date: req.date,
+            expiry_date: req.expiry_date,
+            subject: req.subject,
+            subtotal: total,
+            tax: 0.0,
+            total_amount: total,
+            status: "draft".to_string(),
+            created_at: Utc::now(),
+        };
+        self.repo.create_purchase_quote(&quote).await
+    }
+
+    pub async fn list_purchase_orders(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::PurchaseOrder>> {
+        self.repo.list_purchase_orders().await
+    }
+
+    pub async fn create_purchase_order(
+        &self,
+        req: crate::domain::entities::CreatePurchaseOrderRequest,
+    ) -> DomainResult<crate::domain::entities::PurchaseOrder> {
+        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let order = crate::domain::entities::PurchaseOrder {
+            id: Uuid::new_v4(),
+            order_number: req.order_number,
+            purchase_quote_id: req.purchase_quote_id,
+            vendor_id: req.vendor_id,
+            date: req.date,
+            delivery_date: req.delivery_date,
+            subject: req.subject,
+            subtotal: total,
+            tax: 0.0,
+            total_amount: total,
+            status: "draft".to_string(),
+            created_at: Utc::now(),
+        };
+        self.repo.create_purchase_order(&order).await
+    }
+
+    pub async fn list_purchase_shipments(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::PurchaseShipment>> {
+        self.repo.list_purchase_shipments().await
+    }
+
+    pub async fn create_purchase_shipment(
+        &self,
+        req: crate::domain::entities::CreatePurchaseShipmentRequest,
+    ) -> DomainResult<crate::domain::entities::PurchaseShipment> {
+        let shipment = crate::domain::entities::PurchaseShipment {
+            id: Uuid::new_v4(),
+            shipment_number: req.shipment_number,
+            purchase_order_id: req.purchase_order_id,
+            vendor_id: None,
+            date: req.date,
+            courier_name: req.courier_name,
+            tracking_number: req.tracking_number,
+            status: "received".to_string(),
+            created_at: Utc::now(),
+        };
+        self.repo.create_purchase_shipment(&shipment).await
+    }
 }

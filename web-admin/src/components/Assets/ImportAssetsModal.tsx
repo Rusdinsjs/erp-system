@@ -3,7 +3,12 @@ import { useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, Trash, Check, X } from 'lucide-react';
 import Papa from 'papaparse';
 import { api } from '../../api/client';
-import { Modal, Button, Table, TableHead, TableBody, TableRow, TableTh, TableTd, Badge, useToast } from '../ui';
+import { Modal, Button, Table, TableHead, TableBody, TableRow, TableTh, TableTd, Badge, useToast, Select } from '../ui';
+
+import { useQuery } from '@tanstack/react-query';
+
+// Shared Attribute Templates are now fetched from the backend
+
 
 interface ImportAssetsModalProps {
     opened: boolean;
@@ -17,6 +22,20 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
     const [file, setFile] = useState<File | null>(null);
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+
+
+
+    // Template State
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+
+    // Fetch templates from API
+    const { data: templatesData } = useQuery({
+        queryKey: ['category-templates'],
+        queryFn: () => api.get('/categories/templates').then(res => res.data.data)
+    });
+
+    const templates: any[] = templatesData || [];
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { success, error: showError } = useToast();
 
@@ -49,10 +68,25 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                     const processed = results.data.map((row: any) => {
                         const categoryId = findCategoryId(row.category || '');
                         const locationId = findLocationId(row.location || '');
+
+                        // Extract Custom Attributes (columns starting with 'spec_' or just treated as extra)
+                        // Simple approach: any known field goes to root, others go to specifications
+                        const knownFields = ['asset_code', 'name', 'category', 'location', 'brand', 'model', 'serial_number', 'purchase_price', 'is_rental'];
+                        const specifications: Record<string, any> = {};
+
+                        Object.keys(row).forEach(key => {
+                            if (!knownFields.includes(key) && row[key]) {
+                                // removing 'spec_' prefix if present, or just using key
+                                const cleanKey = key.startsWith('spec_') ? key.replace('spec_', '') : key;
+                                specifications[cleanKey] = row[key];
+                            }
+                        });
+
                         return {
                             ...row,
                             _categoryId: categoryId,
                             _locationId: locationId,
+                            _specifications: specifications,
                             _isValid: !!row.asset_code && !!row.name && !!categoryId
                         };
                     });
@@ -81,10 +115,10 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                 location_id: row._locationId || null,
                 brand: row.brand || null,
                 model: row.model || null,
-                serial_number: row.serial_number || null,
                 purchase_price: row.purchase_price ? parseFloat(row.purchase_price) : null,
                 status: 'active',
-                is_rental: row.is_rental === 'true' || row.is_rental === '1'
+                is_rental: row.is_rental === 'true' || row.is_rental === '1',
+                specifications: Object.keys(row._specifications || {}).length > 0 ? row._specifications : undefined
             }));
 
             await api.post('/assets/bulk', { assets });
@@ -106,16 +140,32 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
         onClose();
     };
 
+
+
     const downloadTemplate = () => {
-        const headers = ['asset_code', 'name', 'category', 'location', 'brand', 'model', 'serial_number', 'purchase_price', 'is_rental'];
+        const baseHeaders = ['asset_code', 'name', 'category', 'location', 'brand', 'model', 'serial_number', 'purchase_price', 'is_rental'];
+        let extraHeaders: string[] = [];
+
+        if (selectedCategoryId) {
+            const template = templates.find(t => t.category_id === selectedCategoryId);
+            if (template && template.attributes) {
+                extraHeaders = template.attributes;
+            }
+        }
+
+        // Add 'spec_' prefix to extra headers for clarity in CSV
+        const headers = [...baseHeaders, ...extraHeaders.map(h => `spec_${h}`)];
+
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "asset_import_template.csv");
+        link.setAttribute("download", `import_template_${selectedCategoryId ? 'category_' + selectedCategoryId : 'generic'}.csv`);
         document.body.appendChild(link);
         link.click();
     };
+
+
 
     return (
         <Modal
@@ -139,9 +189,31 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                             Select CSV File
                         </Button>
                         <p className="text-xs text-slate-500">Supported format: CSV (Comma separated)</p>
-                        <Button variant="ghost" size="sm" onClick={downloadTemplate} leftIcon={<FileSpreadsheet size={16} />}>
-                            Download Template
-                        </Button>
+                        <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800 w-full max-w-lg mb-4">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs text-slate-400">Select Template by Category (Optional)</label>
+                                    <Select
+                                        value={selectedCategoryId}
+                                        onChange={setSelectedCategoryId}
+                                        options={[
+                                            { value: '', label: 'Generic (Basic Fields Only)' },
+                                            ...templates.map(t => ({
+                                                value: t.category_id,
+                                                label: t.category_name || 'Unknown Category'
+                                            }))
+                                        ]}
+                                    />
+                                    <p className="text-[10px] text-slate-500">
+                                        Selecting a category will add its specific attribute columns (e.g., spec_RAM, spec_Color) to the CSV.
+                                    </p>
+                                </div>
+
+                                <Button className="w-full" variant="outline" onClick={downloadTemplate} leftIcon={<FileSpreadsheet size={16} />}>
+                                    Download Template CSV
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="space-y-4">

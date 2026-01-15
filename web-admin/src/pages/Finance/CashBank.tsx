@@ -20,6 +20,9 @@ export function CashBank() {
     const queryClient = useQueryClient();
     const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
+    const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+    const [selectedAccount, setSelectedAccount] = useState<any>(null);
 
     const createAccountMutation = useMutation({
         mutationFn: financeApi.createAccount,
@@ -42,6 +45,23 @@ export function CashBank() {
         },
         onError: (err: any) => {
             toast.error('Gagal mencatat transfer: ' + err.message);
+        }
+    });
+
+    const createTransactionMutation = useMutation({
+        mutationFn: financeApi.createCashBankTransaction,
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['finance', 'cash-bank-transactions'] });
+            if (variables.transaction_type === 'receive') {
+                setIsReceiveModalOpen(false);
+                toast.success('Penerimaan dana berhasil dicatat');
+            } else {
+                setIsSendModalOpen(false);
+                toast.success('Pengiriman dana berhasil dicatat');
+            }
+        },
+        onError: (err: any) => {
+            toast.error('Gagal mencatat transaksi: ' + err.message);
         }
     });
 
@@ -83,6 +103,32 @@ export function CashBank() {
         });
     };
 
+    const handleReceive = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        createTransactionMutation.mutate({
+            date: formData.get('date') as string,
+            amount: parseFloat(formData.get('amount') as string),
+            account_id: formData.get('account_id') as string,
+            contact_name: formData.get('contact_name') as string,
+            description: formData.get('description') as string,
+            transaction_type: 'receive',
+        });
+    };
+
+    const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        createTransactionMutation.mutate({
+            date: formData.get('date') as string,
+            amount: parseFloat(formData.get('amount') as string),
+            account_id: formData.get('account_id') as string,
+            contact_name: formData.get('contact_name') as string,
+            description: formData.get('description') as string,
+            transaction_type: 'send',
+        });
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -97,6 +143,22 @@ export function CashBank() {
                         className="gap-2 border-slate-700 text-slate-300"
                     >
                         Transfer Kas
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsReceiveModalOpen(true)}
+                        className="gap-2 border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                    >
+                        <ArrowDownLeft size={16} />
+                        Terima Dana
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsSendModalOpen(true)}
+                        className="gap-2 border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20"
+                    >
+                        <ArrowUpRight size={16} />
+                        Kirim Dana
                     </Button>
                     <Button
                         onClick={() => setIsAddAccountModalOpen(true)}
@@ -139,10 +201,26 @@ export function CashBank() {
                                     </div>
                                 </div>
                                 <div className="mt-6 grid grid-cols-2 gap-3">
-                                    <Button variant="ghost" size="sm" className="w-full text-xs gap-1 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full text-xs gap-1 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400"
+                                        onClick={() => {
+                                            setSelectedAccount(account);
+                                            setIsReceiveModalOpen(true);
+                                        }}
+                                    >
                                         <ArrowDownLeft size={14} /> Terima
                                     </Button>
-                                    <Button variant="ghost" size="sm" className="w-full text-xs gap-1 bg-rose-500/5 hover:bg-rose-500/10 text-rose-400">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full text-xs gap-1 bg-rose-500/5 hover:bg-rose-500/10 text-rose-400"
+                                        onClick={() => {
+                                            setSelectedAccount(account);
+                                            setIsSendModalOpen(true);
+                                        }}
+                                    >
                                         <ArrowUpRight size={14} /> Kirim
                                     </Button>
                                 </div>
@@ -361,6 +439,176 @@ export function CashBank() {
                                     className="flex-1 bg-cyan-600 hover:bg-cyan-500"
                                 >
                                     {createTransferMutation.isPending ? 'Memproses...' : 'Transfer Sekarang'}
+                                </Button>
+                            </div>
+                        </form>
+                    </Card>
+                </div>
+            )}
+
+            {/* Modal Terima Dana */}
+            {isReceiveModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 shadow-2xl">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-emerald-400">Terima Dana</h2>
+                            <button onClick={() => setIsReceiveModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleReceive} className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Simpan ke Akun</label>
+                                <select
+                                    name="account_id"
+                                    required
+                                    defaultValue={selectedAccount?.id || ''}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                >
+                                    <option value="">Pilih Akun</option>
+                                    {cashAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.code})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Tanggal</label>
+                                    <input
+                                        name="date"
+                                        type="date"
+                                        required
+                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Jumlah Terima</label>
+                                    <input
+                                        name="amount"
+                                        type="number"
+                                        placeholder="0"
+                                        required
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-emerald-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Diterima Dari</label>
+                                <input
+                                    name="contact_name"
+                                    placeholder="Nama pengirim / pelanggan / sumber dana"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Keterangan</label>
+                                <textarea
+                                    name="description"
+                                    rows={2}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsReceiveModalOpen(false)}
+                                    className="flex-1 border-slate-800 text-slate-400"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={createTransactionMutation.isPending}
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white"
+                                >
+                                    {createTransactionMutation.isPending ? 'Memproses...' : 'Terima Dana'}
+                                </Button>
+                            </div>
+                        </form>
+                    </Card>
+                </div>
+            )}
+
+            {/* Modal Kirim Dana */}
+            {isSendModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 shadow-2xl">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-rose-400">Kirim Dana</h2>
+                            <button onClick={() => setIsSendModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSend} className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Ambil dari Akun</label>
+                                <select
+                                    name="account_id"
+                                    required
+                                    defaultValue={selectedAccount?.id || ''}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                >
+                                    <option value="">Pilih Akun</option>
+                                    {cashAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.code})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Tanggal</label>
+                                    <input
+                                        name="date"
+                                        type="date"
+                                        required
+                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-400">Jumlah Kirim</label>
+                                    <input
+                                        name="amount"
+                                        type="number"
+                                        placeholder="0"
+                                        required
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-rose-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Dikirim Kepada</label>
+                                <input
+                                    name="contact_name"
+                                    placeholder="Nama penerima / vendor / karyawan"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-400">Keterangan</label>
+                                <textarea
+                                    name="description"
+                                    rows={2}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsSendModalOpen(false)}
+                                    className="flex-1 border-slate-800 text-slate-400"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={createTransactionMutation.isPending}
+                                    className="flex-1 bg-rose-600 hover:bg-rose-500 text-white"
+                                >
+                                    {createTransactionMutation.isPending ? 'Memproses...' : 'Kirim Dana'}
                                 </Button>
                             </div>
                         </form>

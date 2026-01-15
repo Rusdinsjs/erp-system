@@ -58,6 +58,17 @@ export interface FinancialReportEntry {
     balance: number;
 }
 
+export interface CreateCashBankTransactionRequest {
+    transaction_type: 'transfer' | 'receive' | 'send';
+    date: string;
+    amount: number;
+    from_account_id?: string;
+    to_account_id?: string;
+    account_id?: string;
+    contact_name?: string;
+    description?: string;
+}
+
 export const financeApi = {
     listAccounts: async () => {
         const response = await api.get('/finance/accounts');
@@ -131,8 +142,68 @@ export const financeApi = {
         const response = await api.post('/finance/expenses', data);
         return response.data.data;
     },
-    createCashBankTransaction: async (data: any) => {
+    // Sales Quotes
+    listSalesQuotes: async () => {
+        const response = await api.get('/finance/sales/quotes');
+        return response.data;
+    },
+    createSalesQuote: async (data: any) => {
+        const response = await api.post('/finance/sales/quotes', data);
+        return response.data;
+    },
+
+    // Sales Orders
+    listSalesOrders: async () => {
+        const response = await api.get('/finance/sales/orders');
+        return response.data;
+    },
+    createSalesOrder: async (data: any) => {
+        const response = await api.post('/finance/sales/orders', data);
+        return response.data;
+    },
+
+    // Sales Shipments
+    listSalesShipments: async () => {
+        const response = await api.get('/finance/sales/shipments');
+        return response.data;
+    },
+    createSalesShipment: async (data: any) => {
+        const response = await api.post('/finance/sales/shipments', data);
+        return response.data;
+    },
+
+    // Purchase Quotes
+    listPurchaseQuotes: async () => {
+        const response = await api.get('/finance/purchase/quotes');
+        return response.data;
+    },
+    createPurchaseQuote: async (data: any) => {
+        const response = await api.post('/finance/purchase/quotes', data);
+        return response.data;
+    },
+
+    // Purchase Orders
+    listPurchaseOrders: async () => {
+        const response = await api.get('/finance/purchase/orders');
+        return response.data;
+    },
+    createPurchaseOrder: async (data: any) => {
+        const response = await api.post('/finance/purchase/orders', data);
+        return response.data;
+    },
+
+    // Purchase Shipments
+    listPurchaseShipments: async () => {
+        const response = await api.get('/finance/purchase/shipments');
+        return response.data;
+    },
+    createPurchaseShipment: async (data: any) => {
+        const response = await api.post('/finance/purchase/shipments', data);
+        return response.data;
+    },
+
+    createCashBankTransaction: async (data: CreateCashBankTransactionRequest) => {
         const response = await api.post('/finance/cash-bank', data);
-        return response.data.data;
+        return response.data;
     },
 };

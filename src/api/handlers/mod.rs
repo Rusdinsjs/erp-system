@@ -7,6 +7,7 @@ pub mod audit_handler;
 pub mod auth_handler;
 pub mod billing_handler;
 pub mod category_handler;
+pub mod category_template_handler;
 pub mod client_handler;
 pub mod conversion_handler;
 pub mod dashboard_handler;

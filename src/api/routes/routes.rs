@@ -256,6 +256,31 @@ pub fn create_router(state: AppState) -> Router {
             get(finance_handler::list_sales_invoices).post(finance_handler::create_sales_invoice),
         )
         .route(
+            "/finance/sales/quotes",
+            get(finance_handler::list_sales_quotes).post(finance_handler::create_sales_quote),
+        )
+        .route(
+            "/finance/sales/orders",
+            get(finance_handler::list_sales_orders).post(finance_handler::create_sales_order),
+        )
+        .route(
+            "/finance/sales/shipments",
+            get(finance_handler::list_sales_shipments).post(finance_handler::create_sales_shipment),
+        )
+        .route(
+            "/finance/purchase/quotes",
+            get(finance_handler::list_purchase_quotes).post(finance_handler::create_purchase_quote),
+        )
+        .route(
+            "/finance/purchase/orders",
+            get(finance_handler::list_purchase_orders).post(finance_handler::create_purchase_order),
+        )
+        .route(
+            "/finance/purchase/shipments",
+            get(finance_handler::list_purchase_shipments)
+                .post(finance_handler::create_purchase_shipment),
+        )
+        .route(
             "/finance/purchase/bills",
             get(finance_handler::list_purchase_bills).post(finance_handler::create_purchase_bill),
         )

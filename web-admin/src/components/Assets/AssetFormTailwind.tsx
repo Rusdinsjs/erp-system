@@ -321,6 +321,8 @@ export function AssetFormTailwind({ initialValues, categories, locations, onSubm
                                 { value: 'maintenance', label: 'Maintenance' },
                                 { value: 'disposed', label: 'Disposed' },
                                 { value: 'sold', label: 'Sold' },
+                                { value: 'lost', label: 'Lost/Missing' },
+                                { value: 'archived', label: 'Archived' },
                             ]}
                         />
                         <div className="md:col-span-2">

@@ -6,6 +6,7 @@ import { assetApi } from '../api/assets';
 import type { Asset, CreateAssetRequest } from '../api/assets';
 import { api } from '../api/client';
 import { AssetFormTailwind } from '../components/Assets/AssetFormTailwind';
+import { ImportAssetsModal } from '../components/Assets/ImportAssetsModal';
 import { useNavigate } from 'react-router-dom';
 import {
     Button,
@@ -290,17 +291,17 @@ export function Assets() {
             </Drawer>
 
             {/* Import Modal - Using Mantine for now */}
-            <Modal
-                isOpen={importModalOpen}
+            {/* Import Modal */}
+            <ImportAssetsModal
+                opened={importModalOpen}
                 onClose={() => setImportModalOpen(false)}
-                title="Import Assets"
-                size="lg"
-            >
-                <div className="text-center py-8 text-slate-400">
-                    <p>CSV Import feature coming soon.</p>
-                    <p className="text-sm mt-2">Format: asset_code, name, category, location</p>
-                </div>
-            </Modal>
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['assets'] });
+                    setImportModalOpen(false);
+                }}
+                categories={categories}
+                locations={locations}
+            />
 
             {/* ROI Modal */}
             <Modal

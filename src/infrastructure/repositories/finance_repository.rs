@@ -468,4 +468,310 @@ impl FinanceRepository {
         .map_err(|e| DomainError::Database(e.to_string()))?;
         Ok(rec)
     }
+
+    // --- New Sales Modules ---
+
+    pub async fn list_sales_quotes(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::SalesQuote>> {
+        let recs = sqlx::query_as!(
+            crate::domain::entities::SalesQuote,
+            r#"
+            SELECT id, quote_number, client_id, date, expiry_date, subject, 
+                   subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                   total_amount::FLOAT8 as "total_amount!", status, created_at
+            FROM sales_quotes
+            ORDER BY date DESC, created_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(recs)
+    }
+
+    pub async fn create_sales_quote(
+        &self,
+        quote: &crate::domain::entities::SalesQuote,
+    ) -> DomainResult<crate::domain::entities::SalesQuote> {
+        let rec = sqlx::query_as!(
+            crate::domain::entities::SalesQuote,
+            r#"
+            INSERT INTO sales_quotes (
+                id, quote_number, client_id, date, expiry_date, subject, 
+                subtotal, tax, total_amount, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id, quote_number, client_id, date, expiry_date, subject, 
+                      subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                      total_amount::FLOAT8 as "total_amount!", status, created_at
+            "#,
+            quote.id,
+            quote.quote_number,
+            quote.client_id,
+            quote.date,
+            quote.expiry_date,
+            quote.subject,
+            quote.subtotal as f64,
+            quote.tax as f64,
+            quote.total_amount as f64,
+            quote.status
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(rec)
+    }
+
+    pub async fn list_sales_orders(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::SalesOrder>> {
+        let recs = sqlx::query_as!(
+            crate::domain::entities::SalesOrder,
+            r#"
+            SELECT id, order_number, quote_id, client_id, date, delivery_date, subject, 
+                   subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                   total_amount::FLOAT8 as "total_amount!", status, created_at
+            FROM sales_orders
+            ORDER BY date DESC, created_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(recs)
+    }
+
+    pub async fn create_sales_order(
+        &self,
+        order: &crate::domain::entities::SalesOrder,
+    ) -> DomainResult<crate::domain::entities::SalesOrder> {
+        let rec = sqlx::query_as!(
+            crate::domain::entities::SalesOrder,
+            r#"
+            INSERT INTO sales_orders (
+                id, order_number, quote_id, client_id, date, delivery_date, subject, 
+                subtotal, tax, total_amount, status
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING id, order_number, quote_id, client_id, date, delivery_date, subject, 
+                      subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                      total_amount::FLOAT8 as "total_amount!", status, created_at
+            "#,
+            order.id,
+            order.order_number,
+            order.quote_id,
+            order.client_id,
+            order.date,
+            order.delivery_date,
+            order.subject,
+            order.subtotal as f64,
+            order.tax as f64,
+            order.total_amount as f64,
+            order.status
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(rec)
+    }
+
+    pub async fn list_sales_shipments(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::SalesShipment>> {
+        let recs = sqlx::query_as!(
+            crate::domain::entities::SalesShipment,
+            r#"
+            SELECT id, shipment_number, sales_order_id, client_id, date, courier_name, 
+                   tracking_number, status, created_at
+            FROM sales_shipments
+            ORDER BY date DESC, created_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(recs)
+    }
+
+    pub async fn create_sales_shipment(
+        &self,
+        tx: &crate::domain::entities::SalesShipment,
+    ) -> DomainResult<crate::domain::entities::SalesShipment> {
+        let rec = sqlx::query_as!(
+            crate::domain::entities::SalesShipment,
+            r#"
+            INSERT INTO sales_shipments (id, shipment_number, sales_order_id, client_id, date, courier_name, tracking_number, status, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, shipment_number, sales_order_id, client_id, date, courier_name, tracking_number, status, created_at
+            "#,
+            tx.id,
+            tx.shipment_number,
+            tx.sales_order_id,
+            tx.client_id,
+            tx.date,
+            tx.courier_name,
+            tx.tracking_number,
+            tx.status,
+            tx.created_at
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(rec)
+    }
+
+    // --- Purchase Module Methods ---
+
+    pub async fn list_purchase_quotes(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::PurchaseQuote>> {
+        let recs = sqlx::query_as!(
+            crate::domain::entities::PurchaseQuote,
+            r#"
+            SELECT id, quote_number, vendor_id, date, expiry_date, subject, 
+                   subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                   total_amount::FLOAT8 as "total_amount!", status, created_at as "created_at!"
+            FROM purchase_quotes
+            ORDER BY date DESC, created_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(recs)
+    }
+
+    pub async fn create_purchase_quote(
+        &self,
+        quote: &crate::domain::entities::PurchaseQuote,
+    ) -> DomainResult<crate::domain::entities::PurchaseQuote> {
+        let rec = sqlx::query_as!(
+            crate::domain::entities::PurchaseQuote,
+            r#"
+            INSERT INTO purchase_quotes (
+                id, quote_number, vendor_id, date, expiry_date, subject, 
+                subtotal, tax, total_amount, status, created_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING id, quote_number, vendor_id, date, expiry_date, subject, 
+                      subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                      total_amount::FLOAT8 as "total_amount!", status, created_at as "created_at!"
+            "#,
+            quote.id,
+            quote.quote_number,
+            quote.vendor_id,
+            quote.date,
+            quote.expiry_date,
+            quote.subject,
+            quote.subtotal as f64,
+            quote.tax as f64,
+            quote.total_amount as f64,
+            quote.status,
+            quote.created_at
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(rec)
+    }
+
+    pub async fn list_purchase_orders(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::PurchaseOrder>> {
+        let recs = sqlx::query_as!(
+            crate::domain::entities::PurchaseOrder,
+            r#"
+            SELECT id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
+                   subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                   total_amount::FLOAT8 as "total_amount!", status, created_at as "created_at!"
+            FROM purchase_orders
+            ORDER BY date DESC, created_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(recs)
+    }
+
+    pub async fn create_purchase_order(
+        &self,
+        order: &crate::domain::entities::PurchaseOrder,
+    ) -> DomainResult<crate::domain::entities::PurchaseOrder> {
+        let rec = sqlx::query_as!(
+            crate::domain::entities::PurchaseOrder,
+            r#"
+            INSERT INTO purchase_orders (
+                id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
+                subtotal, tax, total_amount, status, created_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
+                      subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
+                      total_amount::FLOAT8 as "total_amount!", status, created_at as "created_at!"
+            "#,
+            order.id,
+            order.order_number,
+            order.purchase_quote_id,
+            order.vendor_id,
+            order.date,
+            order.delivery_date,
+            order.subject,
+            order.subtotal as f64,
+            order.tax as f64,
+            order.total_amount as f64,
+            order.status,
+            order.created_at
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(rec)
+    }
+
+    pub async fn list_purchase_shipments(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::PurchaseShipment>> {
+        let recs = sqlx::query_as!(
+            crate::domain::entities::PurchaseShipment,
+            r#"
+            SELECT id, shipment_number, purchase_order_id, vendor_id, date, courier_name, 
+                   tracking_number, status, created_at as "created_at!"
+            FROM purchase_shipments
+            ORDER BY date DESC, created_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(recs)
+    }
+
+    pub async fn create_purchase_shipment(
+        &self,
+        tx: &crate::domain::entities::PurchaseShipment,
+    ) -> DomainResult<crate::domain::entities::PurchaseShipment> {
+        let rec = sqlx::query_as!(
+            crate::domain::entities::PurchaseShipment,
+            r#"
+            INSERT INTO purchase_shipments (id, shipment_number, purchase_order_id, vendor_id, date, courier_name, tracking_number, status, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, shipment_number, purchase_order_id, vendor_id, date, courier_name, tracking_number, status, created_at as "created_at!"
+            "#,
+            tx.id,
+            tx.shipment_number,
+            tx.purchase_order_id,
+            tx.vendor_id,
+            tx.date,
+            tx.courier_name,
+            tx.tracking_number,
+            tx.status,
+            tx.created_at
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(rec)
+    }
 }

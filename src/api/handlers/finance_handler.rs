@@ -114,3 +114,88 @@ pub async fn create_cash_bank_transaction(
         .await?;
     Ok(Json(json!({ "success": true, "data": tx })))
 }
+
+pub async fn list_sales_quotes(State(state): State<AppState>) -> Result<Json<Value>, AppError> {
+    let quotes = state.finance_service.list_sales_quotes().await?;
+    Ok(Json(json!({ "success": true, "data": quotes })))
+}
+
+pub async fn create_sales_quote(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::domain::entities::CreateSalesQuoteRequest>,
+) -> Result<Json<Value>, AppError> {
+    let quote = state.finance_service.create_sales_quote(payload).await?;
+    Ok(Json(json!({ "success": true, "data": quote })))
+}
+
+pub async fn list_sales_orders(State(state): State<AppState>) -> Result<Json<Value>, AppError> {
+    let orders = state.finance_service.list_sales_orders().await?;
+    Ok(Json(json!({ "success": true, "data": orders })))
+}
+
+pub async fn create_sales_order(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::domain::entities::CreateSalesOrderRequest>,
+) -> Result<Json<Value>, AppError> {
+    let order = state.finance_service.create_sales_order(payload).await?;
+    Ok(Json(json!({ "success": true, "data": order })))
+}
+
+pub async fn list_sales_shipments(State(state): State<AppState>) -> Result<Json<Value>, AppError> {
+    let shipments = state.finance_service.list_sales_shipments().await?;
+    Ok(Json(json!({ "success": true, "data": shipments })))
+}
+
+pub async fn create_sales_shipment(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::domain::entities::CreateSalesShipmentRequest>,
+) -> Result<Json<Value>, AppError> {
+    let shipment = state.finance_service.create_sales_shipment(payload).await?;
+    Ok(Json(json!({ "success": true, "data": shipment })))
+}
+
+// --- Purchase Handlers ---
+
+pub async fn list_purchase_quotes(State(state): State<AppState>) -> Result<Json<Value>, AppError> {
+    let quotes = state.finance_service.list_purchase_quotes().await?;
+    Ok(Json(json!({ "success": true, "data": quotes })))
+}
+
+pub async fn create_purchase_quote(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::domain::entities::CreatePurchaseQuoteRequest>,
+) -> Result<Json<Value>, AppError> {
+    let quote = state.finance_service.create_purchase_quote(payload).await?;
+    Ok(Json(json!({ "success": true, "data": quote })))
+}
+
+pub async fn list_purchase_orders(State(state): State<AppState>) -> Result<Json<Value>, AppError> {
+    let orders = state.finance_service.list_purchase_orders().await?;
+    Ok(Json(json!({ "success": true, "data": orders })))
+}
+
+pub async fn create_purchase_order(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::domain::entities::CreatePurchaseOrderRequest>,
+) -> Result<Json<Value>, AppError> {
+    let order = state.finance_service.create_purchase_order(payload).await?;
+    Ok(Json(json!({ "success": true, "data": order })))
+}
+
+pub async fn list_purchase_shipments(
+    State(state): State<AppState>,
+) -> Result<Json<Value>, AppError> {
+    let shipments = state.finance_service.list_purchase_shipments().await?;
+    Ok(Json(json!({ "success": true, "data": shipments })))
+}
+
+pub async fn create_purchase_shipment(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::domain::entities::CreatePurchaseShipmentRequest>,
+) -> Result<Json<Value>, AppError> {
+    let shipment = state
+        .finance_service
+        .create_purchase_shipment(payload)
+        .await?;
+    Ok(Json(json!({ "success": true, "data": shipment })))
+}

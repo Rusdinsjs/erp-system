@@ -57,6 +57,8 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
         maintenance: 'warning',
         disposed: 'danger',
         sold: 'danger',
+        lost: 'danger',
+        archived: 'outline',
 
         // Work order statuses
         pending: 'warning',

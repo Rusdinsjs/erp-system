@@ -8,6 +8,15 @@ This document provides a high-level overview of the Asset Management System's cu
 
 ## 📋 Changelog
 
+### 2024-05-22
+
+- **Finance**: Expanded Sales Module with Quotes, Orders, and Shipments.
+- **Finance**: Expanded Purchase Module with proper submenus, entities, and API endpoints.
+  - Added Tables: `purchase_quotes`, `purchase_orders`, `purchase_shipments`.
+  - Added Frontend Pages: Overview, Quotes, Orders, Shipments, Bills.
+  - Implemented Backend Service & Repository logic for all new entities.
+- **UI**: Updated Sidebar navigation for better organization of Sales and Purchase modules.
+
 ### 2026-01-14 (Operations Automation & Podman Readiness)
 
 - **Maintenance Automation:**
@@ -28,6 +37,8 @@ This document provides a high-level overview of the Asset Management System's cu
 
 - **Departments Module:** Implemented `departments` table and API endpoints with dynamic selection & "Quick Add" in Asset Forms.
 - **Smart Templates:** Added auto-fill logic for asset specs based on category templates.
+- **Financial Module Enhancements:**
+  - **Cash & Bank:** Added "Kirim Dana" (Send Funds) and "Terima Dana" (Receive Funds) menus for direct recording of cash/bank mutations.
 
 ---
 
@@ -43,7 +54,13 @@ This document provides a high-level overview of the Asset Management System's cu
 
 ### 3. Authentication & RBAC
 
+### 3. Authentiation & RBAC
+
 - **Features:** JWT Auth + 4-Level Permission System.
+
+### 4. Financial Module (Operational)
+
+- **Features:** Charts of Accounts, Cash & Bank with Send/Receive Funds, Operational Finance (Sales/Purchase/Expenses), Reporting (General Ledger).
 
 ---
 

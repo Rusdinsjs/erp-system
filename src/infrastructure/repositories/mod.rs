@@ -6,6 +6,7 @@ pub mod approval_repository;
 pub mod asset_repository;
 pub mod audit_repository;
 pub mod category_repository;
+pub mod category_template_repository;
 pub mod client_repository;
 pub mod conversion_repository; // Added this line based on the example
 pub mod employee_repository;
@@ -29,6 +30,7 @@ pub use approval_repository::*;
 pub use asset_repository::*;
 pub use audit_repository::*;
 pub use category_repository::*;
+pub use category_template_repository::*;
 pub use client_repository::*;
 pub use conversion_repository::*;
 pub use employee_repository::*;

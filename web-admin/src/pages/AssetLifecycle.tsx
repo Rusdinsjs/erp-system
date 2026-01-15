@@ -1,5 +1,5 @@
 // AssetLifecycle Page - Pure Tailwind
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,6 +7,7 @@ import {
     Wrench, Trash2, Archive, RefreshCw, Lock, Info, History, ArrowLeftRight
 } from 'lucide-react';
 import { lifecycleApi } from '../api/lifecycle';
+import { assetApi } from '../api/assets';
 import type { LifecycleHistory } from '../api/lifecycle';
 import { useAuthStore } from '../store/useAuthStore';
 import { AssetConversionModal } from '../components/Assets/AssetConversionModal';
@@ -20,7 +21,9 @@ import {
     LoadingOverlay,
     Tabs, TabsList, TabsTrigger, TabsContent,
     Timeline, TimelineItem,
-    useToast
+    useToast,
+    Input,
+    Table, TableHead, TableBody, TableRow, TableTh, TableTd
 } from '../components/ui';
 
 // State icon mapping
@@ -187,8 +190,89 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
         return roles[level] || 'Unknown';
     };
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedQuery(searchQuery), 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Search Assets Query
+    const { data: searchResults, isLoading: searching } = useQuery({
+        queryKey: ['assets-search', debouncedQuery],
+        queryFn: () => assetApi.list({ search: debouncedQuery, page: 1, limit: 10 }),
+        enabled: !assetId && debouncedQuery.length > 0
+    });
+
     if (!assetId) {
-        return <p className="text-center py-12 text-slate-400">Asset ID is required</p>;
+        return (
+            <div className="space-y-6">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-2xl font-bold text-white">Asset Lifecycle Audit</h1>
+                    <p className="text-slate-400">Select an asset to view its lifecycle history and perform audits.</p>
+                </div>
+
+                <Card className="p-6 space-y-6">
+                    <div className="max-w-md">
+                        <Input
+                            placeholder="Search asset by name or tag..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            leftIcon={<Info size={16} />}
+                        />
+                    </div>
+
+                    <div className="rounded-lg border border-slate-800 overflow-hidden">
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableTh>Asset Tag</TableTh>
+                                    <TableTh>Name</TableTh>
+                                    <TableTh>Category</TableTh>
+                                    <TableTh>Status</TableTh>
+                                    <TableTh>Action</TableTh>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {searching ? (
+                                    <TableRow>
+                                        <TableTd colSpan={5} className="text-center py-8 text-slate-500">Searching...</TableTd>
+                                    </TableRow>
+                                ) : searchResults?.data?.length ? (
+                                    searchResults.data.map((asset: any) => (
+                                        <TableRow key={asset.id}>
+                                            <TableTd>{asset.asset_tag}</TableTd>
+                                            <TableTd>{asset.name}</TableTd>
+                                            <TableTd>{asset.category?.name || '-'}</TableTd>
+                                            <TableTd>
+                                                <Badge>{asset.status}</Badge>
+                                            </TableTd>
+                                            <TableTd>
+                                                <Button
+                                                    size="sm"
+                                                    rightIcon={<ArrowRight size={14} />}
+                                                    onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}
+                                                >
+                                                    View Lifecycle
+                                                </Button>
+                                            </TableTd>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableTd colSpan={5} className="text-center py-8 text-slate-500">
+                                            {debouncedQuery ? 'No assets found.' : 'Start typing to search for an asset.'}
+                                        </TableTd>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </Card>
+            </div>
+        );
     }
 
     const hasError = statesError || transitionsError;

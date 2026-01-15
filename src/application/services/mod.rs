@@ -7,6 +7,7 @@ pub mod audit_service; // Added
 pub mod auth_service;
 pub mod billing_service;
 pub mod category_service;
+pub mod category_template_service;
 pub mod client_service;
 pub mod conversion_service;
 pub mod employee_service;
@@ -28,6 +29,7 @@ pub use audit_service::*;
 pub use auth_service::*;
 pub use billing_service::*;
 pub use category_service::*;
+pub use category_template_service::*;
 pub use client_service::*;
 pub use conversion_service::*;
 pub use employee_service::*;

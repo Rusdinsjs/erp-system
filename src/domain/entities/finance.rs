@@ -167,6 +167,127 @@ pub struct CashBankTransaction {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct SalesQuote {
+    pub id: Uuid,
+    pub quote_number: String,
+    pub client_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub subtotal: f64,
+    pub tax: f64,
+    pub total_amount: f64,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct SalesOrder {
+    pub id: Uuid,
+    pub order_number: String,
+    pub quote_id: Option<Uuid>,
+    pub client_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub delivery_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub subtotal: f64,
+    pub tax: f64,
+    pub total_amount: f64,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct SalesShipment {
+    pub id: Uuid,
+    pub shipment_number: String,
+    pub sales_order_id: Option<Uuid>,
+    pub client_id: Option<Uuid>,
+    pub date: chrono::NaiveDate,
+    pub courier_name: Option<String>,
+    pub tracking_number: Option<String>,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+// --- Purchase Module ---
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct PurchaseQuote {
+    pub id: Uuid,
+    pub quote_number: String,
+    pub vendor_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub subtotal: f64,
+    pub tax: f64,
+    pub total_amount: f64,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePurchaseQuoteRequest {
+    pub quote_number: String,
+    pub vendor_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub items: Vec<CreateInvoiceItemRequest>, // Reusing for simplicity
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct PurchaseOrder {
+    pub id: Uuid,
+    pub order_number: String,
+    pub purchase_quote_id: Option<Uuid>,
+    pub vendor_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub delivery_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub subtotal: f64,
+    pub tax: f64,
+    pub total_amount: f64,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePurchaseOrderRequest {
+    pub order_number: String,
+    pub purchase_quote_id: Option<Uuid>,
+    pub vendor_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub delivery_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub items: Vec<CreateInvoiceItemRequest>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct PurchaseShipment {
+    pub id: Uuid,
+    pub shipment_number: String,
+    pub purchase_order_id: Option<Uuid>,
+    pub vendor_id: Option<Uuid>,
+    pub date: chrono::NaiveDate,
+    pub courier_name: Option<String>,
+    pub tracking_number: Option<String>,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePurchaseShipmentRequest {
+    pub shipment_number: String,
+    pub purchase_order_id: Option<Uuid>,
+    pub date: chrono::NaiveDate,
+    pub courier_name: Option<String>,
+    pub tracking_number: Option<String>,
+    pub items: Vec<CreateShipmentItemRequest>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateSalesInvoiceRequest {
     pub invoice_number: String,
@@ -229,4 +350,45 @@ pub struct CreateCashBankTransactionRequest {
     pub account_id: Option<Uuid>,
     pub contact_name: Option<String>,
     pub description: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateSalesQuoteRequest {
+    pub quote_number: String,
+    pub client_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub items: Vec<CreateInvoiceItemRequest>, // Reusing Item Request
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateSalesOrderRequest {
+    pub order_number: String,
+    pub quote_id: Option<Uuid>,
+    pub client_id: Uuid,
+    pub date: chrono::NaiveDate,
+    pub delivery_date: Option<chrono::NaiveDate>,
+    pub subject: Option<String>,
+    pub items: Vec<CreateInvoiceItemRequest>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateSalesShipmentRequest {
+    pub shipment_number: String,
+    pub sales_order_id: Option<Uuid>,
+    pub date: chrono::NaiveDate,
+    pub courier_name: Option<String>,
+    pub tracking_number: Option<String>,
+    pub recipient_name: Option<String>,
+    pub address: Option<String>,
+    pub notes: Option<String>,
+    pub items: Vec<CreateShipmentItemRequest>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateShipmentItemRequest {
+    pub order_item_id: Option<Uuid>,
+    pub description: String,
+    pub quantity_shipped: f64,
 }

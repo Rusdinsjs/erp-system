@@ -8,15 +8,29 @@ import {
     Button,
     Badge,
     LoadingOverlay,
-    ActionIcon
+    ActionIcon,
+    Pagination
 } from '../ui';
 
+
+import { useState } from 'react';
 export function RentalList() {
     const navigate = useNavigate();
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const { data: rentals, isLoading } = useQuery({
         queryKey: ['rentals', 'active'],
         queryFn: () => rentalApi.listRentals('active')
     });
+
+    // Client-side pagination logic
+    const totalItems = rentals?.length || 0;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const paginatedRentals = rentals?.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     return (
         <div className="space-y-4">
@@ -43,8 +57,8 @@ export function RentalList() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {rentals && rentals.length > 0 ? (
-                            rentals.map((rental) => (
+                        {paginatedRentals && paginatedRentals.length > 0 ? (
+                            paginatedRentals.map((rental) => (
                                 <TableRow key={rental.id}>
                                     <TableTd>{rental.rental_number}</TableTd>
                                     <TableTd>{rental.asset_name}</TableTd>
@@ -76,6 +90,19 @@ export function RentalList() {
                     </TableBody>
                 </Table>
             </div>
+            {/* Pagination Controls */}
+            {!isLoading && totalItems > 0 && (
+                <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+                    <p className="text-sm text-slate-500">
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+                    </p>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
+            )}
         </div>
     );
 }
