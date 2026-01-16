@@ -1,7 +1,7 @@
 // Dashboard Page - Pure Tailwind
 import { useQuery } from '@tanstack/react-query';
 import { Package, DollarSign, Wrench, AlertTriangle, Clock, ClipboardCheck } from 'lucide-react';
-import { api } from '../api/client';
+import { api } from '../api/http';
 import { Card } from '../components/ui';
 import { PageLoading } from '../components/ui';
 

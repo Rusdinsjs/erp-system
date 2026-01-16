@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from './http';
 
 
 export interface WorkOrder {
@@ -102,6 +102,10 @@ export const workOrderApi = {
     // List & CRUD
     list: async (params?: any): Promise<WorkOrder[]> => {
         const response = await api.get('/work-orders', { params });
+        return response.data;
+    },
+    listByAsset: async (assetId: string): Promise<WorkOrder[]> => {
+        const response = await api.get(`/work-orders`, { params: { asset_id: assetId } });
         return response.data;
     },
     listPending: async (): Promise<WorkOrder[]> => {

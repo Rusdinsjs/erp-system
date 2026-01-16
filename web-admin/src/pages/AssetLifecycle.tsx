@@ -4,14 +4,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowRight, Check, Clock, AlertTriangle, Package, Truck,
-    Wrench, Trash2, Archive, RefreshCw, Lock, Info, History, ArrowLeftRight
+    Wrench, Trash2, Archive, RefreshCw, Lock, Info, History
 } from 'lucide-react';
 import { lifecycleApi } from '../api/lifecycle';
 import { assetApi } from '../api/assets';
 import type { LifecycleHistory } from '../api/lifecycle';
 import { useAuthStore } from '../store/useAuthStore';
 import { AssetConversionModal } from '../components/Assets/AssetConversionModal';
-import { ConversionHistory } from '../components/Assets/ConversionHistory';
+import { CreateLoanModal } from '../components/Assets/CreateLoanModal';
+import { RetiredModal } from '../components/Assets/RetiredModal';
+import { DisposedModal } from '../components/Assets/DisposedModal';
+import { LostStolenModal } from '../components/Assets/LostStolenModal';
 import {
     Button,
     Card,
@@ -92,6 +95,10 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
 
     const [transitionModalOpen, setTransitionModalOpen] = useState(false);
     const [conversionModalOpen, setConversionModalOpen] = useState(false);
+    const [loanModalOpen, setLoanModalOpen] = useState(false);
+    const [retiredModalOpen, setRetiredModalOpen] = useState(false);
+    const [disposedModalOpen, setDisposedModalOpen] = useState(false);
+    const [lostStolenModalOpen, setLostStolenModalOpen] = useState(false);
     const [selectedState, setSelectedState] = useState<string | null>(null);
     const [reason, setReason] = useState('');
 
@@ -118,6 +125,13 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
         enabled: !!assetId,
     });
 
+    // Fetch asset detail
+    const { data: assetData, isLoading: isLoadingAsset, error: assetError } = useQuery({
+        queryKey: ['asset-detail', assetId],
+        queryFn: () => assetApi.get(assetId!),
+        enabled: !!assetId,
+    });
+
     // Fetch valid transitions with approval info
     const { data: validTransitions, isLoading: loadingTransitions, error: transitionsError } = useQuery({
         queryKey: ['valid-transitions-with-approval', assetId],
@@ -136,17 +150,37 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
     const transitionMutation = useMutation({
         mutationFn: () => lifecycleApi.requestTransition(assetId!, selectedState!, reason || undefined),
         onSuccess: (response) => {
+            const targetState = selectedState;
+
             if (response.result_type === 'Executed') {
                 success('Asset status updated successfully', 'Success');
             } else {
                 info(response.message || 'Your transition request has been submitted for approval', 'Approval Request Created');
             }
+
             queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
+            queryClient.invalidateQueries({ queryKey: ['asset-detail', assetId] });
             queryClient.invalidateQueries({ queryKey: ['valid-transitions-with-approval', assetId] });
             queryClient.invalidateQueries({ queryKey: ['lifecycle-history', assetId] });
             setTransitionModalOpen(false);
             setSelectedState(null);
             setReason('');
+
+            // Open relevant form based on target state
+            if (response.result_type === 'Executed') {
+                if (targetState === 'under_maintenance') {
+                    navigate(`/work-orders?asset_id=${assetId}&wo_type=maintenance`);
+                } else if (targetState === 'under_repair') {
+                    navigate(`/work-orders?asset_id=${assetId}&wo_type=repair`);
+                } else if (targetState === 'rented_out') {
+                    // Open rental form - redirect to rentals page with asset pre-selected
+                    navigate(`/rentals?new=true&asset_id=${assetId}`);
+                } else if (targetState === 'in_use' || targetState === 'loaned') {
+                    setLoanModalOpen(true);
+                } else if (targetState === 'under_conversion') {
+                    setConversionModalOpen(true);
+                }
+            }
         },
         onError: (error: Error) => {
             showError(error.message || 'Failed to update status', 'Error');
@@ -158,6 +192,22 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
             showError('You do not have permission to perform this transition', 'Permission Denied');
             return;
         }
+
+        // For critical transitions, open specialized modals directly
+        if (stateValue === 'retired') {
+            setRetiredModalOpen(true);
+            return;
+        }
+        if (stateValue === 'disposed') {
+            setDisposedModalOpen(true);
+            return;
+        }
+        if (stateValue === 'lost_stolen') {
+            setLostStolenModalOpen(true);
+            return;
+        }
+
+        // For other transitions, use the standard confirmation modal
         setSelectedState(stateValue);
         setTransitionModalOpen(true);
     };
@@ -202,7 +252,7 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
     // Search Assets Query
     const { data: searchResults, isLoading: searching } = useQuery({
         queryKey: ['assets-search', debouncedQuery],
-        queryFn: () => assetApi.list({ search: debouncedQuery, page: 1, limit: 10 }),
+        queryFn: () => assetApi.list({ query: debouncedQuery, page: 1, per_page: 10 }),
         enabled: !assetId && debouncedQuery.length > 0
     });
 
@@ -282,7 +332,27 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold text-white">Asset Management</h1>
+                <div className="flex flex-col">
+                    {isLoadingAsset ? (
+                        <div className="h-8 w-64 bg-slate-800 animate-pulse rounded" />
+                    ) : assetError ? (
+                        <div className="flex flex-col">
+                            <h1 className="text-2xl font-bold text-red-400">Error Loading Asset</h1>
+                            <p className="text-xs text-red-500/70">
+                                ID: {assetId} - {(assetError as any)?.response?.data?.error || (assetError as any)?.message}
+                            </p>
+                        </div>
+                    ) : (
+                        <h1 className="text-2xl font-bold text-white">
+                            {assetData?.name || (assetData as any)?.asset?.name || `Asset ${assetId || ''}`}
+                            {(assetData?.asset_code || (assetData as any)?.asset?.asset_code) && (
+                                <span className="text-slate-400 ml-2 font-normal">
+                                    ({assetData?.asset_code || (assetData as any)?.asset?.asset_code})
+                                </span>
+                            )}
+                        </h1>
+                    )}
+                </div>
                 <div className="flex items-center gap-3">
                     <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium">
                         Your Role: {getRoleName(userRoleLevel)}
@@ -297,7 +367,6 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
                 <Card padding="none">
                     <TabsList className="px-4 pt-4">
                         <TabsTrigger value="lifecycle" icon={<History size={16} />}>Lifecycle</TabsTrigger>
-                        <TabsTrigger value="conversions" icon={<ArrowLeftRight size={16} />}>Conversions</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="lifecycle" className="p-6">
@@ -315,16 +384,47 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
                                     <LoadingOverlay visible={loadingTransitions || loadingStates} />
 
                                     <h2 className="text-lg font-bold text-white mb-4">Current Status</h2>
-                                    <div className="mb-8">
+                                    <div className="flex flex-col gap-4 mb-8">
                                         <Badge
                                             variant={getBadgeVariant(currentState)}
-                                            className="text-lg px-4 py-2"
+                                            className="text-lg px-4 py-2 w-fit"
                                         >
                                             <div className="flex items-center gap-2">
                                                 {stateIcons[currentState]}
                                                 {getStateLabel(currentState)}
                                             </div>
                                         </Badge>
+
+                                        {assetData && (
+                                            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Responsible Person (PJ)</p>
+                                                    <Badge size="sm" className="bg-slate-700 text-slate-300 border-slate-600">
+                                                        {currentState === 'deployed' ? 'Dept. Responsibility' :
+                                                            currentState.includes('loan') || assetData.assigned_to_name ? 'Individual' :
+                                                                ['maintenance', 'repair'].includes(currentState) ? 'Technical' : 'Operational'}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-white">
+                                                    <span className="font-medium text-base">
+                                                        {assetData.assigned_to_name || (
+                                                            currentState === 'deployed' ? assetData.department_manager_name || 'No Dept Manager' :
+                                                                ['planning', 'procurement', 'received', 'in_inventory'].includes(currentState) ? 'Warehouse / GA Team' :
+                                                                    ['under_maintenance', 'under_repair'].includes(currentState) ? (assetData.vendor_name || 'Maintenance Team') :
+                                                                        currentState === 'under_conversion' ? 'Technical Team' :
+                                                                            ['retired', 'disposed'].includes(currentState) ? 'Asset Management / Finance' :
+                                                                                'Unassigned'
+                                                        )}
+                                                    </span>
+                                                    {(!assetData.assigned_to_name && currentState === 'deployed') && (
+                                                        <Badge size="sm" className="bg-blue-500/20 text-blue-400 border-blue-500/30">Manager PJ</Badge>
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 mt-2 italic">
+                                                    * PJ ini bertanggung jawab atas kondisi dan keberadaan aset pada tahap ini.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="w-full h-px bg-slate-800 my-6" />
@@ -437,23 +537,6 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
                             </div>
                         </div>
                     </TabsContent>
-
-                    <TabsContent value="conversions" className="p-6">
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-bold text-white">Asset Conversions</h2>
-                                <Button
-                                    leftIcon={<RefreshCw size={16} />}
-                                    onClick={() => setConversionModalOpen(true)}
-                                >
-                                    Request Conversion
-                                </Button>
-                            </div>
-                            <div className="p-6 rounded-xl bg-slate-900 border border-slate-800">
-                                <ConversionHistory assetId={assetId!} />
-                            </div>
-                        </div>
-                    </TabsContent>
                 </Card>
             </Tabs>
 
@@ -498,6 +581,45 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
                 onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
                     // History should auto-refresh via its own efffect or query invalidation
+                }}
+            />
+
+            <CreateLoanModal
+                opened={loanModalOpen}
+                onClose={() => setLoanModalOpen(false)}
+                assetId={assetId!}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
+                }}
+            />
+
+            <RetiredModal
+                opened={retiredModalOpen}
+                onClose={() => setRetiredModalOpen(false)}
+                assetId={assetId!}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
+                    queryClient.invalidateQueries({ queryKey: ['valid-transitions-with-approval', assetId] });
+                }}
+            />
+
+            <DisposedModal
+                opened={disposedModalOpen}
+                onClose={() => setDisposedModalOpen(false)}
+                assetId={assetId!}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
+                    queryClient.invalidateQueries({ queryKey: ['valid-transitions-with-approval', assetId] });
+                }}
+            />
+
+            <LostStolenModal
+                opened={lostStolenModalOpen}
+                onClose={() => setLostStolenModalOpen(false)}
+                assetId={assetId!}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
+                    queryClient.invalidateQueries({ queryKey: ['valid-transitions-with-approval', assetId] });
                 }}
             />
         </div>

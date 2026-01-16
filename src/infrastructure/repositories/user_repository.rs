@@ -151,6 +151,7 @@ impl UserRepository {
         role_code: Option<String>, // Legacy fallback
         department: Option<String>,
         department_id: Option<Uuid>,
+        avatar_url: Option<String>,
         is_active: Option<bool>,
     ) -> Result<User, sqlx::Error> {
         sqlx::query_as::<_, User>(
@@ -163,7 +164,8 @@ impl UserRepository {
                     role = COALESCE($4, role),
                     department = COALESCE($5, department),
                     department_id = COALESCE($6, department_id),
-                    is_active = COALESCE($7, is_active),
+                    avatar_url = COALESCE($7, avatar_url),
+                    is_active = COALESCE($8, is_active),
                     updated_at = NOW()
                 WHERE id = $1
                 RETURNING *
@@ -186,6 +188,7 @@ impl UserRepository {
         .bind(role_code)
         .bind(department)
         .bind(department_id)
+        .bind(avatar_url)
         .bind(is_active)
         .fetch_one(&self.pool)
         .await

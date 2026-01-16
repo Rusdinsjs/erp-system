@@ -2,18 +2,26 @@
 import { useState } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Box, MapPin, FolderTree, Wrench, Truck,
-    Users, Hand, ArrowLeftRight, CheckSquare, BarChart3,
-    ScanLine, User, LogOut, Menu, ChevronLeft, ChevronRight
+    LayoutDashboard, Box, MapPin, FolderTree, Truck,
+    Users, CheckSquare, BarChart3,
+    ScanLine, User, LogOut, Menu, ChevronLeft, ChevronRight, ChevronDown
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { NotificationBell } from '../Header/NotificationBell';
+import { AvatarUpload } from '../AvatarUpload';
 
 export function MainLayout() {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const [openMenus, setOpenMenus] = useState<string[]>(['/assets']);
+
+    const toggleMenu = (path: string) => {
+        setOpenMenus(prev =>
+            prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+        );
+    };
     const logout = useAuthStore((state) => state.logout);
     const user = useAuthStore((state) => state.user);
 
@@ -24,15 +32,24 @@ export function MainLayout() {
 
     const navItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-        { label: 'Assets', icon: Box, path: '/assets' },
+        {
+            label: 'Asset Tetap',
+            icon: Box,
+            path: '/assets',
+            children: [
+                { label: 'Semua Asset', path: '/assets' },
+                { label: 'Under Maintenance', path: '/assets?status=under_maintenance' },
+                { label: 'Under Repair', path: '/assets?status=under_repair' },
+                { label: 'Work Orders', path: '/work-orders' },
+                { label: 'Conversions', path: '/conversions' },
+                { label: 'Internal Loans', path: '/loans' },
+            ]
+        },
         { label: 'Locations', icon: MapPin, path: '/locations' },
         { label: 'Categories', icon: FolderTree, path: '/categories' },
-        { label: 'Work Orders', icon: Wrench, path: '/work-orders' },
         { label: 'Rentals', icon: Truck, path: '/rentals' },
         { label: 'Clients', icon: Users, path: '/clients' },
-        { label: 'Loans', icon: Hand, path: '/loans' },
         { label: 'Pegawai', icon: Users, path: '/employees' },
-        { label: 'Conversions', icon: ArrowLeftRight, path: '/conversions' },
         { label: 'Approvals', icon: CheckSquare, path: '/approvals' },
         { label: 'Reports', icon: BarChart3, path: '/reports' },
         { label: 'Users', icon: Users, path: '/users' },
@@ -69,27 +86,63 @@ export function MainLayout() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-                    {filteredNavItems.map((item) => {
-                        const active = location.pathname === item.path;
+                    {filteredNavItems.map((item: any) => {
+                        const hasChildren = item.children && item.children.length > 0;
+                        const isMenuOpen = openMenus.includes(item.path);
+                        const fullCurrentPath = location.pathname + location.search;
+                        const active = location.pathname === item.path || (hasChildren && item.children.some((c: any) => fullCurrentPath === c.path));
+
                         return (
-                            <button
-                                key={item.path}
-                                onClick={() => navigate(item.path)}
-                                className={`
-                                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                                    ${active
-                                        ? 'bg-cyan-500/10 text-cyan-400'
-                                        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                                    }
-                                    ${collapsed ? 'justify-center' : ''}
-                                `}
-                                title={collapsed ? item.label : undefined}
-                            >
-                                <item.icon size={20} strokeWidth={1.5} className="shrink-0" />
-                                <span className={`whitespace-nowrap transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
-                                    {item.label}
-                                </span>
-                            </button>
+                            <div key={item.path} className="space-y-1">
+                                <button
+                                    onClick={() => {
+                                        if (hasChildren && !collapsed) {
+                                            toggleMenu(item.path);
+                                        } else {
+                                            navigate(item.path);
+                                        }
+                                    }}
+                                    className={`
+                                        w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors
+                                        ${active && !hasChildren
+                                            ? 'bg-cyan-500/10 text-cyan-400'
+                                            : active && hasChildren ? 'text-cyan-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                                        }
+                                        ${collapsed ? 'justify-center' : ''}
+                                    `}
+                                    title={collapsed ? item.label : undefined}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <item.icon size={20} strokeWidth={1.5} className="shrink-0" />
+                                        <span className={`whitespace-nowrap transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
+                                            {item.label}
+                                        </span>
+                                    </div>
+                                    {hasChildren && !collapsed && (
+                                        <ChevronDown size={14} className={`transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
+                                    )}
+                                </button>
+
+                                {hasChildren && isMenuOpen && !collapsed && (
+                                    <div className="pl-9 space-y-1">
+                                        {item.children.map((child: any) => {
+                                            const childActive = fullCurrentPath === child.path;
+                                            return (
+                                                <button
+                                                    key={child.path}
+                                                    onClick={() => navigate(child.path)}
+                                                    className={`
+                                                        w-full text-left px-3 py-2 rounded-lg text-sm transition-colors
+                                                        ${childActive ? 'text-cyan-400 bg-cyan-500/5' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}
+                                                    `}
+                                                >
+                                                    {child.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         );
                     })}
                 </div>
@@ -142,25 +195,65 @@ export function MainLayout() {
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-1">
-                    {filteredNavItems.map((item) => (
-                        <button
-                            key={item.path}
-                            onClick={() => {
-                                navigate(item.path);
-                                setMobileMenuOpen(false);
-                            }}
-                            className={`
-                                w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors
-                                ${location.pathname === item.path
-                                    ? 'bg-cyan-500/10 text-cyan-400'
-                                    : 'text-slate-400 hover:bg-slate-800'
-                                }
-                            `}
-                        >
-                            <item.icon size={20} />
-                            <span>{item.label}</span>
-                        </button>
-                    ))}
+                    {filteredNavItems.map((item: any) => {
+                        const hasChildren = item.children && item.children.length > 0;
+                        const isMenuOpen = openMenus.includes(item.path);
+                        const fullCurrentPath = location.pathname + location.search;
+                        const active = location.pathname === item.path || (hasChildren && item.children.some((c: any) => fullCurrentPath === c.path));
+
+                        return (
+                            <div key={item.path} className="space-y-1">
+                                <button
+                                    onClick={() => {
+                                        if (hasChildren) {
+                                            toggleMenu(item.path);
+                                        } else {
+                                            navigate(item.path);
+                                            setMobileMenuOpen(false);
+                                        }
+                                    }}
+                                    className={`
+                                        w-full flex items-center justify-between px-3 py-3 rounded-lg transition-colors
+                                        ${active
+                                            ? 'bg-cyan-500/10 text-cyan-400'
+                                            : 'text-slate-400 hover:bg-slate-800'
+                                        }
+                                    `}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <item.icon size={20} />
+                                        <span>{item.label}</span>
+                                    </div>
+                                    {hasChildren && (
+                                        <ChevronDown size={14} className={`transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
+                                    )}
+                                </button>
+
+                                {hasChildren && isMenuOpen && (
+                                    <div className="pl-9 space-y-1">
+                                        {item.children.map((child: any) => {
+                                            const childActive = fullCurrentPath === child.path;
+                                            return (
+                                                <button
+                                                    key={child.path}
+                                                    onClick={() => {
+                                                        navigate(child.path);
+                                                        setMobileMenuOpen(false);
+                                                    }}
+                                                    className={`
+                                                        w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors
+                                                        ${childActive ? 'text-cyan-400 bg-cyan-500/5' : 'text-slate-500 hover:bg-slate-800/50'}
+                                                    `}
+                                                >
+                                                    {child.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-red-400 hover:bg-red-900/20 mt-4"
@@ -194,9 +287,7 @@ export function MainLayout() {
                                 <p className="text-white font-medium">{user?.name}</p>
                                 <p className="text-slate-500 text-xs text-right capitalize">{(user as any)?.role_name || user?.role}</p>
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
-                                <User size={16} />
-                            </div>
+                            <AvatarUpload size="sm" />
                         </div>
                     </div>
                 </header>

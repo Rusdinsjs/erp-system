@@ -4,8 +4,7 @@ import { financeApi } from '../../api/finance';
 import { clientApi } from '../../api/client-management';
 import { Card, Button, Badge } from '../../components/ui';
 import {
-    Plus, Search, Filter, Download, MoreVertical,
-    Calculator, Calendar, CheckCircle2, AlertCircle
+    Plus, Search, Filter, Download, MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -127,7 +126,7 @@ export function SalesQuotes() {
                                     <tr key={quote.id} className="hover:bg-slate-800/30 transition-colors">
                                         <td className="px-6 py-4 font-medium text-purple-400">{quote.quote_number}</td>
                                         <td className="px-6 py-4 text-white">
-                                            {clients.find(c => c.id === quote.client_id)?.name || quote.client_id}
+                                            {clients.find((c: any) => c.id === quote.client_id)?.name || quote.client_id}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-xs">{new Date(quote.date).toLocaleDateString('id-ID')}</td>
                                         <td className="px-6 py-4 font-mono text-xs">{quote.expiry_date ? new Date(quote.expiry_date).toLocaleDateString('id-ID') : '-'}</td>
@@ -171,7 +170,7 @@ export function SalesQuotes() {
                                     <input name="quote_number" placeholder="Nomor Penawaran" required className="bg-slate-950 border border-slate-800 rounded px-3 py-2" defaultValue={`QT/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`} />
                                     <select name="client_id" className="bg-slate-950 border border-slate-800 rounded px-3 py-2" required>
                                         <option value="">Pilih Klien</option>
-                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">

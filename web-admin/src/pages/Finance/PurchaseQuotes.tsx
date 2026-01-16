@@ -9,7 +9,6 @@ import {
     Filter,
     Download,
     MoreVertical,
-    FileText,
     X
 } from 'lucide-react';
 import { toast } from 'sonner';

@@ -15,10 +15,6 @@ impl EventPublisher {
         Self { sender }
     }
 
-    pub fn default() -> Self {
-        Self::new(1000)
-    }
-
     /// Publish an event
     pub fn publish<T: Serialize>(&self, event_type: &str, payload: &T) -> Result<(), String> {
         let json = serde_json::to_string(payload).map_err(|e| e.to_string())?;
@@ -30,6 +26,12 @@ impl EventPublisher {
     /// Subscribe to events
     pub fn subscribe(&self) -> broadcast::Receiver<String> {
         self.sender.subscribe()
+    }
+}
+
+impl Default for EventPublisher {
+    fn default() -> Self {
+        Self::new(1000)
     }
 }
 

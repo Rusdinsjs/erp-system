@@ -47,8 +47,6 @@ impl Phone {
         if self.0.starts_with("+62") || self.0.starts_with("62") {
             let num = self.0.trim_start_matches('+').trim_start_matches("62");
             format!("+62 {}", num)
-        } else if self.0.starts_with('0') {
-            self.0.clone()
         } else {
             self.0.clone()
         }

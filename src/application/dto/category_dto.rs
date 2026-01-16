@@ -17,6 +17,7 @@ pub struct CreateCategoryRequest {
     pub sub_category_letter: Option<String>,
     pub function_description: Option<String>,
     pub example_assets: Option<Vec<String>>,
+    pub attributes: Option<Vec<String>>,
     pub display_order: Option<i32>,
 }
 
@@ -32,6 +33,7 @@ pub struct UpdateCategoryRequest {
     pub sub_category_letter: Option<String>,
     pub function_description: Option<String>,
     pub example_assets: Option<Vec<String>>,
+    pub attributes: Option<Vec<String>>,
     pub display_order: Option<i32>,
 }
 
@@ -48,6 +50,7 @@ pub struct CategoryResponse {
     pub sub_category_letter: Option<String>,
     pub function_description: Option<String>,
     pub example_assets: Option<Vec<String>>,
+    pub attributes: Option<Vec<String>>,
     pub display_order: i32,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
@@ -65,6 +68,7 @@ pub struct CategoryTreeNode {
     pub sub_category_letter: Option<String>,
     pub function_description: Option<String>,
     pub example_assets: Option<Vec<String>>,
+    pub attributes: Option<Vec<String>>,
     pub display_order: i32,
     pub level: u32,
     pub children: Vec<CategoryTreeNode>,

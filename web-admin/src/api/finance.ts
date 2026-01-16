@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from './http';
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 export type NormalBalance = 'debit' | 'credit';

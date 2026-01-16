@@ -155,6 +155,7 @@ pub struct AssetDetail {
     pub category_name: Option<String>,
     pub location_name: Option<String>,
     pub department_name: Option<String>,
+    pub department_manager_name: Option<String>,
     pub assigned_to_name: Option<String>,
     pub vendor_name: Option<String>,
     pub condition_name: Option<String>,

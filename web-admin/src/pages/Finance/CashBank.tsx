@@ -50,7 +50,7 @@ export function CashBank() {
 
     const createTransactionMutation = useMutation({
         mutationFn: financeApi.createCashBankTransaction,
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['finance', 'cash-bank-transactions'] });
             if (variables.transaction_type === 'receive') {
                 setIsReceiveModalOpen(false);

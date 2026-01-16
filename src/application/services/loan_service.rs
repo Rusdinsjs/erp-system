@@ -116,6 +116,16 @@ impl LoanService {
         })
     }
 
+    /// List loans by asset
+    pub async fn list_by_asset(&self, asset_id: Uuid) -> DomainResult<Vec<Loan>> {
+        self.loan_repo.list_by_asset(asset_id).await.map_err(|e| {
+            DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            }
+        })
+    }
+
     /// Approve loan
     pub async fn approve(&self, id: Uuid, approver_id: Uuid) -> DomainResult<Loan> {
         let loan = self.get_by_id(id).await?;

@@ -8,7 +8,7 @@ import {
     Clock, ClipboardList, Tags
 } from 'lucide-react';
 import { rentalApi } from '../../api/rental';
-import { api } from '../../api/client';
+import { api } from '../../api/http';
 import { TimesheetList } from '../../components/Rentals/TimesheetList';
 import { BillingHistory } from '../../components/Rentals/BillingHistory';
 import {

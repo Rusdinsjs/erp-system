@@ -85,7 +85,23 @@ impl EmployeeService {
             department_name: None,
         };
 
-        self.repository.create(&employee).await
+        let created_employee = self.repository.create(&employee).await?;
+
+        // Handle User Creation if requested
+        if let Some(user_req) = req.user_creation {
+            // Create CreateEmployeeUserRequest from the struct (same check usually)
+            // We can just call create_user internally
+            // But create_user takes CreateEmployeeUserRequest
+            // create_user also checks if user exists.
+
+            // Since we just created the employee, user_id is definitely None.
+            let _ = self.create_user(created_employee.id, user_req).await?;
+            // Refetch optional or just return created_employee with user_id?
+            // create_user updates the employee record. So we should fetch it again or return the result of create_user.
+            return self.repository.get_by_id(created_employee.id).await;
+        }
+
+        Ok(created_employee)
     }
 
     pub async fn get_by_id(&self, id: Uuid) -> Result<Employee, AppError> {
@@ -98,6 +114,9 @@ impl EmployeeService {
 
     pub async fn update(&self, id: Uuid, req: UpdateEmployeeRequest) -> Result<Employee, AppError> {
         let mut employee = self.repository.get_by_id(id).await?;
+
+        // Capture user_creation req before consuming req
+        let user_creation_req = req.user_creation.clone();
 
         if let Some(nik) = req.nik {
             // Check if new NIK exists for other employees
@@ -215,7 +234,20 @@ impl EmployeeService {
             employee.education = Some(edu);
         }
 
-        self.repository.update(&employee).await
+        self.repository.update(&employee).await?;
+
+        // Handle User Creation if requested and not linked
+        if let Some(user_req) = user_creation_req {
+            if employee.user_id.is_none() {
+                // Check if user already exists with email not needed here as UserService handles it
+                // create_user method in this service also checks if employee already has user_id (which we checked is none)
+                let _ = self.create_user(employee.id, user_req).await?;
+                // Refetch to get updated employee with user_id
+                return self.repository.get_by_id(employee.id).await;
+            }
+        }
+
+        Ok(employee)
     }
 
     pub async fn delete(&self, id: Uuid) -> Result<(), AppError> {

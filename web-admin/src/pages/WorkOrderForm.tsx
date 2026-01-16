@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workOrderApi } from '../api/work-order';
 import { assetApi } from '../api/assets';
-import { api } from '../api/client';
+import { api } from '../api/http';
 import {
     Button,
     Select,

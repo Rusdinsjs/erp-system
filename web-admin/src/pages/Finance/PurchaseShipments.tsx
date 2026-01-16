@@ -8,7 +8,6 @@ import {
     Filter,
     Download,
     MoreVertical,
-    Truck,
     Package,
     X
 } from 'lucide-react';

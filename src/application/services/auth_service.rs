@@ -65,7 +65,8 @@ impl AuthService {
                 .unwrap_or_default()
         } else {
             // Fallback for legacy users (should ideally be migrated)
-            UserRole::from_str(&user.role)
+            user.role
+                .parse::<UserRole>()
                 .unwrap_or(UserRole::User)
                 .default_permissions()
                 .iter()

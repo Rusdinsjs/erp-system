@@ -2,10 +2,8 @@
 import { useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, Trash, Check, X } from 'lucide-react';
 import Papa from 'papaparse';
-import { api } from '../../api/client';
+import { api } from '../../api/http';
 import { Modal, Button, Table, TableHead, TableBody, TableRow, TableTh, TableTd, Badge, useToast, Select } from '../ui';
-
-import { useQuery } from '@tanstack/react-query';
 
 // Shared Attribute Templates are now fetched from the backend
 
@@ -27,15 +25,6 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
 
     // Template State
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
-
-    // Fetch templates from API
-    const { data: templatesData } = useQuery({
-        queryKey: ['category-templates'],
-        queryFn: () => api.get('/categories/templates').then(res => res.data.data)
-    });
-
-    const templates: any[] = templatesData || [];
-
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { success, error: showError } = useToast();
 
@@ -147,9 +136,9 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
         let extraHeaders: string[] = [];
 
         if (selectedCategoryId) {
-            const template = templates.find(t => t.category_id === selectedCategoryId);
-            if (template && template.attributes) {
-                extraHeaders = template.attributes;
+            const category = categories.find((c: any) => c.id === selectedCategoryId);
+            if (category && category.attributes && Array.isArray(category.attributes)) {
+                extraHeaders = category.attributes;
             }
         }
 
@@ -198,9 +187,9 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                                         onChange={setSelectedCategoryId}
                                         options={[
                                             { value: '', label: 'Generic (Basic Fields Only)' },
-                                            ...templates.map(t => ({
-                                                value: t.category_id,
-                                                label: t.category_name || 'Unknown Category'
+                                            ...categories.map((c: any) => ({
+                                                value: c.id,
+                                                label: c.name
                                             }))
                                         ]}
                                     />

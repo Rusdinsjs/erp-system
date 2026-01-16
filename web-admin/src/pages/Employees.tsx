@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search, UserPlus, UserCheck } from 'lucide-react';
 import { employeeApi, type Employee, type EmploymentStatus } from '../api/employee';
-import { api } from '../api/client';
+import { api } from '../api/http';
 import {
     Button,
     Card,
@@ -89,6 +89,11 @@ export function Employees() {
     const [formData, setFormData] = useState(initialFormState);
     const [userFormData, setUserFormData] = useState(initialUserFormState);
 
+    // New State for Integrated User Creation
+    const [createUser, setCreateUser] = useState(false);
+    const [userPassword, setUserPassword] = useState('');
+    const [userRole, setUserRole] = useState('staff');
+
     const { success, error: showError } = useToast();
 
     useEffect(() => {
@@ -121,10 +126,27 @@ export function Employees() {
     const handleCreate = async () => {
         setSubmitting(true);
         try {
-            await employeeApi.create(formData);
+            const payload = {
+                ...formData,
+                user_creation: createUser ? {
+                    email: formData.email || '',
+                    password: userPassword,
+                    role: userRole
+                } : undefined
+            };
+
+            if (createUser && !userPassword) {
+                showError('Password is required for user creation', 'Validation Error');
+                setSubmitting(false);
+                return;
+            }
+
+            await employeeApi.create(payload);
             success('Employee created', 'Success');
             setModalOpen(false);
             setFormData(initialFormState);
+            setCreateUser(false);
+            setUserPassword('');
             loadData();
         } catch (e: any) {
             showError(e.response?.data?.message || 'Failed to create employee', 'Error');
@@ -137,9 +159,26 @@ export function Employees() {
         if (!editingEmployee) return;
         setSubmitting(true);
         try {
-            await employeeApi.update(editingEmployee.id, formData);
+            const payload = {
+                ...formData,
+                user_creation: createUser ? {
+                    email: formData.email || '',
+                    password: userPassword,
+                    role: userRole
+                } : undefined
+            };
+
+            if (createUser && !userPassword) {
+                showError('Password is required for user creation', 'Validation Error');
+                setSubmitting(false);
+                return;
+            }
+
+            await employeeApi.update(editingEmployee.id, payload);
             success('Employee updated', 'Success');
             setModalOpen(false);
+            setCreateUser(false);
+            setUserPassword('');
             loadData();
         } catch (e: any) {
             showError(e.response?.data?.message || 'Failed to update employee', 'Error');
@@ -163,6 +202,9 @@ export function Employees() {
         setFormData(initialFormState);
         setEditingEmployee(null);
         setIsEditing(false);
+        setCreateUser(false);
+        setUserPassword('');
+        setUserRole('staff');
         setModalOpen(true);
     };
 
@@ -174,6 +216,9 @@ export function Employees() {
             ...employee, // Overwrite with existing data
             basic_salary: Number(employee.basic_salary) || 0, // Ensure number
         });
+        setCreateUser(false); // Default to false
+        setUserPassword('');
+        setUserRole('staff');
         setModalOpen(true);
     };
 
@@ -354,6 +399,7 @@ export function Employees() {
                         <TabsTrigger value="employment">Pekerjaan</TabsTrigger>
                         <TabsTrigger value="contact">Kontak</TabsTrigger>
                         <TabsTrigger value="payroll">Payroll</TabsTrigger>
+                        <TabsTrigger value="user">User Account</TabsTrigger>
                     </TabsList>
 
                     <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -549,6 +595,60 @@ export function Employees() {
                                     onChange={(e) => setFormData({ ...formData, bpjs_tenaga_kerja: e.target.value })}
                                 />
                             </div>
+                        </TabsContent>
+
+                        {/* 5. USER ACCOUNT */}
+                        <TabsContent value="user" className="space-y-4">
+                            {isEditing && editingEmployee?.user_id ? (
+                                <div className="p-4 bg-sky-500/10 border border-sky-500/20 rounded-lg flex items-center gap-3">
+                                    <UserCheck className="text-sky-400 shrink-0" size={24} />
+                                    <div>
+                                        <p className="font-medium text-sky-400">Akun Terhubung</p>
+                                        <p className="text-sm text-sky-200/70">
+                                            Pegawai ini sudah memiliki akun login sistem.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-slate-800/50 p-4 rounded-md border border-slate-700">
+                                    <label className="flex items-center gap-2 cursor-pointer mb-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={createUser}
+                                            onChange={(e) => setCreateUser(e.target.checked)}
+                                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-600 focus:ring-purple-500"
+                                        />
+                                        <span className="text-white font-medium">Buat Akun Login untuk Pegawai ini</span>
+                                    </label>
+
+                                    {createUser && (
+                                        <div className="space-y-4 pl-6 border-l-2 border-slate-700">
+                                            <p className="text-sm text-slate-400">
+                                                Email login akan menggunakan: <strong className="text-white">{formData.email || '(Isi email di tab Personal)'}</strong>
+                                            </p>
+                                            <Input
+                                                label="Password"
+                                                type="password"
+                                                value={userPassword}
+                                                onChange={(e) => setUserPassword(e.target.value)}
+                                                placeholder="Password login..."
+                                                required
+                                            />
+                                            <Select
+                                                label="Role"
+                                                value={userRole}
+                                                onChange={(val) => setUserRole(val || 'staff')}
+                                                options={[
+                                                    { value: 'staff', label: 'Staff' },
+                                                    { value: 'technician', label: 'Technician' },
+                                                    { value: 'manager', label: 'Manager' },
+                                                    { value: 'admin', label: 'Admin' },
+                                                ]}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </TabsContent>
                     </div>
 

@@ -41,7 +41,7 @@ export const Clients = () => {
 
     const { data: clients, isLoading } = useQuery({
         queryKey: ['clients'],
-        queryFn: () => clientApi.list().then(res => res.data),
+        queryFn: () => clientApi.list().then((res: any) => res.data),
     });
 
     const createMutation = useMutation({
@@ -131,7 +131,7 @@ export const Clients = () => {
         }
     };
 
-    const filteredClients = clients?.data?.filter(c =>
+    const filteredClients = clients?.data?.filter((c: any) =>
         c.name.toLowerCase().includes(search.toLowerCase()) ||
         c.client_code.toLowerCase().includes(search.toLowerCase()) ||
         c.company_name?.toLowerCase().includes(search.toLowerCase())
@@ -175,7 +175,7 @@ export const Clients = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {filteredClients.length > 0 ? filteredClients.map((client) => (
+                            {filteredClients.length > 0 ? filteredClients.map((client: any) => (
                                 <TableRow key={client.id}>
                                     <TableTd>
                                         <Badge variant="default">{client.client_code}</Badge>

@@ -1,7 +1,5 @@
 import { Card } from '../../components/ui';
-import { TrendingUp, ShoppingCart, FileText, Truck, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { financeApi } from '../../api/finance';
+import { TrendingUp, ShoppingCart, Truck, AlertCircle } from 'lucide-react';
 
 export function SalesOverview() {
     // Queries to fetch stats would go here

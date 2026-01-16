@@ -1,4 +1,4 @@
-import { api as client } from './client';
+import { api as client } from './http';
 
 export interface LeaveRequest {
     id: string;

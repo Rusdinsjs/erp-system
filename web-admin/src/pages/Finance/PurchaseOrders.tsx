@@ -9,7 +9,6 @@ import {
     Filter,
     Download,
     MoreVertical,
-    ShoppingBag,
     X
 } from 'lucide-react';
 import { toast } from 'sonner';

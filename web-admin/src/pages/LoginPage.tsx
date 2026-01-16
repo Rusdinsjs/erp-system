@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, AlertCircle, Eye, EyeOff, Package } from 'lucide-react';
-import { api } from '../api/client';
+import { api } from '../api/http';
 import { useAuthStore } from '../store/useAuthStore';
 
 export function LoginPage() {

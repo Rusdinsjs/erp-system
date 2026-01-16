@@ -41,6 +41,83 @@ impl AssetRepository {
         .await
     }
 
+    /// Find asset detail by ID (with joins)
+    pub async fn find_detail_by_id(
+        &self,
+        id: Uuid,
+    ) -> Result<
+        Option<(
+            Asset,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<VehicleDetails>,
+        )>,
+        sqlx::Error,
+    > {
+        #[derive(sqlx::FromRow)]
+        struct AssetDetailRow {
+            #[sqlx(flatten)]
+            asset: Asset,
+            category_name: Option<String>,
+            location_name: Option<String>,
+            department_name: Option<String>,
+            department_manager_name: Option<String>,
+            assigned_to_name: Option<String>,
+            vendor_name: Option<String>,
+        }
+
+        let row = sqlx::query_as::<_, AssetDetailRow>(
+            r#"
+            SELECT 
+                a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.assigned_to, a.vendor_id,
+                a.is_rental, a.asset_class, a.status, a.condition_id,
+                a.serial_number, a.brand, a.model, a.year_manufacture,
+                a.specifications,
+                a.purchase_date, a.purchase_price, a.currency_id, a.unit_id, a.quantity,
+                a.residual_value, a.useful_life_months,
+                a.qr_code_url, a.notes,
+                a.created_at, a.updated_at,
+                c.name as category_name,
+                l.name as location_name,
+                d.name as department_name,
+                m.name as department_manager_name,
+                u.name as assigned_to_name,
+                v.name as vendor_name
+            FROM assets a
+            LEFT JOIN categories c ON a.category_id = c.id
+            LEFT JOIN locations l ON a.location_id = l.id
+            LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN employees m ON m.department_id = d.id AND m.is_manager = true
+            LEFT JOIN users u ON a.assigned_to = u.id
+            LEFT JOIN vendors v ON a.vendor_id = v.id
+            WHERE a.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some(r) = row {
+            let vehicle = self.get_vehicle_details(id).await?;
+            Ok(Some((
+                r.asset,
+                r.category_name,
+                r.location_name,
+                r.department_name,
+                r.department_manager_name,
+                r.assigned_to_name,
+                r.vendor_name,
+                vehicle,
+            )))
+        } else {
+            Ok(None)
+        }
+    }
+
     /// Find asset by code
     pub async fn find_by_code(&self, code: &str) -> Result<Option<Asset>, sqlx::Error> {
         sqlx::query_as::<_, Asset>(

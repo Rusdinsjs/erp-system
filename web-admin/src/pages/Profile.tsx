@@ -1,8 +1,9 @@
 // Profile Page - Pure Tailwind
-import { useState, useEffect, useRef } from "react";
-import { Upload, User, Lock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Lock } from "lucide-react";
 import { profileApi } from "../api/profile";
 import { useAuthStore } from "../store/useAuthStore";
+import { AvatarUpload } from "../components/AvatarUpload";
 import {
     Button,
     Card,
@@ -17,8 +18,6 @@ export function Profile() {
     const refreshUser = useAuthStore((state) => state.refreshUser);
     const { success, error: showError } = useToast();
     const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [profileData, setProfileData] = useState({
         name: "",
@@ -90,27 +89,6 @@ export function Profile() {
         }
     };
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setUploading(true);
-        try {
-            await profileApi.uploadAvatar(file);
-            success("Avatar uploaded successfully", "Success");
-            refreshUser();
-        } catch (error: any) {
-            showError(error.response?.data?.error || "Failed to upload avatar", "Error");
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const avatarUrl = user?.avatar_url
-        ? user.avatar_url.startsWith("http")
-            ? `${user.avatar_url}?t=${Date.now()}`
-            : `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}${user.avatar_url}?t=${Date.now()}`
-        : undefined;
-
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-bold text-white">My Profile</h1>
@@ -119,43 +97,13 @@ export function Profile() {
                 {/* Avatar Section */}
                 <Card padding="lg" className="lg:col-span-1">
                     <div className="flex flex-col items-center gap-4">
-                        {/* Avatar */}
-                        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center overflow-hidden">
-                            {avatarUrl ? (
-                                <img
-                                    src={avatarUrl}
-                                    alt="Avatar"
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <span className="text-4xl font-bold text-white">
-                                    {user?.name?.charAt(0).toUpperCase()}
-                                </span>
-                            )}
-                        </div>
+                        <AvatarUpload size="xl" />
 
                         {/* User Info */}
                         <div className="text-center">
                             <p className="text-lg font-semibold text-white">{user?.name}</p>
                             <p className="text-sm text-slate-400">{user?.role}</p>
                         </div>
-
-                        {/* Upload Button */}
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/png,image/jpeg"
-                            onChange={handleAvatarUpload}
-                            className="hidden"
-                        />
-                        <Button
-                            variant="outline"
-                            leftIcon={<Upload size={14} />}
-                            loading={uploading}
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            Upload Avatar
-                        </Button>
                     </div>
                 </Card>
 

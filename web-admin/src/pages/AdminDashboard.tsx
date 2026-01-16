@@ -7,7 +7,7 @@ import {
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
-    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator
+    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw
 } from 'lucide-react';
 import { PageLoading } from '../components/ui';
 
@@ -23,6 +23,7 @@ const ProfileView = lazy(() => import('./Profile').then(m => ({ default: m.Profi
 const ReportsView = lazy(() => import('./Reports'));
 const AuditModeView = lazy(() => import('./AuditMode').then(m => ({ default: m.AuditMode })));
 const AssetLifecycleView = lazy(() => import('./AssetLifecycle').then(m => ({ default: m.AssetLifecycle })));
+const ConversionsView = lazy(() => import('./Conversions').then(m => ({ default: m.Conversions })));
 const RentalsView = lazy(() => import('./rentals/Rentals').then(m => ({ default: m.Rentals })));
 const RentalFormView = lazy(() => import('./rentals/RentalForm').then(m => ({ default: m.RentalForm })));
 const ClientsView = lazy(() => import('./Clients').then(m => ({ default: m.Clients })));
@@ -129,6 +130,8 @@ const navItems: NavEntry[] = [
         children: [
             { id: 'assets', icon: Package, label: 'Daftar Aset' },
             { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)' },
+            { id: 'work-orders', icon: Wrench, label: 'Work Orders' },
+            { id: 'conversions', icon: RefreshCw, label: 'Conversions' },
             { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal' },
         ]
     },
@@ -438,6 +441,7 @@ export default function AdminDashboard() {
             case 'categories': return <CategoriesView />;
             case 'locations': return <LocationsView />;
             case 'work-orders': return <WorkOrdersView />;
+            case 'conversions': return <ConversionsView />;
             case 'rentals':
                 return <RentalsView />;
             case 'rental-form':

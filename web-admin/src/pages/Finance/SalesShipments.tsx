@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { Card, Button, Badge } from '../../components/ui';
 import {
-    Plus, Search, Filter, Download, MoreVertical,
-    Truck, MapPin, Package
+    Plus, Search, Filter, Download, MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 

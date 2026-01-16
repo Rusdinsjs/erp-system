@@ -41,7 +41,7 @@ export function RentalForm() {
     // Fetch Clients
     const { data: clientsResponse, isLoading: clientsLoading } = useQuery({
         queryKey: ['clients-list'],
-        queryFn: () => clientApi.list({ limit: 100 }).then(res => res.data)
+        queryFn: () => clientApi.list({ limit: 100 }).then((res: any) => res.data)
     });
     const clients = clientsResponse?.data || [];
 
@@ -121,7 +121,7 @@ export function RentalForm() {
                         <Select
                             label="Client"
                             placeholder="Select Client"
-                            options={clients.map((c) => ({ value: c.id, label: c.name + (c.company_name ? ` (${c.company_name})` : '') }))}
+                            options={clients.map((c: any) => ({ value: c.id, label: c.name + (c.company_name ? ` (${c.company_name})` : '') }))}
                             value={formData.client_id}
                             onChange={(val) => handleChange('client_id', val)}
                             required

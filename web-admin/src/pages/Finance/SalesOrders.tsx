@@ -126,7 +126,7 @@ export function SalesOrders() {
                                     <tr key={order.id} className="hover:bg-slate-800/30 transition-colors">
                                         <td className="px-6 py-4 font-medium text-blue-400">{order.order_number}</td>
                                         <td className="px-6 py-4 text-white">
-                                            {clients.find(c => c.id === order.client_id)?.name || order.client_id}
+                                            {clients.find((c: any) => c.id === order.client_id)?.name || order.client_id}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-xs">{new Date(order.date).toLocaleDateString('id-ID')}</td>
                                         <td className="px-6 py-4">{order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('id-ID') : '-'}</td>
@@ -168,7 +168,7 @@ export function SalesOrders() {
                                     <input name="order_number" placeholder="Nomor SO" required className="bg-slate-950 border border-slate-800 rounded px-3 py-2" defaultValue={`SO/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`} />
                                     <select name="client_id" className="bg-slate-950 border border-slate-800 rounded px-3 py-2" required>
                                         <option value="">Pilih Klien</option>
-                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">

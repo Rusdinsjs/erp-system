@@ -1,13 +1,12 @@
-// Assets Page - Pure Tailwind
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Edit, Trash2, RefreshCw, Upload, BarChart3 } from 'lucide-react';
 import { assetApi } from '../api/assets';
 import type { Asset, CreateAssetRequest } from '../api/assets';
-import { api } from '../api/client';
-import { AssetFormTailwind } from '../components/Assets/AssetFormTailwind';
+import { api } from '../api/http';
+import { AssetForm } from '../components/Assets/AssetForm';
 import { ImportAssetsModal } from '../components/Assets/ImportAssetsModal';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Button,
     Card,
@@ -49,6 +48,9 @@ export function Assets() {
     const navigate = useNavigate();
     const { success, error: showError } = useToast();
 
+    const [searchParams] = useSearchParams();
+    const statusFilter = searchParams.get('status');
+
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
@@ -60,12 +62,12 @@ export function Assets() {
 
     // Fetch Assets
     const { data: assetsData, isLoading: assetsLoading } = useQuery({
-        queryKey: ['assets', page, debouncedSearch],
+        queryKey: ['assets', page, debouncedSearch, statusFilter],
         queryFn: () => assetApi.list({
             page,
             per_page: 15,
             query: debouncedSearch,
-            status: undefined
+            status: statusFilter || undefined
         })
     });
 
@@ -280,7 +282,7 @@ export function Assets() {
                 title={editingAsset ? `Edit Asset: ${editingAsset.asset_code}` : 'New Asset'}
                 size="xl"
             >
-                <AssetFormTailwind
+                <AssetForm
                     initialValues={editingAsset}
                     categories={categories}
                     locations={locations}

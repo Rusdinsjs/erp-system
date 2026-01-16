@@ -33,35 +33,10 @@ interface AssetFormProps {
     isLoading?: boolean;
 }
 
-const ATTRIBUTE_TEMPLATES: Record<string, string[]> = {
-    // Heavy Equipment
-    'CRUSHER': ['Capacity (Ton/Hr)', 'Power (KW)', 'Input Size (mm)', 'Output Size (mm)', 'CSS Range'],
-    'EXCAVATOR': ['Bucket Capacity (m3)', 'Operating Weight (kg)', 'Engine Power (HP)', 'Max Digging Depth'],
-    'LOADER': ['Bucket Capacity (m3)', 'Payload (kg)', 'Engine Power (HP)', 'Dumping Clearance'],
-    'DOZER': ['Blade Capacity (m3)', 'Operating Weight (kg)', 'Engine Power (HP)', 'Blade Type'],
-    'GRADER': ['Blade Width', 'Operating Weight', 'Engine Power'],
-    'COMPACTOR': ['Drum Width', 'Operating Weight', 'Vibration Frequency'],
+// ATTRIBUTE_TEMPLATES removed - now dynamic from Database
 
-    // Plant & Machinery
-    'CONVEYOR': ['Belt Width (mm)', 'Length (m)', 'Speed (m/s)', 'Capacity (TPH)'],
-    'SCREEN': ['Deck Size', 'Number of Decks', 'Capacity (TPH)', 'Power (KW)'],
-    'GENSET': ['KVA Prime', 'KVA Standby', 'Fuel Consumption (L/h)', 'Phase', 'Voltage'],
-    'PUMP': ['Flow Rate (m3/h)', 'Head (m)', 'Power (KW)', 'Inlet/Outlet Size'],
-    'COMPRESSOR': ['Capacity (CFM)', 'Pressure (Bar)', 'Power (KW)'],
 
-    // Electrical
-    'MOTOR': ['Power (KW)', 'RPM', 'Voltage', 'Frame Size', 'IP Rating'],
-    'TRAFO': ['Capacity (KVA)', 'Primary Voltage', 'Secondary Voltage', 'Vector Group'],
-
-    // IT & General
-    'LAPTOP': ['Processor', 'RAM', 'Storage', 'Screen Size', 'OS'],
-    'PC': ['Processor', 'RAM', 'Storage', 'Monitor Size', 'OS'],
-    'UPS': ['Capacity (VA)', 'Backup Time', 'Battery Type'],
-    'SERVER': ['Processor', 'RAM', 'Storage (RAID)', 'Form Factor', 'OS'],
-    'AC': ['Capacity (PK/BTU)', 'Refrigerant', 'Power (Watt)', 'Type'],
-};
-
-export function AssetFormTailwind({ initialValues, categories, locations, onSubmit, onCancel, isLoading }: AssetFormProps) {
+export function AssetForm({ initialValues, categories, locations, onSubmit, onCancel, isLoading }: AssetFormProps) {
     const { user } = useAuthStore();
 
     // Form State
@@ -167,32 +142,23 @@ export function AssetFormTailwind({ initialValues, categories, locations, onSubm
         return code.includes('BANGUNAN') || code.includes('TANAH') || code.includes('INFRA');
     }, [selectedCategory]);
 
-    // Template Pre-fill Logic
+    // Template Pre-fill Logic (Dynamic from DB)
     useEffect(() => {
         if (!selectedCategory || isVehicle || isBuilding) return;
 
+        // Check if category has dynamic attributes
+        // @ts-ignore - attributes might not be in the strict type yet if not updated
+        const attributes = selectedCategory.attributes as string[] | undefined;
+
+        if (!attributes || attributes.length === 0) return;
+
         // Only apply template if specs are not 'dirty' (have values entered)
-        // We allow overwriting if it's just keys without values (previous template)
         const isDirty = customSpecs.some(s => s.value.trim() !== '');
         if (isDirty) return;
 
-        const name = selectedCategory.name.toUpperCase();
-        const code = selectedCategory.code.toUpperCase();
+        // Apply attributes from DB
+        setCustomSpecs(attributes.map(k => ({ key: k, value: '' })));
 
-        let template: string[] | null = null;
-        for (const [key, fields] of Object.entries(ATTRIBUTE_TEMPLATES)) {
-            if (name.includes(key) || code.includes(key)) {
-                template = fields;
-                break;
-            }
-        }
-
-        if (template) {
-            setCustomSpecs(template.map(k => ({ key: k, value: '' })));
-        } else if (customSpecs.length === 0) {
-            // Default empty if no template matches and list is empty
-            setCustomSpecs([{ key: '', value: '' }]);
-        }
     }, [selectedCategory?.id, isVehicle, isBuilding]);
 
     // Custom Spec Handlers

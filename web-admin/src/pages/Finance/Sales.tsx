@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { clientApi } from '../../api/client-management';
-import type { Client } from '../../api/client-management';
 import { Card, Button, Badge } from '../../components/ui';
 import {
     Plus,
@@ -163,7 +162,7 @@ export function Sales() {
                                     <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors cursor-pointer group">
                                         <td className="px-6 py-4 font-medium text-cyan-400">{inv.invoice_number}</td>
                                         <td className="px-6 py-4 text-white">
-                                            {clients.find(c => c.id === inv.client_id)?.name || inv.client_id}
+                                            {clients.find((c: any) => c.id === inv.client_id)?.name || inv.client_id}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-xs">{new Date(inv.date).toLocaleDateString('id-ID')}</td>
                                         <td className="px-6 py-4 font-mono text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID') : '-'}</td>
@@ -227,7 +226,7 @@ export function Sales() {
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
                                     >
                                         <option value="">Pilih Pelanggan</option>
-                                        {clients.map(client => (
+                                        {clients.map((client: any) => (
                                             <option key={client.id} value={client.id}>{client.name}</option>
                                         ))}
                                     </select>

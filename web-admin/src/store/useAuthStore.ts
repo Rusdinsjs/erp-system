@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { jwtDecode } from 'jwt-decode';
 
-import { api } from '../api/client'; // Import API client
+import { api } from '../api/http'; // Import API client
 
 export interface User {
     id: string;

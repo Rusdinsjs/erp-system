@@ -158,6 +158,10 @@ impl CategoryService {
             category.example_assets = Some(serde_json::to_value(assets).unwrap_or_default());
         }
 
+        if let Some(attrs) = request.attributes {
+            category.attributes_schema = Some(serde_json::to_value(attrs).unwrap_or_default());
+        }
+
         let created = self.repository.create(&category).await.map_err(|e| {
             DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -221,6 +225,9 @@ impl CategoryService {
         if let Some(assets) = request.example_assets {
             category.example_assets = Some(serde_json::to_value(assets).unwrap_or_default());
         }
+        if let Some(attrs) = request.attributes {
+            category.attributes_schema = Some(serde_json::to_value(attrs).unwrap_or_default());
+        }
 
         let updated = self.repository.update(&category).await.map_err(|e| {
             DomainError::ExternalServiceError {
@@ -273,6 +280,10 @@ impl CategoryService {
             sub_category_letter: category.sub_category_letter.clone(),
             function_description: category.function_description.clone(),
             example_assets,
+            attributes: category
+                .attributes_schema
+                .as_ref()
+                .and_then(|v| serde_json::from_value(v.clone()).ok()),
             display_order: category.display_order,
             level,
             children,
@@ -297,6 +308,10 @@ impl CategoryService {
             sub_category_letter: category.sub_category_letter,
             function_description: category.function_description,
             example_assets,
+            attributes: category
+                .attributes_schema
+                .as_ref()
+                .and_then(|v| serde_json::from_value(v.clone()).ok()),
             display_order: category.display_order,
             created_at: category.created_at,
             updated_at: category.updated_at,

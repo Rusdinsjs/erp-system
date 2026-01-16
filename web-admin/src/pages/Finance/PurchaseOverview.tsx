@@ -3,10 +3,7 @@ import { financeApi } from '../../api/finance';
 import { Card } from '../../components/ui';
 import {
     ShoppingBag,
-    TrendingUp,
     Clock,
-    AlertCircle,
-    CheckCircle2,
     Truck,
     FileText
 } from 'lucide-react';

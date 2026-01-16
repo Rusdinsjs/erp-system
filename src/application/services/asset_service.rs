@@ -103,6 +103,38 @@ impl AssetService {
         Ok(asset)
     }
 
+    /// Get asset detail by ID (with joins)
+    pub async fn get_detail_by_id(
+        &self,
+        id: Uuid,
+    ) -> DomainResult<crate::domain::entities::asset::AssetDetail> {
+        use crate::domain::entities::asset::AssetDetail;
+
+        let detail = self
+            .repository
+            .find_detail_by_id(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("Asset", id))?;
+
+        let (asset, cat, loc, dept, manager, assigned, vendor, vehicle) = detail;
+
+        Ok(AssetDetail {
+            asset,
+            category_name: cat,
+            location_name: loc,
+            department_name: dept,
+            department_manager_name: manager,
+            assigned_to_name: assigned,
+            vendor_name: vendor,
+            condition_name: None, // Could be joined if needed
+            vehicle_details: vehicle,
+        })
+    }
+
     /// Get asset by Code
     pub async fn get_by_code(&self, code: &str) -> DomainResult<Asset> {
         self.repository

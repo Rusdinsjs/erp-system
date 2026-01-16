@@ -116,6 +116,7 @@ impl UserService {
                 req.role_code,
                 req.department,
                 req.department_id,
+                req.avatar_url, // Added
                 req.is_active,
             )
             .await
@@ -240,7 +241,7 @@ impl UserService {
                 message: e.to_string(),
             })?;
 
-        let avatar_url = format!("/uploads/avatars/{}", new_filename);
+        let avatar_url = format!("/api/uploads/avatars/{}", new_filename);
         self.repository
             .update_avatar(id, avatar_url)
             .await

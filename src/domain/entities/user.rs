@@ -31,18 +31,6 @@ impl UserRole {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "super_admin" => Some(Self::SuperAdmin),
-            "admin" => Some(Self::Admin),
-            "manager" => Some(Self::Manager),
-            "technician" => Some(Self::Technician),
-            "staff" => Some(Self::Staff),
-            "user" => Some(Self::User),
-            _ => None,
-        }
-    }
-
     /// Get default permissions for this role
     pub fn default_permissions(&self) -> Vec<&'static str> {
         match self {
@@ -57,6 +45,22 @@ impl UserRole {
             Self::Technician => vec!["maintenance.read", "maintenance.update", "asset.read"],
             Self::Staff => vec!["asset.read", "loan.request", "maintenance.request"],
             Self::User => vec!["asset.read", "loan.request"],
+        }
+    }
+}
+
+impl std::str::FromStr for UserRole {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "super_admin" => Ok(Self::SuperAdmin),
+            "admin" => Ok(Self::Admin),
+            "manager" => Ok(Self::Manager),
+            "technician" => Ok(Self::Technician),
+            "staff" => Ok(Self::Staff),
+            "user" => Ok(Self::User),
+            _ => Err(()),
         }
     }
 }
@@ -123,15 +127,15 @@ impl User {
     }
 
     /// Check if user has a specific permission
+    /// Check if user has a specific permission
     pub fn has_permission(&self, permission: &str) -> bool {
-        let role = UserRole::from_str(&self.role).unwrap_or(UserRole::User);
+        let role = self.role.parse::<UserRole>().unwrap_or(UserRole::User);
         let permissions = role.default_permissions();
 
         permissions.iter().any(|p| {
             *p == "*" || *p == permission || {
                 // Check wildcard patterns like "asset.*"
-                if p.ends_with(".*") {
-                    let prefix = &p[..p.len() - 2];
+                if let Some(prefix) = p.strip_suffix(".*") {
                     permission.starts_with(prefix)
                 } else {
                     false
@@ -143,8 +147,8 @@ impl User {
     /// Check if user is admin or super admin
     pub fn is_admin(&self) -> bool {
         matches!(
-            UserRole::from_str(&self.role),
-            Some(UserRole::SuperAdmin) | Some(UserRole::Admin)
+            self.role.parse::<UserRole>(),
+            Ok(UserRole::SuperAdmin) | Ok(UserRole::Admin)
         )
     }
 }

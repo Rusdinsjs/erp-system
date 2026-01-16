@@ -20,6 +20,7 @@ pub struct UpdateUserRequest {
     pub department_id: Option<Uuid>,
     pub is_active: Option<bool>,
     pub password: Option<String>, // Optional password update
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

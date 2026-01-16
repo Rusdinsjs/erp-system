@@ -12,15 +12,29 @@ use crate::application::dto::{ApiResponse, CreateLoanRequest, PaginationParams};
 use crate::domain::entities::{Loan, UserClaims};
 use crate::shared::errors::AppError;
 
+#[derive(serde::Deserialize)]
+pub struct LoanQueryParams {
+    #[serde(flatten)]
+    pub pagination: PaginationParams,
+    pub asset_id: Option<Uuid>,
+}
+
 pub async fn list_loans(
     State(state): State<AppState>,
-    Query(params): Query<PaginationParams>,
+    Query(params): Query<LoanQueryParams>,
 ) -> Result<Json<Vec<Loan>>, AppError> {
-    let loans = state
-        .loan_service
-        .list(params.page(), params.per_page())
-        .await?;
-    Ok(Json(loans))
+    if let Some(asset_id) = params.asset_id {
+        // If asset_id is provided, use it (ignores pagination for now or we can pass it if repo supports)
+        // Repo list_by_asset currently does not support pagination, returns all. This is acceptable for MVP.
+        let loans = state.loan_service.list_by_asset(asset_id).await?;
+        Ok(Json(loans))
+    } else {
+        let loans = state
+            .loan_service
+            .list(params.pagination.page(), params.pagination.per_page())
+            .await?;
+        Ok(Json(loans))
+    }
 }
 
 pub async fn get_loan(

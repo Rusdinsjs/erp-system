@@ -2,7 +2,8 @@
 import { type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
-import { LogOut, Bell, Package, ArrowLeft } from 'lucide-react';
+import { LogOut, Package, ArrowLeft } from 'lucide-react';
+import { AvatarUpload } from '../AvatarUpload';
 
 interface StandaloneLayoutProps {
     children: ReactNode;
@@ -63,14 +64,12 @@ export function StandaloneLayout({ children, title, onBack, backTo = '/' }: Stan
                     <button
                         className="p-2 hover:bg-slate-800 rounded-full relative transition-colors text-slate-400 hover:text-white"
                     >
-                        <Bell size={22} />
+                        {/* <Bell size={22} /> */}
                     </button>
 
                     {/* User Info */}
                     <div className="flex items-center gap-3 pl-4 border-l border-slate-800">
-                        <div className="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg">
-                            {user?.name?.charAt(0).toUpperCase() || 'U'}
-                        </div>
+                        <AvatarUpload size="sm" />
                         <div className="hidden sm:block">
                             <p className="text-sm font-medium text-white">{user?.name}</p>
                             <p className="text-xs text-slate-400 capitalize">{user?.role}</p>

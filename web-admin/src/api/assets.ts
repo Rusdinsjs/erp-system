@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from './http';
 
 export interface VehicleDetails {
     license_plate?: string;
@@ -55,6 +55,10 @@ export interface Asset {
 
     category_name?: string;
     location_name?: string;
+    department_name?: string;
+    department_manager_name?: string;
+    assigned_to_name?: string;
+    vendor_name?: string;
 }
 
 export interface CreateAssetRequest extends Omit<Asset, 'id' | 'created_at' | 'updated_at' | 'status'> {

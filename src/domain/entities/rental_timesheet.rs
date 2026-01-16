@@ -29,15 +29,19 @@ impl OperationStatus {
             Self::Maintenance => "maintenance",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for OperationStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "operating" => Some(Self::Operating),
-            "standby" => Some(Self::Standby),
-            "breakdown" => Some(Self::Breakdown),
-            "off" => Some(Self::Off),
-            "maintenance" => Some(Self::Maintenance),
-            _ => None,
+            "operating" => Ok(Self::Operating),
+            "standby" => Ok(Self::Standby),
+            "breakdown" => Ok(Self::Breakdown),
+            "off" => Ok(Self::Off),
+            "maintenance" => Ok(Self::Maintenance),
+            _ => Err(()),
         }
     }
 }
@@ -65,16 +69,20 @@ impl TimesheetStatus {
             Self::Revised => "revised",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for TimesheetStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "draft" => Some(Self::Draft),
-            "submitted" => Some(Self::Submitted),
-            "verified" => Some(Self::Verified),
-            "approved" => Some(Self::Approved),
-            "disputed" => Some(Self::Disputed),
-            "revised" => Some(Self::Revised),
-            _ => None,
+            "draft" => Ok(Self::Draft),
+            "submitted" => Ok(Self::Submitted),
+            "verified" => Ok(Self::Verified),
+            "approved" => Ok(Self::Approved),
+            "disputed" => Ok(Self::Disputed),
+            "revised" => Ok(Self::Revised),
+            _ => Err(()),
         }
     }
 }

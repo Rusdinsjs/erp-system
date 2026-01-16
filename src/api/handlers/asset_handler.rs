@@ -53,8 +53,8 @@ pub async fn search_assets(
 pub async fn get_asset(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<Json<Asset>, AppError> {
-    let asset = state.asset_service.get_by_id(id).await?;
+) -> Result<Json<crate::domain::entities::asset::AssetDetail>, AppError> {
+    let asset = state.asset_service.get_detail_by_id(id).await?;
     Ok(Json(asset))
 }
 

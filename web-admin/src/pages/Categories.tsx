@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Save } from 'lucide-react';
-import { api } from '../api/client';
+import { api } from '../api/http';
 import {
     Button,
     Card,
@@ -31,6 +31,7 @@ interface Category {
     depreciation_method: string | null;
     depreciation_period_months: number | null;
     example_assets: string[] | null;
+    attributes: string[] | null;
     full_path?: string;
     children?: Category[];
 }
@@ -47,6 +48,7 @@ interface CategoryRequest {
     depreciation_method: string;
     depreciation_period_months: number | null;
     example_assets: string[];
+    attributes: string[];
 }
 
 const MAIN_CATEGORIES = [
@@ -76,6 +78,7 @@ export function Categories() {
         depreciation_method: 'straight_line',
         depreciation_period_months: '' as string | number, // Allow string for empty input
         example_assets: [] as string[],
+        attributes: [] as string[],
     });
 
     const { data: treeData, isLoading } = useQuery({
@@ -148,6 +151,7 @@ export function Categories() {
             depreciation_method: 'straight_line',
             depreciation_period_months: '',
             example_assets: [],
+            attributes: [],
         });
     };
 
@@ -166,6 +170,7 @@ export function Categories() {
             depreciation_method: category.depreciation_method || 'straight_line',
             depreciation_period_months: category.depreciation_period_months ?? '',
             example_assets: category.example_assets || [],
+            attributes: category.attributes || [],
         });
     };
 
@@ -301,6 +306,7 @@ export function Categories() {
                                     <TabsTrigger value="general">General</TabsTrigger>
                                     <TabsTrigger value="classification">Classification</TabsTrigger>
                                     <TabsTrigger value="depreciation">Depreciation</TabsTrigger>
+                                    <TabsTrigger value="attributes">Attributes</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="general" className="mt-6 space-y-4">
@@ -398,6 +404,37 @@ export function Categories() {
                                         onChange={(val) => handleChange('depreciation_period_months', val)}
                                         hint="Standard useful life for assets in this category"
                                     />
+                                </TabsContent>
+
+                                <TabsContent value="attributes" className="mt-6 space-y-4">
+                                    <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800 mb-4">
+                                        <h3 className="text-sm font-medium text-white mb-1">Custom Attribute Template</h3>
+                                        <p className="text-xs text-slate-400">
+                                            Define the specific attributes that assets in this category should track.
+                                            For example, for Laptops: "RAM", "Processor", "Storage".
+                                        </p>
+                                    </div>
+
+                                    <TagsInput
+                                        label="Attribute Names"
+                                        placeholder="Type attribute name and press Enter (e.g. Color)"
+                                        value={formData.attributes}
+                                        onChange={(tags) => handleChange('attributes', tags)}
+                                    />
+
+                                    {formData.attributes.length > 0 && (
+                                        <div className="mt-4">
+                                            <h4 className="text-sm font-medium text-white mb-2">Preview in Forms:</h4>
+                                            <div className="grid grid-cols-2 gap-3 p-4 border border-slate-800 rounded-lg">
+                                                {formData.attributes.map((attr, idx) => (
+                                                    <div key={idx} className="opacity-75">
+                                                        <label className="text-xs text-slate-500 block mb-1">{attr}</label>
+                                                        <div className="h-8 bg-slate-800 rounded w-full"></div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </TabsContent>
                             </Tabs>
 

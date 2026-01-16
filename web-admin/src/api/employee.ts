@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from './http';
 
 export type EmploymentStatus = 'pkwt' | 'pkwtt' | 'magang' | 'lainnya';
 

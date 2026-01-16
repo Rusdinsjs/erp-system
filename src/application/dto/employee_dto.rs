@@ -29,6 +29,8 @@ pub struct CreateEmployeeRequest {
     pub bank_account: Option<String>,
     pub bank_name: Option<String>,
     pub basic_salary: Option<rust_decimal::Decimal>,
+
+    pub user_creation: Option<CreateEmployeeUserRequest>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -70,9 +72,11 @@ pub struct UpdateEmployeeRequest {
     pub basic_salary: Option<rust_decimal::Decimal>,
 
     pub education: Option<String>,
+
+    pub user_creation: Option<CreateEmployeeUserRequest>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateEmployeeUserRequest {
     pub email: String,
     pub password: String,
