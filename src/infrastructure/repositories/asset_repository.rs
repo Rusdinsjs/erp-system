@@ -140,7 +140,7 @@ impl AssetRepository {
         .await
     }
 
-    /// List assets with pagination and optional department filter
+    /// List assets with pagination and optional department filter (excludes archived)
     pub async fn list(
         &self,
         limit: i64,
@@ -153,7 +153,8 @@ impl AssetRepository {
                    a.category_id, a.location_id, l.name as location_name, a.department, a.model, a.serial_number
             FROM assets a
             LEFT JOIN locations l ON a.location_id = l.id
-            WHERE ($3::text IS NULL OR a.department = $3)
+            WHERE a.status != 'archived'
+              AND ($3::text IS NULL OR a.department = $3)
             ORDER BY a.created_at DESC
             LIMIT $1 OFFSET $2
             "#,
@@ -165,7 +166,7 @@ impl AssetRepository {
         .await
     }
 
-    /// Find all assets (for export)
+    /// Find all non-archived assets (for export)
     pub async fn find_all(&self) -> Result<Vec<Asset>, sqlx::Error> {
         sqlx::query_as::<_, Asset>(
             r#"
@@ -179,6 +180,7 @@ impl AssetRepository {
                 qr_code_url, notes,
                 created_at, updated_at
             FROM assets
+            WHERE status != 'archived'
             ORDER BY created_at DESC
             "#,
         )
@@ -186,15 +188,16 @@ impl AssetRepository {
         .await
     }
 
-    /// Count total assets
+    /// Count total non-archived assets
     pub async fn count(&self) -> Result<i64, sqlx::Error> {
-        let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM assets")
-            .fetch_one(&self.pool)
-            .await?;
+        let result: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM assets WHERE status != 'archived'")
+                .fetch_one(&self.pool)
+                .await?;
         Ok(result.0)
     }
 
-    /// Search assets
+    /// Search assets (excludes archived unless explicitly requested)
     pub async fn search(
         &self,
         query: &str,
@@ -216,7 +219,7 @@ impl AssetRepository {
                 AND ($2::uuid IS NULL OR a.category_id = $2)
                 AND ($3::uuid IS NULL OR a.location_id = $3)
                 AND ($4::text IS NULL OR a.department = $4)
-                AND ($5::text IS NULL OR a.status = $5)
+                AND (($5::text IS NOT NULL AND a.status = $5) OR ($5::text IS NULL AND a.status != 'archived'))
             ORDER BY a.created_at DESC
             LIMIT $6 OFFSET $7
             "#,
@@ -352,12 +355,13 @@ impl AssetRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    /// Delete asset
+    /// Delete asset (Soft Delete - Archive)
     pub async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM assets WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        let result =
+            sqlx::query("UPDATE assets SET status = 'archived', updated_at = NOW() WHERE id = $1")
+                .bind(id)
+                .execute(&self.pool)
+                .await?;
 
         Ok(result.rows_affected() > 0)
     }

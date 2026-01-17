@@ -103,6 +103,7 @@ interface NavItem {
     icon: any;
     label: string;
     adminOnly?: boolean;
+    minLevel?: number; // 1=SuperAdmin, 2=Admin, 3=Manager, 4=Staff, 5=Viewer
     showBadge?: boolean;
 }
 
@@ -111,6 +112,7 @@ interface NavGroup {
     label: string;
     icon: any;
     children: NavEntry[];
+    minLevel?: number;
     showBadge?: boolean;
 }
 
@@ -122,42 +124,46 @@ const isNavGroup = (entry: NavEntry): entry is NavGroup => {
 
 // Navigation structure
 const navItems: NavEntry[] = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', minLevel: 5 },
     {
         id: 'asset_management_group',
         label: 'Aset Tetap',
         icon: Package,
+        minLevel: 5,
         children: [
-            { id: 'assets', icon: Package, label: 'Daftar Aset' },
-            { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)' },
-            { id: 'work-orders', icon: Wrench, label: 'Work Orders' },
-            { id: 'conversions', icon: RefreshCw, label: 'Conversions' },
-            { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal' },
+            { id: 'assets', icon: Package, label: 'Daftar Aset', minLevel: 5 },
+            { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)', minLevel: 3 },
+            { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
+            { id: 'conversions', icon: RefreshCw, label: 'Conversions', minLevel: 3 },
+            { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal', minLevel: 5 },
         ]
     },
-    { id: 'rentals', icon: Truck, label: 'Rental Management' },
+    { id: 'rentals', icon: Truck, label: 'Rental Management', minLevel: 4 },
     {
         id: 'finance_group',
         label: 'Akuntansi',
         icon: FolderTree,
+        minLevel: 3, // Managers/Admins only
         children: [
-            { id: 'cash-bank', icon: Wallet, label: 'Kas & Bank' },
+            { id: 'cash-bank', icon: Wallet, label: 'Kas & Bank', minLevel: 3 },
             {
                 id: 'sales_group',
                 label: 'Penjualan',
                 icon: ShoppingCart,
+                minLevel: 3,
                 children: [
-                    { id: 'sales-overview', icon: TrendingUp, label: 'Overview' },
-                    { id: 'sales-invoices', icon: FileText, label: 'Tagihan Penjualan' },
-                    { id: 'sales-shipments', icon: Truck, label: 'Pengiriman Penjualan' },
-                    { id: 'sales-orders', icon: ShoppingCart, label: 'Pesanan Penjualan' },
-                    { id: 'sales-quotes', icon: Calculator, label: 'Penawaran Penjualan' },
+                    { id: 'sales-overview', icon: TrendingUp, label: 'Overview', minLevel: 3 },
+                    { id: 'sales-invoices', icon: FileText, label: 'Tagihan Penjualan', minLevel: 3 },
+                    { id: 'sales-shipments', icon: Truck, label: 'Pengiriman Penjualan', minLevel: 3 },
+                    { id: 'sales-orders', icon: ShoppingCart, label: 'Pesanan Penjualan', minLevel: 3 },
+                    { id: 'sales-quotes', icon: Calculator, label: 'Penawaran Penjualan', minLevel: 3 },
                 ]
             },
             {
                 id: 'purchases',
                 label: 'Pembelian',
                 icon: ShoppingBag,
+                minLevel: 3,
                 children: [
                     { id: 'purchase-overview', icon: TrendingUp, label: 'Overview' },
                     { id: 'purchase-bills', icon: FileText, label: 'Tagihan Pembelian' },
@@ -166,11 +172,12 @@ const navItems: NavEntry[] = [
                     { id: 'purchase-quotes', icon: Calculator, label: 'Penawaran Pembelian' },
                 ]
             },
-            { id: 'expenses', icon: Receipt, label: 'Biaya' },
+            { id: 'expenses', icon: Receipt, label: 'Biaya', minLevel: 3 },
             {
                 id: 'finance_group_continued',
                 label: 'Akuntansi Lanjutan',
                 icon: FolderTree,
+                minLevel: 2, // Admin only
                 children: [
                     { id: 'finance', icon: FolderTree, label: 'Daftar Akun' },
                     { id: 'journal-entries', icon: FileText, label: 'Jurnal Umum' },
@@ -185,6 +192,7 @@ const navItems: NavEntry[] = [
         id: 'hrd_group',
         label: 'HRD',
         icon: Users,
+        minLevel: 3,
         children: [
             { id: 'employees', icon: Users, label: 'Karyawan' },
             { id: 'attendance', icon: Clock, label: 'Absensi' },
@@ -195,6 +203,7 @@ const navItems: NavEntry[] = [
         id: 'master_data',
         label: 'Master Data',
         icon: Building2,
+        minLevel: 3,
         children: [
             { id: 'clients', icon: Building2, label: 'Klien' },
             { id: 'locations', icon: MapPin, label: 'Lokasi' },
@@ -202,16 +211,17 @@ const navItems: NavEntry[] = [
             { id: 'departments', icon: Building2, label: 'Departemen' },
         ]
     },
-    { id: 'approvals', icon: ClipboardCheck, label: 'Approval Center', showBadge: true },
-    { id: 'reports', icon: FileText, label: 'Laporan' },
+    { id: 'approvals', icon: ClipboardCheck, label: 'Approval Center', minLevel: 3, showBadge: true },
+    { id: 'reports', icon: FileText, label: 'Laporan', minLevel: 3 },
     {
         id: 'settings_group',
         label: 'Pengaturan',
         icon: Settings,
+        minLevel: 5, // Profile is here, so group must be visible
         children: [
-            { id: 'users', icon: Users, label: 'User Management', adminOnly: true },
-            { id: 'audit', icon: Scan, label: 'Audit Mode' },
-            { id: 'profile', icon: UserCircle, label: 'Profil' },
+            { id: 'users', icon: Users, label: 'User Management', minLevel: 2 },
+            { id: 'audit', icon: Scan, label: 'Audit Mode', minLevel: 2 },
+            { id: 'profile', icon: UserCircle, label: 'Profil', minLevel: 5 },
         ]
     },
 ];
@@ -345,7 +355,13 @@ export default function AdminDashboard() {
 
     // Render Navigation Item
     const renderNavItem = (item: NavItem, isChild = false) => {
-        // Hide admin-only items from non-admins
+        // Permissions Check
+        const userLevel = user?.role_level ?? 5;
+        const requiredLevel = item.minLevel ?? 5; // Default to Viewer if not specified
+
+        if (userLevel > requiredLevel) return null;
+
+        // Backward compatibility for adminOnly flag
         if (item.adminOnly && !isAdmin) return null;
 
         return (
@@ -391,10 +407,24 @@ export default function AdminDashboard() {
         const isChildActive = isChildActiveRecursive(group.children);
         const isOpen = openGroups[group.id] || false;
 
-        // Check visibility (admin only) - simplified
-        if (!isAdmin) {
-            // Logic placeholder
-        }
+        // Permissions Check for Group using minLevel
+        const userLevel = user?.role_level ?? 5;
+        const requiredLevel = group.minLevel ?? 5;
+
+        if (userLevel > requiredLevel) return null;
+
+        // Also ensure at least one child is visible
+        const visibleChildren = group.children.filter(child => {
+            const childReqLevel = child.minLevel ?? 5;
+            if (userLevel > childReqLevel) return false;
+
+            // Type guard for adminOnly check
+            if (!isNavGroup(child) && child.adminOnly && !isAdmin) return false;
+
+            return true;
+        });
+
+        if (visibleChildren.length === 0) return null;
 
         return (
             <div key={group.id}>

@@ -2,8 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Package, DollarSign, Wrench, AlertTriangle, Clock, ClipboardCheck } from 'lucide-react';
 import { api } from '../api/http';
-import { Card } from '../components/ui';
-import { PageLoading } from '../components/ui';
+import { Card, PageLoading } from '../components/ui';
+import { useAuthStore } from '../store/useAuthStore';
 
 // Stat Card Component
 interface StatCardProps {
@@ -107,6 +107,9 @@ export function Dashboard() {
         },
     });
 
+    const { hasRoleLevel } = useAuthStore();
+    const showFinancials = hasRoleLevel(3); // Level 3 (Manager) or higher
+
     const isLoading = statsLoading || activityLoading || financialsLoading;
 
     if (isLoading) return <PageLoading />;
@@ -134,13 +137,13 @@ export function Dashboard() {
             color: 'blue' as const,
             description: `${stats?.assets?.by_status?.find((s: any) => s.status === 'available')?.count || 0} Available`
         },
-        {
+        ...(showFinancials ? [{
             label: 'Total Value',
             value: formatCurrency(stats?.assets?.total_value || 0),
             icon: DollarSign,
             color: 'green' as const,
             description: 'Asset Purchase Value'
-        },
+        }] : []),
         {
             label: 'Active Work Orders',
             value: stats?.maintenance?.pending || 0,
@@ -173,29 +176,31 @@ export function Dashboard() {
                 {/* Main Content Area - Left Column (2/3) */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Financial Snapshot */}
-                    <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-white mb-4">Financial Snapshot</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <div>
-                                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Original Cost</p>
-                                <p className="text-xl font-bold text-white">
-                                    {formatCurrency(financials?.total_original_cost || 0)}
-                                </p>
+                    {showFinancials && (
+                        <Card padding="lg">
+                            <h2 className="text-lg font-semibold text-white mb-4">Financial Snapshot</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                <div>
+                                    <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Original Cost</p>
+                                    <p className="text-xl font-bold text-white">
+                                        {formatCurrency(financials?.total_original_cost || 0)}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Est. Depreciation</p>
+                                    <p className="text-xl font-bold text-red-400">
+                                        -{formatCurrency(financials?.total_accumulated_depreciation || 0)}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Book Value</p>
+                                    <p className="text-xl font-bold text-cyan-400">
+                                        {formatCurrency(financials?.total_book_value || 0)}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Est. Depreciation</p>
-                                <p className="text-xl font-bold text-red-400">
-                                    -{formatCurrency(financials?.total_accumulated_depreciation || 0)}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Book Value</p>
-                                <p className="text-xl font-bold text-cyan-400">
-                                    {formatCurrency(financials?.total_book_value || 0)}
-                                </p>
-                            </div>
-                        </div>
-                    </Card>
+                        </Card>
+                    )}
 
                     {/* Recent Activity */}
                     <Card padding="lg">

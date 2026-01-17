@@ -221,12 +221,12 @@ pub async fn update_asset(
     )))
 }
 
-/// Delete an asset
+/// Delete an asset (Soft Delete - Archive)
 pub async fn delete_asset(
     State(pool): State<PgPool>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>, (StatusCode, String)> {
-    let result = sqlx::query("DELETE FROM assets WHERE id = $1")
+    let result = sqlx::query("UPDATE assets SET status = 'archived' WHERE id = $1")
         .bind(id)
         .execute(&pool)
         .await
@@ -238,6 +238,6 @@ pub async fn delete_asset(
 
     Ok(Json(ApiResponse::success_with_message(
         (),
-        "Asset deleted successfully",
+        "Asset archived successfully",
     )))
 }

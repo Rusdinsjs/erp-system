@@ -31,37 +31,55 @@ export function MainLayout() {
     };
 
     const navItems = [
-        { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+        { label: 'Dashboard', icon: LayoutDashboard, path: '/', minLevel: 5 },
         {
             label: 'Asset Tetap',
             icon: Box,
             path: '/assets',
+            minLevel: 5,
             children: [
-                { label: 'Semua Asset', path: '/assets' },
-                { label: 'Under Maintenance', path: '/assets?status=under_maintenance' },
-                { label: 'Under Repair', path: '/assets?status=under_repair' },
-                { label: 'Work Orders', path: '/work-orders' },
-                { label: 'Conversions', path: '/conversions' },
-                { label: 'Internal Loans', path: '/loans' },
+                { label: 'Semua Asset', path: '/assets', minLevel: 5 },
+                { label: 'Under Maintenance', path: '/assets?status=under_maintenance', minLevel: 4 },
+                { label: 'Under Repair', path: '/assets?status=under_repair', minLevel: 4 },
+                { label: 'Work Orders', path: '/work-orders', minLevel: 4 },
+                { label: 'Conversions', path: '/conversions', minLevel: 3 },
+                { label: 'Internal Loans', path: '/loans', minLevel: 5 },
             ]
         },
-        { label: 'Locations', icon: MapPin, path: '/locations' },
-        { label: 'Categories', icon: FolderTree, path: '/categories' },
-        { label: 'Rentals', icon: Truck, path: '/rentals' },
-        { label: 'Clients', icon: Users, path: '/clients' },
-        { label: 'Pegawai', icon: Users, path: '/employees' },
-        { label: 'Approvals', icon: CheckSquare, path: '/approvals' },
-        { label: 'Reports', icon: BarChart3, path: '/reports' },
-        { label: 'Users', icon: Users, path: '/users' },
-        { label: 'Audit', icon: ScanLine, path: '/audit' },
-        { label: 'Profile', icon: User, path: '/profile' },
+        { label: 'Locations', icon: MapPin, path: '/locations', minLevel: 3 },
+        { label: 'Categories', icon: FolderTree, path: '/categories', minLevel: 3 },
+        { label: 'Rentals', icon: Truck, path: '/rentals', minLevel: 4 },
+        { label: 'Clients', icon: Users, path: '/clients', minLevel: 4 },
+        { label: 'Pegawai', icon: Users, path: '/employees', minLevel: 3 },
+        { label: 'Approvals', icon: CheckSquare, path: '/approvals', minLevel: 3 },
+        { label: 'Reports', icon: BarChart3, path: '/reports', minLevel: 3 },
+        { label: 'Users', icon: Users, path: '/users', minLevel: 2 }, // Admin/Super Admin only
+        { label: 'Audit', icon: ScanLine, path: '/audit', minLevel: 2 },
+        { label: 'Profile', icon: User, path: '/profile', minLevel: 5 },
     ];
 
     // Filter items based on role
     const filteredNavItems = navItems.filter(item => {
-        if (item.path === '/users' && (user?.role_level ?? 5) > 2) {
+        const userLevel = user?.role_level ?? 5;
+        const requiredLevel = item.minLevel ?? 5;
+
+        // If user level is higher (numerically) than required, strictly deny.
+        // (Remember: Level 1 is highest, 5 is lowest)
+        if (userLevel > requiredLevel) {
             return false;
         }
+
+        // If item has children, filter them too
+        if (item.children) {
+            item.children = item.children.filter(child => {
+                const childLevel = (child as any).minLevel ?? 5;
+                return userLevel <= childLevel;
+            });
+            // If all children are filtered out and the parent itself doesn't have a direct useful link 
+            // (or if we want to hide parents with empty children), logic can be added here.
+            // For now, we keep the parent if it passes the level check.
+        }
+
         return true;
     });
 

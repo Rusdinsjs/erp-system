@@ -40,6 +40,23 @@ This document provides a high-level overview of the Asset Management System's cu
 - **Financial Module Enhancements:**
   - **Cash & Bank:** Added "Kirim Dana" (Send Funds) and "Terima Dana" (Receive Funds) menus for direct recording of cash/bank mutations.
 
+### 2026-01-17 (RBAC & Asset Lifecycle Hardening)
+
+- **RBAC Overhaul:**
+  - **Schema:** Defined strict 5-level hierarchy (Super Admin -> Viewer) documented in `docs/RBAC_SCHEMA.md`.
+  - **Implementation:** Integrated `role_level` checks in Frontend Sidebar and Dashboard widgets.
+  - **Strategy:** Established "3-Admin" operational model (Vehicle, Machinery, Infrastructure) using Soft Division via Category Filtering.
+- **Asset Lifecycle Stability:**
+  - **Soft Delete:** Replaced hard deletion with `status = 'archived'` to preserve history integirty.
+  - **Legacy Compatibility:** Fixed `400 Bad Request` on legacy data by adding aliases for status enums (e.g., `in_maintenance` -> `UnderMaintenance`).
+- **Rental Management:**
+  - **Bug Fix:** Resolved Critical Import Error in `client-management.ts` that broke the "New Rental" button.
+- **Gap Analysis (Next Steps):**
+  - **Reporting:** Needs visual charts and PDF export (currently only CSV).
+  - **Settings:** Missing global configuration (Logo, Tax Rate, App Name).
+  - **Bulk Ops:** Needs Excel Import for Assets/Employees.
+  - **Mobile:** Mobile-first layout optimization for field technicians.
+
 ---
 
 ## 🟢 Core Modules (Stable/Complete)

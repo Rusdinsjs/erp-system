@@ -136,5 +136,8 @@ pub async fn delete_asset(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     state.asset_service.delete(id).await?;
-    Ok(Json(ApiResponse::success_with_message((), "Asset deleted")))
+    Ok(Json(ApiResponse::success_with_message(
+        (),
+        "Asset archived",
+    )))
 }

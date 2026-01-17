@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api } from "./http";
 import type { User } from "../store/useAuthStore";
 
 export interface UpdateProfileRequest {

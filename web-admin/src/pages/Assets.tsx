@@ -127,6 +127,9 @@ export function Assets() {
         onSuccess: () => {
             success('Asset deleted', 'Success');
             queryClient.invalidateQueries({ queryKey: ['assets'] });
+        },
+        onError: (err: any) => {
+            showError(err.message || 'Failed to delete asset. It might be in use.', 'Error');
         }
     });
 
