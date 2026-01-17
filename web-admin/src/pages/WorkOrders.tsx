@@ -1,11 +1,12 @@
 // WorkOrders Page - Pure Tailwind
+// Work Order Management Page
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workOrderApi } from '../api/work-order';
 import type { WorkOrder } from '../api/work-order';
-import { WorkOrderFormTailwind } from '../components/WorkOrders/WorkOrderFormTailwind';
+import { WorkOrderForm } from '../components/WorkOrders/WorkOrderForm';
 import { PermissionGate } from '../components/PermissionGate';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import {
@@ -17,6 +18,9 @@ import {
     Pagination,
     Drawer,
     useToast,
+    Tabs,
+    TabsList,
+    TabsTrigger,
 } from '../components/ui';
 
 export function WorkOrders() {
@@ -77,21 +81,7 @@ export function WorkOrders() {
     };
 
     // Tab content wrapper to handle active state
-    const TabButton = ({ value, children, icon }: { value: string; children: React.ReactNode; icon?: React.ReactNode }) => (
-        <button
-            onClick={() => setActiveTab(value)}
-            className={`
-                flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200
-                ${activeTab === value
-                    ? 'bg-cyan-500/20 text-cyan-400'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }
-            `}
-        >
-            {icon}
-            {children}
-        </button>
-    );
+    // Replaced by Tabs component
 
     return (
         <div className="space-y-4">
@@ -106,14 +96,15 @@ export function WorkOrders() {
             </div>
 
             <Card padding="lg">
-                {/* Tab Navigation */}
-                <div className="flex gap-1 p-1 bg-slate-900/50 border border-slate-800 rounded-xl mb-4 w-fit">
-                    <TabButton value="active">Active & Planned</TabButton>
-                    <TabButton value="overdue" icon={<AlertTriangle size={14} className="text-red-400" />}>
-                        Overdue
-                    </TabButton>
-                    <TabButton value="history">History</TabButton>
-                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
+                    <TabsList>
+                        <TabsTrigger value="active">Active & Planned</TabsTrigger>
+                        <TabsTrigger value="overdue" icon={<AlertTriangle size={14} className="text-red-400" />}>
+                            Overdue
+                        </TabsTrigger>
+                        <TabsTrigger value="history">History</TabsTrigger>
+                    </TabsList>
+                </Tabs>
 
                 {/* Table */}
                 <Table>
@@ -141,7 +132,7 @@ export function WorkOrders() {
                             records.map((record: any) => (
                                 <TableRow
                                     key={record.id}
-                                    onClick={() => navigate(`/work-orders/${record.id}`)}
+                                    onClick={() => navigate(`/ work - orders / ${record.id} `)}
                                     className="cursor-pointer"
                                 >
                                     <TableTd>
@@ -159,7 +150,7 @@ export function WorkOrders() {
                                     <TableTd>{record.scheduled_date}</TableTd>
                                     <TableTd>
                                         {record.estimated_cost
-                                            ? `Rp ${Number(record.estimated_cost).toLocaleString('id-ID')}`
+                                            ? `Rp ${Number(record.estimated_cost).toLocaleString('id-ID')} `
                                             : '-'}
                                     </TableTd>
                                     <TableTd align="center">
@@ -209,7 +200,7 @@ export function WorkOrders() {
                 size="lg"
             >
                 {drawerOpen && (
-                    <WorkOrderFormTailwind
+                    <WorkOrderForm
                         maintenanceId={selectedId}
                         onClose={() => setDrawerOpen(false)}
                         onSuccess={() => {

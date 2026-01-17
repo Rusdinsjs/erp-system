@@ -20,7 +20,7 @@ interface WorkOrderFormProps {
     onSuccess: () => void;
 }
 
-export function WorkOrderFormTailwind({ maintenanceId, onClose, onSuccess }: WorkOrderFormProps) {
+export function WorkOrderForm({ maintenanceId, onClose, onSuccess }: WorkOrderFormProps) {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
     const isEdit = !!maintenanceId;
@@ -151,6 +151,20 @@ export function WorkOrderFormTailwind({ maintenanceId, onClose, onSuccess }: Wor
                     error={errors.asset_id}
                     disabled={isEdit}
                     required
+                />
+
+                <Select
+                    label="Type"
+                    placeholder="Select type"
+                    options={[
+                        { value: 'preventive', label: 'Preventive' },
+                        { value: 'corrective', label: 'Corrective' },
+                        { value: 'inspection', label: 'Inspection' },
+                        { value: 'emergency', label: 'Emergency' },
+                        { value: 'upgrade', label: 'Upgrade' },
+                    ]}
+                    value={formData.maintenance_type_id}
+                    onChange={(val) => updateField('maintenance_type_id', val)}
                 />
 
                 <DateInput

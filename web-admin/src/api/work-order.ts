@@ -23,6 +23,7 @@ export interface WorkOrder {
     safety_requirements?: string[];
     created_at: string;
     updated_at: string;
+    asset_name?: string;
 }
 
 export interface ChecklistItem {

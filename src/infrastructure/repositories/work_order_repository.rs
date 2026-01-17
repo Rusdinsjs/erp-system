@@ -77,9 +77,11 @@ impl WorkOrderRepository {
     pub async fn list_overdue(&self) -> Result<Vec<WorkOrder>, sqlx::Error> {
         sqlx::query_as::<_, WorkOrder>(
             r#"
-            SELECT * FROM maintenance_work_orders
-            WHERE due_date < CURRENT_DATE AND status NOT IN ('completed', 'cancelled')
-            ORDER BY priority DESC, due_date
+            SELECT w.*, a.name as asset_name
+            FROM maintenance_work_orders w
+            LEFT JOIN assets a ON w.asset_id = a.id
+            WHERE w.due_date < CURRENT_DATE AND w.status NOT IN ('completed', 'cancelled')
+            ORDER BY w.priority DESC, w.due_date
             "#,
         )
         .fetch_all(&self.pool)

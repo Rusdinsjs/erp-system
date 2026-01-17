@@ -51,11 +51,18 @@ This document provides a high-level overview of the Asset Management System's cu
   - **Legacy Compatibility:** Fixed `400 Bad Request` on legacy data by adding aliases for status enums (e.g., `in_maintenance` -> `UnderMaintenance`).
 - **Rental Management:**
   - **Bug Fix:** Resolved Critical Import Error in `client-management.ts` that broke the "New Rental" button.
-- **Gap Analysis (Next Steps):**
+- [x] Gap Analysis (Next Steps):
   - **Reporting:** Needs visual charts and PDF export (currently only CSV).
   - **Settings:** Missing global configuration (Logo, Tax Rate, App Name).
-  - **Bulk Ops:** Needs Excel Import for Assets/Employees.
+  - **Buld Ops:** Needs Excel Import for Assets/Employees.
   - **Mobile:** Mobile-first layout optimization for field technicians.
+
+### 2026-01-17 (Work Order UI & Workflow)
+- **Work Order Refinement:**
+  - **UI Standardization:** Refactored Work Order tabs to use standard UI components.
+  - **Data Visibility:** Fixed Overdue tab to show Asset Names instead of IDs.
+  - **Workflow Documentation:** Documented the process for inputting Tasks and Parts.
+  - **Forms:** Added missing "Type" field to WO creation.
 
 ---
 
