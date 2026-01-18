@@ -20,7 +20,7 @@ const WorkOrderDetailsView = lazy(() => import('./WorkOrderDetails').then(m => (
 const ApprovalCenterView = lazy(() => import('./ApprovalCenter').then(m => ({ default: m.ApprovalCenter })));
 const UsersView = lazy(() => import('./Users').then(m => ({ default: m.Users })));
 const ProfileView = lazy(() => import('./Profile').then(m => ({ default: m.Profile })));
-const ReportsView = lazy(() => import('./Reports'));
+const ReportsView = lazy(() => import('./Reports/ReportCenter'));
 const AuditModeView = lazy(() => import('./AuditMode').then(m => ({ default: m.AuditMode })));
 const AssetLifecycleView = lazy(() => import('./AssetLifecycle').then(m => ({ default: m.AssetLifecycle })));
 const ConversionsView = lazy(() => import('./Conversions').then(m => ({ default: m.Conversions })));

@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     Extension, Json,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
