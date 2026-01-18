@@ -83,7 +83,6 @@ impl LifecycleRepository {
         Ok(())
     }
 
-    /// Get current asset status
     pub async fn get_asset_status(&self, asset_id: Uuid) -> DomainResult<String> {
         let result = sqlx::query_scalar!(r#"SELECT status FROM assets WHERE id = $1"#, asset_id)
             .fetch_one(&self.pool)
@@ -91,5 +90,21 @@ impl LifecycleRepository {
             .map_err(|e| DomainError::Database(e.to_string()))?;
 
         result.ok_or_else(|| DomainError::not_found("Asset", asset_id))
+    }
+
+    /// Get current asset status and name
+    pub async fn get_asset_status_and_name(
+        &self,
+        asset_id: Uuid,
+    ) -> DomainResult<(String, String)> {
+        let result = sqlx::query!(r#"SELECT status, name FROM assets WHERE id = $1"#, asset_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        match (result.status, result.name) {
+            (Some(status), name) => Ok((status, name)),
+            _ => Err(DomainError::not_found("Asset", asset_id)),
+        }
     }
 }

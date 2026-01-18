@@ -266,7 +266,17 @@ impl WorkOrderService {
                 current_state,
                 AssetState::UnderMaintenance | AssetState::UnderRepair
             ) {
-                let target_state = AssetState::Deployed;
+                // Fetch asset to check assignment status
+                let target_state =
+                    if let Ok(Some(asset)) = self.asset_repo.find_by_id(wo.asset_id).await {
+                        if asset.assigned_to.is_some() {
+                            AssetState::Deployed
+                        } else {
+                            AssetState::InInventory
+                        }
+                    } else {
+                        AssetState::Deployed // Fallback if asset fetch fails
+                    };
 
                 if current_state.can_transition_to(&target_state) {
                     // Update asset status

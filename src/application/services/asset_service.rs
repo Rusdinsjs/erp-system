@@ -120,7 +120,8 @@ impl AssetService {
             })?
             .ok_or_else(|| DomainError::not_found("Asset", id))?;
 
-        let (asset, cat, loc, dept, manager, assigned, vendor, vehicle) = detail;
+        let (asset, cat, loc, dept, manager, assigned, vendor, vehicle, maint_cost, rental_inc) =
+            detail;
 
         Ok(AssetDetail {
             asset,
@@ -132,6 +133,8 @@ impl AssetService {
             vendor_name: vendor,
             condition_name: None, // Could be joined if needed
             vehicle_details: vehicle,
+            total_maintenance_cost: maint_cost,
+            total_rental_income: rental_inc,
         })
     }
 

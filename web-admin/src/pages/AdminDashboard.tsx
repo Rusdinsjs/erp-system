@@ -7,7 +7,7 @@ import {
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
-    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw
+    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw, Fuel
 } from 'lucide-react';
 import { PageLoading } from '../components/ui';
 
@@ -24,6 +24,7 @@ const ReportsView = lazy(() => import('./Reports'));
 const AuditModeView = lazy(() => import('./AuditMode').then(m => ({ default: m.AuditMode })));
 const AssetLifecycleView = lazy(() => import('./AssetLifecycle').then(m => ({ default: m.AssetLifecycle })));
 const ConversionsView = lazy(() => import('./Conversions').then(m => ({ default: m.Conversions })));
+const FuelView = lazy(() => import('./Fuel/FuelDashboard').then(m => ({ default: m.FuelDashboard })));
 const RentalsView = lazy(() => import('./rentals/Rentals').then(m => ({ default: m.Rentals })));
 const RentalFormView = lazy(() => import('./rentals/RentalForm').then(m => ({ default: m.RentalForm })));
 const ClientsView = lazy(() => import('./Clients').then(m => ({ default: m.Clients })));
@@ -66,6 +67,7 @@ type TabId =
     | 'rental-form'
     | 'clients'
     | 'loans'
+    | 'fuel'
     | 'employees'
     | 'attendance'
     | 'leaves'
@@ -136,6 +138,7 @@ const navItems: NavEntry[] = [
             { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
             { id: 'conversions', icon: RefreshCw, label: 'Conversions', minLevel: 3 },
             { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal', minLevel: 5 },
+            { id: 'fuel', icon: Fuel, label: 'Fuel / BBM', minLevel: 5 },
         ]
     },
     { id: 'rentals', icon: Truck, label: 'Rental Management', minLevel: 4 },
@@ -275,7 +278,7 @@ export default function AdminDashboard() {
             setActiveTab('work-orders');
             setSelectedWorkOrderId(woMatch.params.id);
             setSelectedAssetId(null);
-            setOpenGroups(prev => ({ ...prev, maintenance_group: true }));
+            setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
             return;
         }
 
@@ -308,6 +311,10 @@ export default function AdminDashboard() {
             // Auto-expand group if child is active
             // Recursive finder for nested groups
             const findParentGroup = (items: NavEntry[], targetId: TabId): NavGroup | undefined => {
+                if (targetId === 'work-orders') {
+                    return items.find(i => i.id === 'asset_management_group') as NavGroup;
+                }
+
                 for (const item of items) {
                     if (isNavGroup(item)) {
                         // Check immediate children
@@ -322,11 +329,23 @@ export default function AdminDashboard() {
                 return undefined;
             };
 
-            const foundGroup = findParentGroup(navItems, foundTab);
+            // Guard against UUIDs being interpreted as tabs (which causes Dashboard fallback)
+            const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(foundTab);
 
-            if (foundGroup) {
-                setOpenGroups(prev => ({ ...prev, [foundGroup.id]: true }));
+            if (!isUuid) {
+                const foundGroup = findParentGroup(navItems, foundTab);
+                if (foundGroup) {
+                    setOpenGroups(prev => ({ ...prev, [foundGroup.id]: true }));
+                } else if (foundTab === 'work-orders') {
+                    // Explicit fallback for work-orders to ensure group opens
+                    setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
+                }
+
+                // Only set active tab if it's not a UUID and seems to be a valid tab
+                // (Though ideally we should validate against valid TabIds)
+                setActiveTab(foundTab);
             }
+
             setSelectedAssetId(null);
             setSelectedWorkOrderId(null);
         } else if (path === '/') {
@@ -478,6 +497,7 @@ export default function AdminDashboard() {
                 return <RentalFormView />;
             case 'clients': return <ClientsView />;
             case 'loans': return <LoansView />;
+            case 'fuel': return <FuelView />;
             case 'employees': return <EmployeesView />;
             case 'attendance': return <AttendanceView />;
             case 'leaves': return <LeaveDashboardView />;

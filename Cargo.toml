@@ -55,6 +55,7 @@ deadpool-redis = "0.22.0"
 redis = { version = "0.32", features = ["tokio-comp", "json"] }
 csv = "1.4.0"
 tokio-cron-scheduler = "0.15.1"
+image = "0.24"
 
 # Validation (optional, for future use)
 # validator = { version = "0.18", features = ["derive"] }

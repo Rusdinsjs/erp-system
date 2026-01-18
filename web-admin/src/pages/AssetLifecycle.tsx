@@ -15,6 +15,8 @@ import { CreateLoanModal } from '../components/Assets/CreateLoanModal';
 import { RetiredModal } from '../components/Assets/RetiredModal';
 import { DisposedModal } from '../components/Assets/DisposedModal';
 import { LostStolenModal } from '../components/Assets/LostStolenModal';
+import { LifecycleTimeline } from '../components/Assets/LifecycleTimeline';
+import { AssetFinancials } from '../components/Assets/AssetFinancials';
 import {
     Button,
     Card,
@@ -169,9 +171,11 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
             // Open relevant form based on target state
             if (response.result_type === 'Executed') {
                 if (targetState === 'under_maintenance') {
-                    navigate(`/work-orders?asset_id=${assetId}&wo_type=maintenance`);
+                    // navigate(`/work-orders?asset_id=${assetId}&wo_type=preventive`); // OLD LOGIC
+                    navigate(`/work-orders?asset_id=${assetId}&wo_type=preventive`);
                 } else if (targetState === 'under_repair') {
-                    navigate(`/work-orders?asset_id=${assetId}&wo_type=repair`);
+                    // navigate(`/work-orders?asset_id=${assetId}&wo_type=corrective`); // OLD LOGIC
+                    navigate(`/work-orders?asset_id=${assetId}&wo_type=corrective`);
                 } else if (targetState === 'rented_out') {
                     // Open rental form - redirect to rentals page with asset pre-selected
                     navigate(`/rentals?new=true&asset_id=${assetId}`);
@@ -204,6 +208,23 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
         }
         if (stateValue === 'lost_stolen') {
             setLostStolenModalOpen(true);
+            return;
+        }
+
+        // SPECIAL HANDLING: Rented Out -> Redirect to Rental Form
+        // This prevents the asset from becoming "Rented Out" without a rental record.
+        if (stateValue === 'rented_out') {
+            navigate(`/rentals/new?asset_id=${assetId}`);
+            return;
+        }
+
+        // SPECIAL HANDLING: Maintenance/Repair -> Redirect to Work Order Form
+        if (stateValue === 'under_maintenance') {
+            navigate(`/work-orders?asset_id=${assetId}&wo_type=preventive`);
+            return;
+        }
+        if (stateValue === 'under_repair') {
+            navigate(`/work-orders?asset_id=${assetId}&wo_type=corrective`);
             return;
         }
 
@@ -363,6 +384,15 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
                 </div>
             </div>
 
+            {/* Financial Overview Widget */}
+            {assetData && (
+                <AssetFinancials
+                    maintenanceCost={Number(assetData.total_maintenance_cost || 0)}
+                    rentalIncome={Number(assetData.total_rental_income || 0)}
+                    purchasePrice={Number(assetData.purchase_price || 0)}
+                />
+            )}
+
             <Tabs defaultValue="lifecycle">
                 <Card padding="none">
                     <TabsList className="px-4 pt-4">
@@ -486,28 +516,7 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
                                     )}
 
                                     {history && history.length > 0 ? (
-                                        <Timeline>
-                                            {history.map((item: LifecycleHistory, index) => (
-                                                <TimelineItem
-                                                    key={item.id}
-                                                    isLast={index === history.length - 1}
-                                                    active={index === 0}
-                                                    bullet={stateIcons[item.to_state]}
-                                                    title={
-                                                        <div className="flex items-center gap-2">
-                                                            <span>{getStateLabel(item.from_state)}</span>
-                                                            <ArrowRight size={14} className="text-slate-500" />
-                                                            <span className="text-white font-bold">{getStateLabel(item.to_state)}</span>
-                                                        </div>
-                                                    }
-                                                >
-                                                    <div className="flex flex-col gap-1">
-                                                        {item.reason && <p className="text-slate-300 italic">"{item.reason}"</p>}
-                                                        <p className="text-xs text-slate-500">{new Date(item.created_at).toLocaleString()}</p>
-                                                    </div>
-                                                </TimelineItem>
-                                            ))}
-                                        </Timeline>
+                                        <LifecycleTimeline history={history} />
                                     ) : !loadingHistory && (
                                         <p className="text-slate-500 text-center py-8">No history records yet.</p>
                                     )}

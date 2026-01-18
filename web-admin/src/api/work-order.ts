@@ -139,6 +139,10 @@ export const workOrderApi = {
     },
 
     // Actions
+    assign: async (id: string, technicianId: string): Promise<ApiResponse<WorkOrder>> => {
+        const response = await api.post(`/work-orders/${id}/assign/${technicianId}`);
+        return response.data;
+    },
     start: async (id: string): Promise<ApiResponse<WorkOrder>> => {
         const response = await api.post(`/work-orders/${id}/start`);
         return response.data;

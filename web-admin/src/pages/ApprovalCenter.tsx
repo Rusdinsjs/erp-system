@@ -7,6 +7,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { approvalApi } from '../api/approval';
 import { conversionApi } from '../api/conversion';
+import { fuelApi } from '../api/fuel';
 import type { ApprovalRequest } from '../api/approval';
 import {
     Button,
@@ -19,6 +20,7 @@ import {
     LoadingOverlay,
     useToast,
 } from '../components/ui';
+import { Fuel } from 'lucide-react';
 
 // Resource type config
 const resourceTypeConfig: Record<string, { label: string; iconColor: string }> = {
@@ -29,6 +31,7 @@ const resourceTypeConfig: Record<string, { label: string; iconColor: string }> =
     timesheet_verification: { label: 'Timesheet', iconColor: 'text-teal-400' },
     loan: { label: 'Loan Request', iconColor: 'text-cyan-400' },
     conversion_request: { label: 'Conversion', iconColor: 'text-purple-400' },
+    fuel_request: { label: 'Fuel Request', iconColor: 'text-yellow-400' },
 };
 
 // State colors for lifecycle
@@ -43,8 +46,61 @@ const stateBadgeVariant: Record<string, 'default' | 'info' | 'success' | 'warnin
     disposed: 'danger',
 };
 
-function RequestDetails({ request }: { request: ApprovalRequest }) {
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
+function getFullImageUrl(path: string | undefined) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    // Remove duplicate /api if present
+    const cleanPath = path.startsWith('/api/') ? path.substring(4) : path;
+    // If API_URL ends with /api, we might need to adjust. 
+    // Usually VITE_API_URL includes /api. 
+    // Let's assume path is relative to server root if it starts with /api/uploads
+    // But VITE_API_URL is typically http://localhost:8080/api
+
+    // Safer approach: construction from specific logic
+    // If path is /api/uploads/xyz.jpg and API_URL is .../api
+    // We want http://localhost:8080/api/uploads/xyz.jpg
+
+    const baseUrl = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
+    return `${baseUrl}${path}`;
+}
+
+function RequestDetails({ request, showDetails = false }: { request: ApprovalRequest; showDetails?: boolean }) {
     const data = request.data_snapshot;
+
+    if (request.resource_type === 'fuel_request') {
+        return (
+            <div className="space-y-3">
+                <div className="space-y-1">
+                    <p className="text-sm font-medium text-white">{data?.asset_name || 'Unknown Asset'}</p>
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <Fuel size={12} />
+                        <span>{data?.request_type === 'amount' ? `IDR ${Number(data.requested_value).toLocaleString()}` : `${data.requested_value} Liters`}</span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                        Odo: {data?.odometer_reading} km
+                    </p>
+                </div>
+
+                {showDetails && data?.odometer_image_url && (
+                    <div className="mt-2">
+                        <p className="text-xs text-slate-400 mb-1">Odometer Photo:</p>
+                        <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-900 w-full max-w-sm">
+                            <img
+                                src={getFullImageUrl(data.odometer_image_url)}
+                                alt="Odometer"
+                                className="w-full h-auto object-cover max-h-[300px]"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     if (request.resource_type === 'conversion_request') {
         return (
@@ -64,6 +120,7 @@ function RequestDetails({ request }: { request: ApprovalRequest }) {
     if (request.resource_type === 'lifecycle_transition') {
         return (
             <div className="space-y-1">
+                <p className="text-sm font-medium text-white">{data?.asset_name || 'Unknown Asset'}</p>
                 <div className="flex items-center gap-2">
                     <Badge variant={stateBadgeVariant[data?.from_state] || 'default'}>
                         {data?.from_state?.replace(/_/g, ' ') || 'Unknown'}
@@ -166,11 +223,9 @@ export function ApprovalCenter() {
     const [activeTab, setActiveTab] = useState('pending');
     const [filterType, setFilterType] = useState('all');
 
-    const [actionModalOpen, setActionModalOpen] = useState(false);
-    const [detailModalOpen, setDetailModalOpen] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
     const [actionNotes, setActionNotes] = useState('');
-    const [actionType, setActionType] = useState<'approve' | 'reject'>('approve');
 
     // Standard Approvals
     const { data: standardRequests = [], isLoading: loadingStandard } = useQuery({
@@ -186,9 +241,22 @@ export function ApprovalCenter() {
         enabled: activeTab === 'pending',
     });
 
+    // Fuel Requests (integrated)
+    const { data: fuelRequests = [], isLoading: loadingFuel } = useQuery({
+        queryKey: ['fuel', 'pending'],
+        queryFn: fuelApi.listPending,
+        enabled: activeTab === 'pending',
+    });
+
     const { data: myRequests = [], isLoading: loadingMy } = useQuery({
         queryKey: ['approvals', 'my-requests'],
         queryFn: approvalApi.listMyRequests,
+        enabled: activeTab === 'my_requests',
+    });
+
+    const { data: myFuelRequests = [], isLoading: loadingMyFuel } = useQuery({
+        queryKey: ['fuel', 'my-requests'],
+        queryFn: fuelApi.listMyRequests,
         enabled: activeTab === 'my_requests',
     });
 
@@ -207,15 +275,54 @@ export function ApprovalCenter() {
             updated_at: c.created_at,
             data_snapshot: c, // Pass full object as snapshot
         }));
-        return [...standardRequests, ...mappedConversions].sort((a, b) =>
+
+        const mappedFuel: ApprovalRequest[] = fuelRequests.map((f: any) => ({
+            id: f.id,
+            resource_type: 'fuel_request',
+            resource_id: f.asset_id,
+            action_type: 'fuel_request',
+            status: f.status.toUpperCase(), // 'REQUESTED' -> 'PENDING'
+            current_approval_level: 1,
+            requested_by: f.requested_by,
+            requester_name: f.requester_name,
+            created_at: f.created_at,
+            updated_at: f.updated_at,
+            data_snapshot: f,
+        }));
+
+        return [...standardRequests, ...mappedConversions, ...mappedFuel].sort((a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
-    }, [standardRequests, conversionRequests]);
+    }, [standardRequests, conversionRequests, fuelRequests]);
+
+    // Merge Requests for 'my_requests' view
+    const myMergedRequests = useMemo(() => {
+        const mappedFuel: ApprovalRequest[] = myFuelRequests.map((f: any) => ({
+            id: f.id,
+            resource_type: 'fuel_request',
+            resource_id: f.asset_id,
+            action_type: 'fuel_request',
+            status: f.status.toUpperCase(),
+            current_approval_level: 1,
+            requested_by: f.requested_by,
+            requester_name: f.requester_name,
+            created_at: f.created_at,
+            updated_at: f.updated_at,
+            data_snapshot: f,
+        }));
+
+        return [...myRequests, ...mappedFuel].sort((a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+    }, [myRequests, myFuelRequests]);
 
     const approveMutation = useMutation({
         mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
             if (selectedRequest?.resource_type === 'conversion_request') {
                 return conversionApi.approveRequest(id);
+            }
+            if (selectedRequest?.resource_type === 'fuel_request') {
+                return fuelApi.approve(id);
             }
             return approvalApi.approve(id, notes);
         },
@@ -223,7 +330,8 @@ export function ApprovalCenter() {
             success('Request approved', 'Success');
             queryClient.invalidateQueries({ queryKey: ['approvals'] });
             queryClient.invalidateQueries({ queryKey: ['conversions'] });
-            setActionModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['fuel'] });
+            setModalOpen(false);
         },
         onError: (err: any) => {
             showError(err.message || 'Failed to approve request', 'Error');
@@ -235,33 +343,37 @@ export function ApprovalCenter() {
             if (selectedRequest?.resource_type === 'conversion_request') {
                 return conversionApi.rejectRequest(id);
             }
+            if (selectedRequest?.resource_type === 'fuel_request') {
+                return fuelApi.reject(id, notes);
+            }
             return approvalApi.reject(id, notes);
         },
         onSuccess: () => {
             success('Request rejected', 'Success');
             queryClient.invalidateQueries({ queryKey: ['approvals'] });
             queryClient.invalidateQueries({ queryKey: ['conversions'] });
-            setActionModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['fuel'] });
+            setModalOpen(false);
         },
         onError: (err: any) => {
             showError(err.message || 'Failed to reject request', 'Error');
         },
     });
 
-    const handleAction = (request: ApprovalRequest, type: 'approve' | 'reject') => {
+    const openRequest = (request: ApprovalRequest) => {
         setSelectedRequest(request);
-        setActionType(type);
         setActionNotes('');
-        setActionModalOpen(true);
+        setModalOpen(true);
     };
 
-    const submitAction = () => {
+    const handleApprove = () => {
         if (!selectedRequest) return;
-        if (actionType === 'approve') {
-            approveMutation.mutate({ id: selectedRequest.id, notes: actionNotes || undefined });
-        } else {
-            rejectMutation.mutate({ id: selectedRequest.id, notes: actionNotes || 'Rejected' });
-        }
+        approveMutation.mutate({ id: selectedRequest.id, notes: actionNotes });
+    };
+
+    const handleReject = () => {
+        if (!selectedRequest) return;
+        rejectMutation.mutate({ id: selectedRequest.id, notes: actionNotes || 'Rejected' });
     };
 
     const getStatusBadge = (status: string): 'info' | 'success' | 'warning' | 'danger' | 'default' => {
@@ -276,8 +388,8 @@ export function ApprovalCenter() {
         }
     };
 
-    const currentData = activeTab === 'pending' ? pendingRequests : myRequests;
-    const isLoading = activeTab === 'pending' ? (loadingStandard || loadingConversions) : loadingMy;
+    const currentData = activeTab === 'pending' ? pendingRequests : myMergedRequests;
+    const isLoading = activeTab === 'pending' ? (loadingStandard || loadingConversions || loadingFuel) : (loadingMy || loadingMyFuel);
     const filteredData = filterType === 'all' ? currentData : currentData.filter(r => r.resource_type === filterType);
 
     // Stats
@@ -288,6 +400,7 @@ export function ApprovalCenter() {
     const conversionCount = pendingRequests.filter(r => r.resource_type === 'conversion_request').length;
     const assetCount = pendingRequests.filter(r => r.resource_type === 'asset').length;
     const loanCount = pendingRequests.filter(r => r.resource_type === 'loan').length;
+    const fuelCount = pendingRequests.filter(r => r.resource_type === 'fuel_request').length;
 
     const TabButton = ({ value, children, icon: Icon }: { value: string; children: React.ReactNode; icon: any }) => (
         <button
@@ -302,6 +415,17 @@ export function ApprovalCenter() {
         </button>
     );
 
+    const handleCloseModal = () => {
+        if (actionNotes.trim()) {
+            if (window.confirm('Discard changes? You have entered notes.')) {
+                setModalOpen(false);
+                setActionNotes('');
+            }
+        } else {
+            setModalOpen(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -313,7 +437,7 @@ export function ApprovalCenter() {
 
             {/* Stats */}
             {activeTab === 'pending' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-4">
                     <StatCard title="Lifecycle" value={lifecycleCount} icon={RefreshCw} iconColor="text-violet-400" />
                     <StatCard title="Work Orders" value={workOrderCount} icon={Wrench} iconColor="text-blue-400" />
                     <StatCard title="Rentals" value={rentalCount} icon={Truck} iconColor="text-orange-400" />
@@ -321,6 +445,7 @@ export function ApprovalCenter() {
                     <StatCard title="Timesheets" value={timesheetCount} icon={ClipboardCheck} iconColor="text-teal-400" />
                     <StatCard title="Assets" value={assetCount} icon={ClipboardList} iconColor="text-green-400" />
                     <StatCard title="Loans" value={loanCount} icon={ClipboardList} iconColor="text-pink-400" />
+                    <StatCard title="Fuel" value={fuelCount} icon={Fuel} iconColor="text-yellow-400" />
                 </div>
             )}
 
@@ -343,6 +468,7 @@ export function ApprovalCenter() {
                         { value: 'timesheet_verification', label: 'Timesheet' },
                         { value: 'asset', label: 'Asset' },
                         { value: 'loan', label: 'Loan' },
+                        { value: 'fuel_request', label: 'Fuel' },
                     ]}
                 />
             </div>
@@ -375,7 +501,7 @@ export function ApprovalCenter() {
                                 {filteredData.map((req) => {
                                     const config = resourceTypeConfig[req.resource_type] || { label: req.resource_type, iconColor: 'text-slate-400' };
                                     return (
-                                        <TableRow key={req.id} onClick={() => { setSelectedRequest(req); setDetailModalOpen(true); }} className="cursor-pointer">
+                                        <TableRow key={req.id} onClick={() => openRequest(req)} className="cursor-pointer">
                                             <TableTd>
                                                 <div className="flex items-center gap-1 text-sm">
                                                     <Calendar size={14} className="text-slate-500" />
@@ -403,26 +529,13 @@ export function ApprovalCenter() {
                                                 <span className="text-sm">{req.requester_name || 'Unknown'}</span>
                                             </TableTd>
                                             <TableTd align="center">
-                                                {activeTab === 'pending' && (
-                                                    <div className="flex items-center justify-center gap-1">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="primary"
-                                                            leftIcon={<Check size={14} />}
-                                                            onClick={() => handleAction(req, 'approve')}
-                                                        >
-                                                            Approve
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="danger"
-                                                            leftIcon={<X size={14} />}
-                                                            onClick={() => handleAction(req, 'reject')}
-                                                        >
-                                                            Reject
-                                                        </Button>
-                                                    </div>
-                                                )}
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    rightIcon={<ArrowRight size={14} />}
+                                                >
+                                                    Review
+                                                </Button>
                                             </TableTd>
                                         </TableRow>
                                     );
@@ -433,60 +546,16 @@ export function ApprovalCenter() {
                 </div>
             </Card>
 
-            {/* Action Modal */}
+            {/* Unified Detail & Action Modal */}
             <Modal
-                isOpen={actionModalOpen}
-                onClose={() => setActionModalOpen(false)}
-                title={`${actionType === 'approve' ? 'Approve' : 'Reject'} Request`}
-            >
-                {selectedRequest && (
-                    <div className="space-y-4">
-                        <Card padding="sm">
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-slate-300">Type:</span>
-                                    <Badge>{resourceTypeConfig[selectedRequest.resource_type]?.label || selectedRequest.resource_type}</Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-slate-300">Action:</span>
-                                    <span className="text-sm">{selectedRequest.action_type.replace(/_/g, ' ')}</span>
-                                </div>
-                                <RequestDetails request={selectedRequest} />
-                            </div>
-                        </Card>
-
-                        <Textarea
-                            label="Notes"
-                            placeholder={actionType === 'reject' ? 'Reason for rejection (required)' : 'Optional notes...'}
-                            value={actionNotes}
-                            onChange={(e) => setActionNotes(e.target.value)}
-                            required={actionType === 'reject'}
-                        />
-
-                        <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setActionModalOpen(false)}>Cancel</Button>
-                            <Button
-                                variant={actionType === 'approve' ? 'primary' : 'danger'}
-                                onClick={submitAction}
-                                loading={approveMutation.isPending || rejectMutation.isPending}
-                                disabled={actionType === 'reject' && !actionNotes}
-                            >
-                                Confirm {actionType === 'approve' ? 'Approve' : 'Reject'}
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </Modal>
-
-            {/* Detail Modal */}
-            <Modal
-                isOpen={detailModalOpen}
-                onClose={() => setDetailModalOpen(false)}
-                title="Request Details"
+                isOpen={modalOpen}
+                onClose={handleCloseModal}
+                title="Review Request"
                 size="lg"
             >
                 {selectedRequest && (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                        {/* Header Info */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <p className="text-xs text-slate-400">Request ID</p>
@@ -516,35 +585,67 @@ export function ApprovalCenter() {
                             </div>
                         </div>
 
+                        {/* Request Content */}
                         <div className="border-t border-slate-800 pt-4">
-                            <p className="text-xs text-slate-400 mb-2">Details</p>
-                            <RequestDetails request={selectedRequest} />
+                            <p className="text-xs text-slate-400 mb-2">Request Content</p>
+                            <Card padding="sm" className="bg-slate-900/50 border-slate-800">
+                                <RequestDetails request={selectedRequest} showDetails={true} />
+                            </Card>
                         </div>
 
-                        <div className="border-t border-slate-800 pt-4">
-                            <p className="text-xs text-slate-400 mb-2">Data Snapshot</p>
-                            <div className="p-3 bg-slate-900/50 rounded-lg">
-                                <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap overflow-x-auto">
-                                    {JSON.stringify(selectedRequest.data_snapshot, null, 2)}
-                                </pre>
-                            </div>
-                        </div>
-
+                        {/* Approval History / Notes */}
                         {(selectedRequest.notes_l1 || selectedRequest.notes_l2) && (
                             <div className="border-t border-slate-800 pt-4 space-y-2">
-                                <p className="text-xs text-slate-400">Approval Notes</p>
+                                <p className="text-xs text-slate-400">Previous Notes</p>
                                 {selectedRequest.notes_l1 && (
-                                    <div className="p-3 bg-slate-900/50 rounded-lg">
-                                        <p className="text-xs text-slate-400">L1 Notes:</p>
+                                    <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+                                        <p className="text-xs text-slate-400">L1 Approver:</p>
                                         <p className="text-sm text-white">{selectedRequest.notes_l1}</p>
                                     </div>
                                 )}
                                 {selectedRequest.notes_l2 && (
-                                    <div className="p-3 bg-slate-900/50 rounded-lg">
-                                        <p className="text-xs text-slate-400">L2 Notes:</p>
+                                    <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800">
+                                        <p className="text-xs text-slate-400">L2 Approver:</p>
                                         <p className="text-sm text-white">{selectedRequest.notes_l2}</p>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Action Area (Only if Pending) */}
+                        {activeTab === 'pending' && (
+                            <div className="border-t border-slate-800 pt-4 space-y-4">
+                                <Textarea
+                                    label="Approval / Rejection Notes"
+                                    placeholder="Add notes (optional for approval, required for rejection)..."
+                                    value={actionNotes}
+                                    onChange={(e) => setActionNotes(e.target.value)}
+                                />
+
+                                <div className="flex justify-end gap-2">
+                                    <Button type="button" variant="outline" onClick={handleCloseModal}>
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="danger"
+                                        onClick={handleReject}
+                                        loading={rejectMutation.isPending}
+                                        disabled={!actionNotes}
+                                        leftIcon={<X size={16} />}
+                                    >
+                                        Reject
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="primary"
+                                        onClick={handleApprove}
+                                        loading={approveMutation.isPending}
+                                        leftIcon={<Check size={16} />}
+                                    >
+                                        Approve
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>

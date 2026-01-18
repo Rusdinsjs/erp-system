@@ -47,7 +47,35 @@ pub async fn upload_file(
             let ext = Path::new(&file_name)
                 .extension()
                 .and_then(|e| e.to_str())
-                .unwrap_or("bin");
+                .unwrap_or("bin")
+                .to_lowercase();
+
+            // Compress if image
+            let (final_data, final_ext) = if ["jpg", "jpeg", "png", "webp"].contains(&ext.as_str())
+            {
+                // Try to load image
+                match image::load_from_memory(&data) {
+                    Ok(img) => {
+                        // Resize if larger than 1280px
+                        let resized = if img.width() > 1280 || img.height() > 1280 {
+                            img.resize(1280, 1280, image::imageops::FilterType::Lanczos3)
+                        } else {
+                            img
+                        };
+
+                        // Encode as JPEG with quality 80
+                        let mut comp_bytes: Vec<u8> = Vec::new();
+                        let mut cursor = std::io::Cursor::new(&mut comp_bytes);
+                        match resized.write_to(&mut cursor, image::ImageOutputFormat::Jpeg(80)) {
+                            Ok(_) => (comp_bytes.into(), "jpg".to_string()),
+                            Err(_) => (data.clone(), ext), // Fallback to original
+                        }
+                    }
+                    Err(_) => (data.clone(), ext), // Fallback if load fails
+                }
+            } else {
+                (data.clone(), ext)
+            };
 
             // Generate path: uploads/YYYY/MM/DD/uuid.ext
             let now = Utc::now();
@@ -60,7 +88,7 @@ pub async fn upload_file(
 
             // Generate unique ID
             let file_id = Uuid::new_v4();
-            let new_filename = format!("{}.{}", file_id, ext);
+            let new_filename = format!("{}.{}", file_id, final_ext);
             let file_path = format!("{}/{}", relative_dir, new_filename);
 
             // Ensure directory exists
@@ -69,7 +97,7 @@ pub async fn upload_file(
                 .map_err(|e| AppError::Internal(format!("Failed to create directory: {}", e)))?;
 
             // Save file
-            fs::write(&file_path, &data)
+            fs::write(&file_path, &final_data)
                 .await
                 .map_err(|e| AppError::Internal(format!("Failed to save file: {}", e)))?;
 
@@ -84,7 +112,7 @@ pub async fn upload_file(
                 "url": url,
                 "original_name": file_name,
                 "content_type": content_type,
-                "size": data.len()
+                "size": final_data.len()
             }));
 
             // Only process the first file field

@@ -1,7 +1,7 @@
 // WorkOrders Page - Pure Tailwind
 // Work Order Management Page
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workOrderApi } from '../api/work-order';
@@ -31,6 +31,16 @@ export function WorkOrders() {
 
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    // Read URL params for pre-filling form
+    const [searchParams] = useSearchParams();
+    const assetIdParam = searchParams.get('asset_id');
+    const woTypeParam = searchParams.get('wo_type');
+
+    useEffect(() => {
+        if (assetIdParam) {
+            setDrawerOpen(true);
+        }
+    }, [assetIdParam]);
     const { lastMessage } = useWebSocket();
     const { success } = useToast();
 
@@ -132,7 +142,7 @@ export function WorkOrders() {
                             records.map((record: any) => (
                                 <TableRow
                                     key={record.id}
-                                    onClick={() => navigate(`/ work - orders / ${record.id} `)}
+                                    onClick={() => navigate(`/work-orders/${record.id}`)}
                                     className="cursor-pointer"
                                 >
                                     <TableTd>
@@ -149,9 +159,11 @@ export function WorkOrders() {
                                     </TableTd>
                                     <TableTd>{record.scheduled_date}</TableTd>
                                     <TableTd>
-                                        {record.estimated_cost
-                                            ? `Rp ${Number(record.estimated_cost).toLocaleString('id-ID')} `
-                                            : '-'}
+                                        {record.status === 'completed' && record.actual_cost
+                                            ? `Rp ${Number(record.actual_cost).toLocaleString('id-ID')}`
+                                            : record.estimated_cost
+                                                ? `Rp ${Number(record.estimated_cost).toLocaleString('id-ID')}`
+                                                : '-'}
                                     </TableTd>
                                     <TableTd align="center">
                                         <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -202,6 +214,8 @@ export function WorkOrders() {
                 {drawerOpen && (
                     <WorkOrderForm
                         maintenanceId={selectedId}
+                        initialAssetId={assetIdParam}
+                        initialType={woTypeParam}
                         onClose={() => setDrawerOpen(false)}
                         onSuccess={() => {
                             setDrawerOpen(false);

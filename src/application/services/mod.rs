@@ -59,5 +59,7 @@ pub mod geofence_service;
 pub use geofence_service::*;
 pub mod finance_service;
 pub use finance_service::*;
+pub mod fuel_service;
+pub use fuel_service::*;
 pub mod journal_service;
 pub use journal_service::*;

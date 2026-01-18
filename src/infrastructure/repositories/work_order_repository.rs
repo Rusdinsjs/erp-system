@@ -16,10 +16,17 @@ impl WorkOrderRepository {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<WorkOrder>, sqlx::Error> {
-        sqlx::query_as::<_, WorkOrder>("SELECT * FROM maintenance_work_orders WHERE id = $1")
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
+        sqlx::query_as::<_, WorkOrder>(
+            r#"
+            SELECT w.*, a.name as asset_name 
+            FROM maintenance_work_orders w
+            LEFT JOIN assets a ON w.asset_id = a.id
+            WHERE w.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
     }
 
     pub async fn find_by_number(&self, wo_number: &str) -> Result<Option<WorkOrder>, sqlx::Error> {
@@ -177,14 +184,16 @@ impl WorkOrderRepository {
             r#"
             UPDATE maintenance_work_orders 
             SET status = 'completed', completed_by = $2, work_performed = $3, 
-                actual_cost = $4, actual_end_date = NOW(), updated_at = NOW() 
+                labor_cost = $4,
+                actual_cost = COALESCE(parts_cost, 0) + $4,
+                actual_end_date = NOW(), updated_at = NOW() 
             WHERE id = $1 AND status = 'in_progress'
             "#,
         )
         .bind(id)
         .bind(completed_by)
         .bind(work_performed)
-        .bind(actual_cost)
+        .bind(actual_cost.unwrap_or(rust_decimal::Decimal::ZERO))
         .execute(&self.pool)
         .await?;
         Ok(result.rows_affected() > 0)

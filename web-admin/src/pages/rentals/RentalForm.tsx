@@ -1,6 +1,6 @@
 // Rental Form - Pure Tailwind
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save } from 'lucide-react';
 import { rentalApi, type CreateRentalRequest, type RentalRate } from '../../api/rental';
@@ -19,13 +19,16 @@ import {
 
 export function RentalForm() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const assetIdParam = searchParams.get('asset_id');
+
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
 
     // Form State
     const [formData, setFormData] = useState<CreateRentalRequest>({
         client_id: '',
-        asset_id: '',
+        asset_id: assetIdParam || '',
         rental_rate_id: '',
         start_date: new Date().toISOString().split('T')[0],
         end_date: undefined,
@@ -48,7 +51,7 @@ export function RentalForm() {
     // Fetch Available Assets
     const { data: assetsResponse, isLoading: assetsLoading } = useQuery({
         queryKey: ['assets-available'],
-        queryFn: () => assetApi.list({ page: 1, per_page: 100, status: 'available' })
+        queryFn: () => assetApi.list({ page: 1, per_page: 100, status: 'in_inventory' })
     });
     const assets = assetsResponse?.data || [];
 

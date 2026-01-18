@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, AlertCircle, UserPlus } from 'lucide-react';
 import { workOrderApi } from '../api/work-order';
+import { TechnicianSelectModal } from '../components/WorkOrders/TechnicianSelectModal';
 import {
     Button,
     Card,
@@ -35,6 +36,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
     const [taskModalOpen, setTaskModalOpen] = useState(false);
     const [partModalOpen, setPartModalOpen] = useState(false);
     const [completeModalOpen, setCompleteModalOpen] = useState(false);
+    const [assignModalOpen, setAssignModalOpen] = useState(false);
 
     // Form inputs
     const [newTask, setNewTask] = useState({ task_number: 1, description: '' });
@@ -88,6 +90,14 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
             setNewPart({ part_name: '', quantity: 1, unit_cost: 0 });
             success('Part added', 'Success');
         },
+        onError: (error: any) => {
+            console.error('Failed to add part:', error);
+            // Assuming useToast exposes 'error' or we use 'success' with specific styling or generic toast
+            // The existing useToast usage just shows 'success' method.
+            // Let's check imports. 'useToast' is from '../components/ui'.
+            // Usually it has error method.
+            success(error.response?.data?.message || error.message || 'Failed to add part', 'Error');
+        }
     });
 
     const removePartMutation = useMutation({
@@ -113,6 +123,15 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
             queryClient.invalidateQueries({ queryKey: ['work-order', id] });
             setCompleteModalOpen(false);
             success('Work Order completed', 'Completed');
+        },
+    });
+
+    const assignMutation = useMutation({
+        mutationFn: (technicianId: string) => workOrderApi.assign(id!, technicianId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+            setAssignModalOpen(false);
+            success('Technician assigned', 'Success');
         },
     });
 
@@ -146,10 +165,18 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                         <Badge variant={statusBadge[wo.status]}>{wo.status.toUpperCase()}</Badge>
                         <Badge variant="default">{wo.priority}</Badge>
                     </div>
+                    {wo.asset_name && (
+                        <p className="text-lg font-medium text-cyan-400 mb-1">{wo.asset_name}</p>
+                    )}
                     <p className="text-slate-400">{wo.wo_type}</p>
                 </div>
                 <div className="flex gap-2">
-                    {wo.status === 'assigned' && (
+                    {(wo.status === 'approved' || wo.status === 'pending') && (
+                        <Button variant="outline" leftIcon={<UserPlus size={16} />} onClick={() => setAssignModalOpen(true)}>
+                            Assign Technician
+                        </Button>
+                    )}
+                    {(wo.status === 'assigned' && wo.assigned_technician) && (
                         <Button leftIcon={<Play size={16} />} onClick={() => startMutation.mutate()} loading={startMutation.isPending}>
                             Start Work
                         </Button>
@@ -385,6 +412,14 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                     </div>
                 </div>
             </Modal>
+
+            {/* Assign Technician Modal */}
+            <TechnicianSelectModal
+                isOpen={assignModalOpen}
+                onClose={() => setAssignModalOpen(false)}
+                onSelect={(techId) => assignMutation.mutate(techId)}
+                loading={assignMutation.isPending}
+            />
         </div>
     );
 }

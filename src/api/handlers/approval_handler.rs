@@ -1,13 +1,14 @@
 use axum::{
     extract::{Path, State},
-    Json,
+    Extension, Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
 use crate::api::server::AppState;
 use crate::application::dto::ApiResponse;
+use crate::domain::entities::UserClaims;
 use crate::infrastructure::repositories::ApprovalRequest;
 use crate::shared::errors::AppError;
 
@@ -65,8 +66,9 @@ pub async fn create_approval_request(
 
 pub async fn list_my_requests(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
 ) -> Result<Json<ApiResponse<Vec<ApprovalRequest>>>, AppError> {
-    let requester_id = Uuid::nil(); // TODO: Get from Auth
+    let requester_id = claims.user_id();
     let requests = state
         .approval_service
         .list_my_requests(requester_id)

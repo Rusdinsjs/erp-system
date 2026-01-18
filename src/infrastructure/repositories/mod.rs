@@ -11,6 +11,7 @@ pub mod client_repository;
 pub mod conversion_repository; // Added this line based on the example
 pub mod employee_repository;
 pub mod finance_repository;
+pub mod fuel_repository;
 pub mod journal_repository;
 pub mod leave_repository;
 pub mod lifecycle_repository;
@@ -35,6 +36,7 @@ pub use client_repository::*;
 pub use conversion_repository::*;
 pub use employee_repository::*;
 pub use finance_repository::*;
+pub use fuel_repository::*;
 pub use journal_repository::*;
 pub use leave_repository::*;
 pub use lifecycle_repository::*;

@@ -79,8 +79,9 @@ impl LifecycleService {
         reason: Option<String>,
         requested_by: Uuid,
     ) -> DomainResult<TransitionRequestResult> {
-        // Get current status
-        let current_status = self.repository.get_asset_status(asset_id).await?;
+        // Get current status and name
+        let (current_status, asset_name) =
+            self.repository.get_asset_status_and_name(asset_id).await?;
 
         // Parse states
         let current_state = AssetState::from_str(&current_status).ok_or_else(|| {
@@ -120,6 +121,7 @@ impl LifecycleService {
             // Create approval request data
             let data = json!({
                 "asset_id": asset_id,
+                "asset_name": asset_name,
                 "from_state": current_state.as_str(),
                 "to_state": new_state.as_str(),
                 "reason": reason,

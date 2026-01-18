@@ -16,19 +16,21 @@ import {
 
 interface WorkOrderFormProps {
     maintenanceId?: string | null;
+    initialAssetId?: string | null;
+    initialType?: string | null;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export function WorkOrderForm({ maintenanceId, onClose, onSuccess }: WorkOrderFormProps) {
+export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onClose, onSuccess }: WorkOrderFormProps) {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
     const isEdit = !!maintenanceId;
 
     // Form State
     const [formData, setFormData] = useState({
-        asset_id: '',
-        maintenance_type_id: '',
+        asset_id: initialAssetId || '',
+        maintenance_type_id: initialType || '',
         scheduled_date: new Date(),
         description: '',
         cost: undefined as number | undefined,
@@ -90,8 +92,14 @@ export function WorkOrderForm({ maintenanceId, onClose, onSuccess }: WorkOrderFo
                 odometer_reading: undefined,
                 location_id: '',
             });
+        } else if (initialAssetId || initialType) {
+            setFormData(prev => ({
+                ...prev,
+                asset_id: initialAssetId || prev.asset_id,
+                maintenance_type_id: initialType || prev.maintenance_type_id,
+            }));
         }
-    }, [workOrderData]);
+    }, [workOrderData, initialAssetId, initialType]);
 
     const mutation = useMutation({
         mutationFn: (values: typeof formData) => {
@@ -201,6 +209,7 @@ export function WorkOrderForm({ maintenanceId, onClose, onSuccess }: WorkOrderFo
                         { value: 'completed', label: 'Completed' },
                         { value: 'cancelled', label: 'Cancelled' },
                     ]}
+                    disabled={!isEdit}
                 />
 
                 {/* Conditional fields for In Progress or Completed */}

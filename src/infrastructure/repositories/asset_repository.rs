@@ -55,6 +55,8 @@ impl AssetRepository {
             Option<String>,
             Option<String>,
             Option<VehicleDetails>,
+            Option<rust_decimal::Decimal>,
+            Option<rust_decimal::Decimal>,
         )>,
         sqlx::Error,
     > {
@@ -68,6 +70,8 @@ impl AssetRepository {
             department_manager_name: Option<String>,
             assigned_to_name: Option<String>,
             vendor_name: Option<String>,
+            total_maintenance_cost: Option<rust_decimal::Decimal>,
+            total_rental_income: Option<rust_decimal::Decimal>,
         }
 
         let row = sqlx::query_as::<_, AssetDetailRow>(
@@ -86,7 +90,17 @@ impl AssetRepository {
                 d.name as department_name,
                 m.name as department_manager_name,
                 u.name as assigned_to_name,
-                v.name as vendor_name
+                v.name as vendor_name,
+                (
+                    SELECT COALESCE(SUM(actual_cost), 0)
+                    FROM maintenance_work_orders 
+                    WHERE asset_id = a.id AND status ILIKE 'completed'
+                ) as total_maintenance_cost,
+                (
+                    SELECT COALESCE(SUM(total_amount), 0)
+                    FROM rentals 
+                    WHERE asset_id = a.id AND status ILIKE 'returned'
+                ) as total_rental_income
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
@@ -112,6 +126,8 @@ impl AssetRepository {
                 r.assigned_to_name,
                 r.vendor_name,
                 vehicle,
+                r.total_maintenance_cost,
+                r.total_rental_income,
             )))
         } else {
             Ok(None)

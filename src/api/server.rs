@@ -19,6 +19,7 @@ use crate::application::services::{
     DataService,
     EmployeeService,
     FinanceService,
+    FuelService,
     JournalService, // Added
     LifecycleService,
     LoanService,
@@ -38,7 +39,7 @@ use crate::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
 use crate::infrastructure::repositories::{
     ApprovalRepository, AssetRepository, AuditRepository, CategoryRepository,
     CategoryTemplateRepository, ClientRepository, ConversionRepository, EmployeeRepository,
-    FinanceRepository, JournalRepository, LifecycleRepository, LoanRepository,
+    FinanceRepository, FuelRepository, JournalRepository, LifecycleRepository, LoanRepository,
     MaintenanceRepository, NotificationRepository, RbacRepository, RentalRepository,
     SensorRepository, TimesheetRepository, UserRepository, WorkOrderRepository,
 };
@@ -75,6 +76,7 @@ pub struct AppState {
     pub location_service: LocationService, // Added
     pub leave_service: crate::application::services::LeaveService,
     pub finance_service: FinanceService, // Added
+    pub fuel_service: FuelService,       // Added
     pub journal_service: JournalService, // Added
     pub pool: PgPool,
     pub ws_manager: Arc<crate::api::handlers::notification_ws::WebSocketManager>,
@@ -168,6 +170,9 @@ impl AppState {
         let journal_service = JournalService::new(journal_repo, finance_repo.clone());
         let finance_service = FinanceService::new(finance_repo.clone(), journal_service.clone());
 
+        let fuel_repo = FuelRepository::new(pool.clone());
+        let fuel_service = FuelService::new(fuel_repo);
+
         Self {
             asset_service,
             audit_service,
@@ -198,6 +203,7 @@ impl AppState {
             ws_manager: Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new()),
             leave_service,
             finance_service,
+            fuel_service,
             journal_service,
         }
     }

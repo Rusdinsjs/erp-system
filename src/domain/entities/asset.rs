@@ -160,6 +160,8 @@ pub struct AssetDetail {
     pub vendor_name: Option<String>,
     pub condition_name: Option<String>,
     pub vehicle_details: Option<super::asset_details::VehicleDetails>,
+    pub total_maintenance_cost: Option<Decimal>,
+    pub total_rental_income: Option<Decimal>,
 }
 
 /// Asset history entry for tracking changes

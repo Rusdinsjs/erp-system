@@ -15,6 +15,7 @@ pub mod data_handler;
 pub mod employee_handler;
 pub mod finance_handler;
 pub mod finance_report_handler;
+pub mod fuel_handler;
 pub mod health_handler;
 pub mod journal_handler;
 pub mod leave_handler;
