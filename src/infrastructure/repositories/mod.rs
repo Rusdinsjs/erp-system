@@ -62,3 +62,5 @@ pub trait Repository<T, ID> {
     async fn update(&self, entity: T) -> Result<T, sqlx::Error>;
     async fn delete(&self, id: ID) -> Result<bool, sqlx::Error>;
 }
+pub mod rental_billing_repository;
+pub use rental_billing_repository::*;

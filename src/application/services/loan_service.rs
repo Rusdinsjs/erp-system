@@ -299,4 +299,16 @@ impl LoanService {
         // Placeholder for background logic
         Ok(())
     }
+
+    pub async fn get_analytics(
+        &self,
+    ) -> DomainResult<crate::infrastructure::repositories::LoanAnalyticsData> {
+        self.loan_repo
+            .get_analytics()
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
 }

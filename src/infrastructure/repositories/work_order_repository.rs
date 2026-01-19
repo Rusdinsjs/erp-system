@@ -321,4 +321,77 @@ impl WorkOrderRepository {
 
         Ok(total)
     }
+
+    pub async fn get_analytics(&self) -> Result<WorkOrderAnalyticsData, sqlx::Error> {
+        // 1. Status Counts
+        let status_counts = sqlx::query_as::<_, StatusCount>(
+            r#"
+            SELECT status, COUNT(*) as count
+            FROM maintenance_work_orders
+            GROUP BY status
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        // 2. Type Distribution
+        let type_counts = sqlx::query_as::<_, TypeCount>(
+            r#"
+            SELECT wo_type, COUNT(*) as count
+            FROM maintenance_work_orders
+            GROUP BY wo_type
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        // 3. Monthly Cost Trend (Last 6 Months)
+        let cost_trend = sqlx::query_as::<_, CostTrend>(
+            r#"
+            SELECT 
+                TO_CHAR(created_at, 'Mon') as month,
+                COALESCE(SUM(actual_cost), 0) as total_cost,
+                COUNT(*) as wo_count
+            FROM maintenance_work_orders
+            WHERE created_at > NOW() - INTERVAL '6 months'
+            GROUP BY TO_CHAR(created_at, 'Mon'), DATE_TRUNC('month', created_at)
+            ORDER BY DATE_TRUNC('month', created_at)
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(WorkOrderAnalyticsData {
+            status_counts,
+            type_counts,
+            cost_trend,
+        })
+    }
+}
+
+// Analytics Structs
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct StatusCount {
+    pub status: String,
+    pub count: i64,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct TypeCount {
+    pub wo_type: String,
+    pub count: i64,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct CostTrend {
+    pub month: String,
+    pub total_cost: rust_decimal::Decimal,
+    pub wo_count: i64,
+}
+
+#[derive(serde::Serialize)]
+pub struct WorkOrderAnalyticsData {
+    pub status_counts: Vec<StatusCount>,
+    pub type_counts: Vec<TypeCount>,
+    pub cost_trend: Vec<CostTrend>,
 }

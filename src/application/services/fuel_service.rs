@@ -28,6 +28,22 @@ impl FuelService {
         requested_value: Decimal,
         driver_id: Option<Uuid>,
     ) -> Result<FuelLog, String> {
+        // STRICT MODE: Check for previous uncompleted approved requests
+        // Exception: If this is the FIRST request for this asset, we allow it.
+        // But if history exists, we enforce the rule.
+
+        let pending = self
+            .repo
+            .check_pending_request(asset_id)
+            .await
+            .map_err(|e| e.to_string())?;
+        if let Some(prev) = pending {
+            return Err(format!(
+                "Strict Mode: Previous fuel request ({}) for this asset is not yet completed (Receipt Upload Pending). Please complete it first.",
+                prev.tracking_number
+            ));
+        }
+
         let req_type = match request_type {
             "volume" => FuelRequestType::Volume,
             "amount" => FuelRequestType::Amount,
@@ -111,6 +127,15 @@ impl FuelService {
     pub async fn get_my_requests(&self, user_id: Uuid) -> Result<Vec<FuelLog>, String> {
         self.repo
             .list_by_user(user_id)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    pub async fn get_analytics(
+        &self,
+    ) -> Result<crate::infrastructure::repositories::FuelAnalyticsData, String> {
+        self.repo
+            .get_fuel_analytics()
             .await
             .map_err(|e| e.to_string())
     }

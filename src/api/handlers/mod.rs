@@ -70,3 +70,4 @@ pub use department_handler::*;
 pub mod attendance_handler;
 pub use attendance_handler::*;
 pub use leave_handler::*;
+pub mod rental_billing_handler;

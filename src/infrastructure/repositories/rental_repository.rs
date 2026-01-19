@@ -86,6 +86,22 @@ impl RentalRepository {
             .await
     }
 
+    /// Find asset name by ID
+    pub async fn find_asset_name(&self, asset_id: Uuid) -> Result<Option<String>, sqlx::Error> {
+        struct NameResult {
+            name: String,
+        }
+        let result = sqlx::query_as!(
+            NameResult,
+            r#"SELECT name FROM assets WHERE id = $1"#,
+            asset_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(result.map(|r| r.name))
+    }
+
     /// Find rental by rental number
     pub async fn find_by_number(&self, number: &str) -> Result<Option<Rental>, sqlx::Error> {
         sqlx::query_as!(
@@ -363,6 +379,50 @@ impl RentalRepository {
             rental_id
         )
         .fetch_optional(&self.pool)
+        .await
+    }
+
+    /// Find handover by ID
+    pub async fn find_handover_by_id(
+        &self,
+        id: Uuid,
+    ) -> Result<Option<RentalHandover>, sqlx::Error> {
+        sqlx::query_as!(
+            RentalHandover,
+            r#"SELECT * FROM rental_handovers WHERE id = $1"#,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    /// Update handover header (e.g. photos)
+    pub async fn update_handover(
+        &self,
+        handover: &RentalHandover,
+    ) -> Result<RentalHandover, sqlx::Error> {
+        sqlx::query_as!(
+            RentalHandover,
+            r#"
+            UPDATE rental_handovers SET
+                condition_rating = $2, condition_notes = $3, photos = $4,
+                has_damage = $5, damage_description = $6, damage_photos = $7,
+                recorded_by = $8, recorded_at = $9, signature_data = $10
+            WHERE id = $1
+            RETURNING *
+            "#,
+            handover.id,
+            handover.condition_rating,
+            handover.condition_notes,
+            handover.photos,
+            handover.has_damage,
+            handover.damage_description,
+            handover.damage_photos,
+            handover.recorded_by,
+            handover.recorded_at,
+            handover.signature_data
+        )
+        .fetch_one(&self.pool)
         .await
     }
 

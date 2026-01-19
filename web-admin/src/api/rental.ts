@@ -153,4 +153,15 @@ export const rentalApi = {
         const response = await api.post(`/rentals/${id}/return`, data);
         return response.data;
     },
+
+    // Handovers
+    getHandovers: async (id: string) => {
+        const response = await api.get<any[]>(`/rentals/${id}/handovers`);
+        return response.data;
+    },
+
+    addHandoverPhoto: async (handoverId: string, photoUrl: string, description?: string) => {
+        const response = await api.post(`/rentals/handovers/${handoverId}/photos`, { photo_url: photoUrl, description });
+        return response.data;
+    },
 };

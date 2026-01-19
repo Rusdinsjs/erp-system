@@ -87,5 +87,23 @@ export const loanApi = {
     myLoans: async () => {
         const response = await api.get<Loan[]>('/loans/my');
         return response.data;
+    },
+
+    getAnalytics: async () => {
+        const response = await api.get<{ data: LoanAnalyticsData }>('/loans/analytics');
+        return response.data.data;
     }
 };
+
+export interface LoanAnalyticsData {
+    status_counts: {
+        status: string;
+        count: number;
+    }[];
+    active_loans: number;
+    overdue_loans: number;
+    most_borrowed: {
+        asset_name: string;
+        loan_count: number;
+    }[];
+}

@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    BarChart,
-    Bar,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -10,31 +8,54 @@ import {
     PieChart,
     Pie,
     Cell,
-    Legend
+    Legend,
+    AreaChart,
+    Area
 } from 'recharts';
 import { Card, Button, DateInput } from '../../components/ui';
 import { Download, Filter, Wrench, CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-react';
+import { workOrderApi, type WorkOrderAnalyticsData } from '../../api/work-order';
 
 const WorkOrderReportsTab: React.FC = () => {
     const [startDate, setStartDate] = useState<Date | null>(new Date());
     const [endDate, setEndDate] = useState<Date | null>(new Date());
+    const [analytics, setAnalytics] = useState<WorkOrderAnalyticsData | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Placeholder Data
-    const statusData = [
-        { name: 'Completed', value: 45, color: '#10B981' },
-        { name: 'In Progress', value: 12, color: '#3B82F6' },
-        { name: 'Pending', value: 8, color: '#F59E0B' },
-        { name: 'Cancelled', value: 3, color: '#EF4444' },
-    ];
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const data = await workOrderApi.getAnalytics();
+                setAnalytics(data);
+            } catch (error) {
+                console.error("Failed to fetch work order analytics:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAnalytics();
+    }, []);
 
-    const costData = [
-        { name: 'Jan', labor: 1500, parts: 2400 },
-        { name: 'Feb', labor: 1200, parts: 1398 },
-        { name: 'Mar', labor: 2800, parts: 9800 },
-        { name: 'Apr', labor: 2100, parts: 3908 },
-        { name: 'May', labor: 1600, parts: 4800 },
-        { name: 'Jun', labor: 1900, parts: 3800 },
-    ];
+    if (loading) {
+        return <div className="text-white p-8">Loading analytics...</div>;
+    }
+
+    const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
+    const totalWOs = analytics?.status_counts.reduce((acc, curr) => acc + curr.count, 0) || 0;
+
+    const completedCount = analytics?.status_counts.find(s => s.status === 'completed')?.count || 0;
+    const inProgressCount = analytics?.status_counts.find(s => s.status === 'in_progress')?.count || 0;
+    const pendingCount = analytics?.status_counts.find(s => s.status === 'pending' || s.status === 'requested')?.count || 0;
+
+    // Status data for Pie Chart
+    const statusData = analytics?.status_counts.map((item, index) => ({
+        name: item.status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        value: item.count,
+        color: COLORS[index % COLORS.length]
+    })) || [];
+
+    // Cost Trend Data
+    const trendData = analytics?.cost_trend || [];
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -48,6 +69,20 @@ const WorkOrderReportsTab: React.FC = () => {
                 </div>
 
                 <div className="flex gap-4 items-center">
+                    <div className="flex gap-2">
+                        <DateInput
+                            value={startDate}
+                            onChange={setStartDate}
+                            placeholder="Start"
+                            className="bg-slate-950 border-slate-700"
+                        />
+                        <DateInput
+                            value={endDate}
+                            onChange={setEndDate}
+                            placeholder="End"
+                            className="bg-slate-950 border-slate-700"
+                        />
+                    </div>
                     <Button variant="outline" leftIcon={<Filter size={16} />}>
                         Filter
                     </Button>
@@ -63,28 +98,28 @@ const WorkOrderReportsTab: React.FC = () => {
                     <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400"><CheckCircle2 size={24} /></div>
                     <div>
                         <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Completed</p>
-                        <h4 className="text-2xl font-bold text-white">45</h4>
+                        <h4 className="text-2xl font-bold text-white">{completedCount}</h4>
                     </div>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4 shadow-lg hover:border-slate-700 transition-colors">
                     <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400"><Clock size={24} /></div>
                     <div>
                         <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">In Progress</p>
-                        <h4 className="text-2xl font-bold text-white">12</h4>
+                        <h4 className="text-2xl font-bold text-white">{inProgressCount}</h4>
                     </div>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4 shadow-lg hover:border-slate-700 transition-colors">
                     <div className="p-3 bg-amber-500/10 rounded-lg text-amber-400"><AlertTriangle size={24} /></div>
                     <div>
                         <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Pending</p>
-                        <h4 className="text-2xl font-bold text-white">8</h4>
+                        <h4 className="text-2xl font-bold text-white">{pendingCount}</h4>
                     </div>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4 shadow-lg hover:border-slate-700 transition-colors">
                     <div className="p-3 bg-rose-500/10 rounded-lg text-rose-400"><XCircle size={24} /></div>
                     <div>
-                        <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Avg Time</p>
-                        <h4 className="text-2xl font-bold text-white">2.5 <span className="text-sm font-normal text-slate-400">Days</span></h4>
+                        <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Total Orders</p>
+                        <h4 className="text-2xl font-bold text-white">{totalWOs}</h4>
                     </div>
                 </div>
             </div>
@@ -99,7 +134,7 @@ const WorkOrderReportsTab: React.FC = () => {
                     <div className="h-[300px] w-full flex justify-center relative">
                         {/* Centered Label for Donut */}
                         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                            <p className="text-3xl font-bold text-white">68</p>
+                            <p className="text-3xl font-bold text-white">{totalWOs}</p>
                             <p className="text-xs text-slate-400 uppercase tracking-widest">Total WOs</p>
                         </div>
                         <ResponsiveContainer width="100%" height="100%">
@@ -135,15 +170,21 @@ const WorkOrderReportsTab: React.FC = () => {
 
                 <Card className="shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md">
                     <div className="mb-6 pb-4 border-b border-slate-800">
-                        <h3 className="text-lg font-bold text-white">Cost Breakdown</h3>
-                        <p className="text-slate-400 text-xs">Labor vs Parts Spending</p>
+                        <h3 className="text-lg font-bold text-white">Monthly Cost Trend</h3>
+                        <p className="text-slate-400 text-xs">Maintenance Spending (Last 6 Months)</p>
                     </div>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={costData} barSize={32}>
+                            <AreaChart data={trendData}>
+                                <defs>
+                                    <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                <XAxis dataKey="month" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val / 1000}k`} />
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: 'rgba(15, 23, 42, 0.9)',
@@ -154,63 +195,13 @@ const WorkOrderReportsTab: React.FC = () => {
                                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
                                 <Legend />
-                                <Bar dataKey="labor" name="Labor Cost" stackId="a" fill="#3B82F6" radius={[0, 0, 4, 4]} />
-                                <Bar dataKey="parts" name="Parts Cost" stackId="a" fill="#10B981" radius={[4, 4, 0, 0]} />
-                            </BarChart>
+                                <Area type="monotone" dataKey="total_cost" name="Total Cost" stroke="#10B981" fillOpacity={1} fill="url(#colorCost)" />
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
             </div>
-
-            {/* Top Spenders (Bad Actors) */}
-            <Card className="shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md overflow-hidden">
-                <div className="p-6 border-b border-slate-800/60">
-                    <h3 className="text-lg font-bold text-white">Recent Work Orders</h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-slate-950/50 text-slate-200 uppercase font-bold text-xs tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4 rounded-tl-lg">WO #</th>
-                                <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Asset</th>
-                                <th className="px-6 py-4">Issue</th>
-                                <th className="px-6 py-4 text-right">Total Cost</th>
-                                <th className="px-6 py-4 rounded-tr-lg">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/60">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <tr key={i} className="group hover:bg-slate-800/40 transition-colors duration-150">
-                                    <td className="px-6 py-4 font-mono text-cyan-400 group-hover:text-cyan-300">WO-2024-{100 + i}</td>
-                                    <td className="px-6 py-4">2024-03-1{i}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
-                                                <Wrench size={14} className="text-slate-400" />
-                                            </div>
-                                            <span className="font-medium text-slate-200 group-hover:text-white">Air Conditioner {i}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">Leaking water unit</td>
-                                    <td className="px-6 py-4 text-right font-medium text-white">Rp {(150 + i * 10).toLocaleString()}k</td>
-                                    <td className="px-6 py-4">
-                                        {i % 2 === 0 ? (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                                <CheckCircle2 size={12} /> Completed
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                <Clock size={12} /> In Progress
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+            {/* Note: List table removed as requested to keep it clean */}
         </div>
     );
 };

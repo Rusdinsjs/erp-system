@@ -150,6 +150,28 @@ pub async fn get_rental_handovers(
     Ok(Json(handovers))
 }
 
+#[derive(serde::Deserialize)]
+pub struct AddHandoverPhotoRequest {
+    pub photo_url: String,
+    pub description: Option<String>,
+}
+
+/// Add photo to handover
+pub async fn add_handover_photo(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>, // Handover ID
+    Json(payload): Json<AddHandoverPhotoRequest>,
+) -> Result<Json<ApiResponse<RentalHandover>>, AppError> {
+    let handover = state
+        .rental_service
+        .add_handover_photo(id, payload.photo_url, payload.description)
+        .await?;
+    Ok(Json(ApiResponse::success_with_message(
+        handover,
+        "Photo added to handover",
+    )))
+}
+
 // ==================== CLIENT ENDPOINTS ====================
 
 /// List all clients

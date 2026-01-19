@@ -3,6 +3,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
     Extension, Json,
 };
 use uuid::Uuid;
@@ -74,6 +75,19 @@ pub async fn list_overdue_loans(
 ) -> Result<Json<Vec<Loan>>, AppError> {
     let loans = state.loan_service.list_overdue().await?;
     Ok(Json(loans))
+}
+
+pub async fn get_loan_analytics(
+    State(state): State<AppState>,
+) -> impl axum::response::IntoResponse {
+    match state.loan_service.get_analytics().await {
+        Ok(data) => (StatusCode::OK, Json(ApiResponse::success(data))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<()>::error(&e.to_string())),
+        )
+            .into_response(),
+    }
 }
 
 #[derive(serde::Deserialize)]

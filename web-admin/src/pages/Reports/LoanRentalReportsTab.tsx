@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     PieChart,
     Pie,
@@ -6,30 +6,58 @@ import {
     Tooltip,
     ResponsiveContainer,
     Legend,
-    RadialBarChart,
-    RadialBar,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid
 } from 'recharts';
 import { Card, Button, DateInput } from '../../components/ui';
-import { Download, Filter, Truck, Package, Clock, CalendarDays } from 'lucide-react';
+import { Download, Filter, Truck, Package, Clock, ArrowRightLeft } from 'lucide-react';
+import { loanApi, type LoanAnalyticsData } from '../../api/loan';
 
 const LoanRentalReportsTab: React.FC = () => {
     const [startDate, setStartDate] = useState<Date | null>(new Date());
     const [endDate, setEndDate] = useState<Date | null>(new Date());
+    const [analytics, setAnalytics] = useState<LoanAnalyticsData | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Placeholder Data
-    const loanByDept = [
-        { name: 'IT Dept', value: 15, color: '#3B82F6' },
-        { name: 'Marketing', value: 8, color: '#ec4899' },
-        { name: 'Operations', value: 20, color: '#10B981' },
-        { name: 'Finance', value: 5, color: '#F59E0B' },
-    ];
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const data = await loanApi.getAnalytics();
+                setAnalytics(data);
+            } catch (error) {
+                console.error("Failed to fetch loan analytics:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAnalytics();
+    }, []);
 
-    const rentalUtilization = [
-        { name: 'Heavy Machinery', uv: 80, fill: '#8b5cf6' },
-        { name: 'Vehicles', uv: 45, fill: '#3b82f6' },
-        { name: 'Electronics', uv: 90, fill: '#10b981' },
-        { name: 'Tools', uv: 60, fill: '#f59e0b' },
-    ];
+    if (loading) {
+        return <div className="text-white p-8">Loading analytics...</div>;
+    }
+
+    const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+
+    // Pie Chart Data: Status Distribution
+    const statusData = analytics?.status_counts.map((item, index) => ({
+        name: item.status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        value: item.count,
+        color: COLORS[index % COLORS.length]
+    })) || [];
+
+    // Bar Chart Data: Top Borrowed Assets
+    const topAssetsData = analytics?.most_borrowed.map(item => ({
+        name: item.asset_name,
+        value: item.loan_count
+    })) || [];
+
+    const totalLoans = analytics?.status_counts.reduce((acc, curr) => acc + curr.count, 0) || 0;
+    const activeLoans = analytics?.active_loans || 0;
+    const overdueLoans = analytics?.overdue_loans || 0;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -43,6 +71,20 @@ const LoanRentalReportsTab: React.FC = () => {
                 </div>
 
                 <div className="flex gap-4 items-center">
+                    <div className="flex gap-2">
+                        <DateInput
+                            value={startDate}
+                            onChange={setStartDate}
+                            placeholder="Start"
+                            className="bg-slate-950 border-slate-700"
+                        />
+                        <DateInput
+                            value={endDate}
+                            onChange={setEndDate}
+                            placeholder="End"
+                            className="bg-slate-950 border-slate-700"
+                        />
+                    </div>
                     <Button variant="outline" leftIcon={<Filter size={16} />}>
                         Filter
                     </Button>
@@ -52,26 +94,51 @@ const LoanRentalReportsTab: React.FC = () => {
                 </div>
             </div>
 
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4 shadow-lg hover:border-slate-700 transition-colors">
+                    <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400"><ArrowRightLeft size={24} /></div>
+                    <div>
+                        <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Active Loans</p>
+                        <h4 className="text-2xl font-bold text-white">{activeLoans}</h4>
+                    </div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4 shadow-lg hover:border-slate-700 transition-colors">
+                    <div className="p-3 bg-rose-500/10 rounded-lg text-rose-400"><Clock size={24} /></div>
+                    <div>
+                        <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Overdue Items</p>
+                        <h4 className="text-2xl font-bold text-white">{overdueLoans}</h4>
+                    </div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-4 shadow-lg hover:border-slate-700 transition-colors">
+                    <div className="p-3 bg-purple-500/10 rounded-lg text-purple-400"><Package size={24} /></div>
+                    <div>
+                        <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">Total Transactions</p>
+                        <h4 className="text-2xl font-bold text-white">{totalLoans}</h4>
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md">
                     <div className="mb-6 pb-4 border-b border-slate-800">
-                        <h3 className="text-lg font-bold text-white">Internal Loan Requests</h3>
-                        <p className="text-slate-400 text-xs">Distribution by Department</p>
+                        <h3 className="text-lg font-bold text-white">Loan Status Distribution</h3>
+                        <p className="text-slate-400 text-xs">Overview of all loan statuses</p>
                     </div>
                     <div className="h-[350px] w-full flex justify-center">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={loanByDept}
+                                    data={statusData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={0}
+                                    innerRadius={60}
                                     outerRadius={120}
                                     paddingAngle={2}
                                     dataKey="value"
                                     stroke="none"
                                 >
-                                    {loanByDept.map((entry, index) => (
+                                    {statusData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
@@ -91,34 +158,15 @@ const LoanRentalReportsTab: React.FC = () => {
 
                 <Card className="shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md">
                     <div className="mb-6 pb-4 border-b border-slate-800">
-                        <h3 className="text-lg font-bold text-white">Rental Utilization Rate</h3>
-                        <p className="text-slate-400 text-xs">Percentage of stock currently rented out</p>
+                        <h3 className="text-lg font-bold text-white">Top Borrowed Assets</h3>
+                        <p className="text-slate-400 text-xs">Most frequently requested items</p>
                     </div>
                     <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <RadialBarChart
-                                cx="40%"
-                                cy="60%"
-                                innerRadius="30%"
-                                outerRadius="100%"
-                                barSize={32}
-                                data={rentalUtilization}
-                                startAngle={180}
-                                endAngle={0}
-                            >
-                                <RadialBar
-                                    label={{ position: 'insideStart', fill: '#fff', fontWeight: 'bold' }}
-                                    background
-                                    dataKey="uv"
-                                    cornerRadius={30 / 2}
-                                />
-                                <Legend
-                                    iconSize={12}
-                                    layout="vertical"
-                                    verticalAlign="middle"
-                                    align="right"
-                                    wrapperStyle={{ right: '10%' }}
-                                />
+                            <BarChart data={topAssetsData} layout="vertical" margin={{ left: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                                <XAxis type="number" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} width={100} />
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: 'rgba(15, 23, 42, 0.9)',
@@ -126,71 +174,14 @@ const LoanRentalReportsTab: React.FC = () => {
                                         color: '#F3F4F6',
                                         borderRadius: '8px'
                                     }}
-                                    cursor={{ fill: 'transparent' }}
+                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                                 />
-                            </RadialBarChart>
+                                <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
             </div>
-
-            {/* Active Loans Table */}
-            <Card className="shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md overflow-hidden">
-                <div className="p-6 border-b border-slate-800/60 flex justify-between items-center">
-                    <div>
-                        <h3 className="text-lg font-bold text-white">Active Activity</h3>
-                        <p className="text-slate-400 text-xs">Current ongoing loans and rentals</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300">View All History</Button>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-slate-950/50 text-slate-200 uppercase font-bold text-xs tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4">Type</th>
-                                <th className="px-6 py-4">Item</th>
-                                <th className="px-6 py-4">Entity</th>
-                                <th className="px-6 py-4">Due Date</th>
-                                <th className="px-6 py-4">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/60">
-                            {[1, 2, 3].map((i) => (
-                                <tr key={i} className="group hover:bg-slate-800/40 transition-colors duration-150">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            {i === 1 ? (
-                                                <div className="p-1.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400">
-                                                    <Truck size={14} />
-                                                </div>
-                                            ) : (
-                                                <div className="p-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                                                    <Package size={14} />
-                                                </div>
-                                            )}
-                                            <span className={`font-bold text-xs ${i === 1 ? 'text-purple-400' : 'text-blue-400'}`}>
-                                                {i === 1 ? 'RENTAL' : 'LOAN'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 font-medium text-slate-200 group-hover:text-white">Projector 4K - {i}</td>
-                                    <td className="px-6 py-4">{i === 1 ? 'PT. Maju Mundur' : 'HR Dept'}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2 text-rose-400 font-medium">
-                                            <CalendarDays size={14} /> 2024-01-2{i}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm shadow-amber-500/5">
-                                            <Clock size={12} /> Overdue
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     DollarSign,
     Fuel,
@@ -20,8 +20,13 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Card, Button } from '../../components/ui';
+import { dashboardApi, type DashboardStats, type RecentActivity as APIRecentActivity } from '../../api/dashboard';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
-// Mock Data for Charts
+dayjs.extend(relativeTime);
+
+// Mock Data for Chart (Backend doesn't have time-series endpoint yet)
 const costTrendData = [
     { name: 'Jan', total: 45, fuel: 20, maintenance: 25 },
     { name: 'Feb', total: 52, fuel: 22, maintenance: 30 },
@@ -30,13 +35,6 @@ const costTrendData = [
     { name: 'May', total: 55, fuel: 24, maintenance: 31 },
     { name: 'Jun', total: 67, fuel: 30, maintenance: 37 },
     { name: 'Jul', total: 72, fuel: 35, maintenance: 37 },
-];
-
-const activityData = [
-    { id: 1, type: 'maintenance', title: 'Hilux B 1234 Service Completed', time: '2h ago', status: 'success' },
-    { id: 2, type: 'loan', title: 'Projector Loan Overdue', time: '4h ago', status: 'warning' },
-    { id: 3, type: 'fuel', title: 'High Fuel Consumption Alert', time: '5h ago', status: 'danger' },
-    { id: 4, type: 'system', title: 'Monthly Report Generated', time: '1d ago', status: 'info' },
 ];
 
 const PremiumStatCard = ({ title, value, subtext, trend, icon: Icon, gradient }: any) => (
@@ -73,35 +71,33 @@ const PremiumStatCard = ({ title, value, subtext, trend, icon: Icon, gradient }:
     </div>
 );
 
-const ActivityItem = ({ item }: any) => {
+const ActivityItem = ({ item }: { item: APIRecentActivity }) => {
     const getIcon = () => {
-        switch (item.type) {
-            case 'maintenance': return <Wrench size={16} />;
-            case 'loan': return <Truck size={16} />;
-            case 'fuel': return <Fuel size={16} />;
+        switch (item.entity_type) {
+            case 'maintenance_work_orders': return <Wrench size={16} />;
+            case 'asset_loans': return <Truck size={16} />;
+            case 'fuel_logs': return <Fuel size={16} />;
             default: return <Activity size={16} />;
         }
     };
 
-    const getColor = () => {
-        switch (item.status) {
-            case 'success': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-            case 'warning': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-            case 'danger': return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-            default: return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-        }
+    const getColor = (action: string) => {
+        if (action.includes('create')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+        if (action.includes('delete')) return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+        if (action.includes('update')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+        return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
     };
 
     return (
         <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-800/50 transition-colors group cursor-pointer border border-transparent hover:border-slate-800">
-            <div className={`p-2 rounded-lg border ${getColor()}`}>
+            <div className={`p-2 rounded-lg border ${getColor(item.action)}`}>
                 {getIcon()}
             </div>
             <div className="flex-1">
                 <h4 className="text-slate-200 text-sm font-medium group-hover:text-white transition-colors">
-                    {item.title}
+                    {item.description}
                 </h4>
-                <p className="text-slate-500 text-xs">{item.time}</p>
+                <p className="text-slate-500 text-xs">{dayjs(item.created_at).fromNow()}</p>
             </div>
             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
                 <ArrowRight size={14} />
@@ -111,6 +107,42 @@ const ActivityItem = ({ item }: any) => {
 };
 
 const OverviewTab: React.FC = () => {
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [activities, setActivities] = useState<APIRecentActivity[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [statsData, activitiesData] = await Promise.all([
+                    dashboardApi.getStats(),
+                    dashboardApi.getActivities()
+                ]);
+                setStats(statsData);
+                setActivities(activitiesData);
+            } catch (error) {
+                console.error("Failed to load dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, []);
+
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0,
+            notation: 'compact',
+            compactDisplay: 'short'
+        }).format(value);
+    };
+
+    if (loading) {
+        return <div className="text-white p-8">Loading dashboard...</div>;
+    }
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Section */}
@@ -129,32 +161,32 @@ const OverviewTab: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <PremiumStatCard
                     title="Total Asset Value"
-                    value="Rp 4.2B"
-                    subtext="+2.5%"
+                    value={stats ? formatCurrency(stats.assets.total_value) : 'Rp 0'}
+                    subtext="+2.5%" // Backend doesn't provide trend yet
                     trend="up"
                     icon={DollarSign}
-                    gradient="from-slate-800 to-slate-900 border-slate-700" // Fallback style, can be customized
+                    gradient="from-slate-800 to-slate-900 border-slate-700"
                 />
                 <PremiumStatCard
-                    title="Fuel Efficiency"
-                    value="8.4 km/L"
-                    subtext="-1.2%"
+                    title="Active Alerts"
+                    value={stats ? `${stats.alerts.active} Active` : '0 Active'}
+                    subtext={`${stats?.alerts.critical || 0} Critical`}
                     trend="down"
-                    icon={Fuel}
+                    icon={Fuel} // Reusing Fuel icon for alerts temporarily if appropriate, or maybe AlertTriangle
                     gradient="from-indigo-900/80 to-slate-900 border-indigo-500/30"
                 />
                 <PremiumStatCard
                     title="Work Orders"
-                    value="24 Active"
-                    subtext="+5 New"
+                    value={stats ? `${stats.maintenance.pending} Pending` : '0 Pending'}
+                    subtext={`${stats?.maintenance.overdue || 0} Overdue`}
                     trend="up"
                     icon={Wrench}
                     gradient="from-cyan-900/80 to-slate-900 border-cyan-500/30"
                 />
                 <PremiumStatCard
-                    title="Asset Utilization"
-                    value="92%"
-                    subtext="+4.1%"
+                    title="Active Loans"
+                    value={stats ? `${stats.loans.active} Active` : '0 Active'}
+                    subtext={`${stats?.loans.pending_approval || 0} Pending`}
                     trend="up"
                     icon={Activity}
                     gradient="from-emerald-900/80 to-slate-900 border-emerald-500/30"
@@ -174,7 +206,7 @@ const OverviewTab: React.FC = () => {
                             <option>Year to Date</option>
                         </select>
                     </div>
-
+                    {/* Note: This chart is still using mock data because backend aggregations are pending */}
                     <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={costTrendData}>
@@ -239,14 +271,18 @@ const OverviewTab: React.FC = () => {
                 {/* Sidebar: Activity Feed */}
                 <Card className="h-full shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md">
                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-                        <h3 className="text-lg font-bold text-white">Recent Alerts</h3>
+                        <h3 className="text-lg font-bold text-white">Recent Activities</h3>
                         <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">View All</Button>
                     </div>
 
                     <div className="space-y-1">
-                        {activityData.map(item => (
-                            <ActivityItem key={item.id} item={item} />
-                        ))}
+                        {activities.length > 0 ? (
+                            activities.slice(0, 5).map(item => (
+                                <ActivityItem key={item.entity_id + item.created_at} item={item} />
+                            ))
+                        ) : (
+                            <p className="text-slate-500 text-sm p-4">No recent activity found.</p>
+                        )}
                     </div>
 
                     <div className="mt-8 pt-6 border-t border-slate-800">

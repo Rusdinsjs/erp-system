@@ -364,6 +364,57 @@ impl RentalService {
             })
     }
 
+    /// Add photo to handover
+    pub async fn add_handover_photo(
+        &self,
+        handover_id: Uuid,
+        photo_url: String,
+        description: Option<String>,
+    ) -> DomainResult<RentalHandover> {
+        // 1. Fetch existing handover
+        // Note: Repository needs find_handover_by_id or similar.
+        // Assuming we can add that or reuse logic.
+        // For now, let's assume we need to add find_handover_by_id to repository or use a raw query here?
+        // Better to add to repo. Checking RentalRepository...
+        // Wait, I can try to find by ID if I adding it to repo.
+        // Let's first assume we will add `find_handover_by_id` to RentalRepository.
+
+        let mut handover = self
+            .rental_repo
+            .find_handover_by_id(handover_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("RentalHandover", handover_id))?;
+
+        // 2. Append photo to JSONB
+        let new_photo = serde_json::json!({
+            "url": photo_url,
+            "description": description,
+            "added_at": Utc::now()
+        });
+
+        let mut photos_array = match handover.photos.clone() {
+            Some(serde_json::Value::Array(arr)) => arr,
+            _ => vec![],
+        };
+        photos_array.push(new_photo);
+        handover.photos = Some(serde_json::Value::Array(photos_array));
+
+        // 3. Update in DB
+        self.rental_repo
+            .update_handover(&handover)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        Ok(handover)
+    }
+
     // ==================== CLIENT OPERATIONS ====================
 
     /// Create a new client
@@ -560,6 +611,31 @@ impl RentalService {
     pub async fn mark_overdue_rentals(&self) -> DomainResult<i64> {
         self.rental_repo
             .mark_overdue()
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+    /// Get asset name for a rental
+    pub async fn get_asset_name_for_rental(
+        &self,
+        rental_id: Uuid,
+    ) -> Result<Option<String>, DomainError> {
+        // First get rental to get asset_id
+        let rental = self
+            .rental_repo
+            .find_by_id(rental_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("Rental", rental_id))?;
+
+        // Then get asset name
+        self.rental_repo
+            .find_asset_name(rental.asset_id)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),

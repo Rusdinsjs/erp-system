@@ -204,3 +204,14 @@ pub async fn list_my_fuel(
             .into_response(),
     }
 }
+
+pub async fn get_fuel_analytics(State(state): State<AppState>) -> impl IntoResponse {
+    match state.fuel_service.get_analytics().await {
+        Ok(data) => (StatusCode::OK, Json(ApiResponse::success(data))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<()>::error(&e)),
+        )
+            .into_response(),
+    }
+}

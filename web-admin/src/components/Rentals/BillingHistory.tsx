@@ -1,13 +1,13 @@
 // BillingHistory Component - Pure Tailwind
 import { useQuery } from '@tanstack/react-query';
-import { Download, Eye } from 'lucide-react';
-import { billingApi } from '../../api/timesheet';
+import { Download, Eye, Mail } from 'lucide-react';
+import { rentalBillingApi } from '../../api/rental-billing';
 import {
     Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty,
-    Button,
     LoadingOverlay,
     ActionIcon,
-    StatusBadge
+    StatusBadge,
+    useToast
 } from '../ui';
 
 interface BillingHistoryProps {
@@ -15,20 +15,45 @@ interface BillingHistoryProps {
 }
 
 export function BillingHistory({ rentalId }: BillingHistoryProps) {
+    const { success, error: showError } = useToast();
     const { data: billingPeriods, isLoading } = useQuery({
-        queryKey: ['billing-history', rentalId],
-        queryFn: () => billingApi.listByRental(rentalId),
+        queryKey: ['rental-billings', rentalId],
+        queryFn: () => rentalBillingApi.listByRental(rentalId),
         enabled: !!rentalId
     });
 
+    const handleDownload = async (billingId: string, invoiceNum?: string) => {
+        try {
+            const blob = await rentalBillingApi.downloadPdf(rentalId, billingId);
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Invoice_${invoiceNum || billingId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            success("Download started");
+        } catch (err) {
+            console.error(err);
+            showError("Failed to download invoice");
+        }
+    };
+
+    const handleEmail = async (billingId: string) => {
+        const email = prompt("Enter email address to send invoice to:", "client@example.com");
+        if (!email) return;
+
+        try {
+            await rentalBillingApi.emailInvoice(rentalId, billingId, email);
+            success("Invoice sent via email");
+        } catch (err) {
+            console.error(err);
+            showError("Failed to send email");
+        }
+    };
+
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
-                <Button leftIcon={<Download size={16} />}>
-                    Create Bill / Calculate
-                </Button>
-            </div>
-
             <div className="relative min-h-[100px]">
                 <LoadingOverlay visible={isLoading} />
                 <Table>
@@ -63,10 +88,23 @@ export function BillingHistory({ rentalId }: BillingHistoryProps) {
                                             <ActionIcon title="View Details">
                                                 <Eye size={16} />
                                             </ActionIcon>
-                                            {(bp.status === 'invoiced' || bp.status === 'paid') && (
-                                                <ActionIcon className="text-blue-400 hover:bg-blue-900/20" title="Download Invoice">
-                                                    <Download size={16} />
-                                                </ActionIcon>
+                                            {(bp.status === 'invoiced' || bp.status === 'paid' || bp.invoice_number) && (
+                                                <>
+                                                    <ActionIcon
+                                                        className="text-blue-400 hover:bg-blue-900/20"
+                                                        title="Download Invoice"
+                                                        onClick={() => handleDownload(bp.id, bp.invoice_number)}
+                                                    >
+                                                        <Download size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        className="text-amber-400 hover:bg-amber-900/20"
+                                                        title="Email Invoice"
+                                                        onClick={() => handleEmail(bp.id)}
+                                                    >
+                                                        <Mail size={16} />
+                                                    </ActionIcon>
+                                                </>
                                             )}
                                         </div>
                                     </TableTd>

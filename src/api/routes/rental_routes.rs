@@ -7,12 +7,17 @@ use axum::{
     Router,
 };
 
+use crate::api::handlers::rental_billing_handler; // Added
 use crate::api::handlers::rental_handler;
 use crate::api::server::AppState;
 
 pub fn rental_routes() -> Router<AppState> {
     Router::new()
-        // Rentals
+        .route(
+            "/api/rentals/handovers/:id/photos",
+            post(rental_handler::add_handover_photo),
+        )
+        // Client Endpoints
         .route(
             "/api/rentals",
             get(rental_handler::list_rentals).post(rental_handler::create_rental),
@@ -45,6 +50,20 @@ pub fn rental_routes() -> Router<AppState> {
         .route(
             "/api/rentals/:id/handovers",
             get(rental_handler::get_rental_handovers),
+        )
+        // Billing
+        .route(
+            "/api/rentals/:id/billing/preview",
+            post(rental_billing_handler::preview_billing),
+        )
+        .route(
+            "/api/rentals/:id/billing",
+            get(rental_billing_handler::list_billings).post(rental_billing_handler::create_billing),
+        )
+        .route(
+            "/api/rentals/:id/billing/:billing_id/pdf", // Note: :billing_id in this route refers to Billing ID, not Rental ID
+            get(rental_billing_handler::download_invoice)
+                .post(rental_billing_handler::email_invoice),
         )
         // Rental Rates
         .route(

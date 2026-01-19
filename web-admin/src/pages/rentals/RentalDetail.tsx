@@ -11,6 +11,8 @@ import { rentalApi } from '../../api/rental';
 import { api } from '../../api/http';
 import { TimesheetList } from '../../components/Rentals/TimesheetList';
 import { BillingHistory } from '../../components/Rentals/BillingHistory';
+import { BillingGenerator } from '../../components/Rentals/BillingGenerator';
+import { HandoverGallery } from '../../components/Rentals/HandoverGallery';
 import {
     Button,
     Card,
@@ -24,6 +26,54 @@ import {
     LoadingOverlay,
     useToast
 } from '../../components/ui';
+
+function HandoverList({ rentalId }: { rentalId: string }) {
+    const { data: handovers, isLoading } = useQuery({
+        queryKey: ['rental-handovers', rentalId],
+        queryFn: () => rentalApi.getHandovers(rentalId),
+        enabled: !!rentalId
+    });
+
+    if (isLoading) return <LoadingOverlay visible />;
+
+    if (!handovers || handovers.length === 0) {
+        return (
+            <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-lg bg-slate-800/20">
+                <ClipboardList className="mx-auto h-8 w-8 text-slate-600 mb-2" />
+                <p className="text-sm text-slate-500">No handover records found.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-8">
+            {handovers.map((handover: any) => (
+                <div key={handover.id} className="bg-slate-950 border border-slate-800 rounded-lg p-6">
+                    <div className="flex justify-between items-start mb-6 border-b border-slate-800 pb-4">
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <Badge variant={handover.handover_type === 'dispatch' ? 'info' : 'warning'} className="uppercase">
+                                    {handover.handover_type}
+                                </Badge>
+                                <span className="text-sm text-slate-400">
+                                    Recorded on {new Date(handover.recorded_at).toLocaleDateString()}
+                                </span>
+                            </div>
+                            {handover.condition_notes && (
+                                <p className="text-slate-300 mt-2 text-sm">{handover.condition_notes}</p>
+                            )}
+                        </div>
+                        {handover.has_damage && (
+                            <Badge variant="danger">Damage Reported</Badge>
+                        )}
+                    </div>
+
+                    <HandoverGallery rentalId={rentalId} handoverId={handover.id} />
+                </div>
+            ))}
+        </div>
+    );
+}
 
 // Status Badge Helper
 const getStatusBadge = (status: string) => {
@@ -249,14 +299,19 @@ export function RentalDetail() {
                             <TimesheetList rentalId={id} />
                         </TabsContent>
 
-                        <TabsContent value="billing" className="p-6">
-                            {id && <BillingHistory rentalId={id} />}
+                        <TabsContent value="billing" className="p-6 space-y-8">
+                            {/* Generator */}
+                            <BillingGenerator rentalId={id!} />
+
+                            {/* History */}
+                            <div>
+                                <h3 className="text-lg font-bold text-white mb-4">Invoice History</h3>
+                                {id && <BillingHistory rentalId={id} />}
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="handovers" className="p-6">
-                            <div className="text-center py-8">
-                                <p className="text-slate-500 italic">Handover logs (Dispatch/Return) are not yet available via API.</p>
-                            </div>
+                            <HandoverList rentalId={id!} />
                         </TabsContent>
                     </div>
                 </Tabs>

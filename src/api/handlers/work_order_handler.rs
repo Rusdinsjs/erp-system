@@ -3,6 +3,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
     Extension, Json,
 };
 use rust_decimal::Decimal;
@@ -65,6 +66,17 @@ pub async fn list_overdue_work_orders(
 ) -> Result<Json<Vec<WorkOrder>>, AppError> {
     let orders = state.work_order_service.list_overdue().await?;
     Ok(Json(orders))
+}
+
+pub async fn get_work_order_analytics(State(state): State<AppState>) -> impl IntoResponse {
+    match state.work_order_service.get_analytics().await {
+        Ok(data) => (StatusCode::OK, Json(ApiResponse::success(data))).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<()>::error(&e.to_string())),
+        )
+            .into_response(),
+    }
 }
 
 /// Get single work order

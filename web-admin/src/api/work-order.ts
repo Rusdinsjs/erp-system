@@ -150,5 +150,26 @@ export const workOrderApi = {
     complete: async (id: string, data: { work_performed: string, actual_cost?: number }): Promise<ApiResponse<WorkOrder>> => {
         const response = await api.post(`/work-orders/${id}/complete`, data);
         return response.data;
+    },
+
+    getAnalytics: async () => {
+        const response = await api.get<{ data: WorkOrderAnalyticsData }>('/work-orders/analytics');
+        return response.data.data;
     }
 };
+
+export interface WorkOrderAnalyticsData {
+    status_counts: {
+        status: string;
+        count: number;
+    }[];
+    type_counts: {
+        wo_type: string;
+        count: number;
+    }[];
+    cost_trend: {
+        month: string;
+        total_cost: number;
+        wo_count: number;
+    }[];
+}

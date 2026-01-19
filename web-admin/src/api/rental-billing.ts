@@ -1,0 +1,75 @@
+import { api } from './http';
+
+export interface RentalBillingPeriod {
+    id: string;
+    rental_id: string;
+    period_start: string;
+    period_end: string;
+    period_type: string;
+
+    total_operating_hours: number;
+    total_standby_hours: number;
+    total_overtime_hours: number;
+    total_breakdown_hours: number;
+
+    hourly_rate: number;
+    minimum_hours: number;
+
+    billable_hours: number;
+    shortfall_hours: number;
+
+    base_amount: number;
+    standby_amount: number;
+    overtime_amount: number;
+    breakdown_penalty_amount: number;
+
+    subtotal: number;
+    discount_amount: number;
+    tax_amount: number;
+    total_amount: number;
+
+    status: string;
+    invoice_number?: string;
+}
+
+export const rentalBillingApi = {
+    // Preview billing calculation
+    preview: async (rentalId: string, startDate: string, endDate: string) => {
+        const { data } = await api.post<RentalBillingPeriod>(`/rentals/${rentalId}/billing/preview`, {
+            start_date: startDate,
+            end_date: endDate,
+        });
+        return data;
+    },
+
+    // Create finalize billing
+    create: async (rentalId: string, startDate: string, endDate: string) => {
+        const { data } = await api.post<RentalBillingPeriod>(`/rentals/${rentalId}/billing`, {
+            start_date: startDate,
+            end_date: endDate,
+        });
+        return data;
+    },
+
+    // List billings
+    listByRental: async (rentalId: string) => {
+        const { data } = await api.get<RentalBillingPeriod[]>(`/rentals/${rentalId}/billing`);
+        return data;
+    },
+
+    // Download PDF
+    downloadPdf: async (rentalId: string, billingId: string) => {
+        const response = await api.get(`/rentals/${rentalId}/billing/${billingId}/pdf`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    },
+
+    // Email Invoice
+    emailInvoice: async (rentalId: string, billingId: string, toEmail: string) => {
+        const { data } = await api.post(`/rentals/${rentalId}/billing/${billingId}/pdf`, {
+            to_email: toEmail
+        });
+        return data;
+    }
+};

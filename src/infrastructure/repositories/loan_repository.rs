@@ -285,4 +285,74 @@ impl LoanRepository {
             .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    pub async fn get_analytics(&self) -> Result<LoanAnalyticsData, sqlx::Error> {
+        // 1. Status Counts
+        let status_counts = sqlx::query_as::<_, LoanStatusCount>(
+            r#"
+            SELECT status, COUNT(*) as count
+            FROM asset_loans
+            GROUP BY status
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        // 2. Active Loans vs Overdue
+        let active_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM asset_loans WHERE status IN ('checked_out', 'in_use', 'overdue')",
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
+
+        let overdue_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM asset_loans WHERE expected_return_date < CURRENT_DATE AND actual_return_date IS NULL AND status NOT IN ('returned', 'cancelled', 'rejected')"
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(0);
+
+        // 3. Most Borrowed Assets (Top 5)
+        let most_borrowed = sqlx::query_as::<_, MostBorrowedAsset>(
+            r#"
+            SELECT a.name as asset_name, COUNT(al.id) as loan_count
+            FROM asset_loans al
+            JOIN assets a ON al.asset_id = a.id
+            GROUP BY a.name
+            ORDER BY loan_count DESC
+            LIMIT 5
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(LoanAnalyticsData {
+            status_counts,
+            active_loans: active_count,
+            overdue_loans: overdue_count,
+            most_borrowed,
+        })
+    }
+}
+
+// Analytics Structs
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct LoanStatusCount {
+    pub status: String,
+    pub count: i64,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct MostBorrowedAsset {
+    pub asset_name: String,
+    pub loan_count: i64,
+}
+
+#[derive(serde::Serialize)]
+pub struct LoanAnalyticsData {
+    pub status_counts: Vec<LoanStatusCount>,
+    pub active_loans: i64,
+    pub overdue_loans: i64,
+    pub most_borrowed: Vec<MostBorrowedAsset>,
 }

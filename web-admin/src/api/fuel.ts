@@ -79,5 +79,23 @@ export const fuelApi = {
     listMyRequests: async () => {
         const response = await api.get<{ data: FuelLog[] }>(`/fuel/my-requests`);
         return response.data.data;
+    },
+
+    getAnalytics: async () => {
+        const response = await api.get<{ data: FuelAnalyticsData }>(`/fuel/analytics`);
+        return response.data.data;
     }
 };
+
+export interface FuelAnalyticsData {
+    monthly_spend: {
+        month: string;
+        total_spend: number;
+        total_liters: number;
+    }[];
+    top_assets: {
+        asset_name: string;
+        total_cost: number;
+        total_liters: number;
+    }[];
+}

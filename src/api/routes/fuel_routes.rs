@@ -15,6 +15,7 @@ pub fn fuel_routes() -> Router<AppState> {
         )
         .route("/api/fuel/pending", get(fuel_handler::list_pending_fuel))
         .route("/api/fuel/stats", get(fuel_handler::get_fuel_stats))
+        .route("/api/fuel/analytics", get(fuel_handler::get_fuel_analytics))
         .route("/api/fuel/my-requests", get(fuel_handler::list_my_fuel))
         .route("/api/fuel/:id/approve", post(fuel_handler::approve_fuel))
         .route("/api/fuel/:id/reject", post(fuel_handler::reject_fuel))

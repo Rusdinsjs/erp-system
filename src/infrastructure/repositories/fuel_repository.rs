@@ -180,4 +180,84 @@ impl FuelRepository {
         .fetch_all(&self.pool)
         .await
     }
+
+    pub async fn check_pending_request(
+        &self,
+        asset_id: Uuid,
+    ) -> Result<Option<FuelLog>, sqlx::Error> {
+        sqlx::query_as::<_, FuelLog>(
+            r#"
+            SELECT * FROM fuel_logs 
+            WHERE asset_id = $1 
+            AND status = 'approved'
+            LIMIT 1
+            "#,
+        )
+        .bind(asset_id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    pub async fn get_fuel_analytics(&self) -> Result<FuelAnalyticsData, sqlx::Error> {
+        // 1. Monthly Spend (Last 6 Months)
+        let monthly_spend = sqlx::query_as::<_, MonthlySpend>(
+            r#"
+            SELECT 
+                TO_CHAR(completed_at, 'Mon') as month,
+                COALESCE(SUM(actual_filled_amount), 0) as total_spend,
+                COALESCE(SUM(actual_volume), 0) as total_liters
+            FROM fuel_logs
+            WHERE status = 'completed' 
+            AND completed_at > NOW() - INTERVAL '6 months'
+            GROUP BY TO_CHAR(completed_at, 'Mon'), DATE_TRUNC('month', completed_at)
+            ORDER BY DATE_TRUNC('month', completed_at)
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        // 2. Top Consumption Assets
+        let top_assets = sqlx::query_as::<_, AssetConsumption>(
+            r#"
+            SELECT 
+                a.name as asset_name,
+                COALESCE(SUM(f.actual_filled_amount), 0) as total_cost,
+                COALESCE(SUM(f.actual_volume), 0) as total_liters
+            FROM fuel_logs f
+            JOIN assets a ON f.asset_id = a.id
+            WHERE f.status = 'completed'
+            GROUP BY a.name
+            ORDER BY total_cost DESC
+            LIMIT 5
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(FuelAnalyticsData {
+            monthly_spend,
+            top_assets,
+        })
+    }
+}
+
+// Data structures for analytics (Internal to repo/service, but putting here for simplicity unless we move to domain)
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct MonthlySpend {
+    pub month: String,
+    pub total_spend: Decimal,
+    pub total_liters: Decimal,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct AssetConsumption {
+    pub asset_name: String,
+    pub total_cost: Decimal,
+    pub total_liters: Decimal,
+}
+
+#[derive(serde::Serialize)]
+pub struct FuelAnalyticsData {
+    pub monthly_spend: Vec<MonthlySpend>,
+    pub top_assets: Vec<AssetConsumption>,
 }

@@ -78,6 +78,9 @@ pub struct AppState {
     pub finance_service: FinanceService, // Added
     pub fuel_service: FuelService,       // Added
     pub journal_service: JournalService, // Added
+    pub rental_billing_service: crate::application::services::RentalBillingService, // Added
+    pub pdf_service: crate::application::services::PDFService, // Added
+    pub email_service: crate::application::services::EmailService, // Added
     pub pool: PgPool,
     pub ws_manager: Arc<crate::api::handlers::notification_ws::WebSocketManager>,
 }
@@ -103,6 +106,8 @@ impl AppState {
         let client_repo = ClientRepository::new(pool.clone());
         let rental_repo = RentalRepository::new(pool.clone());
         let timesheet_repo = TimesheetRepository::new(pool.clone());
+        let rental_billing_repo =
+            crate::infrastructure::repositories::RentalBillingRepository::new(pool.clone());
 
         // Create cache
         let redis_config = RedisConfig::from_env();
@@ -113,7 +118,7 @@ impl AppState {
         let approval_service = ApprovalService::new(approval_repo);
         let asset_service =
             AssetService::new(asset_repo.clone(), cache.clone(), approval_service.clone());
-        let audit_service = AuditService::new(audit_repo); // Added
+        let audit_service = AuditService::new(audit_repo);
         let auth_service = AuthService::new(
             user_repo.clone(),
             rbac_repo.clone(),
@@ -137,12 +142,21 @@ impl AppState {
             cache.clone(),
         );
         let rbac_service = RbacService::new(rbac_repo.clone());
-        // Approval service moved up
         let sensor_service = SensorService::new(sensor_repo);
         let conversion_service =
             ConversionService::new(conversion_repo.clone(), asset_repo.clone());
         let rental_service =
             RentalService::new(rental_repo.clone(), client_repo.clone(), asset_repo.clone());
+        let rental_billing_service = crate::application::services::RentalBillingService::new(
+            rental_billing_repo.clone(),
+            rental_repo.clone(),
+        );
+        let pdf_service = crate::application::services::PDFService::new(
+            rental_billing_repo.clone(),
+            rental_repo.clone(),
+            client_repo.clone(),
+        );
+        let email_service = crate::application::services::EmailService::new();
         let data_service = DataService::new(asset_repo.clone());
         let scheduler_service = SchedulerService::new(
             loan_service.clone(),
@@ -188,6 +202,9 @@ impl AppState {
             notification_service,
             rbac_service,
             rental_service,
+            rental_billing_service,
+            pdf_service,
+            email_service,
             approval_service,
             sensor_service,
             timesheet_service,

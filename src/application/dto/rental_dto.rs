@@ -46,11 +46,13 @@ pub struct DispatchRentalRequest {
 /// Request for return (handover in)
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReturnRentalRequest {
+    pub return_date: NaiveDate,
+    pub meter_reading: Decimal,
     pub condition_rating: String,
     pub condition_notes: Option<String>,
-    pub photos: Option<Vec<String>>,
     pub has_damage: bool,
     pub damage_description: Option<String>,
+    pub photos: Option<Vec<String>>,
     pub damage_photos: Option<Vec<String>>,
     pub location_id: Option<Uuid>,
 }
@@ -173,4 +175,18 @@ impl RentalListParams {
     pub fn per_page(&self) -> i64 {
         self.per_page.unwrap_or(10)
     }
+}
+
+/// Request to preview billing calculation
+#[derive(Debug, Clone, Deserialize)]
+pub struct BillingPreviewRequest {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+}
+
+/// Request to create a billing record
+#[derive(Debug, Clone, Deserialize)]
+pub struct BillingCreateRequest {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
 }

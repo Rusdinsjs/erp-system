@@ -83,6 +83,7 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/api/work-orders/pending", get(list_pending_work_orders))
         .route("/api/work-orders/overdue", get(list_overdue_work_orders))
+        .route("/api/work-orders/analytics", get(get_work_order_analytics))
         .route("/api/work-orders/:id", get(get_work_order))
         .route("/api/work-orders/:id/approve", post(approve_work_order))
         .route(
@@ -112,6 +113,7 @@ pub fn create_router(state: AppState) -> Router {
         )
         // Loans
         .route("/api/loans", get(list_loans).post(create_loan))
+        .route("/api/loans/analytics", get(get_loan_analytics))
         .route(
             "/api/loans/my",
             get(

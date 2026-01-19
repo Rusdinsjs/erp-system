@@ -410,4 +410,16 @@ impl WorkOrderService {
 
         Ok(result)
     }
+
+    pub async fn get_analytics(
+        &self,
+    ) -> DomainResult<crate::infrastructure::repositories::WorkOrderAnalyticsData> {
+        self.repository
+            .get_analytics()
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
 }
