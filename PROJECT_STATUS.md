@@ -1,12 +1,24 @@
 # Project Status Overview
 
-**Last Updated:** 2026-01-14
+**Last Updated:** 2026-01-19
 
 This document provides a high-level overview of the Asset Management System's current implementation status across all modules.
 
 ---
 
 ## 📋 Changelog
+
+### 2026-01-19 (Advanced Rental Billing & UX)
+
+- **Rental Billing Engine (Phase 1):**
+  - **Backend:** Implemented complex billing logic (minimum hours, overtime, standby multipliers) and database schema.
+  - **Frontend:** Built `BillingGenerator` for interactive invoice preview and finalized billing creation.
+- **Document Generation (Phase 2):**
+  - **PDF:** Integrated `genpdf` for server-side invoice generation.
+  - **Email:** Added one-click "Email Invoice" functionality with PDF attachment.
+- **UX Enhancements (Phase 3):**
+  - **Handover Gallery:** Implemented photo evidence management for dispatch/return workflows.
+  - **Integration:** Seamlessly embedded these features into the `RentalDetail` view.
 
 ### 2024-05-22
 
@@ -102,8 +114,8 @@ This document provides a high-level overview of the Asset Management System's cu
 
 ### 6. Rental & Client Management
 
-- **Status:** **High Fidelity UI / Verified**
-- **Features:** Evidence-based timesheets, automated billing calculations, and invoice generation.
+- **Status:** **Complete / Production Ready**
+- **Features:** Evidence-based timesheets, automated billing calculations, generated PDF invoices, email integration, and handover photo galleries.
 
 ---
 
