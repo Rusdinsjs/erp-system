@@ -77,3 +77,7 @@ tower-http = { version = "0.5", features = ["fs"] }
 [[bin]]
 name = "management-system"
 path = "src/main.rs"
+
+# Fix for Windows Linker Error LNK1318 (PDB size limit)
+[profile.dev]
+debug = 0

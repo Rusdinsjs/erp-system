@@ -48,7 +48,7 @@ impl InvoiceGenerator {
         header.push_row(vec![
             Box::new(Paragraph::new("COMPANY LOGO / NAME")),
             Box::new(Paragraph::new(format!("INVOICE\n#{}", self.invoice_number))),
-        ]);
+        ])?;
         doc.push(header);
 
         doc.push(Break::new(2));
@@ -81,10 +81,10 @@ impl InvoiceGenerator {
             Box::new(Paragraph::new("Hours")),
             Box::new(Paragraph::new("Rate")),
             Box::new(Paragraph::new("Amount")),
-        ]);
+        ])?;
 
         // Base
-        let operating = self.billing.total_operating_hours.unwrap_or(Decimal::ZERO);
+        let _operating = self.billing.total_operating_hours.unwrap_or(Decimal::ZERO);
         let rate = self.billing.hourly_rate.unwrap_or(Decimal::ZERO);
         let base_amt = self.billing.base_amount.unwrap_or(Decimal::ZERO);
         let billable = self.billing.billable_hours.unwrap_or(Decimal::ZERO);
@@ -94,7 +94,7 @@ impl InvoiceGenerator {
             Box::new(Paragraph::new(format!("{:.2}", billable))),
             Box::new(Paragraph::new(format!("{:.2}", rate))),
             Box::new(Paragraph::new(format!("{:.2}", base_amt))),
-        ]);
+        ])?;
 
         // Overtime
         let overtime = self.billing.total_overtime_hours.unwrap_or(Decimal::ZERO);
@@ -105,7 +105,7 @@ impl InvoiceGenerator {
                 Box::new(Paragraph::new(format!("{:.2}", overtime))),
                 Box::new(Paragraph::new("-")),
                 Box::new(Paragraph::new(format!("{:.2}", overtime_amt))),
-            ]);
+            ])?;
         }
 
         // Standby
@@ -117,7 +117,7 @@ impl InvoiceGenerator {
                 Box::new(Paragraph::new(format!("{:.2}", standby))),
                 Box::new(Paragraph::new("-")),
                 Box::new(Paragraph::new(format!("{:.2}", standby_amt))),
-            ]);
+            ])?;
         }
 
         doc.push(table);
@@ -133,15 +133,15 @@ impl InvoiceGenerator {
         totals.push_row(vec![
             Box::new(Paragraph::new("Subtotal")),
             Box::new(Paragraph::new(format!("{:.2}", subtotal))),
-        ]);
+        ])?;
         totals.push_row(vec![
             Box::new(Paragraph::new("Tax")),
             Box::new(Paragraph::new(format!("{:.2}", tax))),
-        ]);
+        ])?;
         totals.push_row(vec![
             Box::new(Paragraph::new("Total")),
             Box::new(Paragraph::new(format!("{:.2}", total))),
-        ]);
+        ])?;
 
         doc.push(totals);
 

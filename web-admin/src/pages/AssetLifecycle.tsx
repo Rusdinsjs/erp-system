@@ -395,9 +395,9 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
 
             <Tabs defaultValue="lifecycle">
                 <Card padding="none">
-                    <TabsList className="px-4 pt-4">
-                        <TabsTrigger value="lifecycle" icon={<History size={16} />}>Lifecycle</TabsTrigger>
-                    </TabsList>
+                    {/* <TabsList className="px-4 pt-4">
+                        <TabsTrigger value="lifecycle" icon={<History size={16} />}>LifecycleXXX</TabsTrigger>
+                    </TabsList> */}
 
                     <TabsContent value="lifecycle" className="p-6">
                         <div className="space-y-6">

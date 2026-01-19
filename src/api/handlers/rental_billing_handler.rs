@@ -96,8 +96,6 @@ pub async fn email_invoice(
     Path((rental_id, billing_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<EmailInvoiceRequest>,
 ) -> impl IntoResponse {
-    use crate::domain::errors::DomainError;
-
     // Fetch asset info
     let asset_name = match state
         .rental_service

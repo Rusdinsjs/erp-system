@@ -21,10 +21,10 @@ pub fn billing_routes() -> Router<AppState> {
             "/api/rentals/billing/:id",
             get(billing_handler::get_billing),
         )
-        .route(
-            "/api/rentals/:rental_id/billing",
-            get(billing_handler::list_billing_by_rental),
-        )
+        // .route(
+        //     "/api/rentals/:rental_id/billing",
+        //     get(billing_handler::list_billing_by_rental),
+        // )
         // Billing Operations
         .route(
             "/api/rentals/billing/:id/calculate",

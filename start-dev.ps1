@@ -55,7 +55,7 @@ catch {
 
 # 2. Jalankan Backend (Cargo) di background
 Write-Green "3. Menjalankan Backend (Rust)..."
-$backendProcess = Start-Process -FilePath "cargo" -ArgumentList "run" -RedirectStandardOutput "backend.out.log" -RedirectStandardError "backend.err.log" -PassThru -NoNewWindow
+$backendProcess = Start-Process -FilePath "cargo" -ArgumentList "run", "--release" -RedirectStandardOutput "backend.out.log" -RedirectStandardError "backend.err.log" -PassThru -NoNewWindow
 Write-Host "Backend running with PID: $($backendProcess.Id)"
 
 # 3. Jalankan Frontend (Bun/Npm) di background
