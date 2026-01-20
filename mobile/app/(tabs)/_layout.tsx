@@ -1,14 +1,8 @@
-import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 import { useTheme } from 'react-native-paper';
-
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { View, Platform, StyleSheet } from 'react-native';
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -16,49 +10,82 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
         headerShown: false,
-      }}>
+        tabBarStyle: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 0,
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          height: 80, // Taller for aesthetics
+          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+        },
+        tabBarBackground: () => (
+          <View style={StyleSheet.absoluteFill}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15, 23, 42, 0.85)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' }]} />
+          </View>
+        ),
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: 'rgba(148, 163, 184, 0.6)', // Slate 400 with opacity
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+        }
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color }) => <TabBarIcon name="dashboard" color={color} />,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? "grid" : "grid-outline"} size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="input"
+        name="scan"
         options={{
-          title: 'Entry',
-          tabBarIcon: ({ color }) => <TabBarIcon name="plus-square" color={color} />,
+          title: 'Scan',
+          tabBarIcon: ({ focused, color, size }) => (
+            <View style={{
+              top: -10, // Float effect for main action
+              width: 50,
+              height: 50,
+              borderRadius: 25,
+              backgroundColor: theme.colors.primary,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: theme.colors.primary,
+              shadowOpacity: 0.4,
+              shadowRadius: 10,
+              elevation: 5
+            }}>
+              <Ionicons name="qr-code" size={28} color="white" />
+            </View>
+          ),
+          tabBarLabel: () => null, // Hide label for scan button
         }}
       />
       <Tabs.Screen
-        name="history"
+        name="tasks"
         options={{
-          title: 'History',
-          tabBarIcon: ({ color }) => <TabBarIcon name="list" color={color} />,
+          title: 'My Tasks',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? "checkbox" : "checkbox-outline"} size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="approvals"
+        name="account"
         options={{
-          title: 'Approvals',
-          tabBarIcon: ({ color }) => <TabBarIcon name="check-square-o" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="loans"
-        options={{
-          title: 'Loans',
-          tabBarIcon: ({ color }) => <TabBarIcon name="archive" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          title: 'Account',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+          ),
         }}
       />
     </Tabs>

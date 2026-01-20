@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::application::dto::{
     ApproveBillingRequest, BillingSummaryResponse, CalculateBillingRequest,
-    CreateBillingPeriodRequest, GenerateInvoiceRequest,
+    CreateBillingPeriodRequest, GenerateInvoiceRequest, UpdateBillingRequest,
 };
 use crate::domain::entities::{RentalBillingPeriod, TierConfig};
 use crate::domain::errors::{DomainError, DomainResult};
@@ -91,7 +91,7 @@ impl BillingService {
         }
 
         // Get rental to find rate configuration
-        let rental = self
+        let _rental = self
             .rental_repo
             .find_by_id(billing.rental_id)
             .await

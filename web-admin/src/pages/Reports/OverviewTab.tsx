@@ -195,13 +195,13 @@ const OverviewTab: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content: Chart */}
-                <Card className="lg:col-span-2 shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md">
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                <Card className="lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
                         <div>
                             <h3 className="text-lg font-bold text-white">Operational Costs Analysis</h3>
                             <p className="text-slate-400 text-xs mt-1">Fuel vs Maintenance spending over time</p>
                         </div>
-                        <select className="bg-slate-950 border border-slate-700 text-slate-300 text-sm rounded-lg px-3 py-1 outline-none focus:border-cyan-500">
+                        <select className="bg-gray-900/50 border border-gray-700 text-gray-300 text-sm rounded-lg px-3 py-1 outline-none focus:border-blue-500">
                             <option>Last 6 Months</option>
                             <option>Year to Date</option>
                         </select>
@@ -269,10 +269,10 @@ const OverviewTab: React.FC = () => {
                 </Card>
 
                 {/* Sidebar: Activity Feed */}
-                <Card className="h-full shadow-2xl shadow-black/40 border-slate-800/60 bg-slate-900/80 backdrop-blur-md">
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                <Card className="h-full">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
                         <h3 className="text-lg font-bold text-white">Recent Activities</h3>
-                        <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300">View All</Button>
+                        <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">View All</Button>
                     </div>
 
                     <div className="space-y-1">
@@ -285,7 +285,7 @@ const OverviewTab: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="mt-8 pt-6 border-t border-slate-800">
+                    <div className="mt-8 pt-6 border-t border-white/5">
                         <h4 className="text-sm font-medium text-slate-400 mb-4">System Health</h4>
                         <div className="space-y-4">
                             <div>
@@ -293,7 +293,7 @@ const OverviewTab: React.FC = () => {
                                     <span className="text-slate-300">Database Status</span>
                                     <span className="text-emerald-400 font-bold">Optimal</span>
                                 </div>
-                                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
                                     <div className="h-full w-[98%] bg-emerald-500 rounded-full animate-pulse" />
                                 </div>
                             </div>
@@ -302,7 +302,7 @@ const OverviewTab: React.FC = () => {
                                     <span className="text-slate-300">Storage Usage</span>
                                     <span className="text-amber-400 font-bold">78%</span>
                                 </div>
-                                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
                                     <div className="h-full w-[78%] bg-amber-500 rounded-full" />
                                 </div>
                             </div>

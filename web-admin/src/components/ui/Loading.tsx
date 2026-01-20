@@ -17,7 +17,7 @@ export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
         <div
             className={`
                 ${sizes[size]} 
-                border-cyan-500 border-t-transparent 
+                border-blue-500 border-t-transparent 
                 rounded-full animate-spin
                 ${className}
             `}
@@ -35,10 +35,10 @@ export function LoadingOverlay({ visible, message }: LoadingOverlayProps) {
     if (!visible) return null;
 
     return (
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
+        <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
             <Spinner size="lg" />
             {message && (
-                <p className="mt-3 text-sm text-slate-400">{message}</p>
+                <p className="mt-3 text-sm text-gray-400">{message}</p>
             )}
         </div>
     );
@@ -49,7 +49,7 @@ export function PageLoading() {
     return (
         <div className="flex h-64 items-center justify-center">
             <Spinner size="lg" />
-            <span className="ml-3 text-slate-500">Loading...</span>
+            <span className="ml-3 text-gray-500">Loading...</span>
         </div>
     );
 }

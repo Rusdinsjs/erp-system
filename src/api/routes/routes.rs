@@ -434,6 +434,7 @@ pub fn create_router(state: AppState) -> Router {
         .merge(crate::api::routes::billing_routes::billing_routes())
         .merge(crate::api::routes::fuel_routes::fuel_routes())
         .merge(crate::api::routes::analytics_routes::routes())
+        .merge(crate::api::routes::contract_routes::contract_routes())
         .layer(axum_middleware::from_fn(auth_middleware));
 
     Router::new()

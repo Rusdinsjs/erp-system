@@ -4,12 +4,11 @@
 //! Refactored for Multi-Asset support.
 
 use chrono::{NaiveDate, Utc};
-use rust_decimal::Decimal;
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::application::dto::RentalScheduleItem;
-use crate::domain::entities::{Rental, RentalHandover, RentalItem, RentalRate, RentalStatus};
+use crate::domain::entities::{Rental, RentalItem, RentalRate};
 
 #[derive(Clone)]
 pub struct RentalRepository {

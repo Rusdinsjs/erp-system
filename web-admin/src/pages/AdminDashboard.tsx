@@ -29,6 +29,7 @@ const FuelView = lazy(() => import('./Fuel/FuelDashboard').then(m => ({ default:
 const RentalsView = lazy(() => import('./rentals/Rentals').then(m => ({ default: m.Rentals })));
 const RentalFormView = lazy(() => import('./rentals/RentalForm').then(m => ({ default: m.RentalForm })));
 const RentalDetailView = lazy(() => import('./rentals/RentalDetail').then(m => ({ default: m.RentalDetail })));
+const ContractListView = lazy(() => import('./Contracts').then(m => ({ default: m.default }))); // Added ContractList
 const ClientsView = lazy(() => import('./Clients').then(m => ({ default: m.Clients })));
 const LoansView = lazy(() => import('./Loans').then(m => ({ default: m.Loans })));
 const LocationsView = lazy(() => import('./Locations').then(m => ({ default: m.Locations })));
@@ -67,6 +68,7 @@ type TabId =
     | 'work-orders'
     | 'rentals'
     | 'rental-form'
+    | 'contracts' // Added
     | 'clients'
     | 'loans'
     | 'fuel'
@@ -132,7 +134,7 @@ const navItems: NavEntry[] = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', minLevel: 5 },
     {
         id: 'asset_management_group',
-        label: 'Aset Tetap',
+        label: 'Asset Management',
         icon: Package,
         minLevel: 5,
         children: [
@@ -144,7 +146,16 @@ const navItems: NavEntry[] = [
             { id: 'fuel', icon: Fuel, label: 'Fuel / BBM', minLevel: 5 },
         ]
     },
-    { id: 'rentals', icon: Truck, label: 'Rental Management', minLevel: 4 },
+    {
+        id: 'rental_group',
+        label: 'Rental Management',
+        icon: Truck,
+        minLevel: 4,
+        children: [
+            { id: 'rentals', icon: Truck, label: 'Daftar Rental', minLevel: 4 },
+            { id: 'contracts', icon: FileText, label: 'Kontrak', minLevel: 4 },
+        ]
+    },
     {
         id: 'finance_group',
         label: 'Akuntansi',
@@ -196,7 +207,7 @@ const navItems: NavEntry[] = [
     },
     {
         id: 'hrd_group',
-        label: 'HRD',
+        label: 'HR Management',
         icon: Users,
         minLevel: 3,
         children: [
@@ -240,6 +251,7 @@ export default function AdminDashboard() {
         asset_management_group: false,
         hrd_group: false,
         master_data: false,
+        rental_group: false, // Added
         finance_group: true,
         sales_group: true, // Added for the new sales group
         purchases: true, // Added for the new purchases group
@@ -294,6 +306,13 @@ export default function AdminDashboard() {
             setSelectedWorkOrderId(woMatch.params.id);
             setSelectedAssetId(null);
             setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
+            return;
+        }
+
+        const contractsMatch = matchPath('/rentals/contracts', path);
+        if (contractsMatch) {
+            setActiveTab('contracts');
+            setOpenGroups(prev => ({ ...prev, rental_group: true }));
             return;
         }
 
@@ -410,8 +429,8 @@ export default function AdminDashboard() {
                     }
                 }}
                 className={`w-full flex items-center gap-3 px-4 ${isChild ? 'py-2' : 'py-3'} rounded-lg transition-all duration-200 ${activeTab === item.id
-                    ? 'bg-cyan-500/20 text-cyan-400 shadow-sm shadow-cyan-500/10'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-blue-600/20 text-blue-400 shadow-sm shadow-blue-500/10'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                     } ${isChild ? 'text-sm' : ''}`}
             >
                 <item.icon size={isChild ? 16 : 20} />
@@ -466,7 +485,7 @@ export default function AdminDashboard() {
             <div key={group.id}>
                 <button
                     onClick={() => toggleGroup(group.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isChildActive ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isChildActive ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                         }`}
                 >
                     <group.icon size={20} />
@@ -479,7 +498,7 @@ export default function AdminDashboard() {
                 </button>
 
                 {sidebarOpen && isOpen && (
-                    <div className="mt-1 border-l border-slate-800 space-y-1 ml-4">
+                    <div className="mt-1 border-l border-gray-800 space-y-1 ml-4">
                         {group.children.map(child =>
                             isNavGroup(child)
                                 ? renderNavGroup(child)
@@ -513,6 +532,8 @@ export default function AdminDashboard() {
                 return <RentalsView />;
             case 'rental-form':
                 return <RentalFormView />;
+            case 'contracts': // Added
+                return <ContractListView />;
             case 'clients': return <ClientsView />;
             case 'loans': return <LoansView />;
             case 'fuel': return <FuelView />;
@@ -558,7 +579,7 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
+        <div className="flex h-screen bg-gray-900 text-gray-100 font-sans overflow-hidden">
             {/* Mobile Backdrop */}
             {sidebarOpen && (
                 <div
@@ -571,15 +592,15 @@ export default function AdminDashboard() {
             <aside
                 className={`
             fixed lg:static inset-y-0 left-0 z-50
-            bg-slate-900 border-r border-slate-800 text-white 
+            bg-gray-900 border-r border-gray-800 text-white 
             transition-all duration-300 ease-in-out flex flex-col
             ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}
         `}
             >
                 {/* Logo */}
-                <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
+                <div className="h-16 flex items-center justify-between px-4 border-b border-gray-800">
                     {sidebarOpen && (
-                        <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                        <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
                             Management System
                         </span>
                     )}
@@ -587,7 +608,7 @@ export default function AdminDashboard() {
                     {/* Desktop Toggle Button */}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white hidden lg:block ml-auto transition-colors"
+                        className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white hidden lg:block ml-auto transition-colors"
                     >
                         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
                     </button>
@@ -595,7 +616,7 @@ export default function AdminDashboard() {
                     {/* Mobile Close Button */}
                     <button
                         onClick={() => setSidebarOpen(false)}
-                        className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white lg:hidden ml-auto transition-colors"
+                        className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white lg:hidden ml-auto transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -609,16 +630,16 @@ export default function AdminDashboard() {
                 </nav>
 
                 {/* User & Logout */}
-                <div className="p-4 border-t border-slate-800">
+                <div className="p-4 border-t border-gray-800">
                     {sidebarOpen && (
                         <div className="mb-3 px-2">
-                            <p className="text-sm font-medium text-slate-200">{user?.name}</p>
-                            <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
+                            <p className="text-sm font-medium text-gray-200">{user?.name}</p>
+                            <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
                         </div>
                     )}
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-red-900/20 hover:text-red-400 rounded-lg transition-all duration-200"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-red-900/20 hover:text-red-400 rounded-lg transition-all duration-200"
                     >
                         <LogOut size={20} />
                         {sidebarOpen && <span className="font-medium">Logout</span>}
@@ -629,12 +650,12 @@ export default function AdminDashboard() {
             {/* Main Content with Header */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
                 {/* Header */}
-                <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 gap-4">
+                <header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6 gap-4">
 
                     {/* Mobile Toggle Button */}
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 -ml-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white lg:hidden transition-colors"
+                        className="p-2 -ml-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white lg:hidden transition-colors"
                     >
                         <Menu size={24} />
                     </button>
@@ -645,19 +666,19 @@ export default function AdminDashboard() {
                     <div className="relative">
                         <button
                             onClick={() => setNotifOpen(!notifOpen)}
-                            className="p-2 hover:bg-slate-800 rounded-full relative transition-colors text-slate-400 hover:text-white"
+                            className="p-2 hover:bg-gray-800 rounded-full relative transition-colors text-gray-400 hover:text-white"
                         >
                             <Bell size={22} />
                         </button>
 
                         {/* Notification Dropdown */}
                         {notifOpen && (
-                            <div className="absolute right-0 mt-2 w-80 bg-slate-900 rounded-xl shadow-2xl border border-slate-800 z-50">
-                                <div className="p-4 border-b border-slate-800">
+                            <div className="absolute right-0 mt-2 w-80 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 z-50">
+                                <div className="p-4 border-b border-gray-800">
                                     <h3 className="font-semibold text-white">Notifikasi</h3>
                                 </div>
                                 <div className="p-4">
-                                    <p className="text-sm text-slate-500 text-center">
+                                    <p className="text-sm text-gray-500 text-center">
                                         Tidak ada notifikasi baru
                                     </p>
                                 </div>
@@ -668,14 +689,14 @@ export default function AdminDashboard() {
                     {/* User Profile */}
                     <button
                         onClick={() => setActiveTab('profile')}
-                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-700"
+                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-gray-700"
                     >
-                        <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
                             {user?.name?.charAt(0) || 'U'}
                         </div>
                         <div className="hidden sm:block text-left">
                             <p className="text-sm font-medium text-white leading-none mb-1">{user?.name}</p>
-                            <p className="text-[10px] text-slate-500 uppercase tracking-wider leading-none">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wider leading-none">
                                 {user?.role}
                             </p>
                         </div>
@@ -683,7 +704,7 @@ export default function AdminDashboard() {
                 </header>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-y-auto bg-slate-950 p-6 global-scrollbar">
+                <main className="flex-1 overflow-y-auto bg-gray-900 p-6 global-scrollbar">
                     <Suspense fallback={<PageLoading />}>
                         {renderContent()}
                     </Suspense>
@@ -693,19 +714,20 @@ export default function AdminDashboard() {
             {/* Logout Modal */}
             {logoutModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
+                    {/* Using Card for Modal consistency */}
+                    <div className="bg-gray-900/50 backdrop-blur-xl border border-white/5 p-6 rounded-2xl max-w-sm w-full shadow-2xl ring-1 ring-white/10">
                         <h3 className="text-xl font-bold text-white mb-2">Konfirmasi Logout</h3>
-                        <p className="text-slate-400 mb-6">Apakah Anda yakin ingin keluar dari sistem?</p>
+                        <p className="text-gray-400 mb-6">Apakah Anda yakin ingin keluar dari sistem?</p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setLogoutModalOpen(false)}
-                                className="flex-1 px-4 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-colors"
+                                className="flex-1 px-4 py-2 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition-colors border border-gray-700"
                             >
                                 Batal
                             </button>
                             <button
                                 onClick={confirmLogout}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-500 transition-colors"
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-500 shadow-lg shadow-red-500/20 transition-colors"
                             >
                                 Keluar
                             </button>

@@ -8,13 +8,10 @@ use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::application::dto::{
-    ApproveRentalRequest, CreateClientRequest, CreateRentalRateRequest, CreateRentalRequest,
-    DispatchRentalRequest, RejectRentalRequest, RentalScheduleItem, ReturnRentalRequest,
-    UpdateRentalRateRequest,
+    ApproveRentalRequest, CreateRentalRateRequest, CreateRentalRequest, DispatchRentalRequest,
+    RejectRentalRequest, RentalScheduleItem, ReturnRentalRequest, UpdateRentalRateRequest,
 };
-use crate::domain::entities::{
-    Client, Rental, RentalHandover, RentalItem, RentalRate, RentalStatus,
-};
+use crate::domain::entities::{Rental, RentalItem, RentalRate, RentalStatus};
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{AssetRepository, ClientRepository, RentalRepository};
 

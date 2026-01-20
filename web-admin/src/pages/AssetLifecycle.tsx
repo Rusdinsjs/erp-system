@@ -4,11 +4,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowRight, Check, Clock, AlertTriangle, Package, Truck,
-    Wrench, Trash2, Archive, RefreshCw, Lock, Info, History
+    Wrench, Trash2, Archive, RefreshCw, Lock, Info
 } from 'lucide-react';
 import { lifecycleApi } from '../api/lifecycle';
 import { assetApi } from '../api/assets';
-import type { LifecycleHistory } from '../api/lifecycle';
 import { useAuthStore } from '../store/useAuthStore';
 import { AssetConversionModal } from '../components/Assets/AssetConversionModal';
 import { CreateLoanModal } from '../components/Assets/CreateLoanModal';
@@ -24,8 +23,7 @@ import {
     Modal,
     Textarea,
     LoadingOverlay,
-    Tabs, TabsList, TabsTrigger, TabsContent,
-    Timeline, TimelineItem,
+    Tabs, TabsContent,
     useToast,
     Input,
     Table, TableHead, TableBody, TableRow, TableTh, TableTd

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, Card, HelperText, ActivityIndicator, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Image } from 'react-native';
+import { Text, TextInput, Button, SegmentedButtons, Card, HelperText, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +10,7 @@ import { timesheetApi, TimesheetRequest } from '../../api/timesheet';
 import { format } from 'date-fns';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadApi } from '../../api/upload';
-import { Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function InputScreen() {
     const theme = useTheme();
@@ -124,189 +124,223 @@ export default function InputScreen() {
 
     const selectedAsset = rentals?.find(r => r.id === rentalId);
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scroll}>
-                <Text variant="headlineSmall" style={styles.header}>New Entry</Text>
+    const inputTheme = {
+        colors: {
+            onSurfaceVariant: 'rgba(255,255,255,0.7)',
+            onSurface: 'white',
+            primary: theme.colors.primary,
+            background: 'transparent',
+            outline: 'rgba(255,255,255,0.2)'
+        }
+    };
 
-                {/* Asset Section */}
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <Text variant="titleMedium">Assignment</Text>
-                        {selectedAsset ? (
-                            <View>
-                                <Text variant="bodyLarge" style={{ fontWeight: 'bold', color: theme.colors.primary, marginTop: 5 }}>
-                                    {selectedAsset.asset_name}
-                                </Text>
-                                <Text variant="bodySmall">{selectedAsset.rental_number}</Text>
-                                <Button mode="text" onPress={() => setRentalId('')} compact>Change</Button>
+    return (
+        <LinearGradient
+            colors={['#0f172a', '#1e293b']}
+            style={styles.container}
+        >
+            <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+                <ScrollView contentContainerStyle={styles.scroll}>
+                    <Text variant="headlineSmall" style={styles.header}>New Entry</Text>
+
+                    {/* Asset Section */}
+                    <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
+                        <Card.Content>
+                            <Text variant="titleMedium" style={{ color: 'white' }}>Assignment</Text>
+                            {selectedAsset ? (
+                                <View>
+                                    <Text variant="bodyLarge" style={{ fontWeight: 'bold', color: theme.colors.primary, marginTop: 5 }}>
+                                        {selectedAsset.asset_name}
+                                    </Text>
+                                    <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.7)' }}>{selectedAsset.rental_number}</Text>
+                                    <Button mode="text" onPress={() => setRentalId('')} compact textColor={theme.colors.secondary}>Change</Button>
+                                </View>
+                            ) : (
+                                <View>
+                                    <Text variant="bodyMedium" style={{ color: theme.colors.error }}>No asset selected</Text>
+                                    <Button mode="outlined" onPress={() => router.push('/(tabs)')} style={{ marginTop: 10, borderColor: theme.colors.primary }} textColor="white">
+                                        Select from Dashboard
+                                    </Button>
+                                </View>
+                            )}
+                        </Card.Content>
+                    </Card>
+
+                    {/* Status Section */}
+                    <View style={styles.section}>
+                        <Text variant="labelLarge" style={styles.label}>Operation Status</Text>
+                        <SegmentedButtons
+                            value={status}
+                            onValueChange={val => setStatus(val as any)}
+                            buttons={[
+                                { value: 'operating', label: 'Working' },
+                                { value: 'standby', label: 'Standby' },
+                                { value: 'breakdown', label: 'Broken' },
+                            ]}
+                            theme={{ colors: { secondaryContainer: theme.colors.primary, onSecondaryContainer: 'white', outline: 'rgba(255,255,255,0.2)' } }}
+                            style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
+                        />
+                    </View>
+
+                    {/* Date & Time */}
+                    <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
+                        <Card.Content>
+                            <TextInput
+                                label="Date (YYYY-MM-DD)"
+                                value={workDate}
+                                onChangeText={setWorkDate}
+                                mode="outlined"
+                                style={styles.input}
+                                theme={inputTheme}
+                                textColor="white"
+                            />
+                            <View style={styles.row}>
+                                <TextInput
+                                    label="Start Time"
+                                    value={startTime}
+                                    onChangeText={setStartTime}
+                                    mode="outlined"
+                                    style={[styles.input, styles.half]}
+                                    theme={inputTheme}
+                                    textColor="white"
+                                />
+                                <TextInput
+                                    label="End Time"
+                                    value={endTime}
+                                    onChangeText={setEndTime}
+                                    mode="outlined"
+                                    style={[styles.input, styles.half]}
+                                    theme={inputTheme}
+                                    textColor="white"
+                                />
                             </View>
-                        ) : (
-                            <View>
-                                <Text variant="bodyMedium" style={{ color: theme.colors.error }}>No asset selected</Text>
-                                <Button mode="outlined" onPress={() => router.push('/(tabs)')} style={{ marginTop: 10 }}>
-                                    Select from Dashboard
+                        </Card.Content>
+                    </Card>
+
+                    {/* HM Section */}
+                    <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
+                        <Card.Content>
+                            <Text variant="titleMedium" style={{ marginBottom: 10, color: 'white' }}>Machine Hours (HM)</Text>
+                            <View style={styles.row}>
+                                <TextInput
+                                    label="HM Start"
+                                    value={hmStart}
+                                    onChangeText={setHmStart}
+                                    keyboardType="numeric"
+                                    mode="outlined"
+                                    style={[styles.input, styles.half]}
+                                    theme={inputTheme}
+                                    textColor="white"
+                                />
+                                <TextInput
+                                    label="HM End"
+                                    value={hmEnd}
+                                    onChangeText={setHmEnd}
+                                    keyboardType="numeric"
+                                    mode="outlined"
+                                    style={[styles.input, styles.half]}
+                                    theme={inputTheme}
+                                    textColor="white"
+                                />
+                            </View>
+                            <TextInput
+                                label="Total Operating Hours"
+                                value={operatingHours}
+                                onChangeText={setOperatingHours}
+                                keyboardType="numeric"
+                                mode="outlined"
+                                style={styles.input}
+                                theme={inputTheme}
+                                textColor="white"
+                            />
+                            <HelperText type="info" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                Auto-calculated: {hmEnd && hmStart ? (parseFloat(hmEnd) - parseFloat(hmStart)).toFixed(1) : 0}
+                            </HelperText>
+                        </Card.Content>
+                    </Card>
+
+                    <TextInput
+                        label="Notes / Remarks"
+                        value={notes}
+                        onChangeText={setNotes}
+                        mode="outlined"
+                        multiline
+                        numberOfLines={3}
+                        style={styles.input}
+                        theme={inputTheme}
+                        textColor="white"
+                    />
+
+                    {/* Photos Section */}
+                    <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
+                        <Card.Content>
+                            <Text variant="titleMedium" style={{ marginBottom: 10, color: 'white' }}>Photos / Evidence</Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                                {photos.map((url, index) => (
+                                    <Image
+                                        key={index}
+                                        source={{ uri: `${API_URL.replace('/api', '')}${url}` }}
+                                        style={{ width: 80, height: 80, borderRadius: 8 }}
+                                    />
+                                ))}
+                                <Button
+                                    mode="outlined"
+                                    onPress={pickImage}
+                                    icon="camera"
+                                    style={{ justifyContent: 'center', height: 80, width: 80, borderColor: 'rgba(255,255,255,0.3)' }}
+                                    textColor="white"
+                                    disabled={isUploading}
+                                >
+                                    {isUploading ? '...' : '+'}
                                 </Button>
                             </View>
-                        )}
-                    </Card.Content>
-                </Card>
+                            {isUploading && <Text variant="bodySmall" style={{ marginTop: 5, color: 'rgba(255,255,255,0.7)' }}>Uploading...</Text>}
+                        </Card.Content>
+                    </Card>
 
-                {/* Status Section */}
-                <View style={styles.section}>
-                    <Text variant="labelLarge" style={styles.label}>Operation Status</Text>
-                    <SegmentedButtons
-                        value={status}
-                        onValueChange={val => setStatus(val as any)}
-                        buttons={[
-                            { value: 'operating', label: 'Working' },
-                            { value: 'standby', label: 'Standby' },
-                            { value: 'breakdown', label: 'Broken' },
-                        ]}
-                    />
-                </View>
+                    <Button
+                        mode="contained"
+                        onPress={handleSubmit}
+                        loading={mutation.isPending}
+                        disabled={mutation.isPending}
+                        style={styles.submitBtn}
+                        buttonColor={theme.colors.primary}
+                    >
+                        Submit Timesheet
+                    </Button>
 
-                {/* Date & Time */}
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <TextInput
-                            label="Date (YYYY-MM-DD)"
-                            value={workDate}
-                            onChangeText={setWorkDate}
-                            mode="outlined"
-                            style={styles.input}
-                        />
-                        <View style={styles.row}>
-                            <TextInput
-                                label="Start Time"
-                                value={startTime}
-                                onChangeText={setStartTime}
-                                mode="outlined"
-                                style={[styles.input, styles.half]}
-                            />
-                            <TextInput
-                                label="End Time"
-                                value={endTime}
-                                onChangeText={setEndTime}
-                                mode="outlined"
-                                style={[styles.input, styles.half]}
-                            />
-                        </View>
-                    </Card.Content>
-                </Card>
-
-                {/* HM Section */}
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <Text variant="titleMedium" style={{ marginBottom: 10 }}>Machine Hours (HM)</Text>
-                        <View style={styles.row}>
-                            <TextInput
-                                label="HM Start"
-                                value={hmStart}
-                                onChangeText={setHmStart}
-                                keyboardType="numeric"
-                                mode="outlined"
-                                style={[styles.input, styles.half]}
-                            />
-                            <TextInput
-                                label="HM End"
-                                value={hmEnd}
-                                onChangeText={setHmEnd}
-                                keyboardType="numeric"
-                                mode="outlined"
-                                style={[styles.input, styles.half]}
-                            />
-                        </View>
-                        <TextInput
-                            label="Total Operating Hours"
-                            value={operatingHours}
-                            onChangeText={setOperatingHours}
-                            keyboardType="numeric"
-                            mode="outlined"
-                            style={styles.input}
-                        />
-                        <HelperText type="info">
-                            Auto-calculated: {hmEnd && hmStart ? (parseFloat(hmEnd) - parseFloat(hmStart)).toFixed(1) : 0}
-                        </HelperText>
-                    </Card.Content>
-                </Card>
-
-                <TextInput
-                    label="Notes / Remarks"
-                    value={notes}
-                    onChangeText={setNotes}
-                    mode="outlined"
-                    multiline
-                    numberOfLines={3}
-                    style={styles.input}
-                />
-
-                {/* Photos Section */}
-                <Card style={styles.card}>
-                    <Card.Content>
-                        <Text variant="titleMedium" style={{ marginBottom: 10 }}>Photos / Evidence</Text>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                            {photos.map((url, index) => (
-                                <Image
-                                    key={index}
-                                    source={{ uri: `${API_URL.replace('/api', '')}${url}` }}
-                                    style={{ width: 80, height: 80, borderRadius: 8 }}
-                                />
-                            ))}
-                            <Button
-                                mode="outlined"
-                                onPress={pickImage}
-                                icon="camera"
-                                style={{ justifyContent: 'center', height: 80, width: 80 }}
-                                disabled={isUploading}
-                            >
-                                {isUploading ? '...' : '+'}
-                            </Button>
-                        </View>
-                        {isUploading && <Text variant="bodySmall" style={{ marginTop: 5 }}>Uploading...</Text>}
-                    </Card.Content>
-                </Card>
-
-                <Button
-                    mode="contained"
-                    onPress={handleSubmit}
-                    loading={mutation.isPending}
-                    disabled={mutation.isPending}
-                    style={styles.submitBtn}
-                >
-                    Submit Timesheet
-                </Button>
-
-                <View style={{ height: 50 }} />
-            </ScrollView>
-        </SafeAreaView>
+                    <View style={{ height: 50 }} />
+                </ScrollView>
+            </SafeAreaView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
     },
     scroll: {
         padding: 16,
     },
     header: {
         marginBottom: 16,
+        color: 'white',
+        fontWeight: 'bold',
     },
     card: {
         marginBottom: 16,
-        backgroundColor: 'white',
     },
     section: {
         marginBottom: 16,
     },
     label: {
         marginBottom: 8,
+        color: 'white',
     },
     input: {
         marginBottom: 12,
-        backgroundColor: 'white',
+        backgroundColor: 'rgba(0,0,0,0.2)', // Slightly darker input bg
     },
     row: {
         flexDirection: 'row',

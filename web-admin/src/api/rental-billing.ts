@@ -90,5 +90,22 @@ export const rentalBillingApi = {
             to_email: toEmail
         });
         return data;
-    }
+    },
+
+    // Update/adjust billing period (draft or calculated only)
+    updateBilling: async (billingId: string, data: {
+        base_amount?: number;
+        standby_amount?: number;
+        overtime_amount?: number;
+        breakdown_penalty_amount?: number;
+        mobilization_fee?: number;
+        demobilization_fee?: number;
+        other_charges?: number;
+        other_charges_description?: string;
+        discount_percentage?: number;
+        adjustment_notes?: string;
+    }) => {
+        const { data: response } = await api.patch(`/rentals/billing/${billingId}`, data);
+        return response.data || response;
+    },
 };

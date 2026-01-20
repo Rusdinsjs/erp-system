@@ -11,11 +11,11 @@ use uuid::Uuid;
 
 use crate::api::server::AppState;
 use crate::application::dto::{
-    ApiResponse, ApproveRentalRequest, CreateClientRequest, CreateRentalRateRequest,
-    CreateRentalRequest, DispatchRentalRequest, PaginationParams, RejectRentalRequest,
-    RentalScheduleItem, ReturnRentalRequest, UpdateRentalRateRequest,
+    ApiResponse, ApproveRentalRequest, CreateRentalRateRequest, CreateRentalRequest,
+    DispatchRentalRequest, PaginationParams, RejectRentalRequest, RentalScheduleItem,
+    ReturnRentalRequest, UpdateRentalRateRequest,
 };
-use crate::domain::entities::{Client, Rental, RentalHandover, RentalRate, UserClaims};
+use crate::domain::entities::{Rental, RentalHandover, RentalRate, UserClaims};
 use crate::shared::errors::AppError;
 use chrono::NaiveDate;
 use serde::Deserialize;

@@ -236,14 +236,14 @@ export function RentalForm() {
                         onChange={e => setHeaderData(p => ({ ...p, notes: e.target.value }))}
                     />
 
-                    <div className="w-full h-px bg-slate-800 my-4" />
+                    <div className="w-full h-px bg-white/5 my-4" />
 
                     {/* Asset / Item Selection */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-white">Assets to Rent</h3>
 
                         {/* Selector Row */}
-                        <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div className="p-4 bg-gray-900/50 rounded-lg border border-white/5 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                             <Select
                                 label="Asset"
                                 placeholder="Choose Asset"
@@ -274,9 +274,9 @@ export function RentalForm() {
 
                         {/* Items Table */}
                         {items.length > 0 ? (
-                            <div className="overflow-x-auto border border-slate-700 rounded-lg">
-                                <table className="w-full text-left text-sm text-slate-300">
-                                    <thead className="bg-slate-800 text-xs uppercase font-semibold text-slate-400">
+                            <div className="overflow-x-auto border border-gray-700/50 rounded-lg">
+                                <table className="w-full text-left text-sm text-gray-300">
+                                    <thead className="bg-gray-800 text-xs uppercase font-semibold text-gray-400">
                                         <tr>
                                             <th className="px-4 py-3">Asset</th>
                                             <th className="px-4 py-3">Rate</th>
@@ -284,9 +284,9 @@ export function RentalForm() {
                                             <th className="px-4 py-3 text-right">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-700">
+                                    <tbody className="divide-y divide-gray-700/50">
                                         {items.map(item => (
-                                            <tr key={item.tempId} className="hover:bg-slate-800/30">
+                                            <tr key={item.tempId} className="hover:bg-gray-800/30">
                                                 <td className="px-4 py-3 font-medium text-white">{item.asset_name}</td>
                                                 <td className="px-4 py-3">{item.rate_name}</td>
                                                 <td className="px-4 py-3 font-mono">

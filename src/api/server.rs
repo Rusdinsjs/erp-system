@@ -15,6 +15,7 @@ use crate::application::services::{
     CategoryService,
     CategoryTemplateService,
     ClientService,
+    ContractService,
     ConversionService,
     DataService,
     EmployeeService,
@@ -38,10 +39,10 @@ use crate::application::services::{
 use crate::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
 use crate::infrastructure::repositories::{
     ApprovalRepository, AssetRepository, AuditRepository, CategoryRepository,
-    CategoryTemplateRepository, ClientRepository, ConversionRepository, EmployeeRepository,
-    FinanceRepository, FuelRepository, JournalRepository, LifecycleRepository, LoanRepository,
-    MaintenanceRepository, NotificationRepository, RbacRepository, RentalRepository,
-    SensorRepository, TimesheetRepository, UserRepository, WorkOrderRepository,
+    CategoryTemplateRepository, ClientRepository, ContractRepository, ConversionRepository,
+    EmployeeRepository, FinanceRepository, FuelRepository, JournalRepository, LifecycleRepository,
+    LoanRepository, MaintenanceRepository, NotificationRepository, RbacRepository,
+    RentalRepository, SensorRepository, TimesheetRepository, UserRepository, WorkOrderRepository,
 };
 use crate::shared::utils::jwt::JwtConfig;
 use std::sync::Arc;
@@ -57,6 +58,7 @@ pub struct AppState {
     pub category_service: CategoryService,
     pub category_template_service: CategoryTemplateService,
     pub client_service: ClientService,
+    pub contract_service: ContractService,
     pub conversion_service: ConversionService,
     pub lifecycle_service: LifecycleService,
     pub loan_service: LoanService,
@@ -104,6 +106,7 @@ impl AppState {
         let conversion_repo = ConversionRepository::new(pool.clone());
         let sensor_repo = SensorRepository::new(pool.clone());
         let client_repo = ClientRepository::new(pool.clone());
+        let contract_repo = ContractRepository::new(pool.clone());
         let rental_repo = RentalRepository::new(pool.clone());
         let timesheet_repo = TimesheetRepository::new(pool.clone());
         let rental_billing_repo =
@@ -126,6 +129,7 @@ impl AppState {
             jwt_config,
         );
         let category_service = CategoryService::new(category_repo);
+        let contract_service = ContractService::new(Arc::new(contract_repo));
         let category_template_service = CategoryTemplateService::new(category_template_repo);
         let notification_service = NotificationService::new(notification_repo);
         let loan_service =
@@ -198,6 +202,7 @@ impl AppState {
             category_service,
             category_template_service,
             client_service,
+            contract_service,
             conversion_service,
             lifecycle_service,
             loan_service,

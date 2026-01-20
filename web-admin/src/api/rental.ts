@@ -59,6 +59,8 @@ export interface Rental {
 
     // Multi-Asset
     items?: RentalItem[];
+    total_amount?: number;
+    asset_name?: string;
 }
 
 export interface CreateRentalItemRequest {

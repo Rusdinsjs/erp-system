@@ -5,7 +5,7 @@ import { rentalApi } from '../../api/rental';
 import { Button, Card, PageLoading } from '../ui';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
-interface SchedulerProps { }
+
 
 export function RentalScheduler() {
     const [viewDate, setViewDate] = useState(new Date());

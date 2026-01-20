@@ -3,8 +3,7 @@ import {
     LayoutDashboard,
     Fuel,
     Wrench,
-    Truck,
-    FileSpreadsheet
+    Truck
 } from 'lucide-react';
 import OverviewTab from './OverviewTab';
 import FuelReportsTab from './FuelReportsTab';

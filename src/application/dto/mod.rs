@@ -1,6 +1,7 @@
 pub mod asset_dto;
 pub mod category_dto;
 pub mod common;
+pub mod contract_dto;
 pub mod conversion_dto;
 pub mod employee_dto;
 pub mod leave_dto;
@@ -13,6 +14,7 @@ pub mod user_dto;
 pub use asset_dto::*;
 pub use category_dto::*;
 pub use common::*;
+pub use contract_dto::*;
 pub use conversion_dto::*;
 pub use employee_dto::*;
 pub use leave_dto::*;

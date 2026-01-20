@@ -20,6 +20,7 @@ export interface LifecycleHistory {
     to_state: string;
     reason: string | null;
     performed_by: string | null;
+    performed_by_name?: string | null;
     metadata: Record<string, unknown> | null;
     created_at: string;
 }

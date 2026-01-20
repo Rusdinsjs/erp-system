@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::api::server::AppState;
 use crate::application::dto::rental_dto::{BillingCreateRequest, BillingPreviewRequest};
+use crate::application::dto::UpdateBillingRequest;
 use crate::domain::entities::UserClaims; // Fixed imports
 
 /// Preview billing calculation
@@ -51,7 +52,7 @@ pub async fn update_billing(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
     Path(billing_id): Path<Uuid>,
-    Json(request): Json<crate::application::dto::UpdateBillingRequest>,
+    Json(request): Json<UpdateBillingRequest>,
 ) -> impl IntoResponse {
     match state
         .billing_service

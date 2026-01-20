@@ -3,9 +3,12 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { PaperProvider } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StatusBar } from 'expo-status-bar';
+
 import { useAuthStore } from '../store/authStore';
+import { PremiumDarkTheme } from '../constants/theme';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -45,11 +48,24 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PaperProvider theme={MD3LightTheme}>
-        <Stack>
+      <PaperProvider theme={PremiumDarkTheme}>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: PremiumDarkTheme.colors.background,
+            },
+            headerTintColor: PremiumDarkTheme.colors.onSurface,
+            contentStyle: {
+              backgroundColor: PremiumDarkTheme.colors.background,
+            },
+            headerShown: false,
+          }}
+        >
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="+not-found" />
         </Stack>
       </PaperProvider>
     </QueryClientProvider>

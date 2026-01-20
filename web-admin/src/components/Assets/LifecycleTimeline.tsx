@@ -1,6 +1,5 @@
 import {
     CheckCircle,
-    AlertTriangle,
     Truck,
     Wrench,
     Hammer,
@@ -13,18 +12,7 @@ import {
     Trash2,
     Search
 } from 'lucide-react';
-import { Card } from '../ui';
-
-export interface LifecycleHistory {
-    id: string;
-    asset_id: string;
-    from_state: string;
-    to_state: string;
-    reason?: string;
-    performed_by?: string;
-    performed_by_name?: string;
-    created_at: string;
-}
+import type { LifecycleHistory } from '../../api/lifecycle';
 
 interface LifecycleTimelineProps {
     history: LifecycleHistory[];

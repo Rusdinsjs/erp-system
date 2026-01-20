@@ -52,7 +52,7 @@ function getFullImageUrl(path: string | undefined) {
     if (!path) return '';
     if (path.startsWith('http')) return path;
     // Remove duplicate /api if present
-    const cleanPath = path.startsWith('/api/') ? path.substring(4) : path;
+    // Remove duplicate /api if present
     // If API_URL ends with /api, we might need to adjust. 
     // Usually VITE_API_URL includes /api. 
     // Let's assume path is relative to server root if it starts with /api/uploads

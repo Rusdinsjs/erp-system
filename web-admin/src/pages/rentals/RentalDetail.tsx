@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-    ArrowLeft, Truck, Calendar, User,
+    ArrowLeft, Calendar, User,
     Check, X, Receipt,
     Clock, ClipboardList, Tags
 } from 'lucide-react';
@@ -39,9 +39,9 @@ function HandoverList({ rentalId }: { rentalId: string }) {
 
     if (!handovers || handovers.length === 0) {
         return (
-            <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-lg bg-slate-800/20">
-                <ClipboardList className="mx-auto h-8 w-8 text-slate-600 mb-2" />
-                <p className="text-sm text-slate-500">No handover records found.</p>
+            <div className="text-center py-8 border-2 border-dashed border-gray-700/50 rounded-lg bg-white/5">
+                <ClipboardList className="mx-auto h-8 w-8 text-gray-500 mb-2" />
+                <p className="text-sm text-gray-400">No handover records found.</p>
             </div>
         );
     }
@@ -49,19 +49,19 @@ function HandoverList({ rentalId }: { rentalId: string }) {
     return (
         <div className="space-y-8">
             {handovers.map((handover: any) => (
-                <div key={handover.id} className="bg-slate-950 border border-slate-800 rounded-lg p-6">
-                    <div className="flex justify-between items-start mb-6 border-b border-slate-800 pb-4">
+                <div key={handover.id} className="bg-gray-950/50 border border-white/5 rounded-lg p-6 hover:border-white/10 transition-colors">
+                    <div className="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
                         <div>
                             <div className="flex items-center gap-3">
                                 <Badge variant={handover.handover_type === 'dispatch' ? 'info' : 'warning'} className="uppercase">
                                     {handover.handover_type}
                                 </Badge>
-                                <span className="text-sm text-slate-400">
+                                <span className="text-sm text-gray-400">
                                     Recorded on {new Date(handover.recorded_at).toLocaleDateString()}
                                 </span>
                             </div>
                             {handover.condition_notes && (
-                                <p className="text-slate-300 mt-2 text-sm">{handover.condition_notes}</p>
+                                <p className="text-gray-300 mt-2 text-sm">{handover.condition_notes}</p>
                             )}
                         </div>
                         {handover.has_damage && (
@@ -251,26 +251,26 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
                                 </div>
                             </div>
 
-                            <div className="col-span-1 md:col-span-2 h-px bg-slate-800 my-2" />
+                            <div className="col-span-1 md:col-span-2 h-px bg-white/5 my-2" />
 
                             <div className="space-y-1">
-                                <span className="text-sm text-slate-500">Start Date</span>
+                                <span className="text-sm text-gray-400">Start Date</span>
                                 <div className="flex items-center gap-2 text-white">
-                                    <Calendar size={18} className="text-slate-500" />
+                                    <Calendar size={18} className="text-gray-500" />
                                     <span>{rental.start_date}</span>
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-sm text-slate-500">Expected End</span>
+                                <span className="text-sm text-gray-400">Expected End</span>
                                 <div className="flex items-center gap-2 text-white">
-                                    <Calendar size={18} className="text-slate-500" />
+                                    <Calendar size={18} className="text-gray-500" />
                                     <span>{rental.expected_end_date || 'Open-Ended'}</span>
                                 </div>
                             </div>
 
                             <div className="col-span-1 md:col-span-2">
-                                <h4 className="text-sm text-slate-500 mb-1">Notes</h4>
-                                <p className="text-sm text-slate-300 bg-slate-900/50 p-3 rounded-md">
+                                <h4 className="text-sm text-gray-400 mb-1">Notes</h4>
+                                <p className="text-sm text-gray-300 bg-gray-900/50 p-3 rounded-md">
                                     {rental.notes || 'No notes provided.'}
                                 </p>
                             </div>
@@ -283,14 +283,14 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
                         <h3 className="text-lg font-bold text-white mb-4">Summary</h3>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-400">Total Items</span>
+                                <span className="text-sm text-gray-400">Total Items</span>
                                 <span className="text-lg font-bold text-white">
                                     {rental.items?.length || 0} Assets
                                 </span>
                             </div>
-                            <div className="w-full h-px bg-slate-800" />
+                            <div className="w-full h-px bg-white/5" />
                             <div>
-                                <span className="text-sm text-slate-500">Total Billed to Date</span>
+                                <span className="text-sm text-gray-500">Total Billed to Date</span>
                                 <p className="text-2xl font-bold text-white mt-1">Rp {rental.total_amount?.toLocaleString() || '0'}</p>
                             </div>
                         </div>
@@ -301,9 +301,9 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
             {/* ASSETS LIST */}
             <Card padding="md">
                 <h3 className="text-lg font-bold text-white mb-4">Rented Assets</h3>
-                <div className="overflow-x-auto border border-slate-700 rounded-lg">
-                    <table className="w-full text-left text-sm text-slate-300">
-                        <thead className="bg-slate-800 text-xs uppercase font-semibold text-slate-400">
+                <div className="overflow-x-auto border border-white/5 rounded-lg">
+                    <table className="w-full text-left text-sm text-gray-300">
+                        <thead className="bg-gray-800 text-xs uppercase font-semibold text-gray-400">
                             <tr>
                                 <th className="px-4 py-3">Asset</th>
                                 <th className="px-4 py-3">Rate</th>
@@ -311,9 +311,9 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
                                 <th className="px-4 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-700">
+                        <tbody className="divide-y divide-gray-700/50">
                             {rental.items?.map((item: any) => (
-                                <tr key={item.id} className="hover:bg-slate-800/30">
+                                <tr key={item.id} className="hover:bg-gray-800/30">
                                     <td className="px-4 py-3">
                                         <div className="font-medium text-white">{item.asset_name}</div>
                                         <div className="text-xs text-slate-500">{item.asset_code}</div>
@@ -331,7 +331,7 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
                                             </Button>
                                         )}
                                         {item.status === 'rented_out' && (
-                                            <Button size="sm" variant="warning" onClick={() => { setReturnOpened(true); setSelectedItem(item); }}>
+                                            <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => { setReturnOpened(true); setSelectedItem(item); }}>
                                                 Return
                                             </Button>
                                         )}

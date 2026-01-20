@@ -60,6 +60,10 @@ export interface Asset {
     department_manager_name?: string;
     assigned_to_name?: string;
     vendor_name?: string;
+
+    // Financial Aggregates
+    total_maintenance_cost?: number;
+    total_rental_income?: number;
 }
 
 export interface CreateAssetRequest extends Omit<Asset, 'id' | 'created_at' | 'updated_at' | 'status'> {

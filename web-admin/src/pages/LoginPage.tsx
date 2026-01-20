@@ -44,19 +44,19 @@ export function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans">
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4 relative overflow-hidden font-sans">
             {/* Background Effects */}
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.02]" />
-            <div className="absolute top-20 left-20 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-            <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl animate-pulse" />
 
             <div className="w-full max-w-md relative z-10">
                 {/* Logo & Branding */}
                 <div className="text-center mb-8 space-y-4">
                     <div className="relative group inline-block">
-                        <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
-                        <div className="relative inline-flex items-center justify-center w-20 h-20 bg-slate-900 border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden transform group-hover:scale-105 transition duration-300">
-                            <Package size={36} className="text-cyan-500" />
+                        <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+                        <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gray-900 border border-gray-700/50 rounded-2xl shadow-xl overflow-hidden transform group-hover:scale-105 transition duration-300">
+                            <Package size={36} className="text-blue-500" />
                         </div>
                     </div>
 
@@ -64,14 +64,14 @@ export function LoginPage() {
                         <h1 className="text-3xl font-bold text-white tracking-tight">
                             Management System
                         </h1>
-                        <p className="text-slate-400 mt-3 font-medium text-sm uppercase tracking-wider">
+                        <p className="text-gray-400 mt-3 font-medium text-sm uppercase tracking-wider">
                             Admin Dashboard
                         </p>
                     </div>
                 </div>
 
                 {/* Form Card */}
-                <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/5 ring-1 ring-white/10">
+                <div className="bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/5 ring-1 ring-white/10">
                     <h2 className="text-xl font-semibold text-white mb-6 text-center">
                         Masuk ke Dashboard
                     </h2>
@@ -85,21 +85,21 @@ export function LoginPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-slate-300">
+                            <label className="block text-sm font-medium text-gray-300">
                                 Email
                             </label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-950/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none transition text-white placeholder-slate-600 focus:bg-slate-950"
+                                className="w-full px-4 py-3 bg-gray-950/50 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition text-white placeholder-gray-600 focus:bg-gray-950"
                                 placeholder="nama@perusahaan.com"
                                 required
                             />
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="block text-sm font-medium text-slate-300">
+                            <label className="block text-sm font-medium text-gray-300">
                                 Password
                             </label>
                             <div className="relative">
@@ -107,14 +107,14 @@ export function LoginPage() {
                                     type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-4 pr-12 py-3 bg-slate-950/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none transition text-white placeholder-slate-600 focus:bg-slate-950"
+                                    className="w-full pl-4 pr-12 py-3 bg-gray-950/50 border border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition text-white placeholder-gray-600 focus:bg-gray-950"
                                     placeholder="••••••••"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-cyan-400 transition p-1 hover:bg-slate-800 rounded-lg"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-400 transition p-1 hover:bg-gray-800 rounded-lg"
                                 >
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -124,7 +124,7 @@ export function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-2 shadow-lg shadow-cyan-900/20 active:scale-[0.98] ring-1 ring-white/10"
+                            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-2 shadow-lg shadow-blue-900/20 active:scale-[0.98] ring-1 ring-white/10"
                         >
                             {loading ? (
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -137,7 +137,7 @@ export function LoginPage() {
                         </button>
                     </form>
 
-                    <p className="text-center text-xs text-slate-500 mt-8 font-light">
+                    <p className="text-center text-xs text-gray-500 mt-8 font-light">
                         Protected by robust authentication
                     </p>
                 </div>
