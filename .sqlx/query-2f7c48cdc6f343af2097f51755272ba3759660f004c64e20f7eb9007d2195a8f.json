@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE rental_items \n            SET status = 'rented_out', dispatched_by = $1, dispatched_at = NOW(), notes = $2, updated_at = NOW()\n            WHERE id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2f7c48cdc6f343af2097f51755272ba3759660f004c64e20f7eb9007d2195a8f"
+}

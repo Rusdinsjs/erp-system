@@ -1,15 +1,17 @@
 // TimesheetList Component - Pure Tailwind
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, Check, X } from 'lucide-react';
+import { Eye, Check, X, Plus } from 'lucide-react';
 import { timesheetApi } from '../../api/timesheet';
 import { rentalApi } from '../../api/rental';
+import { CreateTimesheetModal } from './CreateTimesheetModal';
 import {
     Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty,
     Select,
     LoadingOverlay,
     ActionIcon,
-    StatusBadge
+    StatusBadge,
+    Button
 } from '../ui';
 
 interface TimesheetListProps {
@@ -18,6 +20,7 @@ interface TimesheetListProps {
 
 export function TimesheetList({ rentalId }: TimesheetListProps) {
     const [selectedRentalInternal, setSelectedRentalInternal] = useState<string>('');
+    const [createModalOpen, setCreateModalOpen] = useState(false);
     const activeRentalId = rentalId || selectedRentalInternal;
 
     // Fetch Active Rentals for Dropdown (only if no prop provided)
@@ -27,7 +30,7 @@ export function TimesheetList({ rentalId }: TimesheetListProps) {
         enabled: !rentalId
     });
 
-    const rentalOptions = rentals?.map(r => ({ value: r.id, label: `${r.rental_number} - ${r.asset_name}` })) || [];
+    const rentalOptions = rentals?.map(r => ({ value: r.id, label: `${r.rental_number} - ${r.client_name}` })) || [];
 
     // Fetch Timesheets
     const { data: timesheets, isLoading } = useQuery({
@@ -41,24 +44,34 @@ export function TimesheetList({ rentalId }: TimesheetListProps) {
             <div className="relative min-h-[100px]">
                 <LoadingOverlay visible={isLoading} />
 
-                {!rentalId && (
-                    <div className="mb-6 max-w-sm">
-                        <Select
-                            placeholder="Select Rental Asset"
-                            options={rentalOptions}
-                            value={selectedRentalInternal}
-                            onChange={(val) => setSelectedRentalInternal(val)}
-                        />
-                    </div>
-                )}
+                <div className="flex justify-between items-end mb-6">
+                    {!rentalId ? (
+                        <div className="max-w-sm w-full">
+                            <Select
+                                placeholder="Select Rental Asset"
+                                options={rentalOptions}
+                                value={selectedRentalInternal}
+                                onChange={(val) => setSelectedRentalInternal(val)}
+                            />
+                        </div>
+                    ) : <div></div>}
+
+                    {activeRentalId && (
+                        <Button leftIcon={<Plus size={16} />} onClick={() => setCreateModalOpen(true)}>
+                            Add Entry
+                        </Button>
+                    )}
+                </div>
 
                 {activeRentalId ? (
                     <Table>
                         <TableHead>
                             <TableRow>
                                 <TableTh>Date</TableTh>
+                                <TableTh>Asset</TableTh>
                                 <TableTh>Operating Hours</TableTh>
                                 <TableTh>Standby</TableTh>
+                                <TableTh>Volume</TableTh>
                                 <TableTh>Status</TableTh>
                                 <TableTh className="text-right">Actions</TableTh>
                             </TableRow>
@@ -68,8 +81,16 @@ export function TimesheetList({ rentalId }: TimesheetListProps) {
                                 timesheets.map((ts) => (
                                     <TableRow key={ts.id}>
                                         <TableTd>{ts.work_date}</TableTd>
+                                        <TableTd>{(ts as any).asset_name || '-'}</TableTd>
                                         <TableTd>{ts.operating_hours}</TableTd>
                                         <TableTd>{ts.standby_hours}</TableTd>
+                                        <TableTd>
+                                            {ts.production_volume ? (
+                                                <span className="font-medium text-emerald-400">
+                                                    {ts.production_volume} <span className="text-slate-500 text-xs">{ts.production_unit}</span>
+                                                </span>
+                                            ) : '-'}
+                                        </TableTd>
                                         <TableTd>
                                             <StatusBadge status={ts.status} />
                                         </TableTd>
@@ -98,7 +119,7 @@ export function TimesheetList({ rentalId }: TimesheetListProps) {
                                     </TableRow>
                                 ))
                             ) : (
-                                !isLoading && <TableEmpty colSpan={5} message="No timesheets found" />
+                                !isLoading && <TableEmpty colSpan={6} message="No timesheets found" />
                             )}
                         </TableBody>
                     </Table>
@@ -106,6 +127,14 @@ export function TimesheetList({ rentalId }: TimesheetListProps) {
                     <p className="text-center text-slate-500 py-8">Select a rental to view timesheets</p>
                 )}
             </div>
+
+            {activeRentalId && (
+                <CreateTimesheetModal
+                    isOpen={createModalOpen}
+                    onClose={() => setCreateModalOpen(false)}
+                    rentalId={activeRentalId}
+                />
+            )}
         </div>
     );
 }

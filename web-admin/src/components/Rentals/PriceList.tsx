@@ -20,6 +20,7 @@ interface PriceFormState {
     hours_per_day: number;
     days_per_month: number;
     currency: string;
+    fuel_surcharge_rate: number;
 }
 
 const initialFormState: PriceFormState = {
@@ -32,7 +33,8 @@ const initialFormState: PriceFormState = {
     breakdown_penalty_per_day: 0,
     hours_per_day: 8,
     days_per_month: 25,
-    currency: 'IDR'
+    currency: 'IDR',
+    fuel_surcharge_rate: 0
 };
 
 export function PriceList() {
@@ -104,7 +106,8 @@ export function PriceList() {
             breakdown_penalty_per_day: Number(rate.breakdown_penalty_per_day) || 0,
             hours_per_day: Number(rate.hours_per_day) || 8,
             days_per_month: Number(rate.days_per_month) || 25,
-            currency: rate.currency || 'IDR'
+            currency: rate.currency || 'IDR',
+            fuel_surcharge_rate: Number(rate.fuel_surcharge_rate) || 0
         });
         setOpened(true);
     };
@@ -206,7 +209,8 @@ export function PriceList() {
                             options={[
                                 { value: 'hourly', label: 'Hourly' },
                                 { value: 'daily', label: 'Daily' },
-                                { value: 'monthly', label: 'Monthly' }
+                                { value: 'monthly', label: 'Monthly' },
+                                { value: 'bcm', label: 'BCM (Volume Based)' }
                             ]}
                             value={form.rate_basis}
                             onChange={val => updateField('rate_basis', val)}
@@ -259,6 +263,14 @@ export function PriceList() {
                                 prefix="Rp "
                                 value={form.breakdown_penalty_per_day}
                                 onChange={val => updateField('breakdown_penalty_per_day', val)}
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <NumberInput
+                                label="Fuel Surcharge / L"
+                                prefix="Rp "
+                                value={form.fuel_surcharge_rate}
+                                onChange={val => updateField('fuel_surcharge_rate', val)}
                             />
                         </div>
                         <NumberInput

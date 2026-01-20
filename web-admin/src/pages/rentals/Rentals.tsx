@@ -13,6 +13,7 @@ import { TimesheetReviewer } from '../../components/Rentals/TimesheetReviewer';
 import { PriceList } from '../../components/Rentals/PriceList';
 import { BillingList } from '../../components/Rentals/BillingList';
 import { ClientList } from '../../components/Rentals/ClientList';
+import { RentalScheduler } from '../../components/Rentals/RentalScheduler';
 
 export function Rentals() {
     return (
@@ -24,7 +25,8 @@ export function Rentals() {
                     <div className="px-4 pt-4 border-b border-slate-800 shrink-0">
                         <TabsList>
                             <TabsTrigger value="active" icon={<Truck size={16} />}>Active Rentals</TabsTrigger>
-                            <TabsTrigger value="timesheets" icon={<Clock size={16} />}>Timesheets</TabsTrigger>
+                            <TabsTrigger value="scheduler" icon={<Clock size={16} />}>Scheduler</TabsTrigger>
+                            <TabsTrigger value="timesheets" icon={<Tags size={16} />}>Timesheets</TabsTrigger>
                             <TabsTrigger value="reviewer" icon={<CheckSquare size={16} />}>Reviewer</TabsTrigger>
                             <TabsTrigger value="pricelist" icon={<Tags size={16} />}>Price List</TabsTrigger>
                             <TabsTrigger value="billing" icon={<Receipt size={16} />}>Billing</TabsTrigger>
@@ -35,6 +37,10 @@ export function Rentals() {
                     <div className="flex-1 overflow-hidden relative bg-slate-900/50">
                         <TabsContent value="active" className="h-full overflow-y-auto p-6">
                             <RentalList />
+                        </TabsContent>
+
+                        <TabsContent value="scheduler" className="h-full overflow-y-auto p-6">
+                            <RentalScheduler />
                         </TabsContent>
 
                         <TabsContent value="timesheets" className="h-full overflow-y-auto p-6">

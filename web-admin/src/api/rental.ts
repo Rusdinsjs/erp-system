@@ -22,51 +22,73 @@ export interface RentalRate {
     is_active: boolean;
 
     // Enhanced Billing Config
-    rate_basis?: 'hourly' | 'daily' | 'monthly';
+    rate_basis?: 'hourly' | 'daily' | 'monthly' | 'bcm';
     minimum_hours?: number;
     overtime_multiplier?: number;
     standby_multiplier?: number;
     breakdown_penalty_per_day?: number;
     hours_per_day?: number;
     days_per_month?: number;
+    fuel_surcharge_rate?: number;
+    tier_config?: any; // JSON
+}
+
+// Header + Items structure
+export interface RentalItem {
+    id: string;
+    asset_id: string;
+    asset_name?: string;
+    asset_code?: string;
+    rental_rate_id?: string;
+    rate_name?: string;
+    rental_rate_amount?: number;
+    status: string; // rented_out, returned
+    notes?: string;
 }
 
 export interface Rental {
     id: string;
     rental_number: string;
     client_id: string;
-    asset_id: string;
-    rental_rate_id?: string;
+    client_name?: string;
     start_date: string;
     expected_end_date?: string;
     actual_end_date?: string;
     status: 'draft' | 'requested' | 'pending_approval' | 'approved' | 'rented_out' | 'returned' | 'completed' | 'cancelled' | 'rejected';
     notes?: string;
 
-    // Joins
-    client_name?: string;
-    asset_name?: string;
-    rate_name?: string;
-    daily_rate?: number;
+    // Multi-Asset
+    items?: RentalItem[];
+}
+
+export interface CreateRentalItemRequest {
+    asset_id: string;
+    rental_rate_id: string;
+    rate_amount: number; // Snapshot
+    notes?: string;
 }
 
 export interface CreateRentalRequest {
     client_id: string;
-    asset_id: string;
-    rental_rate_id?: string;
-    start_date: string; // YYYY-MM-DD
+    start_date: string;
     end_date?: string;
-    daily_rate?: number;
     deposit_amount?: number;
     notes?: string;
+
+    // List of assets to rent
+    items: CreateRentalItemRequest[];
 }
 
 export interface CreateClientRequest {
     name: string;
+    company_name?: string;
     address?: string;
+    city?: string;
     phone?: string;
     email?: string;
+    contact_person?: string;
     tax_id?: string;
+    notes?: string;
 }
 
 export interface CreateRateRequest {
@@ -80,6 +102,10 @@ export interface CreateRateRequest {
     overtime_multiplier?: number;
     standby_multiplier?: number;
     breakdown_penalty_per_day?: number;
+    fuel_surcharge_rate?: number;
+    tier_config?: any;
+    hours_per_day?: number;
+    days_per_month?: number;
 }
 
 // ==================== API ====================
@@ -144,13 +170,18 @@ export const rentalApi = {
         return response.data;
     },
 
-    dispatchRental: async (id: string, data: { driver_name?: string, truck_plate?: string, notes?: string, location_id?: string | null }) => {
+    dispatchRental: async (id: string, data: { rental_item_id: string, condition_rating?: string, condition_notes?: string, photos?: string[], location_id?: string | null }) => {
         const response = await api.post(`/rentals/${id}/dispatch`, data);
         return response.data;
     },
 
-    returnRental: async (id: string, data: { return_date: string, meter_reading?: number, notes?: string, location_id?: string | null }) => {
+    returnRental: async (id: string, data: { rental_item_id: string, return_date: string, meter_reading: number, condition_rating?: string, condition_notes?: string, has_damage?: boolean, damage_description?: string, location_id?: string | null }) => {
         const response = await api.post(`/rentals/${id}/return`, data);
+        return response.data;
+    },
+
+    getSchedule: async (start: string, end: string) => {
+        const response = await api.get(`/rentals/schedule?start=${start}&end=${end}`);
         return response.data;
     },
 

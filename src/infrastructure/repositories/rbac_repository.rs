@@ -174,4 +174,31 @@ impl RbacRepository {
             .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    /// Update role permissions in bulk (transaction-safe)
+    pub async fn update_role_permissions(
+        &self,
+        role_id: Uuid,
+        permission_ids: Vec<Uuid>,
+    ) -> Result<(), sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
+
+        // Delete existing permissions for this role
+        sqlx::query("DELETE FROM role_permissions WHERE role_id = $1")
+            .bind(role_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // Insert new permissions
+        for perm_id in permission_ids {
+            sqlx::query("INSERT INTO role_permissions (role_id, permission_id) VALUES ($1, $2)")
+                .bind(role_id)
+                .bind(perm_id)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
 }

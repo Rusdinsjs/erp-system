@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE rentals SET\n                client_id = $1, status = $2,\n                request_date = $3, start_date = $4, expected_end_date = $5, actual_end_date = $6,\n                subtotal = $7, deposit_amount = $8, deposit_returned = $9,\n                penalty_amount = $10, total_amount = $11, \n                approved_by = $12, approved_at = $13, rejection_reason = $14,\n                agreement_document = $15, invoice_number = $16, notes = $17, updated_at = $18\n            WHERE id = $19\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Date",
+        "Date",
+        "Date",
+        "Date",
+        "Numeric",
+        "Numeric",
+        "Bool",
+        "Numeric",
+        "Numeric",
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4e06313163019df175609fc027e52cf5f2d293e296524a1a879771044a2fc78b"
+}

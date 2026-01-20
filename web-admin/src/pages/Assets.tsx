@@ -76,7 +76,9 @@ export function Assets() {
         queryKey: ['categories-flat'],
         queryFn: async () => {
             const res = await api.get('/categories/tree');
-            return flattenCategories(res.data);
+            // Backend returns { data: [...] }
+            const treeData = res.data.data || res.data;
+            return flattenCategories(Array.isArray(treeData) ? treeData : []);
         },
         staleTime: 5 * 60 * 1000
     });

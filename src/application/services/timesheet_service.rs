@@ -12,6 +12,8 @@ use crate::application::dto::{
     SubmitTimesheetRequest, TimesheetDetailResponse, TimesheetSummary, UpdateTimesheetRequest,
     VerifyTimesheetRequest,
 };
+use crate::application::services::work_order_service::CreateWorkOrderRequest;
+use crate::application::services::WorkOrderService;
 use crate::domain::entities::{ClientContact, RentalTimesheet};
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{RentalRepository, TimesheetRepository};
@@ -20,13 +22,19 @@ use crate::infrastructure::repositories::{RentalRepository, TimesheetRepository}
 pub struct TimesheetService {
     timesheet_repo: TimesheetRepository,
     rental_repo: RentalRepository,
+    work_order_service: WorkOrderService,
 }
 
 impl TimesheetService {
-    pub fn new(timesheet_repo: TimesheetRepository, rental_repo: RentalRepository) -> Self {
+    pub fn new(
+        timesheet_repo: TimesheetRepository,
+        rental_repo: RentalRepository,
+        work_order_service: WorkOrderService,
+    ) -> Self {
         Self {
             timesheet_repo,
             rental_repo,
+            work_order_service,
         }
     }
 
@@ -61,11 +69,20 @@ impl TimesheetService {
         }
 
         // Create timesheet
-        let mut timesheet = RentalTimesheet::new(request.rental_id, request.work_date, checker_id);
+        let mut timesheet = RentalTimesheet::new(
+            request.rental_id,
+            Some(request.rental_item_id),
+            request.work_date,
+            checker_id,
+        );
 
         // Set hours
         timesheet.start_time = request.start_time;
         timesheet.end_time = request.end_time;
+        timesheet.standby_start_time = request.standby_start_time;
+        timesheet.standby_end_time = request.standby_end_time;
+        timesheet.breakdown_start_time = request.breakdown_start_time;
+        timesheet.breakdown_end_time = request.breakdown_end_time;
         timesheet.operating_hours = Some(request.operating_hours);
         timesheet.standby_hours = request.standby_hours;
         timesheet.breakdown_hours = request.breakdown_hours;
@@ -77,11 +94,15 @@ impl TimesheetService {
             timesheet.hm_km_usage = Some(end - start);
         }
 
+        // Set production
+        timesheet.production_volume = request.production_volume;
+        timesheet.production_unit = request.production_unit;
+
         // Set operation details
-        timesheet.operation_status = request.operation_status;
-        timesheet.breakdown_reason = request.breakdown_reason;
-        timesheet.work_description = request.work_description;
-        timesheet.work_location = request.work_location;
+        timesheet.operation_status = request.operation_status.clone();
+        timesheet.breakdown_reason = request.breakdown_reason.clone();
+        timesheet.work_description = request.work_description.clone();
+        timesheet.work_location = request.work_location.clone();
 
         // Set photos
         if let Some(photos) = request.photos {
@@ -103,6 +124,55 @@ impl TimesheetService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?;
+
+        // Intelligent Maintenance: Auto-create Work Order if Breakdown > 0
+        if let Some(breakdown) = created.breakdown_hours {
+            if breakdown > Decimal::ZERO {
+                // Find asset ID
+                let asset_id = if let Some(items) = &rental.items {
+                    items
+                        .iter()
+                        .find(|i| i.id == request.rental_item_id)
+                        .map(|i| i.asset_id)
+                } else {
+                    None
+                };
+
+                if let Some(asset_id) = asset_id {
+                    let description = format!(
+                        "Auto-generated from Timesheet breakdown on {}. Reason: {}",
+                        request.work_date,
+                        request
+                            .breakdown_reason
+                            .clone()
+                            .unwrap_or_else(|| "No reason provided".to_string())
+                    );
+
+                    let wo_req = CreateWorkOrderRequest {
+                        asset_id,
+                        wo_type: "Breakdown".to_string(),
+                        priority: Some("High".to_string()),
+                        scheduled_date: Some(chrono::Utc::now().naive_utc().date()),
+                        due_date: Some(chrono::Utc::now().naive_utc().date()),
+                        problem_description: Some(description),
+                        estimated_hours: None,
+                        estimated_cost: None,
+                        safety_requirements: None,
+                        lockout_tagout_required: None,
+                        location_id: None,
+                    };
+
+                    // Log error but don't fail timesheet creation
+                    if let Err(e) = self
+                        .work_order_service
+                        .create(wo_req, Some(checker_id))
+                        .await
+                    {
+                        println!("WARNING: Failed to auto-create work order: {:?}", e);
+                    }
+                }
+            }
+        }
 
         Ok(created)
     }
@@ -138,6 +208,18 @@ impl TimesheetService {
         if let Some(end) = request.end_time {
             timesheet.end_time = Some(end);
         }
+        if let Some(val) = request.standby_start_time {
+            timesheet.standby_start_time = Some(val);
+        }
+        if let Some(val) = request.standby_end_time {
+            timesheet.standby_end_time = Some(val);
+        }
+        if let Some(val) = request.breakdown_start_time {
+            timesheet.breakdown_start_time = Some(val);
+        }
+        if let Some(val) = request.breakdown_end_time {
+            timesheet.breakdown_end_time = Some(val);
+        }
         if let Some(hours) = request.operating_hours {
             timesheet.operating_hours = Some(hours);
         }
@@ -152,6 +234,12 @@ impl TimesheetService {
         }
         if let Some(end) = request.hm_km_end {
             timesheet.hm_km_end = Some(end);
+        }
+        if let Some(vol) = request.production_volume {
+            timesheet.production_volume = Some(vol);
+        }
+        if let Some(unit) = request.production_unit {
+            timesheet.production_unit = Some(unit);
         }
         if let Some(status) = request.operation_status {
             timesheet.operation_status = status;
@@ -378,6 +466,7 @@ impl TimesheetService {
             total_overtime_hours: summary_row.total_overtime_hours,
             total_breakdown_hours: summary_row.total_breakdown_hours,
             total_hm_km_usage: summary_row.total_hm_km_usage,
+            total_production_volume: summary_row.total_production_volume,
             approved_entries,
             pending_entries,
         })

@@ -222,6 +222,66 @@
         "ordinal": 43,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 44,
+        "name": "total_production_volume",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 45,
+        "name": "unit_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 46,
+        "name": "mechanical_availability",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 47,
+        "name": "physical_availability",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 48,
+        "name": "utilization_availability",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 49,
+        "name": "effective_utilization",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 50,
+        "name": "ma_threshold",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 51,
+        "name": "availability_penalty",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 52,
+        "name": "adjustment_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 53,
+        "name": "adjusted_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 54,
+        "name": "adjusted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 55,
+        "name": "rental_item_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
@@ -235,6 +295,18 @@
       false,
       false,
       false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
       true,
       true,
       true,

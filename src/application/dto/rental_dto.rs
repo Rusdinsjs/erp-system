@@ -7,15 +7,27 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// Request to create a new rental
+/// Request to create a new rental (Header + Items)
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateRentalRequest {
-    pub asset_id: Uuid,
     pub client_id: Uuid,
+    pub request_date: Option<NaiveDate>,
     pub start_date: Option<NaiveDate>,
     pub expected_end_date: Option<NaiveDate>,
-    pub daily_rate: Option<Decimal>,
     pub deposit_amount: Option<Decimal>,
+    pub notes: Option<String>,
+
+    // Items
+    pub items: Vec<CreateRentalItemRequest>,
+}
+
+/// Request to create a rental item line
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateRentalItemRequest {
+    pub asset_id: Uuid,
+    pub rental_rate_id: Option<Uuid>,
+    pub rate_amount: Option<Decimal>,
+    pub rate_basis: Option<String>,
     pub notes: Option<String>,
 }
 
@@ -24,8 +36,8 @@ pub struct CreateRentalRequest {
 pub struct ApproveRentalRequest {
     pub start_date: NaiveDate,
     pub expected_end_date: NaiveDate,
-    pub daily_rate: Decimal,
     pub deposit_amount: Option<Decimal>,
+    // Rates are approved as proposed in items
 }
 
 /// Request to reject a rental
@@ -37,6 +49,7 @@ pub struct RejectRentalRequest {
 /// Request for dispatch (handover out)
 #[derive(Debug, Clone, Deserialize)]
 pub struct DispatchRentalRequest {
+    pub rental_item_id: Uuid, // Specific item to dispatch
     pub condition_rating: String,
     pub condition_notes: Option<String>,
     pub photos: Option<Vec<String>>,
@@ -46,6 +59,7 @@ pub struct DispatchRentalRequest {
 /// Request for return (handover in)
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReturnRentalRequest {
+    pub rental_item_id: Uuid, // Specific item to return
     pub return_date: NaiveDate,
     pub meter_reading: Decimal,
     pub condition_rating: String,
@@ -98,6 +112,8 @@ pub struct CreateRentalRateRequest {
     pub minimum_duration: Option<i32>,
     pub deposit_percentage: Option<Decimal>,
     pub late_fee_per_day: Option<Decimal>,
+    pub ma_threshold: Option<Decimal>,
+    pub availability_penalty_multiplier: Option<Decimal>,
 
     // Enhanced billing fields
     pub rate_basis: Option<String>,
@@ -121,6 +137,8 @@ pub struct UpdateRentalRateRequest {
     pub minimum_duration: Option<i32>,
     pub deposit_percentage: Option<Decimal>,
     pub late_fee_per_day: Option<Decimal>,
+    pub ma_threshold: Option<Decimal>,
+    pub availability_penalty_multiplier: Option<Decimal>,
     pub is_active: Option<bool>,
 
     // Enhanced billing fields
@@ -189,4 +207,20 @@ pub struct BillingPreviewRequest {
 pub struct BillingCreateRequest {
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
+}
+
+/// Rental Schedule Item (for Gantt)
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct RentalScheduleItem {
+    pub rental_id: Uuid,
+    pub rental_item_id: Uuid,
+    pub rental_number: String,
+    pub client_name: String,
+    pub asset_id: Uuid,
+    pub asset_name: String,
+    pub asset_code: String,
+    pub start_date: Option<NaiveDate>,
+    pub expected_end_date: Option<NaiveDate>,
+    pub actual_end_date: Option<NaiveDate>,
+    pub status: String, // rental_item status
 }

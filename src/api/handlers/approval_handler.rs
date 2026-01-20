@@ -160,12 +160,12 @@ pub async fn list_pending_requests(
 
 pub async fn approve_request(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<ApproveRequestDto>,
 ) -> Result<Json<ApiResponse<ApprovalRequest>>, AppError> {
-    // TODO: Get approver ID
-    let approver_id = Uuid::nil();
-    let role_level = 3;
+    let approver_id = claims.user_id();
+    let role_level = 3; // TODO: Get actual role level from claims/db
 
     // Check if it's a generic approval first
     if let Ok(Some(_req)) = state.approval_service.repository.find_by_id(id).await {
@@ -206,10 +206,11 @@ pub async fn approve_request(
 
 pub async fn reject_request(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectRequestDto>,
 ) -> Result<Json<ApiResponse<ApprovalRequest>>, AppError> {
-    let approver_id = Uuid::nil();
+    let approver_id = claims.user_id();
 
     // Generic
     if let Ok(Some(_)) = state.approval_service.repository.find_by_id(id).await {

@@ -35,6 +35,9 @@ export interface Timesheet {
     hm_km_end?: number;
     hm_km_usage?: number;
 
+    production_volume?: number;
+    production_unit?: string;
+
     operation_status: string;
     breakdown_reason?: string;
     work_description?: string;
@@ -75,14 +78,21 @@ export interface BillingPeriod {
 
 export interface CreateTimesheetRequest {
     rental_id: string;
+    rental_item_id: string; // Specific item
     work_date: string;
     start_time?: string;
     end_time?: string;
+    standby_start_time?: string; // HH:MM
+    standby_end_time?: string;
+    breakdown_start_time?: string;
+    breakdown_end_time?: string;
     operating_hours: number;
     standby_hours?: number;
     breakdown_hours?: number;
     hm_km_start?: number;
     hm_km_end?: number;
+    production_volume?: number;
+    production_unit?: string;
     operation_status: string;
     work_description?: string;
     work_location?: string;

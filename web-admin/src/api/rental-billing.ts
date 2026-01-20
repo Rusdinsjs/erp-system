@@ -11,6 +11,7 @@ export interface RentalBillingPeriod {
     total_standby_hours: number;
     total_overtime_hours: number;
     total_breakdown_hours: number;
+    total_production_volume?: number;
 
     hourly_rate: number;
     minimum_hours: number;
@@ -27,6 +28,24 @@ export interface RentalBillingPeriod {
     discount_amount: number;
     tax_amount: number;
     total_amount: number;
+
+    // KPI Metrics
+    mechanical_availability?: number;    // MA %
+    physical_availability?: number;      // PA %
+    utilization_availability?: number;   // UA %
+    effective_utilization?: number;      // EU %
+    ma_threshold?: number;               // Default 85%
+    availability_penalty?: number;       // Penalty amount
+
+    // Adjustment
+    adjustment_notes?: string;
+    adjusted_by?: string;
+    adjusted_at?: string;
+
+    // Fuel & Advanced
+    total_fuel_consumed?: number;
+    fuel_surcharge_rate?: number;
+    fuel_surcharge_amount?: number;
 
     status: string;
     invoice_number?: string;

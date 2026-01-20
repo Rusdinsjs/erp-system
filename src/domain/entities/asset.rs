@@ -137,12 +137,15 @@ pub struct AssetSummary {
     pub name: String,
     pub status: String,
     pub asset_class: Option<String>,
+    #[sqlx(default)]
+    pub is_rental: bool,
     pub brand: Option<String>,
     pub purchase_price: Option<Decimal>,
     pub category_id: Uuid,
     pub location_id: Option<Uuid>,
     pub location_name: Option<String>,
     pub department: Option<String>,
+    pub department_id: Option<Uuid>,
     pub model: Option<String>,
     pub serial_number: Option<String>,
 }

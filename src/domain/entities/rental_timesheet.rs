@@ -92,11 +92,16 @@ impl std::str::FromStr for TimesheetStatus {
 pub struct RentalTimesheet {
     pub id: Uuid,
     pub rental_id: Uuid,
+    pub rental_item_id: Option<Uuid>, // Nullable for legacy/migration safety, but should be populated
     pub work_date: NaiveDate,
 
     // Operating hours
     pub start_time: Option<NaiveTime>,
     pub end_time: Option<NaiveTime>,
+    pub standby_start_time: Option<NaiveTime>,
+    pub standby_end_time: Option<NaiveTime>,
+    pub breakdown_start_time: Option<NaiveTime>,
+    pub breakdown_end_time: Option<NaiveTime>,
     pub operating_hours: Option<Decimal>,
     pub standby_hours: Option<Decimal>,
     pub overtime_hours: Option<Decimal>,
@@ -106,6 +111,7 @@ pub struct RentalTimesheet {
     pub hm_km_start: Option<Decimal>,
     pub hm_km_end: Option<Decimal>,
     pub hm_km_usage: Option<Decimal>,
+    pub fuel_consumed_liters: Option<Decimal>,
 
     // Operation details
     pub operation_status: String,
@@ -138,18 +144,33 @@ pub struct RentalTimesheet {
 
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+
+    // Production (BCM)
+    pub production_volume: Option<Decimal>, // e.g. BCM volume
+    #[sqlx(default)]
+    pub production_unit: Option<String>, // Default 'BCM'
 }
 
 impl RentalTimesheet {
     /// Create new timesheet entry
-    pub fn new(rental_id: Uuid, work_date: NaiveDate, checker_id: Uuid) -> Self {
+    pub fn new(
+        rental_id: Uuid,
+        rental_item_id: Option<Uuid>,
+        work_date: NaiveDate,
+        checker_id: Uuid,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
             rental_id,
+            rental_item_id,
             work_date,
             start_time: None,
             end_time: None,
+            standby_start_time: None,
+            standby_end_time: None,
+            breakdown_start_time: None,
+            breakdown_end_time: None,
             operating_hours: Some(Decimal::ZERO),
             standby_hours: Some(Decimal::ZERO),
             overtime_hours: Some(Decimal::ZERO),
@@ -157,11 +178,14 @@ impl RentalTimesheet {
             hm_km_start: None,
             hm_km_end: None,
             hm_km_usage: None,
+            fuel_consumed_liters: None,
             operation_status: OperationStatus::Operating.as_str().to_string(),
             breakdown_reason: None,
             work_description: None,
             work_location: None,
             photos: Some(serde_json::json!([])),
+            production_volume: Some(Decimal::ZERO),
+            production_unit: Some("BCM".to_string()),
             checker_id: Some(checker_id),
             checker_at: Some(now),
             checker_notes: None,

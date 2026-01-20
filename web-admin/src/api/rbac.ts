@@ -18,13 +18,46 @@ export interface Permission {
 
 export const rbacApi = {
     listRoles: async () => {
-        const response = await api.get<any>('/rbac/roles');
-        return response.data.data as Role[];
+        const response = await api.get<Role[]>('/rbac/roles');
+        return response.data;
     },
 
     listPermissions: async () => {
-        const response = await api.get<any>('/rbac/permissions');
-        return response.data.data as Permission[];
+        const response = await api.get<Permission[]>('/rbac/permissions');
+        return response.data;
+    },
+
+    getRolePermissions: async (roleId: string) => {
+        const response = await api.get<Permission[]>(`/rbac/roles/${roleId}/permissions`);
+        return response.data;
+    },
+
+    updateRolePermissions: async (roleId: string, permissionIds: string[]) => {
+        const response = await api.post(`/rbac/roles/${roleId}/permissions`, {
+            permission_ids: permissionIds,
+        });
+        return response.data;
+    },
+
+    // User Roles
+    getUserRoles: async (userId: string) => {
+        const response = await api.get<Role[]>(`/users/${userId}/roles`);
+        return response.data;
+    },
+
+    getUserPermissions: async (userId: string) => {
+        const response = await api.get<Permission[]>(`/users/${userId}/permissions`);
+        return response.data;
+    },
+
+    assignRole: async (userId: string, roleCode: string) => {
+        const response = await api.post(`/users/${userId}/roles/${roleCode}`);
+        return response.data;
+    },
+
+    removeRole: async (userId: string, roleCode: string) => {
+        const response = await api.delete(`/users/${userId}/roles/${roleCode}`);
+        return response.data;
     },
 
     // Helper to get my permissions (if endpoint exists, else parse token)

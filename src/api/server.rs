@@ -166,7 +166,11 @@ impl AppState {
         let user_service = UserService::new(user_repo, rbac_repo);
         let report_service = ReportService::new(asset_repo.clone(), maintenance_repo.clone());
         let lifecycle_service = LifecycleService::new(lifecycle_repo.clone());
-        let timesheet_service = TimesheetService::new(timesheet_repo.clone(), rental_repo.clone());
+        let timesheet_service = TimesheetService::new(
+            timesheet_repo.clone(),
+            rental_repo.clone(),
+            work_order_service.clone(),
+        );
         let billing_service = BillingService::new(timesheet_repo.clone(), rental_repo.clone());
         let client_service = ClientService::new(client_repo.clone());
         let analytics_service = AnalyticsService::new(pool.clone());

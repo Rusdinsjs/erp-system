@@ -8,6 +8,7 @@ import {
     Clock, ClipboardList, Tags
 } from 'lucide-react';
 import { rentalApi } from '../../api/rental';
+import type { RentalItem } from '../../api/rental';
 import { api } from '../../api/http';
 import { TimesheetList } from '../../components/Rentals/TimesheetList';
 import { BillingHistory } from '../../components/Rentals/BillingHistory';
@@ -91,17 +92,27 @@ const getStatusBadge = (status: string) => {
     return <Badge variant={variants[status] || 'default'} className="capitalize">{status.replace('_', ' ')}</Badge>;
 };
 
-export function RentalDetail() {
-    const { id } = useParams<{ id: string }>();
+interface RentalDetailProps {
+    rentalId?: string;
+}
+
+export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
+    const params = useParams<{ id: string }>();
+    const id = propRentalId || params.id;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { success } = useToast();
+
+    if (!id) return <div>Invalid Rental ID</div>;
 
     // Modal controls
     const [approveOpened, setApproveOpened] = useState(false);
     const [rejectOpened, setRejectOpened] = useState(false);
     const [dispatchOpened, setDispatchOpened] = useState(false);
     const [returnOpened, setReturnOpened] = useState(false);
+
+    // Item Selection for Actions
+    const [selectedItem, setSelectedItem] = useState<RentalItem | null>(null);
 
     // Form states
     const [notes, setNotes] = useState('');
@@ -148,30 +159,42 @@ export function RentalDetail() {
     });
 
     const dispatchMutation = useMutation({
-        mutationFn: () => rentalApi.dispatchRental(id!, {
-            driver_name: '',
-            truck_plate: '',
-            notes: notes,
-            location_id: selectedLocation || null // API expects null or string?
-        }),
+        mutationFn: () => {
+            if (!selectedItem) throw new Error("No item selected");
+            return rentalApi.dispatchRental(id!, {
+                rental_item_id: selectedItem.id,
+                condition_rating: 'Good', // Default for now, could add to form
+                condition_notes: notes,
+                location_id: selectedLocation || null
+            });
+        },
         onSuccess: () => {
             success('Asset marked as dispatched', 'Dispatched');
             queryClient.invalidateQueries({ queryKey: ['rental', id] });
             setDispatchOpened(false);
+            setSelectedItem(null);
         }
     });
 
     const returnMutation = useMutation({
-        mutationFn: () => rentalApi.returnRental(id!, {
-            return_date: new Date().toISOString().split('T')[0],
-            meter_reading: meterReading || 0,
-            notes: notes,
-            location_id: selectedLocation || null
-        }),
+        mutationFn: () => {
+            if (!selectedItem) throw new Error("No item selected");
+            return rentalApi.returnRental(id!, {
+                rental_item_id: selectedItem.id,
+                return_date: new Date().toISOString().split('T')[0],
+                meter_reading: meterReading || 0,
+                condition_rating: hasDamage ? 'Damaged' : 'Good',
+                has_damage: hasDamage,
+                damage_description: hasDamage ? notes : undefined,
+                condition_notes: notes,
+                location_id: selectedLocation || null
+            });
+        },
         onSuccess: () => {
             success('Asset marked as returned', 'Returned');
             queryClient.invalidateQueries({ queryKey: ['rental', id] });
             setReturnOpened(false);
+            setSelectedItem(null);
         }
     });
 
@@ -195,19 +218,15 @@ export function RentalDetail() {
                 </div>
 
                 <div className="flex gap-2">
-                    {/* Workflow Actions */}
-                    {['requested', 'pending_approval'].includes(rental.status) && (
-                        <>
-                            <Button variant="danger" leftIcon={<X size={16} />} onClick={() => setRejectOpened(true)}>Reject</Button>
-                            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" leftIcon={<Check size={16} />} onClick={() => setApproveOpened(true)}>Approve</Button>
-                        </>
-                    )}
-                    {rental.status === 'approved' && (
-                        <Button leftIcon={<Truck size={16} />} onClick={() => setDispatchOpened(true)}>Dispatch Asset</Button>
-                    )}
-                    {rental.status === 'rented_out' && (
-                        <Button className="bg-orange-600 hover:bg-orange-700 text-white" leftIcon={<ArrowLeft size={16} />} onClick={() => setReturnOpened(true)}>Register Return</Button>
-                    )}
+                    <div className="flex gap-2">
+                        {/* Workflow Actions */}
+                        {['requested', 'pending_approval'].includes(rental.status) && (
+                            <>
+                                <Button variant="danger" leftIcon={<X size={16} />} onClick={() => setRejectOpened(true)}>Reject</Button>
+                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" leftIcon={<Check size={16} />} onClick={() => setApproveOpened(true)}>Approve</Button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -215,7 +234,7 @@ export function RentalDetail() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div className="md:col-span-8">
                     <Card padding="md">
-                        <h3 className="text-lg font-bold text-white mb-4">Details</h3>
+                        <h3 className="text-lg font-bold text-white mb-4">Contract Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1">
                                 <span className="text-sm text-slate-500">Client</span>
@@ -225,10 +244,10 @@ export function RentalDetail() {
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-sm text-slate-500">Asset</span>
+                                <span className="text-sm text-slate-500">Contract No.</span>
                                 <div className="flex items-center gap-2 text-white">
-                                    <Truck size={18} className="text-slate-500" />
-                                    <span className="font-medium">{rental.asset_name}</span>
+                                    <Receipt size={18} className="text-slate-500" />
+                                    <span className="font-medium">{rental.rental_number}</span>
                                 </div>
                             </div>
 
@@ -245,8 +264,15 @@ export function RentalDetail() {
                                 <span className="text-sm text-slate-500">Expected End</span>
                                 <div className="flex items-center gap-2 text-white">
                                     <Calendar size={18} className="text-slate-500" />
-                                    <span>{rental.expected_end_date || 'N/A'}</span>
+                                    <span>{rental.expected_end_date || 'Open-Ended'}</span>
                                 </div>
+                            </div>
+
+                            <div className="col-span-1 md:col-span-2">
+                                <h4 className="text-sm text-slate-500 mb-1">Notes</h4>
+                                <p className="text-sm text-slate-300 bg-slate-900/50 p-3 rounded-md">
+                                    {rental.notes || 'No notes provided.'}
+                                </p>
                             </div>
                         </div>
                     </Card>
@@ -254,24 +280,68 @@ export function RentalDetail() {
 
                 <div className="md:col-span-4">
                     <Card padding="md" className="h-full">
-                        <h3 className="text-lg font-bold text-white mb-4">Financials</h3>
+                        <h3 className="text-lg font-bold text-white mb-4">Summary</h3>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-slate-400">Standard Rate</span>
-                                <span className="text-lg font-bold text-white">Rp {rental.daily_rate?.toLocaleString()}</span>
+                                <span className="text-sm text-slate-400">Total Items</span>
+                                <span className="text-lg font-bold text-white">
+                                    {rental.items?.length || 0} Assets
+                                </span>
                             </div>
-                            {rental.rate_name && (
-                                <p className="text-xs text-slate-500">Template: {rental.rate_name}</p>
-                            )}
                             <div className="w-full h-px bg-slate-800" />
                             <div>
                                 <span className="text-sm text-slate-500">Total Billed to Date</span>
-                                <p className="text-2xl font-bold text-white mt-1">Rp 0</p>
+                                <p className="text-2xl font-bold text-white mt-1">Rp {rental.total_amount?.toLocaleString() || '0'}</p>
                             </div>
                         </div>
                     </Card>
                 </div>
             </div>
+
+            {/* ASSETS LIST */}
+            <Card padding="md">
+                <h3 className="text-lg font-bold text-white mb-4">Rented Assets</h3>
+                <div className="overflow-x-auto border border-slate-700 rounded-lg">
+                    <table className="w-full text-left text-sm text-slate-300">
+                        <thead className="bg-slate-800 text-xs uppercase font-semibold text-slate-400">
+                            <tr>
+                                <th className="px-4 py-3">Asset</th>
+                                <th className="px-4 py-3">Rate</th>
+                                <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700">
+                            {rental.items?.map((item: any) => (
+                                <tr key={item.id} className="hover:bg-slate-800/30">
+                                    <td className="px-4 py-3">
+                                        <div className="font-medium text-white">{item.asset_name}</div>
+                                        <div className="text-xs text-slate-500">{item.asset_code}</div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        Rp {item.rental_rate_amount?.toLocaleString()} ({item.rate_name})
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {getStatusBadge(item.status)}
+                                    </td>
+                                    <td className="px-4 py-3 text-right">
+                                        {rental.status === 'approved' && item.status === 'pending' && (
+                                            <Button size="sm" onClick={() => { setDispatchOpened(true); setSelectedItem(item); }}>
+                                                Dispatch
+                                            </Button>
+                                        )}
+                                        {item.status === 'rented_out' && (
+                                            <Button size="sm" variant="warning" onClick={() => { setReturnOpened(true); setSelectedItem(item); }}>
+                                                Return
+                                            </Button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
 
             {/* Tabs for Sub-modules */}
             <Card padding="none" className="overflow-hidden">

@@ -112,6 +112,7 @@ impl RateBasis {
 pub struct RentalBillingPeriod {
     pub id: Uuid,
     pub rental_id: Uuid,
+    pub rental_item_id: Option<Uuid>,
 
     // Period
     pub period_start: NaiveDate,
@@ -124,10 +125,12 @@ pub struct RentalBillingPeriod {
     pub total_overtime_hours: Option<Decimal>,
     pub total_breakdown_hours: Option<Decimal>,
     pub total_hm_km_usage: Option<Decimal>,
+    pub total_production_volume: Option<Decimal>, // BCM Total
     pub working_days: Option<i32>,
 
     // Rate configuration snapshot
     pub rate_basis: Option<String>,
+    pub unit_rate: Option<Decimal>,
     pub hourly_rate: Option<Decimal>,
     pub minimum_hours: Option<Decimal>,
     pub overtime_multiplier: Option<Decimal>,
@@ -143,6 +146,10 @@ pub struct RentalBillingPeriod {
     pub standby_amount: Option<Decimal>,
     pub overtime_amount: Option<Decimal>,
     pub breakdown_penalty_amount: Option<Decimal>,
+
+    pub total_fuel_consumed: Option<Decimal>,
+    pub fuel_surcharge_rate: Option<Decimal>,
+    pub fuel_surcharge_amount: Option<Decimal>,
 
     pub mobilization_fee: Option<Decimal>,
     pub demobilization_fee: Option<Decimal>,
@@ -170,6 +177,28 @@ pub struct RentalBillingPeriod {
     pub approved_by: Option<Uuid>,
     pub approved_at: Option<DateTime<Utc>>,
 
+    // KPI Metrics (Equipment Availability)
+    #[sqlx(default)]
+    pub mechanical_availability: Option<Decimal>, // MA %
+    #[sqlx(default)]
+    pub physical_availability: Option<Decimal>, // PA %
+    #[sqlx(default)]
+    pub utilization_availability: Option<Decimal>, // UA %
+    #[sqlx(default)]
+    pub effective_utilization: Option<Decimal>, // EU %
+    #[sqlx(default)]
+    pub ma_threshold: Option<Decimal>, // Default 85%
+    #[sqlx(default)]
+    pub availability_penalty: Option<Decimal>, // Penalty amount
+
+    // Adjustment/Correction
+    #[sqlx(default)]
+    pub adjustment_notes: Option<String>,
+    #[sqlx(default)]
+    pub adjusted_by: Option<Uuid>,
+    #[sqlx(default)]
+    pub adjusted_at: Option<DateTime<Utc>>,
+
     pub notes: Option<String>,
 
     pub created_at: Option<DateTime<Utc>>,
@@ -178,11 +207,17 @@ pub struct RentalBillingPeriod {
 
 impl RentalBillingPeriod {
     /// Create new billing period
-    pub fn new(rental_id: Uuid, period_start: NaiveDate, period_end: NaiveDate) -> Self {
+    pub fn new(
+        rental_id: Uuid,
+        rental_item_id: Option<Uuid>,
+        period_start: NaiveDate,
+        period_end: NaiveDate,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
             rental_id,
+            rental_item_id,
             period_start,
             period_end,
             period_type: Some(PeriodType::Monthly.as_str().to_string()),
@@ -191,8 +226,10 @@ impl RentalBillingPeriod {
             total_overtime_hours: Some(Decimal::ZERO),
             total_breakdown_hours: Some(Decimal::ZERO),
             total_hm_km_usage: Some(Decimal::ZERO),
+            total_production_volume: Some(Decimal::ZERO),
             working_days: Some(0),
             rate_basis: Some(RateBasis::Hourly.as_str().to_string()),
+            unit_rate: None,
             hourly_rate: None,
             minimum_hours: Some(Decimal::from(200)),
             overtime_multiplier: Some(Decimal::from_str_exact("1.25").unwrap_or(Decimal::ONE)),
@@ -204,6 +241,9 @@ impl RentalBillingPeriod {
             standby_amount: Some(Decimal::ZERO),
             overtime_amount: Some(Decimal::ZERO),
             breakdown_penalty_amount: Some(Decimal::ZERO),
+            total_fuel_consumed: Some(Decimal::ZERO),
+            fuel_surcharge_rate: Some(Decimal::ZERO),
+            fuel_surcharge_amount: Some(Decimal::ZERO),
             mobilization_fee: Some(Decimal::ZERO),
             demobilization_fee: Some(Decimal::ZERO),
             other_charges: Some(Decimal::ZERO),
@@ -222,6 +262,17 @@ impl RentalBillingPeriod {
             calculated_at: None,
             approved_by: None,
             approved_at: None,
+            // KPI Metrics
+            mechanical_availability: None,
+            physical_availability: None,
+            utilization_availability: None,
+            effective_utilization: None,
+            ma_threshold: Some(Decimal::from(85)),
+            availability_penalty: Some(Decimal::ZERO),
+            // Adjustment
+            adjustment_notes: None,
+            adjusted_by: None,
+            adjusted_at: None,
             notes: None,
             created_at: Some(now),
             updated_at: Some(now),
@@ -234,7 +285,7 @@ impl RentalBillingPeriod {
         let standby = self.total_standby_hours.unwrap_or(Decimal::ZERO);
         let overtime = self.total_overtime_hours.unwrap_or(Decimal::ZERO);
         let minimum = self.minimum_hours.unwrap_or(Decimal::from(200));
-        let hourly_rate = self.hourly_rate.unwrap_or(Decimal::ZERO);
+        let unit_rate = self.unit_rate.unwrap_or(Decimal::ZERO);
         let overtime_mult = self
             .overtime_multiplier
             .unwrap_or(Decimal::from_str_exact("1.25").unwrap_or(Decimal::ONE));
@@ -243,30 +294,43 @@ impl RentalBillingPeriod {
             .unwrap_or(Decimal::from_str_exact("0.50").unwrap_or(Decimal::ONE));
         let breakdown_penalty = self.breakdown_penalty_per_day.unwrap_or(Decimal::ZERO);
 
-        // Calculate billable hours (MAX of actual operating hours vs minimum)
-        let billable = if operating >= minimum {
-            operating
+        if self.rate_basis.as_deref() == Some("bcm") {
+            // BCM Calculation
+            let volume = self.total_production_volume.unwrap_or(Decimal::ZERO);
+            let base = volume * unit_rate;
+            self.base_amount = Some(base);
+
+            self.billable_hours = Some(Decimal::ZERO);
+            self.shortfall_hours = Some(Decimal::ZERO);
+            self.standby_amount = Some(Decimal::ZERO);
+            self.overtime_amount = Some(Decimal::ZERO);
         } else {
-            minimum
-        };
-        self.billable_hours = Some(billable);
-        self.shortfall_hours = Some(if operating < minimum {
-            minimum - operating
-        } else {
-            Decimal::ZERO
-        });
+            // Standard Time-based Calculation
+            // Calculate billable hours (MAX of actual operating hours vs minimum)
+            let billable = if operating >= minimum {
+                operating
+            } else {
+                minimum
+            };
+            self.billable_hours = Some(billable);
+            self.shortfall_hours = Some(if operating < minimum {
+                minimum - operating
+            } else {
+                Decimal::ZERO
+            });
 
-        // Base amount (billable hours × rate)
-        let base = billable * hourly_rate;
-        self.base_amount = Some(base);
+            // Base amount (billable hours × rate)
+            let base = billable * unit_rate;
+            self.base_amount = Some(base);
 
-        // Standby amount (standby hours × rate × standby multiplier)
-        let standby_amt = standby * hourly_rate * standby_mult;
-        self.standby_amount = Some(standby_amt);
+            // Standby amount (standby hours × rate × standby multiplier)
+            let standby_amt = standby * unit_rate * standby_mult;
+            self.standby_amount = Some(standby_amt);
 
-        // Overtime amount (overtime hours × rate × overtime multiplier)
-        let overtime_amt = overtime * hourly_rate * overtime_mult;
-        self.overtime_amount = Some(overtime_amt);
+            // Overtime amount (overtime hours × rate × overtime multiplier)
+            let overtime_amt = overtime * unit_rate * overtime_mult;
+            self.overtime_amount = Some(overtime_amt);
+        }
 
         // Breakdown penalty (breakdown days × penalty per day)
         let breakdown_hours = self.total_breakdown_hours.unwrap_or(Decimal::ZERO);
@@ -274,11 +338,21 @@ impl RentalBillingPeriod {
         let breakdown_amt = breakdown_days * breakdown_penalty;
         self.breakdown_penalty_amount = Some(breakdown_amt);
 
+        // Fuel Surcharge
+        let fuel = self.total_fuel_consumed.unwrap_or(Decimal::ZERO);
+        let surcharge_rate = self.fuel_surcharge_rate.unwrap_or(Decimal::ZERO);
+        let fuel_amt = fuel * surcharge_rate;
+        self.fuel_surcharge_amount = Some(fuel_amt);
+
         // Subtotal
         let mob = self.mobilization_fee.unwrap_or(Decimal::ZERO);
         let demob = self.demobilization_fee.unwrap_or(Decimal::ZERO);
         let other = self.other_charges.unwrap_or(Decimal::ZERO);
-        let subtotal = base + standby_amt + overtime_amt - breakdown_amt + mob + demob + other;
+        let base_amt = self.base_amount.unwrap_or(Decimal::ZERO);
+        let standby_amt = self.standby_amount.unwrap_or(Decimal::ZERO);
+        let overtime_amt = self.overtime_amount.unwrap_or(Decimal::ZERO);
+        let subtotal =
+            base_amt + standby_amt + overtime_amt - breakdown_amt + mob + demob + other + fuel_amt;
         self.subtotal = Some(subtotal);
 
         // Discount
@@ -295,6 +369,83 @@ impl RentalBillingPeriod {
         // Total
         self.total_amount = Some(after_discount + tax_amt);
         self.status = Some(BillingStatus::Calculated.as_str().to_string());
+    }
+
+    /// Calculate KPI metrics (MA, PA, UA, EU)
+    pub fn calculate_kpi_metrics(&mut self) {
+        let operating = self.total_operating_hours.unwrap_or(Decimal::ZERO);
+        let standby = self.total_standby_hours.unwrap_or(Decimal::ZERO);
+        let breakdown = self.total_breakdown_hours.unwrap_or(Decimal::ZERO);
+
+        // Total scheduled hours (8 hours/day × working days, or calculated from data)
+        let total_hours = operating + standby + breakdown;
+
+        if total_hours.is_zero() {
+            self.mechanical_availability = Some(Decimal::ZERO);
+            self.physical_availability = Some(Decimal::ZERO);
+            self.utilization_availability = Some(Decimal::ZERO);
+            self.effective_utilization = Some(Decimal::ZERO);
+            return;
+        }
+
+        // MA = (Total Hours - Breakdown Hours) / Total Hours × 100
+        let ma = ((total_hours - breakdown) / total_hours) * Decimal::from(100);
+        self.mechanical_availability = Some(ma.round_dp(2));
+
+        // PA = (Operating + Standby) / Total Hours × 100
+        let pa = ((operating + standby) / total_hours) * Decimal::from(100);
+        self.physical_availability = Some(pa.round_dp(2));
+
+        // UA = Operating / (Operating + Standby) × 100
+        let available_hours = operating + standby;
+        let ua = if available_hours.is_zero() {
+            Decimal::ZERO
+        } else {
+            (operating / available_hours) * Decimal::from(100)
+        };
+        self.utilization_availability = Some(ua.round_dp(2));
+
+        // EU = Operating / Total Hours × 100
+        let eu = (operating / total_hours) * Decimal::from(100);
+        self.effective_utilization = Some(eu.round_dp(2));
+    }
+
+    /// Apply availability penalty if MA < threshold
+    pub fn apply_availability_penalty(&mut self, penalty_multiplier: Decimal) {
+        let ma = self.mechanical_availability.unwrap_or(Decimal::from(100));
+        let threshold = self.ma_threshold.unwrap_or(Decimal::from(85));
+        let base_rate = self
+            .unit_rate
+            .unwrap_or(self.hourly_rate.unwrap_or(Decimal::ZERO));
+
+        if ma < threshold && !base_rate.is_zero() {
+            // Penalty = (Threshold - Actual MA) × Base Rate × Multiplier
+            let deficit = (threshold - ma) / Decimal::from(100); // Convert to decimal
+            let operating = self.total_operating_hours.unwrap_or(Decimal::ZERO);
+            let penalty = deficit * base_rate * operating * penalty_multiplier;
+            self.availability_penalty = Some(penalty.round_dp(2));
+        } else {
+            self.availability_penalty = Some(Decimal::ZERO);
+        }
+    }
+
+    /// Full calculation including KPI and penalties
+    pub fn calculate_with_kpi(&mut self, penalty_multiplier: Option<Decimal>) {
+        // First calculate KPI metrics
+        self.calculate_kpi_metrics();
+
+        // Apply availability penalty
+        self.apply_availability_penalty(penalty_multiplier.unwrap_or(Decimal::ONE));
+
+        // Then do standard calculation
+        self.calculate();
+
+        // Add penalty to total
+        let penalty = self.availability_penalty.unwrap_or(Decimal::ZERO);
+        if !penalty.is_zero() {
+            let current_total = self.total_amount.unwrap_or(Decimal::ZERO);
+            self.total_amount = Some(current_total + penalty);
+        }
     }
 }
 

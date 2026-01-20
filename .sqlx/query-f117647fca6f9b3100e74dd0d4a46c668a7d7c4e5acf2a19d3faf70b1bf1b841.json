@@ -157,6 +157,21 @@
         "ordinal": 30,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 31,
+        "name": "production_volume",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 32,
+        "name": "production_unit",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 33,
+        "name": "rental_item_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
@@ -180,6 +195,9 @@
       true,
       true,
       false,
+      true,
+      true,
+      true,
       true,
       true,
       true,

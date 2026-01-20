@@ -6,6 +6,7 @@ export interface UserSummary {
     name: string;
     role_code: string;
     role_level: number;
+    department?: string;
     department_id?: string;
     is_active: boolean;
     employee_name?: string;

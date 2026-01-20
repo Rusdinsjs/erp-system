@@ -147,4 +147,19 @@ impl RbacService {
         let permissions = self.get_user_permissions(user_id).await?;
         Ok(permissions.into_iter().map(|p| p.code).collect())
     }
+
+    /// Update permissions for a role (bulk operation)
+    pub async fn update_role_permissions(
+        &self,
+        role_id: Uuid,
+        permission_ids: Vec<Uuid>,
+    ) -> DomainResult<()> {
+        self.repository
+            .update_role_permissions(role_id, permission_ids)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
 }

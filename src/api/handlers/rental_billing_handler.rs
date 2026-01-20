@@ -46,6 +46,23 @@ pub async fn create_billing(
     }
 }
 
+/// Update/adjust billing period (PATCH)
+pub async fn update_billing(
+    State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
+    Path(billing_id): Path<Uuid>,
+    Json(request): Json<crate::application::dto::UpdateBillingRequest>,
+) -> impl IntoResponse {
+    match state
+        .billing_service
+        .update_billing(billing_id, request, claims.user_id())
+        .await
+    {
+        Ok(billing) => Json(billing).into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
 /// Download billing invoice PDF
 pub async fn download_invoice(
     State(state): State<AppState>,

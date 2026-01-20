@@ -14,8 +14,15 @@ import {
     NumberInput,
     Textarea,
     LoadingOverlay,
-    useToast
+    useToast,
+    Modal,
+    Input
 } from '../../components/ui';
+import { CreateClientModal } from '../../components/Clients/CreateClientModal';
+
+// Simplified Asset Quick Add (Placeholder for now, or minimal fields)
+// Ideally we reuse the AssetForm, but it's large. For "Quick Add" let's redirect or use a simple modal if crucial.
+// For now, let's implement CreateClientModal integration fully.
 
 export function RentalForm() {
     const navigate = useNavigate();
@@ -25,196 +32,327 @@ export function RentalForm() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
 
-    // Form State
-    const [formData, setFormData] = useState<CreateRentalRequest>({
+    // Modals
+    const [showClientModal, setShowClientModal] = useState(false);
+    const [showRateModal, setShowRateModal] = useState(false);
+
+    // Rate Modal Form
+    const [rateForm, setRateForm] = useState({
+        name: '',
+        rate_basis: 'hourly',
+        rate_amount: 0,
+        minimum_hours: 200,
+        overtime_multiplier: 1.25,
+        standby_multiplier: 0.50,
+        breakdown_penalty_per_day: 0,
+        hours_per_day: 8,
+        days_per_month: 25,
+        currency: 'IDR'
+    });
+
+    // Form State (Header)
+    const [headerData, setHeaderData] = useState({
         client_id: '',
-        asset_id: assetIdParam || '',
-        rental_rate_id: '',
         start_date: new Date().toISOString().split('T')[0],
-        end_date: undefined,
-        daily_rate: 0,
+        end_date: undefined as string | undefined,
         deposit_amount: 0,
         notes: ''
     });
 
-    const handleChange = (field: keyof CreateRentalRequest, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
+    // Items State
+    interface RentalItemRow {
+        tempId: string; // for key
+        asset_id: string;
+        asset_name: string;
+        rental_rate_id: string;
+        rate_name: string;
+        rate_amount: number;
+        rate_basis: string;
+        notes?: string;
+    }
+    const [items, setItems] = useState<RentalItemRow[]>([]);
 
-    // Fetch Clients
+    // Current Item Addition State
+    const [currentItem, setCurrentItem] = useState<{
+        asset_id: string;
+        rental_rate_id: string;
+    }>({ asset_id: assetIdParam || '', rental_rate_id: '' });
+
+    // Queries
     const { data: clientsResponse, isLoading: clientsLoading } = useQuery({
         queryKey: ['clients-list'],
         queryFn: () => clientApi.list({ limit: 100 }).then((res: any) => res.data)
     });
     const clients = clientsResponse?.data || [];
 
-    // Fetch Available Assets
     const { data: assetsResponse, isLoading: assetsLoading } = useQuery({
-        queryKey: ['assets-available'],
-        queryFn: () => assetApi.list({ page: 1, per_page: 100, status: 'in_inventory' })
+        queryKey: ['assets-available-rental'],
+        queryFn: () => assetApi.list({ page: 1, per_page: 200, status: 'in_inventory' })
     });
-    const assets = assetsResponse?.data || [];
+    const assets = (assetsResponse?.data || []).filter((a: any) => a.is_rental === true && a.status === 'in_inventory');
 
-    // Fetch Rate Templates
     const { data: rateTemplates, isLoading: ratesLoading } = useQuery({
         queryKey: ['rental-rates'],
         queryFn: () => rentalApi.listRentalRates()
     });
 
-    // Auto-populate rate details on template selection
-    const handleTemplateChange = (rateId: string) => {
-        const template = rateTemplates?.find((r: RentalRate) => r.id === rateId);
-        setFormData(prev => ({
-            ...prev,
-            rental_rate_id: rateId || undefined,
-            daily_rate: template?.rate_amount || prev.daily_rate // Only update if template found, else keep or reset? Maybe keep.
-        }));
+    // Actions
+    const handleAddItem = () => {
+        if (!currentItem.asset_id || !currentItem.rental_rate_id) {
+            showError('Select an asset and a rate template', 'Validation');
+            return;
+        }
+
+        // Find details
+        const asset = assets.find((a: any) => a.id === currentItem.asset_id);
+        const rate = rateTemplates?.find((r: RentalRate) => r.id === currentItem.rental_rate_id);
+
+        if (!asset || !rate) return;
+
+        // Check duplicate
+        if (items.some(i => i.asset_id === asset.id)) {
+            showError('Asset already added to list', 'Validation');
+            return;
+        }
+
+        setItems(prev => [...prev, {
+            tempId: Math.random().toString(36).substr(2, 9),
+            asset_id: asset.id,
+            asset_name: `${asset.name} (${asset.asset_code})`,
+            rental_rate_id: rate.id,
+            rate_name: rate.name,
+            rate_amount: rate.rate_amount,
+            rate_basis: rate.rate_basis || 'hourly',
+            notes: ''
+        }]);
+
+        // Reset current selection
+        setCurrentItem({ asset_id: '', rental_rate_id: '' });
     };
 
+    const handleRemoveItem = (tempId: string) => {
+        setItems(prev => prev.filter(i => i.tempId !== tempId));
+    };
+
+    // Mutations
     const createMutation = useMutation({
         mutationFn: (values: CreateRentalRequest) => rentalApi.createRental(values),
         onSuccess: () => {
-            success('Rental request created successfully', 'Success');
+            success('Rental request created', 'Success');
             queryClient.invalidateQueries({ queryKey: ['rentals'] });
             navigate('/rentals');
         },
-        onError: (err: any) => {
-            showError(err.response?.data?.message || 'Failed to create rental', 'Error');
-        }
+        onError: (err: any) => showError(err.response?.data?.message || 'Failed', 'Error')
+    });
+
+    const createRateMutation = useMutation({
+        mutationFn: (data: any) => rentalApi.createRentalRate(data),
+        onSuccess: (newRate: RentalRate) => {
+            queryClient.invalidateQueries({ queryKey: ['rental-rates'] });
+            success('Rate created', 'Success');
+            setShowRateModal(false);
+            setCurrentItem(prev => ({ ...prev, rental_rate_id: newRate.id }));
+        },
+        onError: (err: any) => showError(err.message, 'Error')
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!formData.client_id || !formData.asset_id || !formData.start_date) {
-            showError('Please fill in all required fields', 'Validation Error');
+        if (!headerData.client_id || !headerData.start_date) {
+            showError('Client and Start Date required', 'Validation');
+            return;
+        }
+        if (items.length === 0) {
+            showError('Please add at least one asset', 'Validation');
             return;
         }
 
-        const payload = { ...formData };
-        if (!payload.end_date) delete payload.end_date;
-        if (!payload.rental_rate_id) delete payload.rental_rate_id;
-
-        // Ensure daily_rate and deposit_amount are numbers
-        payload.daily_rate = Number(payload.daily_rate);
-        payload.deposit_amount = Number(payload.deposit_amount);
-
+        const payload: CreateRentalRequest = {
+            client_id: headerData.client_id,
+            start_date: headerData.start_date,
+            end_date: headerData.end_date,
+            deposit_amount: Number(headerData.deposit_amount),
+            notes: headerData.notes,
+            items: items.map(i => ({
+                asset_id: i.asset_id,
+                rental_rate_id: i.rental_rate_id,
+                rate_amount: i.rate_amount,
+                notes: i.notes
+            }))
+        };
         createMutation.mutate(payload);
     };
 
     const isLoading = clientsLoading || assetsLoading || ratesLoading;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 pb-20">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" onClick={() => navigate('/rentals')}>
-                        <ArrowLeft size={20} />
-                    </Button>
-                    <h1 className="text-2xl font-bold text-white">New Rental Request</h1>
-                </div>
+        <div className="max-w-5xl mx-auto space-y-6 pb-20">
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" onClick={() => navigate('/rentals')}>
+                    <ArrowLeft size={20} />
+                </Button>
+                <h1 className="text-2xl font-bold text-white">New Rental Request</h1>
             </div>
 
-            <Card padding="lg" className="relative">
+            <Card padding="lg">
                 <LoadingOverlay visible={isLoading} />
-
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Basic Info */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Header Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Select
                             label="Client"
                             placeholder="Select Client"
-                            options={clients.map((c: any) => ({ value: c.id, label: c.name + (c.company_name ? ` (${c.company_name})` : '') }))}
-                            value={formData.client_id}
-                            onChange={(val) => handleChange('client_id', val)}
+                            options={clients.map((c: any) => ({ value: c.id, label: c.name }))}
+                            value={headerData.client_id}
+                            onChange={(val) => setHeaderData(p => ({ ...p, client_id: val }))}
+                            onCreate={() => setShowClientModal(true)}
                             required
                         />
-                        <Select
-                            label="Asset to Rent"
-                            placeholder="Select Available Asset"
-                            options={assets.map((a) => ({ value: a.id, label: `${a.name} (${a.asset_code})` }))}
-                            value={formData.asset_id}
-                            onChange={(val) => handleChange('asset_id', val)}
-                            required
-                        />
-                    </div>
-
-                    <div className="w-full h-px bg-slate-800" />
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Schedule & Pricing</h3>
-
-                    {/* Schedule */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <DateInput
                             label="Start Date"
-                            placeholder="Pick date"
-                            value={formData.start_date ? new Date(formData.start_date) : null}
-                            onChange={(date) => handleChange('start_date', date ? date.toISOString().split('T')[0] : '')}
+                            value={headerData.start_date ? new Date(headerData.start_date) : null}
+                            onChange={(d) => setHeaderData(p => ({ ...p, start_date: d ? d.toISOString().split('T')[0] : '' }))}
                             required
                         />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <DateInput
-                            label="Expected End Date"
-                            placeholder="Open-ended if empty"
-                            value={formData.end_date ? new Date(formData.end_date) : null}
-                            onChange={(date) => handleChange('end_date', date ? date.toISOString().split('T')[0] : undefined)}
+                            label="Expected End (Optional)"
+                            value={headerData.end_date ? new Date(headerData.end_date) : null}
+                            onChange={(d) => setHeaderData(p => ({ ...p, end_date: d ? d.toISOString().split('T')[0] : undefined }))}
+                        />
+                        <NumberInput
+                            label="Deposit (Total)"
+                            prefix="Rp "
+                            value={headerData.deposit_amount}
+                            onChange={(v) => setHeaderData(p => ({ ...p, deposit_amount: Number(v) }))}
                         />
                     </div>
-
-                    {/* Pricing */}
-                    <div className="space-y-6">
-                        <Select
-                            label="Apply Price Template (Optional)"
-                            placeholder="Select a standard rate..."
-                            options={rateTemplates?.map((r: RentalRate) => ({
-                                value: r.id,
-                                label: `${r.name} - ${r.rate_amount.toLocaleString()} ${r.currency} / ${r.rate_basis || 'Day'}`
-                            })) || []}
-                            value={formData.rental_rate_id || ''}
-                            onChange={handleTemplateChange}
-                        />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <NumberInput
-                                label="Base Rate Amount"
-                                placeholder="0"
-                                prefix="Rp "
-                                value={formData.daily_rate}
-                                onChange={(val) => handleChange('daily_rate', val)}
-                                required
-                            />
-                            <NumberInput
-                                label="Deposit Amount"
-                                placeholder="0"
-                                prefix="Rp "
-                                value={formData.deposit_amount}
-                                onChange={(val) => handleChange('deposit_amount', val)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="w-full h-px bg-slate-800" />
-
                     <Textarea
-                        label="Notes"
-                        placeholder="Special conditions, delivery instructions, etc."
-                        rows={3}
-                        value={formData.notes || ''}
-                        onChange={(e) => handleChange('notes', e.target.value)}
+                        label="General Notes"
+                        rows={2}
+                        value={headerData.notes}
+                        onChange={e => setHeaderData(p => ({ ...p, notes: e.target.value }))}
                     />
 
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button variant="ghost" onClick={() => navigate('/rentals')} type="button">
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            leftIcon={<Save size={16} />}
-                            loading={createMutation.isPending}
-                        >
-                            Create Request
+                    <div className="w-full h-px bg-slate-800 my-4" />
+
+                    {/* Asset / Item Selection */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-white">Assets to Rent</h3>
+
+                        {/* Selector Row */}
+                        <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <Select
+                                label="Asset"
+                                placeholder="Choose Asset"
+                                options={assets.map((a: any) => ({ value: a.id, label: `${a.name} (${a.asset_code})` }))}
+                                value={currentItem.asset_id}
+                                onChange={(val) => setCurrentItem(p => ({ ...p, asset_id: val }))}
+                            />
+                            <Select
+                                label="Rate Template"
+                                placeholder="Choose Rate"
+                                options={[
+                                    { value: '__new__', label: '+ New Rate...' },
+                                    ...(rateTemplates?.map((r: RentalRate) => ({
+                                        value: r.id,
+                                        label: `${r.name} (${r.currency} ${r.rate_amount})`
+                                    })) || [])
+                                ]}
+                                value={currentItem.rental_rate_id}
+                                onChange={(val) => {
+                                    if (val === '__new__') setShowRateModal(true);
+                                    else setCurrentItem(p => ({ ...p, rental_rate_id: val }));
+                                }}
+                            />
+                            <Button type="button" onClick={handleAddItem} disabled={!currentItem.asset_id || !currentItem.rental_rate_id}>
+                                + Add Asset
+                            </Button>
+                        </div>
+
+                        {/* Items Table */}
+                        {items.length > 0 ? (
+                            <div className="overflow-x-auto border border-slate-700 rounded-lg">
+                                <table className="w-full text-left text-sm text-slate-300">
+                                    <thead className="bg-slate-800 text-xs uppercase font-semibold text-slate-400">
+                                        <tr>
+                                            <th className="px-4 py-3">Asset</th>
+                                            <th className="px-4 py-3">Rate</th>
+                                            <th className="px-4 py-3">Price</th>
+                                            <th className="px-4 py-3 text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-700">
+                                        {items.map(item => (
+                                            <tr key={item.tempId} className="hover:bg-slate-800/30">
+                                                <td className="px-4 py-3 font-medium text-white">{item.asset_name}</td>
+                                                <td className="px-4 py-3">{item.rate_name}</td>
+                                                <td className="px-4 py-3 font-mono">
+                                                    Rp {item.rate_amount.toLocaleString()} <span className="text-xs text-slate-500">/{item.rate_basis}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveItem(item.tempId)}
+                                                        className="text-red-400 hover:text-red-300 hover:underline"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-slate-500 italic border border-dashed border-slate-700 rounded-lg">
+                                No assets added yet. Use the form above to add an asset.
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-6">
+                        <Button variant="ghost" onClick={() => navigate('/rentals')} type="button"> Cancel </Button>
+                        <Button type="submit" leftIcon={<Save size={16} />} loading={createMutation.isPending}>
+                            Submit Rental Request
                         </Button>
                     </div>
                 </form>
             </Card>
+
+            <CreateClientModal
+                isOpen={showClientModal}
+                onClose={() => setShowClientModal(false)}
+                onSuccess={(newId) => setHeaderData(p => ({ ...p, client_id: newId }))}
+            />
+
+            {/* Rate Modal - Simplified reuse */}
+            <Modal
+                isOpen={showRateModal}
+                onClose={() => setShowRateModal(false)}
+                title="Create New Rate"
+                size="lg"
+            >
+                <form onSubmit={(e) => { e.preventDefault(); createRateMutation.mutate({ ...rateForm, rate_type: rateForm.rate_basis }); }} className="space-y-4">
+                    <Input label="Name" required value={rateForm.name} onChange={e => setRateForm(p => ({ ...p, name: e.target.value }))} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Select label="Basis" options={[{ value: 'hourly', label: 'Hourly' }, { value: 'monthly', label: 'Monthly' }, { value: 'daily', label: 'Daily' }, { value: 'bcm', label: 'BCM' }]}
+                            value={rateForm.rate_basis} onChange={v => setRateForm(p => ({ ...p, rate_basis: v }))}
+                        />
+                        <NumberInput label="Amount" prefix="Rp " required value={rateForm.rate_amount} onChange={v => setRateForm(p => ({ ...p, rate_amount: Number(v) }))} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                        <NumberInput label="Min Hrs" value={rateForm.minimum_hours} onChange={v => setRateForm(p => ({ ...p, minimum_hours: Number(v) }))} />
+                        <NumberInput label="Standby x" value={rateForm.standby_multiplier} onChange={v => setRateForm(p => ({ ...p, standby_multiplier: Number(v) }))} />
+                        <NumberInput label="Overtime x" value={rateForm.overtime_multiplier} onChange={v => setRateForm(p => ({ ...p, overtime_multiplier: Number(v) }))} />
+                    </div>
+                    <div className="flex justify-end pt-4">
+                        <Button type="submit" loading={createRateMutation.isPending}>Save</Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

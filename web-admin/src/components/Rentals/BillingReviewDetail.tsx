@@ -102,6 +102,15 @@ export function BillingReviewDetail({ billingId, onClose }: Props) {
                                 </div>
                                 <span className="font-bold text-blue-400">{summary.billable_hours}</span>
                             </div>
+                            {(summary.total_fuel_consumed || 0) > 0 && (
+                                <>
+                                    <div className="border-t border-slate-800 my-1"></div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Fuel Consumed</span>
+                                        <span className="font-medium text-amber-400">{summary.total_fuel_consumed} L</span>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </Card>
                 </div>
@@ -127,6 +136,18 @@ export function BillingReviewDetail({ billingId, onClose }: Props) {
                                     <span className="text-slate-400">Breakdown Penalty</span>
                                     <span className="text-red-400">{summary.breakdown_penalty_amount.toLocaleString()}</span>
                                 </div>
+                                {Number(summary.fuel_surcharge_amount || 0) > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Fuel Surcharge ({Number(summary.fuel_surcharge_rate).toLocaleString()}/L)</span>
+                                        <span className="text-amber-400">{Number(summary.fuel_surcharge_amount).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {(Number(summary.mobilization_fee) > 0 || Number(summary.demobilization_fee) > 0) && (
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Mob/Demob Fees</span>
+                                        <span>{(Number(summary.mobilization_fee) + Number(summary.demobilization_fee)).toLocaleString()}</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex flex-col gap-2">
                                 <div className="flex justify-between">

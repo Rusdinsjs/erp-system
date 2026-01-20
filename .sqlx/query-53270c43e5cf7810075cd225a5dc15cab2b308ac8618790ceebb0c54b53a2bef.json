@@ -1,0 +1,397 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO rental_billings (\n                id, rental_id, period_start, period_end, period_type,\n                total_operating_hours, total_standby_hours, total_overtime_hours, total_breakdown_hours,\n                total_hm_km_usage, working_days,\n                rate_basis, unit_rate, hourly_rate, minimum_hours, overtime_multiplier, standby_multiplier, breakdown_penalty_per_day,\n                billable_hours, shortfall_hours,\n                base_amount, standby_amount, overtime_amount, breakdown_penalty_amount,\n                mobilization_fee, demobilization_fee, other_charges, other_charges_description,\n                subtotal, discount_percentage, discount_amount, tax_percentage, tax_amount, total_amount,\n                status, invoice_number, invoice_date, due_date,\n                calculated_by, calculated_at, approved_by, approved_at,\n                notes, created_at, updated_at, total_production_volume\n            ) VALUES (\n                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,\n                $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41,\n                $42, $43, $44, $45, $46\n            )\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rental_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "period_start",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "period_end",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "period_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_operating_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_standby_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_overtime_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_breakdown_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "total_hm_km_usage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "working_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "rate_basis",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "hourly_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "minimum_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "overtime_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "standby_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "breakdown_penalty_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 17,
+        "name": "billable_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 18,
+        "name": "shortfall_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 19,
+        "name": "base_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 20,
+        "name": "standby_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 21,
+        "name": "overtime_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 22,
+        "name": "breakdown_penalty_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 23,
+        "name": "mobilization_fee",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 24,
+        "name": "demobilization_fee",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 25,
+        "name": "other_charges",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 26,
+        "name": "other_charges_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 27,
+        "name": "subtotal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 28,
+        "name": "discount_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 29,
+        "name": "discount_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 30,
+        "name": "tax_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 31,
+        "name": "tax_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 32,
+        "name": "total_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 33,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 34,
+        "name": "invoice_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 35,
+        "name": "invoice_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 36,
+        "name": "due_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 37,
+        "name": "calculated_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 38,
+        "name": "calculated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 39,
+        "name": "approved_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 40,
+        "name": "approved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 41,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 42,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 43,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 44,
+        "name": "total_production_volume",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 45,
+        "name": "unit_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 46,
+        "name": "mechanical_availability",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 47,
+        "name": "physical_availability",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 48,
+        "name": "utilization_availability",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 49,
+        "name": "effective_utilization",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 50,
+        "name": "ma_threshold",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 51,
+        "name": "availability_penalty",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 52,
+        "name": "adjustment_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 53,
+        "name": "adjusted_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 54,
+        "name": "adjusted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 55,
+        "name": "rental_item_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Varchar",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int4",
+        "Varchar",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Varchar",
+        "Varchar",
+        "Date",
+        "Date",
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "53270c43e5cf7810075cd225a5dc15cab2b308ac8618790ceebb0c54b53a2bef"
+}

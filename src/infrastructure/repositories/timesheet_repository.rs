@@ -30,15 +30,17 @@ impl TimesheetRepository {
         sqlx::query_as!(
             RentalTimesheet,
             r#"INSERT INTO rental_timesheets (
-                id, rental_id, work_date, start_time, end_time,
+                id, rental_id, rental_item_id, work_date, start_time, end_time,
                 operating_hours, standby_hours, overtime_hours, breakdown_hours,
                 hm_km_start, hm_km_end, hm_km_usage,
                 operation_status, breakdown_reason, work_description, work_location,
-                photos, checker_id, checker_at, checker_notes, status
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+                photos, checker_id, checker_at, checker_notes, status,
+                production_volume, production_unit, fuel_consumed_liters
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
             RETURNING *"#,
             timesheet.id,
             timesheet.rental_id,
+            timesheet.rental_item_id,
             timesheet.work_date,
             timesheet.start_time,
             timesheet.end_time,
@@ -57,7 +59,10 @@ impl TimesheetRepository {
             timesheet.checker_id,
             timesheet.checker_at,
             timesheet.checker_notes,
-            timesheet.status
+            timesheet.status,
+            timesheet.production_volume,
+            timesheet.production_unit,
+            timesheet.fuel_consumed_liters
         )
         .fetch_one(&self.pool)
         .await
@@ -112,7 +117,10 @@ impl TimesheetRepository {
                 operating_hours = $4, standby_hours = $5, overtime_hours = $6, breakdown_hours = $7,
                 hm_km_start = $8, hm_km_end = $9, hm_km_usage = $10,
                 operation_status = $11, breakdown_reason = $12, work_description = $13, work_location = $14,
-                photos = $15, checker_notes = $16, updated_at = $17
+                photos = $15, checker_notes = $16,
+                production_volume = $17, production_unit = $18,
+                fuel_consumed_liters = $19,
+                updated_at = $20
             WHERE id = $1
             RETURNING *"#,
             timesheet.id,
@@ -131,6 +139,9 @@ impl TimesheetRepository {
             timesheet.work_location,
             timesheet.photos,
             timesheet.checker_notes,
+            timesheet.production_volume,
+            timesheet.production_unit,
+            timesheet.fuel_consumed_liters,
             now
         )
         .fetch_one(&self.pool)
@@ -220,16 +231,19 @@ impl TimesheetRepository {
         sqlx::query_as!(
             TimesheetDetailResponse,
             r#"SELECT 
-                ts.id, ts.rental_id, r.rental_number, a.name as asset_name, c.name as client_name,
+                ts.id, ts.rental_id, ts.rental_item_id, r.rental_number, a.name as asset_name, c.name as client_name,
                 ts.work_date, ts.operating_hours as "operating_hours!", 
                 ts.standby_hours as "standby_hours!", 
                 ts.overtime_hours as "overtime_hours!", 
                 ts.breakdown_hours as "breakdown_hours!",
                 ts.hm_km_start, ts.hm_km_end, ts.hm_km_usage, ts.operation_status,
-                ts.work_description, ts.photos, ts.status as "status!", ts.checker_notes
+                ts.work_description, ts.photos, 
+                ts.production_volume, ts.production_unit,
+                ts.status as "status!", ts.checker_notes
             FROM rental_timesheets ts
             JOIN rentals r ON ts.rental_id = r.id
-            JOIN assets a ON r.asset_id = a.id
+            JOIN rental_items ri ON ts.rental_item_id = ri.id
+            JOIN assets a ON ri.asset_id = a.id
             JOIN clients c ON r.client_id = c.id
             WHERE ts.status = 'submitted'
             ORDER BY ts.work_date ASC"#
@@ -253,6 +267,8 @@ impl TimesheetRepository {
                 COALESCE(SUM(overtime_hours), 0) as "total_overtime_hours!",
                 COALESCE(SUM(breakdown_hours), 0) as "total_breakdown_hours!",
                 COALESCE(SUM(hm_km_usage), 0) as "total_hm_km_usage!",
+                COALESCE(SUM(production_volume), 0) as "total_production_volume!",
+                COALESCE(SUM(fuel_consumed_liters), 0) as "total_fuel_consumed!",
                 COUNT(*) as "working_days!"
             FROM rental_timesheets
             WHERE rental_id = $1 
@@ -277,15 +293,21 @@ impl TimesheetRepository {
         sqlx::query_as!(
             RentalBillingPeriod,
             r#"INSERT INTO rental_billing_periods (
-                id, rental_id, period_start, period_end, period_type, status
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+                id, rental_id, period_start, period_end, period_type, status,
+                total_production_volume,
+                total_fuel_consumed, fuel_surcharge_rate, fuel_surcharge_amount
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *"#,
             billing.id,
             billing.rental_id,
             billing.period_start,
             billing.period_end,
             billing.period_type,
-            billing.status
+            billing.status,
+            billing.total_production_volume,
+            billing.total_fuel_consumed,
+            billing.fuel_surcharge_rate,
+            billing.fuel_surcharge_amount
         )
         .fetch_one(&self.pool)
         .await
@@ -322,7 +344,7 @@ impl TimesheetRepository {
                 total_hm_km_usage = $6,
                 working_days = $7,
                 rate_basis = $8,
-                hourly_rate = $9,
+                unit_rate = $9,
                 minimum_hours = $10,
                 overtime_multiplier = $11,
                 standby_multiplier = $12,
@@ -346,7 +368,11 @@ impl TimesheetRepository {
                 status = 'calculated',
                 calculated_by = $30,
                 calculated_at = $31,
-                updated_at = $31
+                updated_at = $31,
+                total_production_volume = $32,
+                total_fuel_consumed = $33,
+                fuel_surcharge_rate = $34,
+                fuel_surcharge_amount = $35
             WHERE id = $1"#,
             id,
             billing.total_operating_hours,
@@ -356,7 +382,7 @@ impl TimesheetRepository {
             billing.total_hm_km_usage,
             billing.working_days,
             billing.rate_basis,
-            billing.hourly_rate,
+            billing.unit_rate,
             billing.minimum_hours,
             billing.overtime_multiplier,
             billing.standby_multiplier,
@@ -378,7 +404,11 @@ impl TimesheetRepository {
             billing.tax_amount,
             billing.total_amount,
             calculated_by,
-            now
+            now,
+            billing.total_production_volume,
+            billing.total_fuel_consumed,
+            billing.fuel_surcharge_rate,
+            billing.fuel_surcharge_amount
         )
         .execute(&self.pool)
         .await?;
@@ -512,5 +542,7 @@ pub struct TimesheetSummaryRow {
     pub total_overtime_hours: Decimal,
     pub total_breakdown_hours: Decimal,
     pub total_hm_km_usage: Decimal,
+    pub total_production_volume: Decimal,
+    pub total_fuel_consumed: Decimal,
     pub working_days: i64,
 }

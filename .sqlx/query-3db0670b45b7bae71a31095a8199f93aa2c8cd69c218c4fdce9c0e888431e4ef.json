@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE rentals \n            SET status = 'approved', approved_by = $1, approved_at = $2, updated_at = NOW()\n            WHERE id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3db0670b45b7bae71a31095a8199f93aa2c8cd69c218c4fdce9c0e888431e4ef"
+}

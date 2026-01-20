@@ -48,11 +48,10 @@ export function RentalList() {
                     <TableHead>
                         <TableRow>
                             <TableTh>Rental No.</TableTh>
-                            <TableTh>Asset</TableTh>
                             <TableTh>Client</TableTh>
+                            <TableTh>Assets</TableTh>
                             <TableTh>Period</TableTh>
                             <TableTh>Status</TableTh>
-                            <TableTh>Rate</TableTh>
                             <TableTh className="text-right">Actions</TableTh>
                         </TableRow>
                     </TableHead>
@@ -61,8 +60,12 @@ export function RentalList() {
                             paginatedRentals.map((rental) => (
                                 <TableRow key={rental.id}>
                                     <TableTd>{rental.rental_number}</TableTd>
-                                    <TableTd>{rental.asset_name}</TableTd>
                                     <TableTd>{rental.client_name}</TableTd>
+                                    <TableTd>
+                                        <div className="text-sm">
+                                            {rental.items?.length || 0} Item(s)
+                                        </div>
+                                    </TableTd>
                                     <TableTd>
                                         <div className="flex flex-col">
                                             <span className="text-white">{rental.start_date}</span>
@@ -71,9 +74,6 @@ export function RentalList() {
                                     </TableTd>
                                     <TableTd>
                                         <Badge variant="info">{rental.status}</Badge>
-                                    </TableTd>
-                                    <TableTd>
-                                        {rental.daily_rate?.toLocaleString()} / day
                                     </TableTd>
                                     <TableTd className="text-right">
                                         <ActionIcon

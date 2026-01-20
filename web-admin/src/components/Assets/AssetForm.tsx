@@ -15,6 +15,7 @@ import {
     Tabs, TabsList, TabsTrigger, TabsContent,
     ActionIcon,
 } from '../ui';
+import { CreateCategoryModal } from './CreateCategoryModal';
 
 interface Category {
     id: string;
@@ -56,6 +57,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         residual_value: initialValues?.residual_value,
         useful_life_months: initialValues?.useful_life_months,
         notes: initialValues?.notes || '',
+        is_rental: initialValues?.is_rental || false,
         // Vehicle Details
         vehicle_license_plate: initialValues?.vehicle_details?.license_plate || '',
         vehicle_vin: initialValues?.vehicle_details?.vin || '',
@@ -78,6 +80,100 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         building_certificate_expiry: initialValues?.specifications?.certificate_expiry ? new Date(initialValues.specifications.certificate_expiry) : null,
     });
 
+    // Sync state when initialValues changes (e.g. opening edit modal)
+    useEffect(() => {
+        if (initialValues) {
+            setFormData({
+                asset_code: initialValues.asset_code || '',
+                name: initialValues.name || '',
+                category_id: initialValues.category_id || '',
+                location_id: initialValues.location_id || '',
+                department_id: initialValues.department_id || '',
+                status: initialValues.status || 'planning',
+                serial_number: initialValues.serial_number || '',
+                brand: initialValues.brand || '',
+                model: initialValues.model || '',
+                year_manufacture: initialValues.year_manufacture,
+                purchase_date: initialValues.purchase_date ? new Date(initialValues.purchase_date) : null,
+                purchase_price: initialValues.purchase_price,
+                residual_value: initialValues.residual_value,
+                useful_life_months: initialValues.useful_life_months,
+                notes: initialValues.notes || '',
+                is_rental: initialValues.is_rental || false,
+                // Vehicle Details
+                vehicle_license_plate: initialValues.vehicle_details?.license_plate || '',
+                vehicle_vin: initialValues.vehicle_details?.vin || '',
+                vehicle_engine_number: initialValues.vehicle_details?.engine_number || '',
+                vehicle_color: initialValues.vehicle_details?.color || '',
+                vehicle_bpkb_number: initialValues.vehicle_details?.bpkb_number || '',
+                vehicle_stnk_expiry: initialValues.vehicle_details?.stnk_expiry ? new Date(initialValues.vehicle_details.stnk_expiry) : null,
+                vehicle_kir_expiry: initialValues.vehicle_details?.kir_expiry ? new Date(initialValues.vehicle_details.kir_expiry) : null,
+                vehicle_fuel_type: initialValues.vehicle_details?.fuel_type || '',
+                vehicle_transmission: initialValues.vehicle_details?.transmission || '',
+                vehicle_capacity: initialValues.vehicle_details?.capacity || '',
+                vehicle_odometer: initialValues.vehicle_details?.odometer_last,
+                // Building Details
+                building_address: initialValues.specifications?.address || '',
+                building_city: initialValues.specifications?.city || '',
+                building_land_area: initialValues.specifications?.land_area,
+                building_building_area: initialValues.specifications?.building_area,
+                building_certificate_number: initialValues.specifications?.certificate_number || '',
+                building_pbb_number: initialValues.specifications?.pbb_number || '',
+                building_certificate_expiry: initialValues.specifications?.certificate_expiry ? new Date(initialValues.specifications.certificate_expiry) : null,
+            });
+
+            // Sync custom specs
+            const specs = initialValues.specifications;
+            if (specs && typeof specs === 'object' && !specs.address) {
+                setCustomSpecs(Object.entries(specs).map(([key, value]) => ({
+                    key,
+                    value: String(value)
+                })));
+            } else {
+                setCustomSpecs([]);
+            }
+        } else {
+            // Reset to defaults if creating new (optional, but good practice if modal doesn't unmount)
+            setFormData({
+                asset_code: '',
+                name: '',
+                category_id: '',
+                location_id: '',
+                department_id: '',
+                status: 'planning',
+                serial_number: '',
+                brand: '',
+                model: '',
+                year_manufacture: undefined, // undefined for number inputs usually better than empty string
+                purchase_date: null,
+                purchase_price: undefined,
+                residual_value: undefined,
+                useful_life_months: undefined,
+                notes: '',
+                is_rental: false,
+                vehicle_license_plate: '',
+                vehicle_vin: '',
+                vehicle_engine_number: '',
+                vehicle_color: '',
+                vehicle_bpkb_number: '',
+                vehicle_stnk_expiry: null,
+                vehicle_kir_expiry: null,
+                vehicle_fuel_type: '',
+                vehicle_transmission: '',
+                vehicle_capacity: '',
+                vehicle_odometer: undefined,
+                building_address: '',
+                building_city: '',
+                building_land_area: undefined,
+                building_building_area: undefined,
+                building_certificate_number: '',
+                building_pbb_number: '',
+                building_certificate_expiry: null,
+            });
+            setCustomSpecs([]);
+        }
+    }, [initialValues]);
+
     // Custom Attributes State
     const [customSpecs, setCustomSpecs] = useState<{ key: string; value: string }[]>(() => {
         const specs = initialValues?.specifications;
@@ -92,6 +188,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
 
     const updateField = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -205,6 +302,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             residual_value: formData.residual_value,
             useful_life_months: formData.useful_life_months,
             notes: formData.notes || undefined,
+            is_rental: formData.is_rental,
         };
 
         // Vehicle details
@@ -291,6 +389,20 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                 { value: 'archived', label: 'Archived' },
                             ]}
                         />
+                        {/* Is Rental Checkbox */}
+                        <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                            <input
+                                type="checkbox"
+                                id="is_rental"
+                                checked={formData.is_rental}
+                                onChange={(e) => updateField('is_rental', e.target.checked)}
+                                className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-emerald-500"
+                            />
+                            <label htmlFor="is_rental" className="text-sm text-slate-300 cursor-pointer">
+                                <span className="font-medium text-white">Is Rentable</span>
+                                <span className="block text-xs text-slate-500">Centang jika asset ini bisa disewakan</span>
+                            </label>
+                        </div>
                         <div className="md:col-span-2">
                             <Input
                                 label="Asset Name"
@@ -308,7 +420,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                             placeholder="Select category..."
                             error={errors.category_id}
                             required
-                            onCreate={() => window.open('/categories', '_blank')}
+                            onCreate={() => setShowCategoryModal(true)}
                         />
                         <Select
                             label="Location"
@@ -576,6 +688,19 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                     Save Asset
                 </Button>
             </div>
+
+            {/* Quick Create Category Modal */}
+            <CreateCategoryModal
+                isOpen={showCategoryModal}
+                onClose={() => setShowCategoryModal(false)}
+                onSuccess={(newId) => {
+                    updateField('category_id', newId);
+                    // Optionally refresh categories query if needed, 
+                    // generally invalidating 'categories-tree' or 'departments' handled in mutation
+                }}
+            />
         </form>
     );
 }
+
+

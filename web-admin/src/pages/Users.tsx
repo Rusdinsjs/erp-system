@@ -31,6 +31,7 @@ const initialFormState: CreateUserRequest = {
 
 export function Users() {
     const [users, setUsers] = useState<UserSummary[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<UserSummary[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -41,6 +42,11 @@ export function Users() {
     const [editingUser, setEditingUser] = useState<UserSummary | null>(null);
     const [formData, setFormData] = useState<CreateUserRequest>(initialFormState);
     const [editFormData, setEditFormData] = useState<UpdateUserRequest>({});
+
+    // Filters
+    const [filterRole, setFilterRole] = useState<string>('all');
+    const [filterDepartment, setFilterDepartment] = useState<string>('all');
+    const [filterStatus, setFilterStatus] = useState<string>('all');
 
     const { success, error: showError } = useToast();
 
@@ -58,8 +64,10 @@ export function Users() {
 
             if (usersRes && Array.isArray(usersRes.data)) {
                 setUsers(usersRes.data);
+                setFilteredUsers(usersRes.data);
             } else if (Array.isArray(usersRes)) {
                 setUsers(usersRes);
+                setFilteredUsers(usersRes);
             }
 
             if (Array.isArray(rolesRes)) {
@@ -72,6 +80,27 @@ export function Users() {
             setLoading(false);
         }
     };
+
+    // Apply filters whenever users or filter values change
+    useEffect(() => {
+        let filtered = [...users];
+
+        if (filterRole !== 'all') {
+            filtered = filtered.filter(u => u.role_code === filterRole);
+        }
+
+        if (filterDepartment !== 'all') {
+            filtered = filtered.filter(u => u.department === filterDepartment);
+        }
+
+        if (filterStatus === 'active') {
+            filtered = filtered.filter(u => u.is_active);
+        } else if (filterStatus === 'inactive') {
+            filtered = filtered.filter(u => !u.is_active);
+        }
+
+        setFilteredUsers(filtered);
+    }, [users, filterRole, filterDepartment, filterStatus]);
 
     const handleCreate = async () => {
         setSubmitting(true);
@@ -150,11 +179,62 @@ export function Users() {
 
     const roleOptions = roles.map(r => ({ value: r.code, label: `${r.name} (L${r.role_level})` }));
 
+    // Get unique departments for filter
+    const departments = Array.from(new Set(users.map(u => u.department).filter(Boolean)));
+    const departmentOptions = [
+        { value: 'all', label: 'All Departments' },
+        ...departments.map(d => ({ value: d!, label: d! }))
+    ];
+
+    const statusOptions = [
+        { value: 'all', label: 'All Status' },
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' }
+    ];
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-white">User Management</h1>
+                <Button onClick={() => setCreateOpened(true)}>
+                    Create User
+                </Button>
             </div>
+
+            {/* Filters */}
+            <Card padding="md">
+                <div className="flex gap-3 flex-wrap">
+                    <div className="min-w-[200px]">
+                        <Select
+                            label="Filter by Role"
+                            value={filterRole}
+                            onChange={setFilterRole}
+                            options={[{ value: 'all', label: 'All Roles' }, ...roleOptions]}
+                        />
+                    </div>
+                    <div className="min-w-[200px]">
+                        <Select
+                            label="Filter by Department"
+                            value={filterDepartment}
+                            onChange={setFilterDepartment}
+                            options={departmentOptions}
+                        />
+                    </div>
+                    <div className="min-w-[180px]">
+                        <Select
+                            label="Filter by Status"
+                            value={filterStatus}
+                            onChange={setFilterStatus}
+                            options={statusOptions}
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <span className="text-sm text-slate-400">
+                            Showing {filteredUsers.length} of {users.length} users
+                        </span>
+                    </div>
+                </div>
+            </Card>
 
             <Card padding="lg">
                 <div className="relative">
@@ -172,7 +252,7 @@ export function Users() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {users.length > 0 ? users.map((user) => (
+                            {filteredUsers.length > 0 ? filteredUsers.map((user) => (
                                 <TableRow key={user.id}>
                                     <TableTd>
                                         <span className="font-medium text-white">{user.name}</span>
@@ -219,7 +299,7 @@ export function Users() {
                                     </TableTd>
                                 </TableRow>
                             )) : (
-                                <TableEmpty colSpan={7} message="No users found" />
+                                <TableEmpty colSpan={7} message={users.length === 0 ? "No users found" : "No users match the selected filters"} />
                             )}
                         </TableBody>
                     </Table>

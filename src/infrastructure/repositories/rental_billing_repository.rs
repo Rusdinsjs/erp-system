@@ -26,22 +26,23 @@ impl RentalBillingRepository {
         sqlx::query_as!(
             RentalBillingPeriod,
             r#"
-            INSERT INTO rental_billings (
+            INSERT INTO rental_billing_periods (
                 id, rental_id, period_start, period_end, period_type,
                 total_operating_hours, total_standby_hours, total_overtime_hours, total_breakdown_hours,
                 total_hm_km_usage, working_days,
-                rate_basis, hourly_rate, minimum_hours, overtime_multiplier, standby_multiplier, breakdown_penalty_per_day,
+                rate_basis, unit_rate, hourly_rate, minimum_hours, overtime_multiplier, standby_multiplier, breakdown_penalty_per_day,
                 billable_hours, shortfall_hours,
                 base_amount, standby_amount, overtime_amount, breakdown_penalty_amount,
                 mobilization_fee, demobilization_fee, other_charges, other_charges_description,
                 subtotal, discount_percentage, discount_amount, tax_percentage, tax_amount, total_amount,
                 status, invoice_number, invoice_date, due_date,
                 calculated_by, calculated_at, approved_by, approved_at,
-                notes, created_at, updated_at
+                notes, created_at, updated_at, total_production_volume,
+                total_fuel_consumed, fuel_surcharge_rate, fuel_surcharge_amount
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
                 $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41,
-                $42, $43, $44
+                $42, $43, $44, $45, $46, $47, $48, $49
             )
             RETURNING *
             "#,
@@ -57,6 +58,7 @@ impl RentalBillingRepository {
             billing.total_hm_km_usage,
             billing.working_days,
             billing.rate_basis,
+            billing.unit_rate,
             billing.hourly_rate,
             billing.minimum_hours,
             billing.overtime_multiplier,
@@ -88,7 +90,11 @@ impl RentalBillingRepository {
             billing.approved_at,
             billing.notes,
             billing.created_at,
-            billing.updated_at
+            billing.updated_at,
+            billing.total_production_volume,
+            billing.total_fuel_consumed,
+            billing.fuel_surcharge_rate,
+            billing.fuel_surcharge_amount
         )
         .fetch_one(&self.pool)
         .await
@@ -119,6 +125,29 @@ impl RentalBillingRepository {
         .await
     }
 
+    pub async fn get_timesheets_for_item_in_range(
+        &self,
+        rental_item_id: Uuid,
+        start_date: NaiveDate,
+        end_date: NaiveDate,
+    ) -> Result<Vec<RentalTimesheet>, sqlx::Error> {
+        sqlx::query_as!(
+            RentalTimesheet,
+            r#"
+            SELECT * FROM rental_timesheets 
+            WHERE rental_item_id = $1 
+            AND work_date >= $2 
+            AND work_date <= $3
+            ORDER BY work_date ASC
+            "#,
+            rental_item_id,
+            start_date,
+            end_date
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
     /// List billings for a rental
     pub async fn list_by_rental(
         &self,
@@ -126,7 +155,7 @@ impl RentalBillingRepository {
     ) -> Result<Vec<RentalBillingPeriod>, sqlx::Error> {
         sqlx::query_as!(
             RentalBillingPeriod,
-            r#"SELECT * FROM rental_billings WHERE rental_id = $1 ORDER BY period_end DESC"#,
+            r#"SELECT * FROM rental_billing_periods WHERE rental_id = $1 ORDER BY period_end DESC"#,
             rental_id
         )
         .fetch_all(&self.pool)
@@ -137,7 +166,7 @@ impl RentalBillingRepository {
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<RentalBillingPeriod>, sqlx::Error> {
         sqlx::query_as!(
             RentalBillingPeriod,
-            r#"SELECT * FROM rental_billings WHERE id = $1"#,
+            r#"SELECT * FROM rental_billing_periods WHERE id = $1"#,
             id
         )
         .fetch_optional(&self.pool)

@@ -69,9 +69,10 @@ impl AnalyticsService {
                 COALESCE(SUM(total_amount), 0) as total_revenue,
                 COUNT(*) as billing_count,
                 COALESCE(SUM(period_end - period_start + 1), 0) as utilization_days
-            FROM rental_billing_periods
-            WHERE rental_id IN (SELECT id FROM rentals WHERE asset_id = $1)
-            AND status IN ('approved', 'invoiced', 'paid')"#,
+            FROM rental_billing_periods rbp
+            JOIN rental_items ri ON rbp.rental_item_id = ri.id
+            WHERE ri.asset_id = $1
+            AND rbp.status IN ('approved', 'invoiced', 'paid')"#,
             asset_id
         )
         .fetch_one(&self.pool)

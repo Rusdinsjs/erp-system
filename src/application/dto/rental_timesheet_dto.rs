@@ -15,14 +15,21 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize)]
 pub struct CreateTimesheetRequest {
     pub rental_id: Uuid,
+    pub rental_item_id: Uuid, // Specific Asset Link
     pub work_date: NaiveDate,
     pub start_time: Option<NaiveTime>,
     pub end_time: Option<NaiveTime>,
+    pub standby_start_time: Option<NaiveTime>,
+    pub standby_end_time: Option<NaiveTime>,
+    pub breakdown_start_time: Option<NaiveTime>,
+    pub breakdown_end_time: Option<NaiveTime>,
     pub operating_hours: Decimal,
     pub standby_hours: Option<Decimal>,
     pub breakdown_hours: Option<Decimal>,
     pub hm_km_start: Option<Decimal>,
     pub hm_km_end: Option<Decimal>,
+    pub production_volume: Option<Decimal>,
+    pub production_unit: Option<String>,
     pub operation_status: String, // 'operating', 'standby', 'breakdown', 'off'
     pub breakdown_reason: Option<String>,
     pub work_description: Option<String>,
@@ -36,11 +43,17 @@ pub struct CreateTimesheetRequest {
 pub struct UpdateTimesheetRequest {
     pub start_time: Option<NaiveTime>,
     pub end_time: Option<NaiveTime>,
+    pub standby_start_time: Option<NaiveTime>,
+    pub standby_end_time: Option<NaiveTime>,
+    pub breakdown_start_time: Option<NaiveTime>,
+    pub breakdown_end_time: Option<NaiveTime>,
     pub operating_hours: Option<Decimal>,
     pub standby_hours: Option<Decimal>,
     pub breakdown_hours: Option<Decimal>,
     pub hm_km_start: Option<Decimal>,
     pub hm_km_end: Option<Decimal>,
+    pub production_volume: Option<Decimal>,
+    pub production_unit: Option<String>,
     pub operation_status: Option<String>,
     pub breakdown_reason: Option<String>,
     pub work_description: Option<String>,
@@ -82,6 +95,7 @@ pub struct TimesheetSummary {
     pub total_overtime_hours: Decimal,
     pub total_breakdown_hours: Decimal,
     pub total_hm_km_usage: Decimal,
+    pub total_production_volume: Decimal,
     pub approved_entries: i64,
     pub pending_entries: i64,
 }
@@ -91,6 +105,7 @@ pub struct TimesheetSummary {
 pub struct TimesheetDetailResponse {
     pub id: Uuid,
     pub rental_id: Uuid,
+    pub rental_item_id: Option<Uuid>,
     pub rental_number: String,
     pub asset_name: String,
     pub client_name: String,
@@ -102,6 +117,8 @@ pub struct TimesheetDetailResponse {
     pub hm_km_start: Option<Decimal>,
     pub hm_km_end: Option<Decimal>,
     pub hm_km_usage: Option<Decimal>,
+    pub production_volume: Option<Decimal>,
+    pub production_unit: Option<String>,
     pub operation_status: String,
     pub work_description: Option<String>,
     pub photos: Option<serde_json::Value>,
@@ -117,6 +134,7 @@ pub struct TimesheetDetailResponse {
 #[derive(Debug, Deserialize)]
 pub struct CreateBillingPeriodRequest {
     pub rental_id: Uuid,
+    pub rental_item_id: Option<Uuid>,
     pub period_start: NaiveDate,
     pub period_end: NaiveDate,
     pub period_type: Option<String>, // 'daily', 'weekly', 'biweekly', 'monthly'
@@ -130,6 +148,28 @@ pub struct CalculateBillingRequest {
     pub other_charges: Option<Decimal>,
     pub other_charges_description: Option<String>,
     pub discount_percentage: Option<Decimal>,
+}
+
+/// Request to update/adjust billing period (draft or calculated only)
+#[derive(Debug, Deserialize)]
+pub struct UpdateBillingRequest {
+    // Allow overriding calculated amounts
+    pub base_amount: Option<Decimal>,
+    pub standby_amount: Option<Decimal>,
+    pub overtime_amount: Option<Decimal>,
+    pub breakdown_penalty_amount: Option<Decimal>,
+
+    // Additional charges
+    pub mobilization_fee: Option<Decimal>,
+    pub demobilization_fee: Option<Decimal>,
+    pub other_charges: Option<Decimal>,
+    pub other_charges_description: Option<String>,
+
+    // Discounts
+    pub discount_percentage: Option<Decimal>,
+
+    // Audit trail
+    pub adjustment_notes: Option<String>,
 }
 
 /// Approve billing

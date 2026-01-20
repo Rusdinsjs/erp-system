@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rental_items SET status = 'rejected', updated_at = NOW() WHERE rental_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6844fcd38f62c92ab0f269d22ba0b3924bace1ff9bedd8d10f7e590f24e6139f"
+}

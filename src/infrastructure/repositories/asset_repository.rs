@@ -165,12 +165,13 @@ impl AssetRepository {
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         sqlx::query_as::<_, AssetSummary>(
             r#"
-            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.brand, a.purchase_price, 
-                   a.category_id, a.location_id, l.name as location_name, a.department, a.model, a.serial_number
+            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.brand, a.purchase_price, 
+                   a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
             LEFT JOIN locations l ON a.location_id = l.id
+            LEFT JOIN departments d ON a.department_id = d.id
             WHERE a.status != 'archived'
-              AND ($3::text IS NULL OR a.department = $3)
+              AND ($3::text IS NULL OR a.department = $3 OR d.name = $3)
             ORDER BY a.created_at DESC
             LIMIT $1 OFFSET $2
             "#,
@@ -226,15 +227,16 @@ impl AssetRepository {
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         sqlx::query_as::<_, AssetSummary>(
             r#"
-            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.brand, a.purchase_price, 
-                   a.category_id, a.location_id, l.name as location_name, a.department, a.model, a.serial_number
+            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.brand, a.purchase_price, 
+                   a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
             LEFT JOIN locations l ON a.location_id = l.id
+            LEFT JOIN departments d ON a.department_id = d.id
             WHERE 
                 ($1 = '' OR a.name ILIKE '%' || $1 || '%' OR a.asset_code ILIKE '%' || $1 || '%' OR a.serial_number ILIKE '%' || $1 || '%')
                 AND ($2::uuid IS NULL OR a.category_id = $2)
                 AND ($3::uuid IS NULL OR a.location_id = $3)
-                AND ($4::text IS NULL OR a.department = $4)
+                AND ($4::text IS NULL OR a.department = $4 OR d.name = $4)
                 AND (($5::text IS NOT NULL AND a.status = $5) OR ($5::text IS NULL AND a.status != 'archived'))
             ORDER BY a.created_at DESC
             LIMIT $6 OFFSET $7

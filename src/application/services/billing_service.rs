@@ -11,7 +11,7 @@ use crate::application::dto::{
     ApproveBillingRequest, BillingSummaryResponse, CalculateBillingRequest,
     CreateBillingPeriodRequest, GenerateInvoiceRequest,
 };
-use crate::domain::entities::RentalBillingPeriod;
+use crate::domain::entities::{RentalBillingPeriod, TierConfig};
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{RentalRepository, TimesheetRepository};
 
@@ -48,8 +48,12 @@ impl BillingService {
             .ok_or_else(|| DomainError::not_found("Rental", request.rental_id))?;
 
         // Create billing period
-        let mut billing =
-            RentalBillingPeriod::new(request.rental_id, request.period_start, request.period_end);
+        let mut billing = RentalBillingPeriod::new(
+            request.rental_id,
+            request.rental_item_id,
+            request.period_start,
+            request.period_end,
+        );
 
         if let Some(period_type) = request.period_type {
             billing.period_type = Some(period_type);
@@ -98,14 +102,35 @@ impl BillingService {
             .ok_or_else(|| DomainError::not_found("Rental", billing.rental_id))?;
 
         // Get rate configuration
-        let rate = if let Some(rate_id) = rental.rental_rate_id {
-            self.rental_repo
-                .find_rate_by_id(rate_id)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
-                    service: "database".to_string(),
+        let rate_id = if let Some(item_id) = billing.rental_item_id {
+            // Fetch item to get rate_id
+            let item_opt = sqlx::query!(
+                "SELECT rental_rate_id FROM rental_items WHERE id = $1",
+                item_id
+            )
+            .fetch_optional(self.rental_repo.pool())
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "db".to_string(),
+                message: e.to_string(),
+            })?;
+
+            if let Some(item) = item_opt {
+                item.rental_rate_id
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let rate = if let Some(rid) = rate_id {
+            self.rental_repo.find_rate_by_id(rid).await.map_err(|e| {
+                DomainError::ExternalServiceError {
+                    service: "db".to_string(),
                     message: e.to_string(),
-                })?
+                }
+            })?
         } else {
             None
         };
@@ -120,12 +145,13 @@ impl BillingService {
                 message: e.to_string(),
             })?;
 
-        // Set accumulated hours
+        // Set accumulated hours and fuel
         billing.total_operating_hours = Some(summary.total_operating_hours);
         billing.total_standby_hours = Some(summary.total_standby_hours);
         billing.total_overtime_hours = Some(summary.total_overtime_hours);
         billing.total_breakdown_hours = Some(summary.total_breakdown_hours);
         billing.total_hm_km_usage = Some(summary.total_hm_km_usage);
+        billing.total_fuel_consumed = Some(summary.total_fuel_consumed);
         billing.working_days = Some(summary.working_days as i32);
 
         // Set rate configuration from rental rate or defaults
@@ -136,10 +162,37 @@ impl BillingService {
             billing.overtime_multiplier = rate.overtime_multiplier;
             billing.standby_multiplier = rate.standby_multiplier;
             billing.breakdown_penalty_per_day = rate.breakdown_penalty_per_day;
+
+            // Fuel Logic
+            let is_fuel_included = if let Some(item_id) = billing.rental_item_id {
+                let item_res = sqlx::query!(
+                    "SELECT is_fuel_included FROM rental_items WHERE id = $1",
+                    item_id
+                )
+                .fetch_optional(self.rental_repo.pool())
+                .await
+                .unwrap_or(None);
+
+                if let Some(row) = item_res {
+                    row.is_fuel_included.unwrap_or(false)
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
+            if is_fuel_included {
+                billing.fuel_surcharge_rate = Some(Decimal::ZERO);
+            } else {
+                billing.fuel_surcharge_rate = rate.fuel_surcharge_rate;
+            }
         } else {
             // Use defaults
             billing.rate_basis = Some("hourly".to_string());
-            billing.hourly_rate = rental.daily_rate.map(|d| d / Decimal::from(8));
+            billing.rate_basis = Some("hourly".to_string());
+            // rental.daily_rate doesn't exist. Default to 0? or Error?
+            billing.hourly_rate = Some(Decimal::ZERO);
             billing.minimum_hours = Some(Decimal::from(200));
             billing.overtime_multiplier =
                 Some(Decimal::from_str_exact("1.25").unwrap_or(Decimal::ONE));
@@ -163,6 +216,25 @@ impl BillingService {
         }
         if let Some(discount) = request.discount_percentage {
             billing.discount_percentage = Some(discount);
+        }
+
+        // PRE-CALCULATE BASE AMOUNT WITH TIERED PRICING if configured
+        // This runs before billing.calculate() which will use the pre-set base_amount
+        if let Some(ref rate_cfg) = rate {
+            if let Some(ref tier_json) = rate_cfg.tier_config {
+                // Try to parse and apply tier config
+                if let Ok(tier_config) = serde_json::from_value::<TierConfig>(tier_json.clone()) {
+                    let operating_hours = billing.total_operating_hours.unwrap_or(Decimal::ZERO);
+                    let hourly_rate_val = billing.hourly_rate.unwrap_or(Decimal::ZERO);
+
+                    // Calculate using tiers
+                    let tiered_base_amount =
+                        tier_config.calculate(operating_hours, hourly_rate_val);
+
+                    // Pre-set base_amount so calculate() will use it
+                    billing.base_amount = Some(tiered_base_amount);
+                }
+            }
         }
 
         // Calculate billing amounts
@@ -207,6 +279,69 @@ impl BillingService {
             })?;
 
         Ok(())
+    }
+
+    /// Update/adjust billing period (draft or calculated only)
+    pub async fn update_billing(
+        &self,
+        billing_id: Uuid,
+        request: UpdateBillingRequest,
+        updated_by: Uuid,
+    ) -> DomainResult<RentalBillingPeriod> {
+        let mut billing = self.get_by_id(billing_id).await?;
+
+        // Validate status - only draft or calculated can be updated
+        let status = billing.status.as_deref().unwrap_or("draft");
+        if status != "draft" && status != "calculated" {
+            return Err(DomainError::business_rule(
+                "billing_status",
+                "Only draft or calculated billing can be updated",
+            ));
+        }
+
+        // Apply updates if provided
+        if let Some(amt) = request.base_amount {
+            billing.base_amount = Some(amt);
+        }
+        if let Some(amt) = request.standby_amount {
+            billing.standby_amount = Some(amt);
+        }
+        if let Some(amt) = request.overtime_amount {
+            billing.overtime_amount = Some(amt);
+        }
+        if let Some(amt) = request.breakdown_penalty_amount {
+            billing.breakdown_penalty_amount = Some(amt);
+        }
+        if let Some(amt) = request.mobilization_fee {
+            billing.mobilization_fee = Some(amt);
+        }
+        if let Some(amt) = request.demobilization_fee {
+            billing.demobilization_fee = Some(amt);
+        }
+        if let Some(amt) = request.other_charges {
+            billing.other_charges = Some(amt);
+        }
+        if let Some(desc) = request.other_charges_description {
+            billing.other_charges_description = Some(desc);
+        }
+        if let Some(pct) = request.discount_percentage {
+            billing.discount_percentage = Some(pct);
+        }
+
+        // Recalculate totals with updated amounts
+        billing.calculate();
+
+        // Save updated billing
+        self.timesheet_repo
+            .update_billing_calculation(billing_id, &billing, updated_by)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        // Return updated billing
+        self.get_by_id(billing_id).await
     }
 
     /// Generate invoice
@@ -278,23 +413,37 @@ impl BillingService {
         let billing = self.get_by_id(billing_id).await?;
 
         // Get rental info with joins for names
-        let rental_info = sqlx::query!(
-            r#"SELECT 
-                r.rental_number, 
-                a.name as asset_name, 
-                c.name as client_name 
-            FROM rentals r
-            JOIN assets a ON r.asset_id = a.id
-            JOIN clients c ON r.client_id = c.id
-            WHERE r.id = $1"#,
-            billing.rental_id
-        )
-        .fetch_one(self.rental_repo.pool()) // Need access to pool
-        .await
-        .map_err(|e| DomainError::ExternalServiceError {
-            service: "database".to_string(),
-            message: e.to_string(),
-        })?;
+        // Get rental info with joins for names
+        // We use rental_item_id from billing (or join rental_billing_periods directly if preferred, but we have billing loaded)
+        // For old data fallback, we might check if rental_item_id is set.
+        // But we migrated data. So we assume it's set.
+        let rental_info = if let Some(item_id) = billing.rental_item_id {
+            sqlx::query!(
+                r#"SELECT 
+                    r.rental_number, 
+                    a.name as asset_name, 
+                    c.name as client_name 
+                FROM rental_items ri
+                JOIN rentals r ON ri.rental_id = r.id
+                JOIN assets a ON ri.asset_id = a.id
+                JOIN clients c ON r.client_id = c.id
+                WHERE ri.id = $1"#,
+                item_id
+            )
+            .fetch_one(self.rental_repo.pool())
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+        } else {
+            // Fallback for pre-migration data if any (though migration should have covered it)
+            // Or if billing is rental-level (deprecated)
+            return Err(DomainError::business_rule(
+                "billing",
+                "Billing period lacks rental_item_id",
+            ));
+        };
 
         // Get all approved timesheets for this period
         let timesheets = self

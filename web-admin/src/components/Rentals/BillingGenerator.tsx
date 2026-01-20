@@ -119,6 +119,13 @@ export function BillingGenerator({ rentalId, onSuccess }: BillingGeneratorProps)
                         <div className="space-y-4">
                             <h5 className="font-semibold text-slate-300 border-b border-slate-700 pb-2">Usage Summary</h5>
 
+                            {(previewData.total_production_volume || 0) > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-emerald-400 font-medium">Total Volume</span>
+                                    <span className="text-white font-bold">{previewData.total_production_volume} BCM</span>
+                                </div>
+                            )}
+
                             <div className="flex justify-between text-sm">
                                 <span className="text-slate-400">Operating Hours</span>
                                 <span className="text-white font-medium">{previewData.total_operating_hours} hrs</span>
@@ -131,6 +138,12 @@ export function BillingGenerator({ rentalId, onSuccess }: BillingGeneratorProps)
                                 <span className="text-slate-400">Overtime Hours</span>
                                 <span className="text-white font-medium">{previewData.total_overtime_hours} hrs</span>
                             </div>
+                            {(Number(previewData.total_fuel_consumed || 0) > 0) && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">Fuel Consumed</span>
+                                    <span className="text-amber-400 font-medium">{previewData.total_fuel_consumed} L</span>
+                                </div>
+                            )}
 
                             <div className="h-px bg-slate-800 my-2" />
 
@@ -146,6 +159,61 @@ export function BillingGenerator({ rentalId, onSuccess }: BillingGeneratorProps)
                                 <div className="flex justify-between text-xs text-amber-500 bg-amber-950/20 p-2 rounded">
                                     <span>Shortfall Charged</span>
                                     <span>{previewData.shortfall_hours} hrs</span>
+                                </div>
+                            )}
+
+                            {/* KPI Metrics Section */}
+                            {previewData.mechanical_availability !== undefined && (
+                                <div className="mt-4 p-3 bg-slate-900/80 rounded-lg border border-slate-700">
+                                    <h6 className="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-2">
+                                        📊 Equipment Performance (KPI)
+                                    </h6>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* MA - Mechanical Availability */}
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400">MA</span>
+                                            <span className={`font-bold ${(previewData.mechanical_availability || 0) >= (previewData.ma_threshold || 85)
+                                                ? 'text-emerald-400'
+                                                : 'text-red-400'
+                                                }`}>
+                                                {(previewData.mechanical_availability || 0).toFixed(1)}%
+                                                {(previewData.mechanical_availability || 0) >= (previewData.ma_threshold || 85)
+                                                    ? ' ✅'
+                                                    : ' ⚠️'}
+                                            </span>
+                                        </div>
+                                        {/* PA - Physical Availability */}
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400">PA</span>
+                                            <span className="text-white font-medium">
+                                                {(previewData.physical_availability || 0).toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        {/* UA - Utilization Availability */}
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400">UA</span>
+                                            <span className="text-white font-medium">
+                                                {(previewData.utilization_availability || 0).toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        {/* EU - Effective Utilization */}
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-400">EU</span>
+                                            <span className="text-white font-medium">
+                                                {(previewData.effective_utilization || 0).toFixed(1)}%
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Availability Penalty Warning */}
+                                    {(previewData.availability_penalty || 0) > 0 && (
+                                        <div className="mt-3 p-2 bg-red-950/30 border border-red-800/50 rounded text-xs text-red-400">
+                                            <div className="flex justify-between font-medium">
+                                                <span>⚠️ Availability Penalty (MA &lt; {previewData.ma_threshold || 85}%)</span>
+                                                <span>{formatCurrency(previewData.availability_penalty || 0)}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -166,6 +234,12 @@ export function BillingGenerator({ rentalId, onSuccess }: BillingGeneratorProps)
                                 <span className="text-slate-400">Overtime Cost</span>
                                 <span className="text-white">{formatCurrency(previewData.overtime_amount)}</span>
                             </div>
+                            {(Number(previewData.fuel_surcharge_amount || 0) > 0) && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">Fuel Surcharge ({formatCurrency(previewData.fuel_surcharge_rate || 0)}/L)</span>
+                                    <span className="text-amber-400">{formatCurrency(previewData.fuel_surcharge_amount || 0)}</span>
+                                </div>
+                            )}
 
                             <div className="bg-slate-900 p-3 rounded-lg space-y-2 mt-4">
                                 <div className="flex justify-between text-sm">

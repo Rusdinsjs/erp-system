@@ -1,16 +1,20 @@
 //! Rental Service
 //!
 //! Business logic for Rented-Out (external asset rental) operations.
+//! Updated for Multi-Asset support.
 
-use chrono::Utc;
+use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::application::dto::{
     ApproveRentalRequest, CreateClientRequest, CreateRentalRateRequest, CreateRentalRequest,
-    DispatchRentalRequest, RejectRentalRequest, ReturnRentalRequest, UpdateRentalRateRequest,
+    DispatchRentalRequest, RejectRentalRequest, RentalScheduleItem, ReturnRentalRequest,
+    UpdateRentalRateRequest,
 };
-use crate::domain::entities::{Client, Rental, RentalHandover, RentalRate};
+use crate::domain::entities::{
+    Client, Rental, RentalHandover, RentalItem, RentalRate, RentalStatus,
+};
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{AssetRepository, ClientRepository, RentalRepository};
 
@@ -36,35 +40,13 @@ impl RentalService {
 
     // ==================== RENTAL OPERATIONS ====================
 
-    /// Create a new rental request
+    /// Create a new rental request with multiple items
     pub async fn create_rental(
         &self,
         request: CreateRentalRequest,
         requested_by: Uuid,
     ) -> DomainResult<Rental> {
-        // 1. Validate asset exists and is available
-        let asset = self
-            .asset_repo
-            .find_by_id(request.asset_id)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?
-            .ok_or_else(|| DomainError::not_found("Asset", request.asset_id))?;
-
-        // Check asset is in inventory (can be rented)
-        if asset.status != "in_inventory" && asset.status != "deployed" {
-            return Err(DomainError::business_rule(
-                "asset_availability",
-                &format!(
-                    "Asset status is '{}', must be 'in_inventory' or 'deployed' to rent",
-                    asset.status
-                ),
-            ));
-        }
-
-        // 2. Validate client exists
+        // 1. Validate client exists
         let client = self
             .client_repo
             .find_by_id(request.client_id)
@@ -82,14 +64,85 @@ impl RentalService {
             ));
         }
 
-        // 3. Create rental
-        let mut rental = Rental::new(request.asset_id, request.client_id, requested_by);
+        // 2. Prepare Items
+        let mut rental_items = Vec::new();
+
+        for item_req in request.items {
+            // Validate Asset
+            let asset = self
+                .asset_repo
+                .find_by_id(item_req.asset_id)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?
+                .ok_or_else(|| DomainError::not_found("Asset", item_req.asset_id))?;
+
+            // Check availability
+            if asset.status != "in_inventory"
+                && asset.status != "deployed"
+                && asset.status != "Available"
+            {
+                return Err(DomainError::business_rule(
+                    "asset_availability",
+                    &format!(
+                        "Asset '{}' is {}, must be Available to rent",
+                        asset.name, asset.status
+                    ),
+                ));
+            }
+
+            // Create Item Struct
+            let item = RentalItem {
+                id: Uuid::new_v4(),
+                rental_id: Uuid::nil(), // Will be linked later
+                asset_id: item_req.asset_id,
+                rental_rate_id: item_req.rental_rate_id,
+                rate_amount: item_req.rate_amount,
+                rate_basis: item_req.rate_basis,
+                status: RentalStatus::Requested.as_str().to_string(),
+                start_date: request.start_date,
+                expected_end_date: request.expected_end_date,
+                actual_end_date: None,
+                dispatched_by: None,
+                dispatched_at: None,
+                returned_by: None,
+                returned_at: None,
+                subtotal: Some(Decimal::ZERO),
+                penalty_amount: Some(Decimal::ZERO),
+                notes: item_req.notes,
+                created_at: Some(Utc::now()),
+                updated_at: Some(Utc::now()),
+                asset_name: Some(asset.name),
+                asset_code: Some(asset.asset_code),
+                is_fuel_included: Some(false),
+                mob_demob_cost: Some(Decimal::ZERO),
+            };
+            rental_items.push(item);
+        }
+
+        if rental_items.is_empty() {
+            return Err(DomainError::business_rule(
+                "rental_items",
+                "At least one asset must be rented",
+            ));
+        }
+
+        // 3. Create Rental Header
+        let mut rental = Rental::new(request.client_id, requested_by);
         rental.start_date = request.start_date;
         rental.expected_end_date = request.expected_end_date;
-        rental.daily_rate = request.daily_rate;
         rental.deposit_amount = request.deposit_amount;
         rental.notes = request.notes;
 
+        // Link Items to Rental ID
+        for item in &mut rental_items {
+            item.rental_id = rental.id;
+        }
+        rental.items = Some(rental_items);
+
+        // 4. Save to Repo
         let created_rental = self.rental_repo.create(&rental).await.map_err(|e| {
             DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -100,216 +153,163 @@ impl RentalService {
         Ok(created_rental)
     }
 
-    /// Approve a rental request
+    /// Approve a rental
     pub async fn approve_rental(
         &self,
         id: Uuid,
-        approved_by: Uuid,
         request: ApproveRentalRequest,
-    ) -> DomainResult<Rental> {
-        let rental = self.get_by_id(id).await?;
+        approved_by: Uuid,
+    ) -> DomainResult<()> {
+        let mut rental = self
+            .rental_repo
+            .find_by_id(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("Rental", id))?;
 
         if !rental.can_approve() {
             return Err(DomainError::business_rule(
                 "rental_status",
-                &format!("Cannot approve rental with status '{}'", rental.status),
+                &format!("Cannot approve rental in status '{}'", rental.status),
             ));
         }
 
+        // Update Header fields
+        rental.start_date = Some(request.start_date);
+        rental.expected_end_date = Some(request.expected_end_date);
+        if let Some(deposit) = request.deposit_amount {
+            rental.deposit_amount = Some(deposit);
+        }
+        rental.updated_at = Some(Utc::now());
+
+        // Update Repo
         self.rental_repo
-            .approve(
-                id,
-                approved_by,
-                request.start_date,
-                request.expected_end_date,
-                request.daily_rate,
-            )
+            .update(&rental)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?;
 
-        self.get_by_id(id).await
+        // Approve State (Header + Items)
+        self.rental_repo
+            .approve_rental(id, approved_by, Utc::now())
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        Ok(())
     }
 
-    /// Reject a rental request
+    /// Reject a rental
     pub async fn reject_rental(
         &self,
         id: Uuid,
         request: RejectRentalRequest,
-    ) -> DomainResult<Rental> {
-        let rental = self.get_by_id(id).await?;
-
-        if !rental.can_approve() {
-            return Err(DomainError::business_rule(
-                "rental_status",
-                "Can only reject rentals with 'requested' status",
-            ));
-        }
-
+        _rejected_by: Uuid,
+    ) -> DomainResult<()> {
         self.rental_repo
-            .reject(id, &request.reason)
+            .reject_rental(id, request.reason)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?;
-
-        self.get_by_id(id).await
+        Ok(())
     }
 
-    /// Dispatch rental (handover out to client)
+    /// Dispatch Item (Handover Out)
     pub async fn dispatch_rental(
         &self,
-        id: Uuid,
-        dispatched_by: Uuid,
+        rental_id: Uuid, // Passed for verification
         request: DispatchRentalRequest,
-    ) -> DomainResult<Rental> {
-        let rental = self.get_by_id(id).await?;
+        dispatched_by: Uuid,
+    ) -> DomainResult<()> {
+        // Validate Header (optional but good)
+        let rental = self
+            .rental_repo
+            .find_by_id(rental_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "db".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("Rental", rental_id))?;
 
         if !rental.can_dispatch() {
             return Err(DomainError::business_rule(
-                "rental_status",
-                "Can only dispatch rentals with 'approved' status",
+                "status",
+                "Rental not approved for dispatch",
             ));
         }
 
-        // 1. Create handover record
-        let mut handover = RentalHandover::new_dispatch(id, dispatched_by);
-        handover.condition_rating = Some(request.condition_rating);
-        handover.condition_notes = request.condition_notes;
-        if let Some(photos) = request.photos {
-            handover.photos = Some(serde_json::json!(photos));
-        }
-
-        self.rental_repo
-            .create_handover(&handover)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?;
-
-        // 2. Update rental status
-        self.rental_repo
-            .dispatch(id, dispatched_by, None)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?;
-
-        // 3. Update asset status to rented_out
-        let _ = self
-            .asset_repo
-            .update_status(rental.asset_id, "rented_out")
-            .await;
-
-        // 4. Update asset location if provided
-        if let Some(loc_id) = request.location_id {
-            let _ = self
-                .asset_repo
-                .update_location(rental.asset_id, loc_id)
-                .await;
-        }
-
-        self.get_by_id(id).await
-    }
-
-    /// Return rental (handover in from client)
-    pub async fn return_rental(
-        &self,
-        id: Uuid,
-        returned_by: Uuid,
-        request: ReturnRentalRequest,
-    ) -> DomainResult<Rental> {
-        let rental = self.get_by_id(id).await?;
-
-        if !rental.can_return() {
-            return Err(DomainError::business_rule(
-                "rental_status",
-                "Can only return rentals with 'rented_out' or 'overdue' status",
-            ));
-        }
-
-        // 1. Create return handover record
-        let mut handover = RentalHandover::new_return(id, returned_by);
-        handover.condition_rating = Some(request.condition_rating);
-        handover.condition_notes = request.condition_notes;
-        handover.has_damage = Some(request.has_damage);
-        handover.damage_description = request.damage_description;
-        if let Some(photos) = request.photos {
-            handover.photos = Some(serde_json::json!(photos));
-        }
-        if let Some(damage_photos) = request.damage_photos {
-            handover.damage_photos = Some(serde_json::json!(damage_photos));
-        }
-
-        self.rental_repo
-            .create_handover(&handover)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?;
-
-        // 2. Calculate billing
-        let actual_end_date = Utc::now().date_naive();
-        let start_date = rental.start_date.unwrap_or(rental.request_date);
-        let total_days = (actual_end_date - start_date).num_days() as i32;
-        let daily_rate = rental.daily_rate.unwrap_or(Decimal::ZERO);
-        let subtotal = daily_rate * Decimal::from(total_days.max(1));
-
-        // Calculate penalty if overdue
-        let mut penalty = Decimal::ZERO;
-        if let Some(expected_end) = rental.expected_end_date {
-            if actual_end_date > expected_end {
-                let overdue_days = (actual_end_date - expected_end).num_days();
-                // Default late fee: 10% of daily rate per overdue day
-                let late_fee = daily_rate * Decimal::from_str_exact("0.1").unwrap_or(Decimal::ZERO);
-                penalty = late_fee * Decimal::from(overdue_days);
+        // Verify item belongs to rental
+        if let Some(items) = &rental.items {
+            if !items.iter().any(|i| i.id == request.rental_item_id) {
+                return Err(DomainError::business_rule(
+                    "item_mismatch",
+                    "Item does not belong to this rental",
+                ));
             }
         }
 
-        let total_amount = subtotal + penalty;
-
-        // 3. Update rental
+        // Repo handles status update
         self.rental_repo
-            .return_rental(
-                id,
-                returned_by,
-                actual_end_date,
-                total_days,
-                subtotal,
-                penalty,
-                total_amount,
+            .dispatch_item(
+                rental_id,
+                request.rental_item_id,
+                dispatched_by,
+                request.condition_notes,
             )
             .await
             .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
+                service: "db".to_string(),
                 message: e.to_string(),
             })?;
 
-        // 4. Update asset status back to in_inventory
-        let _ = self
-            .asset_repo
-            .update_status(rental.asset_id, "in_inventory")
-            .await;
-
-        // 5. Update asset location if provided
-        if let Some(loc_id) = request.location_id {
-            let _ = self
-                .asset_repo
-                .update_location(rental.asset_id, loc_id)
-                .await;
-        }
-
-        self.get_by_id(id).await
+        Ok(())
     }
 
-    /// Get rental by ID
-    pub async fn get_by_id(&self, id: Uuid) -> DomainResult<Rental> {
+    /// Return Item (Handover In)
+    pub async fn return_rental(
+        &self,
+        rental_id: Uuid,
+        request: ReturnRentalRequest,
+        returned_by: Uuid,
+    ) -> DomainResult<()> {
+        let rental = self
+            .rental_repo
+            .find_by_id(rental_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "db".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("Rental", rental_id))?;
+
+        if !rental.can_return() {
+            return Err(DomainError::business_rule("status", "Rental not active"));
+        }
+
+        self.rental_repo
+            .return_item(request.rental_item_id, returned_by)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "db".to_string(),
+                message: e.to_string(),
+            })?;
+
+        Ok(())
+    }
+
+    // ==================== READ OPERATIONS ====================
+
+    pub async fn find_rental(&self, id: Uuid) -> DomainResult<Rental> {
         self.rental_repo
             .find_by_id(id)
             .await
@@ -320,19 +320,17 @@ impl RentalService {
             .ok_or_else(|| DomainError::not_found("Rental", id))
     }
 
-    /// List rentals with pagination
-    pub async fn list(&self, page: i64, per_page: i64) -> DomainResult<Vec<Rental>> {
-        let offset = (page - 1) * per_page;
-        self.rental_repo.list(per_page, offset).await.map_err(|e| {
-            DomainError::ExternalServiceError {
+    pub async fn list_rentals(&self) -> DomainResult<Vec<Rental>> {
+        self.rental_repo
+            .list_active()
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
-            }
-        })
+            })
     }
 
-    /// List pending rentals
-    pub async fn list_pending(&self) -> DomainResult<Vec<Rental>> {
+    pub async fn list_pending_rentals(&self) -> DomainResult<Vec<Rental>> {
         self.rental_repo
             .list_pending()
             .await
@@ -342,8 +340,7 @@ impl RentalService {
             })
     }
 
-    /// List overdue rentals
-    pub async fn list_overdue(&self) -> DomainResult<Vec<Rental>> {
+    pub async fn list_overdue_rentals(&self) -> DomainResult<Vec<Rental>> {
         self.rental_repo
             .list_overdue()
             .await
@@ -353,10 +350,10 @@ impl RentalService {
             })
     }
 
-    /// Get handovers for a rental
-    pub async fn get_handovers(&self, rental_id: Uuid) -> DomainResult<Vec<RentalHandover>> {
+    // Rate methods
+    pub async fn list_rental_rates(&self) -> DomainResult<Vec<RentalRate>> {
         self.rental_repo
-            .get_handovers(rental_id)
+            .list_rates()
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -364,140 +361,37 @@ impl RentalService {
             })
     }
 
-    /// Add photo to handover
-    pub async fn add_handover_photo(
+    pub async fn create_rental_rate(
         &self,
-        handover_id: Uuid,
-        photo_url: String,
-        description: Option<String>,
-    ) -> DomainResult<RentalHandover> {
-        // 1. Fetch existing handover
-        // Note: Repository needs find_handover_by_id or similar.
-        // Assuming we can add that or reuse logic.
-        // For now, let's assume we need to add find_handover_by_id to repository or use a raw query here?
-        // Better to add to repo. Checking RentalRepository...
-        // Wait, I can try to find by ID if I adding it to repo.
-        // Let's first assume we will add `find_handover_by_id` to RentalRepository.
-
-        let mut handover = self
-            .rental_repo
-            .find_handover_by_id(handover_id)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?
-            .ok_or_else(|| DomainError::not_found("RentalHandover", handover_id))?;
-
-        // 2. Append photo to JSONB
-        let new_photo = serde_json::json!({
-            "url": photo_url,
-            "description": description,
-            "added_at": Utc::now()
-        });
-
-        let mut photos_array = match handover.photos.clone() {
-            Some(serde_json::Value::Array(arr)) => arr,
-            _ => vec![],
+        request: CreateRentalRateRequest,
+    ) -> DomainResult<RentalRate> {
+        // Validation could go here
+        let rate = RentalRate {
+            id: Uuid::new_v4(),
+            name: Some(request.name),
+            category_id: request.category_id,
+            asset_id: request.asset_id,
+            rate_type: Some(request.rate_type),
+            rate_amount: request.rate_amount,
+            currency: Some(request.currency.unwrap_or_else(|| "IDR".to_string())),
+            minimum_duration: request.minimum_duration,
+            deposit_percentage: request.deposit_percentage,
+            ma_threshold: request.ma_threshold,
+            availability_penalty_multiplier: request.availability_penalty_multiplier,
+            standby_multiplier: request.standby_multiplier,
+            breakdown_penalty_per_day: request.breakdown_penalty_per_day,
+            hours_per_day: request.hours_per_day,
+            days_per_month: request.days_per_month,
+            rate_basis: request.rate_basis,
+            minimum_hours: request.minimum_hours,
+            overtime_multiplier: request.overtime_multiplier,
+            late_fee_per_day: request.late_fee_per_day,
+            is_active: Some(true), // Default active on create
+            created_at: Some(Utc::now()),
+            updated_at: Some(Utc::now()),
+            fuel_surcharge_rate: None,
+            tier_config: None,
         };
-        photos_array.push(new_photo);
-        handover.photos = Some(serde_json::Value::Array(photos_array));
-
-        // 3. Update in DB
-        self.rental_repo
-            .update_handover(&handover)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?;
-
-        Ok(handover)
-    }
-
-    // ==================== CLIENT OPERATIONS ====================
-
-    /// Create a new client
-    pub async fn create_client(&self, request: CreateClientRequest) -> DomainResult<Client> {
-        let mut client = Client::new(request.name, request.company_name);
-        client.email = request.email;
-        client.phone = request.phone;
-        client.address = request.address;
-        client.city = request.city;
-        client.contact_person = request.contact_person;
-        client.tax_id = request.tax_id;
-        client.notes = request.notes;
-
-        self.client_repo
-            .create(&client)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })
-    }
-
-    /// List clients
-    pub async fn list_clients(&self, page: i64, per_page: i64) -> DomainResult<Vec<Client>> {
-        let offset = (page - 1) * per_page;
-        self.client_repo.list(per_page, offset).await.map_err(|e| {
-            DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            }
-        })
-    }
-
-    /// Get client by ID
-    pub async fn get_client(&self, id: Uuid) -> DomainResult<Client> {
-        self.client_repo
-            .find_by_id(id)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?
-            .ok_or_else(|| DomainError::not_found("Client", id))
-    }
-
-    // ==================== RENTAL RATE OPERATIONS ====================
-
-    /// Create rental rate
-    pub async fn create_rate(&self, request: CreateRentalRateRequest) -> DomainResult<RentalRate> {
-        let mut rate = RentalRate::new(request.name, request.rate_type, request.rate_amount);
-        rate.category_id = request.category_id;
-        rate.asset_id = request.asset_id;
-        if let Some(currency) = request.currency {
-            rate.currency = Some(currency);
-        }
-        if let Some(min_dur) = request.minimum_duration {
-            rate.minimum_duration = Some(min_dur);
-        }
-        rate.deposit_percentage = request.deposit_percentage;
-        rate.late_fee_per_day = request.late_fee_per_day;
-
-        // Enhanced billing
-        if let Some(basis) = request.rate_basis {
-            rate.rate_basis = Some(basis);
-        }
-        if let Some(min_h) = request.minimum_hours {
-            rate.minimum_hours = Some(min_h);
-        }
-        if let Some(ot) = request.overtime_multiplier {
-            rate.overtime_multiplier = Some(ot);
-        }
-        if let Some(sb) = request.standby_multiplier {
-            rate.standby_multiplier = Some(sb);
-        }
-        if let Some(penalty) = request.breakdown_penalty_per_day {
-            rate.breakdown_penalty_per_day = Some(penalty);
-        }
-        if let Some(hpd) = request.hours_per_day {
-            rate.hours_per_day = Some(hpd);
-        }
-        if let Some(dpm) = request.days_per_month {
-            rate.days_per_month = Some(dpm);
-        }
 
         self.rental_repo
             .create_rate(&rate)
@@ -508,19 +402,25 @@ impl RentalService {
             })
     }
 
-    /// List rental rates
-    pub async fn list_rates(&self) -> DomainResult<Vec<RentalRate>> {
-        self.rental_repo
-            .list_rates()
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
+    pub async fn get_asset_name_for_rental(&self, rental_id: Uuid) -> DomainResult<Option<String>> {
+        let rental = self.rental_repo.find_by_id(rental_id).await.map_err(|e| {
+            DomainError::ExternalServiceError {
+                service: "db".to_string(),
                 message: e.to_string(),
-            })
+            }
+        })?;
+
+        if let Some(r) = rental {
+            if let Some(items) = r.items {
+                if let Some(first) = items.first() {
+                    return Ok(first.asset_name.clone());
+                }
+            }
+        }
+        Ok(None)
     }
 
-    /// Update rental rate
-    pub async fn update_rate(
+    pub async fn update_rental_rate(
         &self,
         id: Uuid,
         request: UpdateRentalRateRequest,
@@ -530,115 +430,100 @@ impl RentalService {
             .find_rate_by_id(id)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
+                service: "db".to_string(),
                 message: e.to_string(),
             })?
             .ok_or_else(|| DomainError::not_found("RentalRate", id))?;
 
         if let Some(name) = request.name {
-            rate.name = name;
+            rate.name = Some(name);
         }
-        if let Some(cat_id) = request.category_id {
-            rate.category_id = Some(cat_id);
+        if let Some(cat) = request.category_id {
+            rate.category_id = Some(cat);
         }
-        if let Some(asset_id) = request.asset_id {
-            rate.asset_id = Some(asset_id);
+        if let Some(asset) = request.asset_id {
+            rate.asset_id = Some(asset);
         }
-        if let Some(rate_type) = request.rate_type {
-            rate.rate_type = rate_type;
+        if let Some(rt) = request.rate_type {
+            rate.rate_type = Some(rt);
         }
-        if let Some(amount) = request.rate_amount {
-            rate.rate_amount = amount;
+        if let Some(amt) = request.rate_amount {
+            rate.rate_amount = amt;
         }
-        if let Some(cur) = request.currency {
-            rate.currency = Some(cur);
+        if let Some(curr) = request.currency {
+            rate.currency = Some(curr);
         }
-        if let Some(min_dur) = request.minimum_duration {
-            rate.minimum_duration = Some(min_dur);
+        if let Some(min) = request.minimum_duration {
+            rate.minimum_duration = Some(min);
         }
         if let Some(dep) = request.deposit_percentage {
             rate.deposit_percentage = Some(dep);
         }
-        if let Some(fee) = request.late_fee_per_day {
-            rate.late_fee_per_day = Some(fee);
+        if let Some(ma) = request.ma_threshold {
+            rate.ma_threshold = Some(ma);
         }
-        if let Some(active) = request.is_active {
-            rate.is_active = Some(active);
+        if let Some(avail) = request.availability_penalty_multiplier {
+            rate.availability_penalty_multiplier = Some(avail);
         }
-        if let Some(basis) = request.rate_basis {
-            rate.rate_basis = Some(basis);
+
+        // Enhanced fields
+        if let Some(rb) = request.rate_basis {
+            rate.rate_basis = Some(rb);
         }
-        if let Some(min_h) = request.minimum_hours {
-            rate.minimum_hours = Some(min_h);
+        if let Some(val) = request.minimum_hours {
+            rate.minimum_hours = Some(val);
         }
-        if let Some(ot) = request.overtime_multiplier {
-            rate.overtime_multiplier = Some(ot);
+        if let Some(val) = request.overtime_multiplier {
+            rate.overtime_multiplier = Some(val);
         }
-        if let Some(sb) = request.standby_multiplier {
-            rate.standby_multiplier = Some(sb);
+        if let Some(val) = request.standby_multiplier {
+            rate.standby_multiplier = Some(val);
         }
-        if let Some(penalty) = request.breakdown_penalty_per_day {
-            rate.breakdown_penalty_per_day = Some(penalty);
+        if let Some(val) = request.breakdown_penalty_per_day {
+            rate.breakdown_penalty_per_day = Some(val);
         }
-        if let Some(hpd) = request.hours_per_day {
-            rate.hours_per_day = Some(hpd);
+        if let Some(val) = request.hours_per_day {
+            rate.hours_per_day = Some(val);
         }
-        if let Some(dpm) = request.days_per_month {
-            rate.days_per_month = Some(dpm);
+        if let Some(val) = request.days_per_month {
+            rate.days_per_month = Some(val);
         }
+        if let Some(val) = request.late_fee_per_day {
+            rate.late_fee_per_day = Some(val);
+        }
+
+        rate.updated_at = Some(Utc::now());
 
         self.rental_repo
             .update_rate(&rate)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
+                service: "db".to_string(),
                 message: e.to_string(),
             })
     }
 
-    /// Delete rental rate
-    pub async fn delete_rate(&self, id: Uuid) -> DomainResult<()> {
+    pub async fn delete_rental_rate(&self, id: Uuid) -> DomainResult<()> {
         self.rental_repo
             .delete_rate(id)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
+                service: "db".to_string(),
                 message: e.to_string(),
             })
     }
 
-    /// Mark overdue rentals (for background job)
-    pub async fn mark_overdue_rentals(&self) -> DomainResult<i64> {
-        self.rental_repo
-            .mark_overdue()
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })
-    }
-    /// Get asset name for a rental
-    pub async fn get_asset_name_for_rental(
+    /// Get schedule for Gantt
+    pub async fn get_schedule(
         &self,
-        rental_id: Uuid,
-    ) -> Result<Option<String>, DomainError> {
-        // First get rental to get asset_id
-        let rental = self
-            .rental_repo
-            .find_by_id(rental_id)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?
-            .ok_or_else(|| DomainError::not_found("Rental", rental_id))?;
-
-        // Then get asset name
+        start: NaiveDate,
+        end: NaiveDate,
+    ) -> DomainResult<Vec<RentalScheduleItem>> {
         self.rental_repo
-            .find_asset_name(rental.asset_id)
+            .find_items_in_range(start, end)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
+                service: "db".to_string(),
                 message: e.to_string(),
             })
     }

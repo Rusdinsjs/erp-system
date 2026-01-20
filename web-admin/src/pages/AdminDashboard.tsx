@@ -7,7 +7,7 @@ import {
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
-    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw, Fuel
+    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw, Fuel, Shield
 } from 'lucide-react';
 import { PageLoading } from '../components/ui';
 
@@ -19,6 +19,7 @@ const WorkOrdersView = lazy(() => import('./WorkOrders').then(m => ({ default: m
 const WorkOrderDetailsView = lazy(() => import('./WorkOrderDetails').then(m => ({ default: m.WorkOrderDetails })));
 const ApprovalCenterView = lazy(() => import('./ApprovalCenter').then(m => ({ default: m.ApprovalCenter })));
 const UsersView = lazy(() => import('./Users').then(m => ({ default: m.Users })));
+const RolesView = lazy(() => import('./Roles').then(m => ({ default: m.Roles })));
 const ProfileView = lazy(() => import('./Profile').then(m => ({ default: m.Profile })));
 const ReportsView = lazy(() => import('./Reports/ReportCenter'));
 const AuditModeView = lazy(() => import('./AuditMode').then(m => ({ default: m.AuditMode })));
@@ -27,6 +28,7 @@ const ConversionsView = lazy(() => import('./Conversions').then(m => ({ default:
 const FuelView = lazy(() => import('./Fuel/FuelDashboard').then(m => ({ default: m.FuelDashboard })));
 const RentalsView = lazy(() => import('./rentals/Rentals').then(m => ({ default: m.Rentals })));
 const RentalFormView = lazy(() => import('./rentals/RentalForm').then(m => ({ default: m.RentalForm })));
+const RentalDetailView = lazy(() => import('./rentals/RentalDetail').then(m => ({ default: m.RentalDetail })));
 const ClientsView = lazy(() => import('./Clients').then(m => ({ default: m.Clients })));
 const LoansView = lazy(() => import('./Loans').then(m => ({ default: m.Loans })));
 const LocationsView = lazy(() => import('./Locations').then(m => ({ default: m.Locations })));
@@ -75,6 +77,7 @@ type TabId =
     | 'approvals'
     | 'reports'
     | 'users'
+    | 'roles'
     | 'audit'
     | 'departments'
     | 'finance'
@@ -223,6 +226,7 @@ const navItems: NavEntry[] = [
         minLevel: 5, // Profile is here, so group must be visible
         children: [
             { id: 'users', icon: Users, label: 'User Management', minLevel: 2 },
+            { id: 'roles', icon: Shield, label: 'Role & Permissions', minLevel: 2 },
             { id: 'audit', icon: Scan, label: 'Audit Mode', minLevel: 2 },
             { id: 'profile', icon: UserCircle, label: 'Profil', minLevel: 5 },
         ]
@@ -248,6 +252,7 @@ export default function AdminDashboard() {
     // For sub-views that need parameters
     const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<string | null>(null);
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+    const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
 
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
@@ -270,6 +275,16 @@ export default function AdminDashboard() {
         const rentalFormMatch = matchPath('/rentals/new', path);
         if (rentalFormMatch) {
             setActiveTab('rental-form');
+            setSelectedRentalId(null);
+            return;
+        }
+
+        const rentalDetailMatch = matchPath('/rentals/:id', path);
+        if (rentalDetailMatch?.params.id) {
+            setActiveTab('rentals');
+            setSelectedRentalId(rentalDetailMatch.params.id);
+            setSelectedWorkOrderId(null);
+            setSelectedAssetId(null);
             return;
         }
 
@@ -348,10 +363,12 @@ export default function AdminDashboard() {
 
             setSelectedAssetId(null);
             setSelectedWorkOrderId(null);
+            setSelectedRentalId(null);
         } else if (path === '/') {
             setActiveTab('dashboard');
             setSelectedAssetId(null);
             setSelectedWorkOrderId(null);
+            setSelectedRentalId(null);
         }
     }, [location.pathname]);
 
@@ -492,6 +509,7 @@ export default function AdminDashboard() {
             case 'work-orders': return <WorkOrdersView />;
             case 'conversions': return <ConversionsView />;
             case 'rentals':
+                if (selectedRentalId) return <RentalDetailView rentalId={selectedRentalId} />;
                 return <RentalsView />;
             case 'rental-form':
                 return <RentalFormView />;
@@ -504,6 +522,7 @@ export default function AdminDashboard() {
             case 'approvals': return <ApprovalCenterView />;
             case 'reports': return <ReportsView />;
             case 'users': return <UsersView />;
+            case 'roles': return <RolesView />;
             case 'audit': return <AuditModeView />;
             case 'departments': return <DepartmentsView />;
             case 'finance': return <ChartOfAccountsView />;

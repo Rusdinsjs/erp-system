@@ -30,6 +30,7 @@ export interface Asset {
     status: string;
     asset_class?: string;
     condition_id?: number;
+    is_rental?: boolean;
 
     serial_number?: string;
     brand?: string;
@@ -73,6 +74,7 @@ export interface AssetSearchParams {
     category_id?: string;
     location_id?: string;
     status?: string;
+    is_rental?: boolean;
     page: number;
     per_page: number;
 }

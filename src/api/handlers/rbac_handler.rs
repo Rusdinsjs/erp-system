@@ -2,14 +2,20 @@
 
 use axum::{
     extract::{Path, State},
-    Json,
+    Extension, Json,
 };
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::server::AppState;
 use crate::application::dto::ApiResponse;
-use crate::domain::entities::{Permission, Role};
+use crate::domain::entities::{Permission, Role, UserClaims};
 use crate::shared::errors::AppError;
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateRolePermissionsRequest {
+    pub permission_ids: Vec<Uuid>,
+}
 
 pub async fn list_roles(State(state): State<AppState>) -> Result<Json<Vec<Role>>, AppError> {
     let roles = state.rbac_service.list_roles().await?;
@@ -29,6 +35,30 @@ pub async fn get_role_permissions(
 ) -> Result<Json<Vec<Permission>>, AppError> {
     let permissions = state.rbac_service.get_role_permissions(role_id).await?;
     Ok(Json(permissions))
+}
+
+pub async fn update_role_permissions(
+    State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
+    Path(role_id): Path<Uuid>,
+    Json(payload): Json<UpdateRolePermissionsRequest>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    // Only admins (level 2 or below) can update role permissions
+    if claims.role_level > 2 {
+        return Err(AppError::Forbidden(
+            "Admin access required to update role permissions".to_string(),
+        ));
+    }
+
+    state
+        .rbac_service
+        .update_role_permissions(role_id, payload.permission_ids)
+        .await?;
+
+    Ok(Json(ApiResponse::success_with_message(
+        (),
+        "Role permissions updated successfully",
+    )))
 }
 
 pub async fn get_user_roles(

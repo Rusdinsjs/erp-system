@@ -153,6 +153,30 @@ function RequestDetails({ request, showDetails = false }: { request: ApprovalReq
         );
     }
 
+    if (request.resource_type === 'loan' || request.resource_type === 'loan_request') {
+        // Loan Request Details
+        const assetName = data?.asset_name || 'Unknown Asset';
+        const loanDate = data?.loan_date ? new Date(data.loan_date).toLocaleDateString() : 'N/A';
+        const returnDate = data?.return_date || data?.expected_return_date ? new Date(data.return_date || data.expected_return_date).toLocaleDateString() : 'N/A';
+        const purpose = data?.purpose || data?.needs || '';
+
+        return (
+            <div className="space-y-1">
+                <p className="text-sm font-medium text-white">{assetName}</p>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <Calendar size={12} />
+                    <span>{loanDate} - {returnDate}</span>
+                </div>
+                {purpose && (
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <Info size={12} />
+                        <span className="truncate max-w-[250px]">{purpose}</span>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     if (request.resource_type === 'rental_request') {
         return (
             <div className="space-y-1">
