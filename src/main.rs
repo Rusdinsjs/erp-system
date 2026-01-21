@@ -67,8 +67,7 @@ async fn main() {
         .parse()
         .expect("Invalid server address");
 
-    tracing::info!("Server listening on http://{}", addr);
-
+    // Force rebuild for migrations
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("Failed to bind to address");

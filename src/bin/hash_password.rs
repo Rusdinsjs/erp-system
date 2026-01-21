@@ -4,7 +4,7 @@ use argon2::{
 };
 
 fn main() {
-    let password = b"admin123";
+    let password = b"123456";
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hash = argon2.hash_password(password, &salt).unwrap();

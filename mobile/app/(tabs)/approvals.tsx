@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { approvalApi, ApprovalRequest } from '../../api/approval';
 import { format } from 'date-fns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ApprovalScreen() {
     const theme = useTheme();
@@ -103,20 +104,32 @@ export default function ApprovalScreen() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'APPROVED_L1': return theme.colors.primary;
-            case 'APPROVED_L2': return 'green'; // theme.colors.tertiary might be better if defined
-            case 'REJECTED': return theme.colors.error;
-            case 'PENDING': return 'orange'; // theme.colors.warning if defined
-            default: return theme.colors.secondary;
+            case 'APPROVED_L1': return '#4ade80'; // Green
+            case 'APPROVED_L2': return '#22c55e'; // Darker Green
+            case 'REJECTED': return '#f87171'; // Red
+            case 'PENDING': return '#fbbf24'; // Amber
+            default: return 'rgba(255,255,255,0.7)';
+        }
+    };
+
+    const inputTheme = {
+        colors: {
+            onSurfaceVariant: 'rgba(255,255,255,0.7)',
+            onSurface: '#1e293b', // Dialog text should be dark
+            primary: theme.colors.primary,
+            background: 'white',
         }
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <LinearGradient
+            colors={['#0f172a', '#1e293b']}
+            style={[styles.container, { paddingTop: insets.top }]}
+        >
             <View style={styles.header}>
-                <Text variant="headlineMedium">Approval Center</Text>
-                {activeTab === 'pending' && (
-                    <Chip icon="bell-ring" style={styles.countChip}>{pendingRequests.length} Pending</Chip>
+                <Text variant="headlineMedium" style={{ color: 'white', fontWeight: 'bold' }}>Approval Center</Text>
+                {activeTab === 'pending' && pendingRequests.length > 0 && (
+                    <Chip icon="bell-ring" style={styles.countChip} textStyle={{ color: '#0f172a' }}>{pendingRequests.length} Pending</Chip>
                 )}
             </View>
 
@@ -127,56 +140,55 @@ export default function ApprovalScreen() {
                     { value: 'pending', label: 'Pending', icon: 'clock-outline' },
                     { value: 'my_requests', label: 'My Requests', icon: 'account' },
                 ]}
+                theme={{ colors: { secondaryContainer: theme.colors.primary, onSecondaryContainer: 'white', outline: 'rgba(255,255,255,0.2)' } }}
                 style={styles.tabs}
             />
 
             <View style={styles.filters}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <Chip
-                        selected={filterType === 'all'}
-                        onPress={() => setFilterType('all')}
-                        style={styles.filterChip}
-                    >All</Chip>
-                    <Chip
-                        selected={filterType === 'rental_request'}
-                        onPress={() => setFilterType('rental_request')}
-                        style={styles.filterChip}
-                    >Rentals</Chip>
-                    <Chip
-                        selected={filterType === 'timesheet_verification'}
-                        onPress={() => setFilterType('timesheet_verification')}
-                        style={styles.filterChip}
-                    >Timesheets</Chip>
-                    <Chip
-                        selected={filterType === 'work_order'}
-                        onPress={() => setFilterType('work_order')}
-                        style={styles.filterChip}
-                    >Work Orders</Chip>
-                    <Chip
-                        selected={filterType === 'asset'}
-                        onPress={() => setFilterType('asset')}
-                        style={styles.filterChip}
-                    >Assets</Chip>
+                    {[
+                        { label: 'All', value: 'all' },
+                        { label: 'Rentals', value: 'rental_request' },
+                        { label: 'Timesheets', value: 'timesheet_verification' },
+                        { label: 'Work Orders', value: 'work_order' },
+                        { label: 'Assets', value: 'asset' },
+                    ].map((filter) => (
+                        <Chip
+                            key={filter.value}
+                            selected={filterType === filter.value}
+                            onPress={() => setFilterType(filter.value)}
+                            style={[
+                                styles.filterChip,
+                                { backgroundColor: filterType === filter.value ? theme.colors.primary : 'rgba(255,255,255,0.1)' }
+                            ]}
+                            textStyle={{ color: 'white' }}
+                            showSelectedOverlay
+                        >
+                            {filter.label}
+                        </Chip>
+                    ))}
                 </ScrollView>
             </View>
 
             {(loadingPending || loadingMy) && !filteredData.length ? (
                 <View style={styles.loading}>
-                    <ActivityIndicator size="large" />
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>
             ) : (
                 <ScrollView
                     contentContainerStyle={styles.list}
                     refreshControl={
-                        <RefreshControl refreshing={loadingPending || loadingMy} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={loadingPending || loadingMy} onRefresh={onRefresh} tintColor="white" />
                     }
                 >
                     {filteredData.map((req) => (
                         <Card key={req.id} style={styles.card} mode="outlined">
                             <Card.Title
                                 title={req.resource_type.replace(/_/g, ' ').toUpperCase()}
+                                titleStyle={{ color: 'white', fontWeight: 'bold' }}
                                 subtitle={format(new Date(req.created_at), 'dd MMM yyyy, HH:mm')}
-                                left={(props) => <IconButton {...props} icon={getIcon(req.resource_type)} />}
+                                subtitleStyle={{ color: 'rgba(255,255,255,0.7)' }}
+                                left={(props) => <IconButton {...props} icon={getIcon(req.resource_type)} iconColor="white" style={{ backgroundColor: theme.colors.primary }} />}
                                 right={(props) => (
                                     <Text
                                         style={{
@@ -190,17 +202,17 @@ export default function ApprovalScreen() {
                                 )}
                             />
                             <Card.Content>
-                                <Text variant="bodyMedium" style={{ marginBottom: 4 }}>
-                                    <Text style={{ fontWeight: 'bold' }}>Action: </Text>
+                                <Text variant="bodyMedium" style={{ marginBottom: 4, color: 'rgba(255,255,255,0.9)' }}>
+                                    <Text style={{ fontWeight: 'bold', color: 'white' }}>Action: </Text>
                                     {req.action_type.replace(/_/g, ' ')}
                                 </Text>
-                                <Text variant="bodyMedium" style={{ marginBottom: 4 }}>
-                                    <Text style={{ fontWeight: 'bold' }}>Requester: </Text>
+                                <Text variant="bodyMedium" style={{ marginBottom: 4, color: 'rgba(255,255,255,0.9)' }}>
+                                    <Text style={{ fontWeight: 'bold', color: 'white' }}>Requester: </Text>
                                     {req.requester_name || req.requested_by}
                                 </Text>
 
                                 <View style={styles.detailsBox}>
-                                    <Text variant="bodySmall" style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                                    <Text variant="bodySmall" style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', color: 'rgba(255,255,255,0.8)' }}>
                                         {JSON.stringify(req.data_snapshot, null, 2).substring(0, 150)}...
                                     </Text>
                                 </View>
@@ -228,8 +240,8 @@ export default function ApprovalScreen() {
             )}
 
             <Portal>
-                <Dialog visible={visible} onDismiss={hideDialog}>
-                    <Dialog.Title>{actionType === 'approve' ? 'Approve' : 'Reject'} Request</Dialog.Title>
+                <Dialog visible={visible} onDismiss={hideDialog} style={{ backgroundColor: 'white' }}>
+                    <Dialog.Title style={{ color: '#1e293b' }}>{actionType === 'approve' ? 'Approve' : 'Reject'} Request</Dialog.Title>
                     <Dialog.Content>
                         <TextInput
                             label={actionType === 'reject' ? "Reason (Required)" : "Notes (Optional)"}
@@ -238,28 +250,30 @@ export default function ApprovalScreen() {
                             mode="outlined"
                             multiline
                             numberOfLines={3}
+                            style={{ backgroundColor: 'white' }}
+                            textColor="#1e293b"
                         />
                     </Dialog.Content>
                     <Dialog.Actions>
-                        <Button onPress={hideDialog}>Cancel</Button>
+                        <Button onPress={hideDialog} textColor={theme.colors.secondary}>Cancel</Button>
                         <Button
                             onPress={handleSubmit}
                             loading={approveMutation.isPending || rejectMutation.isPending}
                             disabled={actionType === 'reject' && !notes.trim()}
+                            textColor={theme.colors.primary}
                         >
                             Confirm
                         </Button>
                     </Dialog.Actions>
                 </Dialog>
             </Portal>
-        </View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     header: {
         paddingHorizontal: 16,
@@ -269,11 +283,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     countChip: {
-        backgroundColor: '#FFE0B2', // Light Orange
+        backgroundColor: '#fbbf24', // Amber
     },
     tabs: {
         marginHorizontal: 16,
         marginBottom: 12,
+        backgroundColor: 'rgba(0,0,0,0.2)'
     },
     filters: {
         marginBottom: 8,
@@ -282,6 +297,7 @@ const styles = StyleSheet.create({
     },
     filterChip: {
         marginRight: 8,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     list: {
         padding: 16,
@@ -295,9 +311,11 @@ const styles = StyleSheet.create({
     },
     card: {
         marginBottom: 16,
+        backgroundColor: 'rgba(30, 41, 59, 0.6)',
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     detailsBox: {
-        backgroundColor: '#f5f5f5',
+        backgroundColor: 'rgba(0,0,0,0.3)',
         padding: 8,
         borderRadius: 4,
         marginTop: 8,
@@ -305,6 +323,6 @@ const styles = StyleSheet.create({
     emptyText: {
         textAlign: 'center',
         marginTop: 32,
-        color: '#666',
+        color: 'rgba(255,255,255,0.5)',
     }
 });
