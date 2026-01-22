@@ -219,12 +219,12 @@ impl LoanService {
         Ok(updated_loan)
     }
 
-    /// Checkout loan
     pub async fn checkout(
         &self,
         id: Uuid,
         checked_out_by: Uuid,
         condition: &str,
+        photo: Option<&str>,
     ) -> DomainResult<Loan> {
         let loan = self.get_by_id(id).await?;
 
@@ -236,7 +236,7 @@ impl LoanService {
         }
 
         self.loan_repo
-            .checkout(id, checked_out_by, condition)
+            .checkout(id, checked_out_by, condition, photo)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -249,12 +249,12 @@ impl LoanService {
         self.get_by_id(id).await
     }
 
-    /// Return/checkin loan
     pub async fn checkin(
         &self,
         id: Uuid,
         checked_in_by: Uuid,
         condition: &str,
+        photo: Option<&str>,
     ) -> DomainResult<Loan> {
         let loan = self.get_by_id(id).await?;
 
@@ -267,7 +267,7 @@ impl LoanService {
 
         let return_date = Utc::now().date_naive();
         self.loan_repo
-            .checkin(id, checked_in_by, condition, return_date)
+            .checkin(id, checked_in_by, condition, photo, return_date)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),

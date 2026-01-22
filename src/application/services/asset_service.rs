@@ -167,6 +167,7 @@ impl AssetService {
                 params.location_id,
                 params.department.as_deref(),
                 params.status.as_deref(),
+                params.is_fuel,
                 per_page,
                 offset,
             )
@@ -242,6 +243,7 @@ impl AssetService {
         asset.assigned_to = request.assigned_to;
         asset.vendor_id = request.vendor_id;
         asset.is_rental = request.is_rental.unwrap_or(false);
+        asset.is_fuel = request.is_fuel.unwrap_or(false);
         asset.asset_class = request.asset_class;
         asset.condition_id = request.condition_id;
         asset.serial_number = request.serial_number;
@@ -353,6 +355,9 @@ impl AssetService {
         }
         if let Some(r) = request.is_rental {
             asset.is_rental = r;
+        }
+        if let Some(f) = request.is_fuel {
+            asset.is_fuel = f;
         }
         if let Some(c) = request.asset_class {
             asset.asset_class = Some(c);

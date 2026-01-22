@@ -25,7 +25,7 @@ impl AssetRepository {
             r#"
             SELECT 
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, asset_class, status, condition_id,
+                is_rental, is_fuel, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
@@ -60,52 +60,30 @@ impl AssetRepository {
         )>,
         sqlx::Error,
     > {
-        #[derive(sqlx::FromRow)]
-        struct AssetDetailRow {
-            #[sqlx(flatten)]
-            asset: Asset,
-            category_name: Option<String>,
-            location_name: Option<String>,
-            department_name: Option<String>,
-            department_manager_name: Option<String>,
-            assigned_to_name: Option<String>,
-            vendor_name: Option<String>,
-            total_maintenance_cost: Option<rust_decimal::Decimal>,
-            total_rental_income: Option<rust_decimal::Decimal>,
-        }
+        use sqlx::Row;
 
-        let row = sqlx::query_as::<_, AssetDetailRow>(
+        // 1. Fetch Asset Details (SAFE Joins Only)
+        let row = sqlx::query(
             r#"
             SELECT 
                 a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.assigned_to, a.vendor_id,
-                a.is_rental, a.asset_class, a.status, a.condition_id,
+                a.is_rental, a.is_fuel, a.asset_class, a.status, a.condition_id,
                 a.serial_number, a.brand, a.model, a.year_manufacture,
                 a.specifications,
                 a.purchase_date, a.purchase_price, a.currency_id, a.unit_id, a.quantity,
                 a.residual_value, a.useful_life_months,
                 a.qr_code_url, a.notes,
                 a.created_at, a.updated_at,
+                (SELECT row_to_json(vd) FROM vehicle_details vd WHERE vd.asset_id = a.id) as vehicle_details,
                 c.name as category_name,
                 l.name as location_name,
                 d.name as department_name,
-                m.name as department_manager_name,
                 u.name as assigned_to_name,
-                v.name as vendor_name,
-                (
-                    SELECT COALESCE(SUM(actual_cost), 0)
-                    FROM maintenance_work_orders 
-                    WHERE asset_id = a.id AND status ILIKE 'completed'
-                ) as total_maintenance_cost,
-                (
-                    SELECT COALESCE(SUM(total_amount), 0)
-                    FROM rentals 
-                    WHERE asset_id = a.id AND status ILIKE 'returned'
-                ) as total_rental_income
+                v.name as vendor_name
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
-            LEFT JOIN employees m ON m.department_id = d.id AND m.is_manager = true
             LEFT JOIN users u ON a.assigned_to = u.id
             LEFT JOIN vendors v ON a.vendor_id = v.id
             WHERE a.id = $1
@@ -116,18 +94,93 @@ impl AssetRepository {
         .await?;
 
         if let Some(r) = row {
-            let vehicle = self.get_vehicle_details(id).await?;
+            // 2. Fetch Aggregates (Maintenance Cost & Rental Income) in a separate query
+            //    Using raw query() instead of query_as() to avoid mapping issues with anonymous columns
+            let stats_row = sqlx::query(
+                r#"
+                SELECT 
+                    (SELECT COALESCE(SUM(actual_cost), 0) FROM maintenance_work_orders WHERE asset_id = $1 AND status ILIKE 'completed') as maint_cost,
+                    (SELECT COALESCE(SUM(total_amount), 0) FROM rentals WHERE asset_id = $1 AND status ILIKE 'returned') as rental_income
+                "#
+            )
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await
+            .ok(); // Convert Result to Option to be safe, though fetch_one usually errors if no row
+
+            let (total_maintenance_cost, total_rental_income) = if let Some(s) = stats_row {
+                (
+                    s.try_get::<rust_decimal::Decimal, _>(0)
+                        .unwrap_or(rust_decimal::Decimal::ZERO),
+                    s.try_get::<rust_decimal::Decimal, _>(1)
+                        .unwrap_or(rust_decimal::Decimal::ZERO),
+                )
+            } else {
+                (rust_decimal::Decimal::ZERO, rust_decimal::Decimal::ZERO)
+            };
+
+            // Manual mapping from Row to Asset struct
+            let asset = Asset {
+                id: r.get("id"),
+                asset_code: r.get("asset_code"),
+                name: r.get("name"),
+                category_id: r.get("category_id"),
+                location_id: r.get("location_id"),
+                department_id: r.get("department_id"),
+                department: r.get("department"),
+                assigned_to: r.get("assigned_to"),
+                vendor_id: r.get("vendor_id"),
+                is_rental: r.get::<bool, _>("is_rental"),
+                is_fuel: r.get::<bool, _>("is_fuel"),
+                asset_class: r.get("asset_class"),
+                status: r.get("status"),
+                condition_id: r.get("condition_id"),
+                serial_number: r.get("serial_number"),
+                brand: r.get("brand"),
+                model: r.get("model"),
+                year_manufacture: r.get("year_manufacture"),
+                specifications: r.get("specifications"),
+                purchase_date: r.get("purchase_date"),
+                purchase_price: r.get("purchase_price"),
+                currency_id: r.get("currency_id"),
+                unit_id: r.get("unit_id"),
+                quantity: r.get("quantity"),
+                residual_value: r.get("residual_value"),
+                useful_life_months: r.get("useful_life_months"),
+                qr_code_url: r.get("qr_code_url"),
+                notes: r.get("notes"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+            };
+
+            // Parse vehicle_details JSONB
+            let vehicle_json: Option<serde_json::Value> = r.get("vehicle_details");
+            let vehicle = vehicle_json.and_then(|json| {
+                serde_json::from_value::<VehicleDetails>(json)
+                    .ok()
+                    .map(|mut v| {
+                        v.asset_id = id;
+                        v
+                    })
+            });
+
+            let category_name: Option<String> = r.get("category_name");
+            let location_name: Option<String> = r.get("location_name");
+            let department_name: Option<String> = r.get("department_name");
+            let assigned_to_name: Option<String> = r.get("assigned_to_name");
+            let vendor_name: Option<String> = r.get("vendor_name");
+
             Ok(Some((
-                r.asset,
-                r.category_name,
-                r.location_name,
-                r.department_name,
-                r.department_manager_name,
-                r.assigned_to_name,
-                r.vendor_name,
+                asset,
+                category_name,
+                location_name,
+                department_name,
+                None, // department_manager_name - removed for now
+                assigned_to_name,
+                vendor_name,
                 vehicle,
-                r.total_maintenance_cost,
-                r.total_rental_income,
+                Some(total_maintenance_cost),
+                Some(total_rental_income),
             )))
         } else {
             Ok(None)
@@ -140,7 +193,7 @@ impl AssetRepository {
             r#"
             SELECT 
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, asset_class, status, condition_id,
+                is_rental, is_fuel, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
@@ -165,7 +218,7 @@ impl AssetRepository {
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         sqlx::query_as::<_, AssetSummary>(
             r#"
-            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.brand, a.purchase_price, 
+            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.brand, a.purchase_price, 
                    a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
             LEFT JOIN locations l ON a.location_id = l.id
@@ -189,7 +242,7 @@ impl AssetRepository {
             r#"
             SELECT 
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, asset_class, status, condition_id,
+                is_rental, is_fuel, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
@@ -222,12 +275,13 @@ impl AssetRepository {
         location_id: Option<Uuid>,
         department: Option<&str>,
         status: Option<&str>,
+        is_fuel: Option<bool>,
         limit: i64,
         offset: i64,
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         sqlx::query_as::<_, AssetSummary>(
             r#"
-            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.brand, a.purchase_price, 
+            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.brand, a.purchase_price, 
                    a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
             LEFT JOIN locations l ON a.location_id = l.id
@@ -238,6 +292,7 @@ impl AssetRepository {
                 AND ($3::uuid IS NULL OR a.location_id = $3)
                 AND ($4::text IS NULL OR a.department = $4 OR d.name = $4)
                 AND (($5::text IS NOT NULL AND a.status = $5) OR ($5::text IS NULL AND a.status != 'archived'))
+                AND ($8::boolean IS NULL OR a.is_fuel = $8)
             ORDER BY a.created_at DESC
             LIMIT $6 OFFSET $7
             "#,
@@ -249,6 +304,7 @@ impl AssetRepository {
         .bind(status)
         .bind(limit)
         .bind(offset)
+        .bind(is_fuel)
         .fetch_all(&self.pool)
         .await
     }
@@ -259,14 +315,14 @@ impl AssetRepository {
             r#"
             INSERT INTO assets (
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, asset_class, status, condition_id,
+                is_rental, is_fuel, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
             RETURNING *
             "#,
         )
@@ -280,6 +336,7 @@ impl AssetRepository {
         .bind(asset.assigned_to)
         .bind(asset.vendor_id)
         .bind(asset.is_rental)
+        .bind(asset.is_fuel)
         .bind(&asset.asset_class)
         .bind(&asset.status)
         .bind(asset.condition_id)
@@ -308,12 +365,12 @@ impl AssetRepository {
             UPDATE assets SET
                 asset_code = $2, name = $3, category_id = $4, location_id = $5,
                 department_id = $6, department = $7, assigned_to = $8, vendor_id = $9,
-                is_rental = $10, asset_class = $11, status = $12, condition_id = $13,
-                serial_number = $14, brand = $15, model = $16, year_manufacture = $17,
-                specifications = $18,
-                purchase_date = $19, purchase_price = $20, currency_id = $21, unit_id = $22, quantity = $23,
-                residual_value = $24, useful_life_months = $25,
-                qr_code_url = $26, notes = $27,
+                is_rental = $10, is_fuel = $11, asset_class = $12, status = $13, condition_id = $14,
+                serial_number = $15, brand = $16, model = $17, year_manufacture = $18,
+                specifications = $19,
+                purchase_date = $20, purchase_price = $21, currency_id = $22, unit_id = $23, quantity = $24,
+                residual_value = $25, useful_life_months = $26,
+                qr_code_url = $27, notes = $28,
                 updated_at = NOW()
             WHERE id = $1
             RETURNING *
@@ -329,6 +386,7 @@ impl AssetRepository {
         .bind(asset.assigned_to)
         .bind(asset.vendor_id)
         .bind(asset.is_rental)
+        .bind(asset.is_fuel)
         .bind(&asset.asset_class)
         .bind(&asset.status)
         .bind(asset.condition_id)
@@ -423,55 +481,21 @@ impl AssetRepository {
         .await
     }
 
-    /// Upsert vehicle details
+    /// Upsert vehicle details (Update asset JSONB)
     pub async fn upsert_vehicle_details(
         &self,
         details: &VehicleDetails,
     ) -> Result<VehicleDetails, sqlx::Error> {
-        sqlx::query_as::<_, VehicleDetails>(
-            r#"
-            INSERT INTO vehicle_details (
-                asset_id, license_plate, brand, model, color, vin, engine_number,
-                bpkb_number, stnk_expiry, kir_expiry, tax_expiry,
-                fuel_type, transmission, capacity, odometer_last
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            ON CONFLICT (asset_id) DO UPDATE SET
-                license_plate = EXCLUDED.license_plate,
-                brand = EXCLUDED.brand,
-                model = EXCLUDED.model,
-                color = EXCLUDED.color,
-                vin = EXCLUDED.vin,
-                engine_number = EXCLUDED.engine_number,
-                bpkb_number = EXCLUDED.bpkb_number,
-                stnk_expiry = EXCLUDED.stnk_expiry,
-                kir_expiry = EXCLUDED.kir_expiry,
-                tax_expiry = EXCLUDED.tax_expiry,
-                fuel_type = EXCLUDED.fuel_type,
-                transmission = EXCLUDED.transmission,
-                capacity = EXCLUDED.capacity,
-                odometer_last = EXCLUDED.odometer_last,
-                updated_at = NOW()
-            RETURNING *
-            "#,
-        )
-        .bind(details.asset_id)
-        .bind(&details.license_plate)
-        .bind(&details.brand)
-        .bind(&details.model)
-        .bind(&details.color)
-        .bind(&details.vin)
-        .bind(&details.engine_number)
-        .bind(&details.bpkb_number)
-        .bind(details.stnk_expiry)
-        .bind(details.kir_expiry)
-        .bind(details.tax_expiry)
-        .bind(&details.fuel_type)
-        .bind(&details.transmission)
-        .bind(&details.capacity)
-        .bind(details.odometer_last)
-        .fetch_one(&self.pool)
-        .await
+        let json = serde_json::to_value(details)
+            .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
+
+        sqlx::query("UPDATE assets SET vehicle_details = $2, updated_at = NOW() WHERE id = $1")
+            .bind(details.asset_id)
+            .bind(json)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(details.clone())
     }
 
     /// Get vehicle details
@@ -479,16 +503,25 @@ impl AssetRepository {
         &self,
         asset_id: Uuid,
     ) -> Result<Option<VehicleDetails>, sqlx::Error> {
-        sqlx::query_as::<_, VehicleDetails>("SELECT * FROM vehicle_details WHERE asset_id = $1")
-            .bind(asset_id)
-            .fetch_optional(&self.pool)
-            .await
+        let row: Option<(sqlx::types::Json<VehicleDetails>,)> =
+            sqlx::query_as("SELECT vehicle_details FROM assets WHERE id = $1")
+                .bind(asset_id)
+                .fetch_optional(&self.pool)
+                .await?;
+
+        if let Some((json,)) = row {
+            let mut v = json.0;
+            v.asset_id = asset_id;
+            Ok(Some(v))
+        } else {
+            Ok(None)
+        }
     }
 
-    /// Update odometer
+    /// Update odometer (Partial JSONB update)
     pub async fn update_odometer(&self, asset_id: Uuid, reading: i32) -> Result<bool, sqlx::Error> {
         let result = sqlx::query(
-            "UPDATE vehicle_details SET odometer_last = $2, updated_at = NOW() WHERE asset_id = $1",
+            "UPDATE assets SET vehicle_details = COALESCE(vehicle_details, '{}'::jsonb) || jsonb_build_object('odometer_last', $2::bigint, 'updated_at', NOW()), updated_at = NOW() WHERE id = $1",
         )
         .bind(asset_id)
         .bind(reading)

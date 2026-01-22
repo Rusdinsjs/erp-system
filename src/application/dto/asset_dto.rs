@@ -36,6 +36,7 @@ pub struct CreateAssetRequest {
     pub assigned_to: Option<Uuid>,
     pub vendor_id: Option<Uuid>,
     pub is_rental: Option<bool>,
+    pub is_fuel: Option<bool>,
     pub asset_class: Option<String>,
     pub status: Option<String>,
     pub condition_id: Option<i32>,
@@ -73,6 +74,7 @@ pub struct UpdateAssetRequest {
     pub assigned_to: Option<Uuid>,
     pub vendor_id: Option<Uuid>,
     pub is_rental: Option<bool>,
+    pub is_fuel: Option<bool>,
     pub asset_class: Option<String>,
     pub status: Option<String>,
     pub condition_id: Option<i32>,
@@ -100,6 +102,7 @@ pub struct AssetSearchParams {
     pub location_id: Option<Uuid>,
     pub department: Option<String>,
     pub status: Option<String>,
+    pub is_fuel: Option<bool>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
 }

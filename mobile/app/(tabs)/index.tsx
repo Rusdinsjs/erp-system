@@ -1,22 +1,35 @@
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Title, Button, useTheme, Avatar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import GlassView from '../../components/ui/GlassView';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useQuery } from '@tanstack/react-query';
+import { dashboardApi, RecentActivity } from '../../api/dashboard';
 
 export default function DashboardScreen() {
   const theme = useTheme();
   const router = useRouter();
   const user = useAuthStore(state => state.user);
 
-  // Mock Data
-  const [stats] = useState({
-    activeRentals: 12,
-    pendingTasks: 5,
-    myAssets: 3
+  // Fetch Dashboard Stats
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardApi.getStats,
+    refetchInterval: 30000 // Refresh every 30s
   });
+
+  // Fetch Recent Activity
+  const { data: activities } = useQuery({
+    queryKey: ['dashboard-activity'],
+    queryFn: dashboardApi.getActivity,
+    refetchInterval: 30000
+  });
+
+  // Calculate generic counts or default to 0
+  const activeLoans = stats?.loans?.active || 0;
+  // Combine pending maintenance + pending loans for a "Total Pending" view
+  const pendingTasks = (stats?.maintenance?.pending || 0) + (stats?.loans?.pending_approval || 0);
 
   return (
     <LinearGradient
@@ -38,12 +51,12 @@ export default function DashboardScreen() {
         {/* Quick Stats Grid */}
         <View style={styles.grid}>
           <GlassView style={{ flex: 1 }} intensity={20}>
-            <Text variant="displaySmall" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{stats.activeRentals}</Text>
-            <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.6)' }}>Active Rentals</Text>
+            <Text variant="displaySmall" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>{activeLoans}</Text>
+            <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.6)' }}>Active Loans</Text>
           </GlassView>
           <GlassView style={{ flex: 1 }} intensity={20}>
-            <Text variant="displaySmall" style={{ color: theme.colors.tertiary, fontWeight: 'bold' }}>{stats.pendingTasks}</Text>
-            <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.6)' }}>Pending Tasks</Text>
+            <Text variant="displaySmall" style={{ color: theme.colors.tertiary, fontWeight: 'bold' }}>{pendingTasks}</Text>
+            <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.6)' }}>Pending Actions</Text>
           </GlassView>
         </View>
 
@@ -73,26 +86,33 @@ export default function DashboardScreen() {
           </Button>
         </View>
 
-        <Title style={[styles.sectionTitle, { color: 'white' }]}>Recent Activity</Title>
-        <GlassView style={{ marginBottom: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Avatar.Icon size={40} icon="truck" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }} color="#60a5fa" />
-            <View style={{ marginLeft: 16, flex: 1 }}>
-              <Text variant="titleMedium" style={{ color: 'white' }}>Rental #R2024-001</Text>
-              <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.5)' }}>Handover completed</Text>
-            </View>
-          </View>
-        </GlassView>
+        <Title style={[styles.sectionTitle, { color: 'white', display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }]}>
+          Recent Activity
+        </Title>
 
-        <GlassView style={{ marginBottom: 100 }}> {/* Padding for TabBar */}
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Avatar.Icon size={40} icon="wrench" style={{ backgroundColor: 'rgba(234, 179, 8, 0.2)' }} color="#facc15" />
-            <View style={{ marginLeft: 16, flex: 1 }}>
-              <Text variant="titleMedium" style={{ color: 'white' }}>Excavator CAT-320</Text>
-              <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.5)' }}>Maintenance request approved</Text>
+        {activities?.slice(0, 5).map((activity: RecentActivity, index: number) => (
+          <GlassView key={index} style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Avatar.Icon
+                size={40}
+                icon={activity.entity_type === 'maintenance_work_orders' ? 'wrench' : 'history'}
+                style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
+                color="#60a5fa"
+              />
+              <View style={{ marginLeft: 16, flex: 1 }}>
+                <Text variant="titleMedium" style={{ color: 'white' }}>{activity.description}</Text>
+                <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  {new Date(activity.created_at).toLocaleDateString()} • {activity.action}
+                </Text>
+              </View>
             </View>
-          </View>
-        </GlassView>
+          </GlassView>
+        ))}
+
+        {!activities?.length && (
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>No recent activity.</Text>
+        )}
+
       </ScrollView>
     </LinearGradient>
   );
@@ -105,6 +125,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingTop: 60,
+    paddingBottom: 120, // Increased to avoid blocking by Tab menu
   },
   header: {
     flexDirection: 'row',

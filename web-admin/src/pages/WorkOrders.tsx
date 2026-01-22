@@ -16,7 +16,7 @@ import {
     StatusBadge,
     ActionIcon,
     Pagination,
-    Drawer,
+    Modal,
     useToast,
     Tabs,
     TabsList,
@@ -89,9 +89,6 @@ export function WorkOrders() {
             deleteMutation.mutate(id);
         }
     };
-
-    // Tab content wrapper to handle active state
-    // Replaced by Tabs component
 
     return (
         <div className="space-y-4">
@@ -204,12 +201,12 @@ export function WorkOrders() {
                 )}
             </Card>
 
-            {/* Work Order Form Drawer */}
-            <Drawer
+            {/* Work Order Form Modal */}
+            <Modal
                 isOpen={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 title={selectedId ? "Edit Work Order" : "New Work Order"}
-                size="lg"
+                size="3xl"
             >
                 {drawerOpen && (
                     <WorkOrderForm
@@ -223,7 +220,7 @@ export function WorkOrders() {
                         }}
                     />
                 )}
-            </Drawer>
+            </Modal>
         </div>
     );
 }

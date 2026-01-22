@@ -34,8 +34,8 @@ export const FuelRequestModal: React.FC<FuelRequestModalProps> = ({ isOpen, onCl
 
     const loadAssets = async () => {
         try {
-            const data = await assetApi.list({ page: 1, limit: 1000 } as any);
-            const list = (data as any).data || data;
+            const data = await assetApi.list({ page: 1, per_page: 1000, is_fuel: true });
+            const list = data.data || data;
             setAssets(Array.isArray(list) ? list : []);
         } catch (error) {
             console.error(error);
@@ -103,7 +103,7 @@ export const FuelRequestModal: React.FC<FuelRequestModalProps> = ({ isOpen, onCl
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="New Fuel Request">
+        <Modal isOpen={isOpen} onClose={onClose} title="New Fuel Request" size="2xl">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Select
                     label="Asset"

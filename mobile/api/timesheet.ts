@@ -5,6 +5,13 @@ export interface TimesheetRequest {
     work_date: string; // YYYY-MM-DD
     start_time?: string; // HH:MM
     end_time?: string;
+
+    standby_start_time?: string;
+    standby_end_time?: string;
+
+    breakdown_start_time?: string;
+    breakdown_end_time?: string;
+
     operating_hours: number;
     standby_hours?: number;
     breakdown_hours?: number;
@@ -12,6 +19,7 @@ export interface TimesheetRequest {
     hm_km_end?: number;
     operation_status: 'operating' | 'standby' | 'breakdown';
     work_description?: string;
+    breakdown_reason?: string;
     checker_notes?: string;
     photos?: string[]; // Array of URL strings
 }

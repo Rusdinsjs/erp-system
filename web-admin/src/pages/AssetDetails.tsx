@@ -1,0 +1,275 @@
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, MapPin, Building2, Tag, Calendar, Truck, Printer, BarChart3 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { assetApi } from '../api/assets';
+import { AssetFinancials } from '../components/Assets/AssetFinancials';
+import {
+    Button,
+    Card,
+    CardHeader,
+    CardTitle,
+    Badge,
+    LoadingOverlay,
+    Tabs, TabsContent, TabsList, TabsTrigger,
+} from '../components/ui';
+
+export function AssetDetails({ assetId }: { assetId?: string }) {
+    const { id: paramId } = useParams<{ id: string }>();
+    const id = assetId || paramId;
+    const navigate = useNavigate();
+
+    const handlePrint = (asset: any) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>QR Label - ${asset.asset_code}</title>
+                <style>
+                    @page { size: 60mm 40mm; margin: 2mm; }
+                    body { font-family: 'Arial', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4mm; margin: 0;}
+                    .label-container { border: 1px solid #333; border-radius: 4px; padding: 4mm; text-align: center; width: 52mm;}
+                    .qr-code { margin-bottom: 2mm;}
+                    .asset-code { font-size: 12pt; font-weight: bold; margin: 2mm 0;}
+                    .asset-name { font-size: 8pt; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50mm;}
+                </style>
+            </head>
+            <body>
+                <div class="label-container">
+                    <div class="qr-code"><svg id="qr-placeholder"></svg></div>
+                    <div class="asset-code">${asset.asset_code}</div>
+                    <div class="asset-name">${asset.name}</div>
+                </div>
+                <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+                <script>
+                    const canvas = document.createElement('canvas');
+                    QRCode.toCanvas(canvas, '${asset.id}', { width: 100, margin: 0 }, function(error) {
+                        if (!error) {
+                            const img = document.createElement('img');
+                            img.src = canvas.toDataURL();
+                            img.style.width = '25mm';
+                            img.style.height = '25mm';
+                            document.querySelector('.qr-code').appendChild(img);
+                            document.getElementById('qr-placeholder').remove();
+                            setTimeout(() => window.print(), 300);
+                        }
+                    });
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+
+    // Fetch asset detail
+    const { data: asset, isLoading, error } = useQuery({
+        queryKey: ['asset-detail', id],
+        queryFn: () => assetApi.get(id!),
+        enabled: !!id,
+    });
+
+    if (isLoading) return <LoadingOverlay visible={true} />;
+
+    if (error || !asset) {
+        return (
+            <div className="p-6 text-center">
+                <h2 className="text-xl font-bold text-red-500">Error Loading Asset</h2>
+                <p className="text-slate-400">{(error as any)?.message || 'Asset not found'}</p>
+                <Button variant="outline" onClick={() => navigate('/assets')} className="mt-4">
+                    Back to List
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/assets')}>
+                        <ArrowLeft size={20} />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold text-white">
+                            {asset.name}
+                            <span className="ml-3 text-slate-400 font-normal text-lg">
+                                {asset.asset_code}
+                            </span>
+                        </h1>
+                        <p className="text-slate-400 text-sm">
+                            {asset.brand} {asset.model} • {asset.category_name}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Badge variant={asset.status === 'active' ? 'success' : 'default'} className="px-3 py-1 text-sm">
+                        {asset.status?.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                    <Button variant="outline" onClick={() => navigate(`/assets/${id}/lifecycle`)}>
+                        Lifecycle History
+                    </Button>
+                </div>
+            </div>
+
+            {/* Financial Overview Widget */}
+            <AssetFinancials
+                maintenanceCost={Number(asset.total_maintenance_cost || 0)}
+                rentalIncome={Number(asset.total_rental_income || 0)}
+                purchasePrice={Number(asset.purchase_price || 0)}
+            />
+
+            {/* Details Tabs */}
+            <Tabs defaultValue="details">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="details">General Info</TabsTrigger>
+                    <TabsTrigger value="roi">ROI & Profitability</TabsTrigger>
+                    <TabsTrigger value="qrcode">QR Code Label</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="details">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Basic Info */}
+                        <Card padding="lg">
+                            <CardHeader>
+                                <CardTitle>Basic Information</CardTitle>
+                            </CardHeader>
+                            <div className="space-y-4">
+                                <DetailItem icon={<Tag size={18} />} label="Asset Code" value={asset.asset_code} />
+                                <DetailItem icon={<Tag size={18} />} label="Serial Number" value={asset.serial_number || '-'} />
+                                <DetailItem icon={<Building2 size={18} />} label="Brand" value={asset.brand || '-'} />
+                                <DetailItem icon={<Building2 size={18} />} label="Model" value={asset.model || '-'} />
+                                <DetailItem icon={<Calendar size={18} />} label="Purchase Date" value={asset.purchase_date ? new Date(asset.purchase_date).toLocaleDateString() : '-'} />
+                            </div>
+                        </Card>
+
+                        {/* Location & Department */}
+                        <Card padding="lg">
+                            <CardHeader>
+                                <CardTitle>Assignment</CardTitle>
+                            </CardHeader>
+                            <div className="space-y-4">
+                                <DetailItem icon={<MapPin size={18} />} label="Current Location" value={asset.location_name || 'Unassigned'} />
+                                <DetailItem icon={<Building2 size={18} />} label="Department" value={asset.department_name || 'No Dept'} />
+                                <DetailItem icon={<Truck size={18} />} label="Assigned To" value={asset.assigned_to_name || '-'} />
+                            </div>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="roi">
+                    <Card padding="lg">
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="text-cyan-400" size={20} />
+                                <CardTitle>Profitability Analysis (ROI)</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <div className="space-y-8 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <ROIStat label="Total Maintenance Cost" value={asset.total_maintenance_cost || 0} color="red" />
+                                <ROIStat label="Total Rental Income" value={asset.total_rental_income || 0} color="green" />
+                                <ROIStat
+                                    label="Net Profit/Loss"
+                                    value={(asset.total_rental_income || 0) - (asset.total_maintenance_cost || 0)}
+                                    color={(asset.total_rental_income || 0) - (asset.total_maintenance_cost || 0) >= 0 ? "cyan" : "red"}
+                                />
+                            </div>
+
+                            <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800 text-center">
+                                <p className="text-slate-400">Detailed ROI Charts & Breakdowns will be displayed here.</p>
+                                <p className="text-sm text-slate-500 mt-2">Integrating with Journal & Invoicing data...</p>
+                            </div>
+                        </div>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="qrcode">
+                    <Card padding="lg">
+                        <div className="flex flex-col items-center py-8">
+                            <div className="bg-white p-6 rounded-2xl mb-6 shadow-2xl shadow-cyan-500/20">
+                                <QRCodeSVG
+                                    value={asset.id}
+                                    size={200}
+                                    level="H"
+                                    includeMargin={false}
+                                />
+                            </div>
+
+                            <div className="text-center mb-8">
+                                <h3 className="text-2xl font-bold text-white mb-1">{asset.asset_code}</h3>
+                                <p className="text-slate-400">{asset.name}</p>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <Button
+                                    onClick={() => handlePrint(asset)}
+                                    leftIcon={<Printer size={20} />}
+                                    size="lg"
+                                    className="px-8"
+                                >
+                                    Print QR Label
+                                </Button>
+                                <Button variant="outline" size="lg" onClick={() => {
+                                    const svg = document.querySelector('svg');
+                                    if (svg) {
+                                        const svgData = new XMLSerializer().serializeToString(svg);
+                                        const canvas = document.createElement("canvas");
+                                        const ctx = canvas.getContext("2d");
+                                        const img = new Image();
+                                        img.onload = () => {
+                                            canvas.width = img.width;
+                                            canvas.height = img.height;
+                                            ctx?.drawImage(img, 0, 0);
+                                            const pngFile = canvas.toDataURL("image/png");
+                                            const downloadLink = document.createElement("a");
+                                            downloadLink.download = `QR-${asset.asset_code}.png`;
+                                            downloadLink.href = `${pngFile}`;
+                                            downloadLink.click();
+                                        };
+                                        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+                                    }
+                                }}>
+                                    Download PNG
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}
+
+function DetailItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+    return (
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800">
+            <div className="text-slate-400">{icon}</div>
+            <div>
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{label}</p>
+                <p className="text-white font-medium">{value}</p>
+            </div>
+        </div>
+    );
+}
+
+function ROIStat({ label, value, color }: { label: string, value: number, color: 'red' | 'green' | 'cyan' }) {
+    const colorClasses = {
+        red: 'text-red-400 bg-red-500/10 border-red-500/20',
+        green: 'text-green-400 bg-green-500/10 border-green-500/20',
+        cyan: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
+    };
+
+    return (
+        <div className={`p-4 rounded-xl border ${colorClasses[color]}`}>
+            <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{label}</p>
+            <p className="text-2xl font-bold">
+                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value)}
+            </p>
+        </div>
+    );
+}

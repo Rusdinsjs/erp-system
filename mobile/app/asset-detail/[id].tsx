@@ -26,9 +26,12 @@ export default function AssetDetailScreen() {
     }
 
     if (error || !asset) {
+        console.error('Asset Detail Error:', error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
         return (
             <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-                <Text style={{ color: theme.colors.error }}>Failed to load asset details</Text>
+                <Text style={{ color: theme.colors.error, textAlign: 'center', marginBottom: 10 }}>Failed to load asset details</Text>
+                <Text style={{ color: theme.colors.secondary, fontSize: 12, marginBottom: 20 }}>{errorMessage}</Text>
                 <Button onPress={() => router.back()} style={{ marginTop: 20 }}>Go Back</Button>
             </View>
         );
@@ -98,23 +101,6 @@ export default function AssetDetailScreen() {
                         title="Brand / Model"
                         description={`${asset.brand || '-'} / ${asset.model || '-'}`}
                         left={props => <List.Icon {...props} icon="information-outline" />}
-                    />
-                </List.Section>
-
-                <Divider />
-
-                {/* Financial Stats */}
-                <List.Section>
-                    <List.Subheader>Financial Overview</List.Subheader>
-                    <List.Item
-                        title="Total Maintenance Cost"
-                        description={new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(asset.total_maintenance_cost || 0)}
-                        left={props => <List.Icon {...props} icon="wrench-clock" color={theme.colors.error} />}
-                    />
-                    <List.Item
-                        title="Total Rental Income"
-                        description={new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(asset.total_rental_income || 0)}
-                        left={props => <List.Icon {...props} icon="cash-multiple" color={theme.colors.primary} />}
                     />
                 </List.Section>
 

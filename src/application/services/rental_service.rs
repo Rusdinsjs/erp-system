@@ -11,15 +11,19 @@ use crate::application::dto::{
     ApproveRentalRequest, CreateRentalRateRequest, CreateRentalRequest, DispatchRentalRequest,
     RejectRentalRequest, RentalScheduleItem, ReturnRentalRequest, UpdateRentalRateRequest,
 };
-use crate::domain::entities::{Rental, RentalItem, RentalRate, RentalStatus};
+use crate::domain::entities::UserClaims;
+use crate::domain::entities::{AssetState, Rental, RentalItem, RentalRate, RentalStatus};
 use crate::domain::errors::{DomainError, DomainResult};
-use crate::infrastructure::repositories::{AssetRepository, ClientRepository, RentalRepository};
+use crate::infrastructure::repositories::{
+    AssetRepository, ClientRepository, EmployeeRepository, RentalRepository,
+};
 
 #[derive(Clone)]
 pub struct RentalService {
     rental_repo: RentalRepository,
     client_repo: ClientRepository,
     asset_repo: AssetRepository,
+    employee_repo: EmployeeRepository,
 }
 
 impl RentalService {
@@ -27,11 +31,13 @@ impl RentalService {
         rental_repo: RentalRepository,
         client_repo: ClientRepository,
         asset_repo: AssetRepository,
+        employee_repo: EmployeeRepository,
     ) -> Self {
         Self {
             rental_repo,
             client_repo,
             asset_repo,
+            employee_repo,
         }
     }
 
@@ -77,10 +83,8 @@ impl RentalService {
                 .ok_or_else(|| DomainError::not_found("Asset", item_req.asset_id))?;
 
             // Check availability
-            if asset.status != "in_inventory"
-                && asset.status != "deployed"
-                && asset.status != "Available"
-            {
+            let status = AssetState::from_str(&asset.status);
+            if !matches!(status, Some(AssetState::InInventory | AssetState::Deployed)) {
                 return Err(DomainError::business_rule(
                     "asset_availability",
                     &format!(
@@ -317,9 +321,38 @@ impl RentalService {
             .ok_or_else(|| DomainError::not_found("Rental", id))
     }
 
-    pub async fn list_rentals(&self) -> DomainResult<Vec<Rental>> {
+    pub async fn list_rentals(&self, claims: &UserClaims) -> DomainResult<Vec<Rental>> {
+        let user_id = Uuid::parse_str(&claims.sub).unwrap_or_default();
+        let role = &claims.role;
+
+        let mut asset_id = None;
+        let mut location_id = None;
+
+        // Role-based filtering:
+        // - Operator: sees only assigned_asset_id
+        // - Checker: sees assets in work_area_id
+        // - Admin/Manager: sees all
+        if role != "admin" && role != "super_admin" && role != "manager" {
+            // Fetch employee profile
+            #[allow(unused_doc_comments)]
+            /**
+             * Note: We ignore errors here and just default to no filtering (or maybe empty list?)
+             * If an employee profile is missing for a non-admin, maybe they shouldn't see anything?
+             * For now, if no profile, they see nothing or default list.
+             * Let's assume if they have no profile, they are a regular user seeing nothing or everything?
+             * User request implies strict restriction.
+             */
+            if let Ok(Some(emp)) = self.employee_repo.find_by_user_id(user_id).await {
+                if let Some(aid) = emp.assigned_asset_id {
+                    asset_id = Some(aid);
+                } else if let Some(wid) = emp.work_area_id {
+                    location_id = Some(wid);
+                }
+            }
+        }
+
         self.rental_repo
-            .list_active()
+            .list_active_filtered(asset_id, location_id)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),

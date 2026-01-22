@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Edit, Trash2, RefreshCw, Upload, BarChart3 } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, RefreshCw, Upload, Eye } from 'lucide-react';
 import { assetApi } from '../api/assets';
 import type { Asset, CreateAssetRequest } from '../api/assets';
 import { api } from '../api/http';
@@ -14,7 +14,6 @@ import {
     StatusBadge,
     ActionIcon,
     Pagination,
-    Drawer,
     Modal,
     LoadingOverlay,
     useToast,
@@ -57,7 +56,6 @@ export function Assets() {
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [importModalOpen, setImportModalOpen] = useState(false);
-    const [roiAssetId, setRoiAssetId] = useState<string | null>(null);
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
 
     // Fetch Assets
@@ -232,11 +230,10 @@ export function Assets() {
                                     <TableTd align="center">
                                         <div className="flex items-center justify-center gap-1">
                                             <ActionIcon
-                                                variant="success"
-                                                onClick={() => setRoiAssetId(asset.id)}
-                                                title="Asset ROI & Profitability"
+                                                onClick={() => navigate(`/assets/${asset.id}`)}
+                                                title="View Details"
                                             >
-                                                <BarChart3 size={16} />
+                                                <Eye size={16} />
                                             </ActionIcon>
                                             <ActionIcon
                                                 onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}
@@ -269,23 +266,25 @@ export function Assets() {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex justify-end mt-4">
-                        <Pagination
-                            currentPage={page}
-                            totalPages={totalPages}
-                            onPageChange={setPage}
-                        />
-                    </div>
-                )}
-            </Card>
+                {
+                    totalPages > 1 && (
+                        <div className="flex justify-end mt-4">
+                            <Pagination
+                                currentPage={page}
+                                totalPages={totalPages}
+                                onPageChange={setPage}
+                            />
+                        </div>
+                    )
+                }
+            </Card >
 
-            {/* Asset Form Drawer */}
-            <Drawer
+            {/* Asset Form Modal */}
+            <Modal
                 isOpen={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 title={editingAsset ? `Edit Asset: ${editingAsset.asset_code}` : 'New Asset'}
-                size="xl"
+                size="4xl"
             >
                 <AssetForm
                     initialValues={editingAsset}
@@ -295,7 +294,7 @@ export function Assets() {
                     onCancel={() => setDrawerOpen(false)}
                     isLoading={createMutation.isPending || updateMutation.isPending}
                 />
-            </Drawer>
+            </Modal>
 
             {/* Import Modal - Using Mantine for now */}
             {/* Import Modal */}
@@ -309,21 +308,6 @@ export function Assets() {
                 categories={categories}
                 locations={locations}
             />
-
-            {/* ROI Modal */}
-            <Modal
-                isOpen={!!roiAssetId}
-                onClose={() => setRoiAssetId(null)}
-                title="Asset Profitability Analysis (ROI)"
-                size="full"
-            >
-                {roiAssetId && (
-                    <div className="text-center py-8 text-slate-400">
-                        <p>ROI Analysis for Asset ID: {roiAssetId}</p>
-                        <p className="text-sm mt-2">Full ROI component will be migrated separately.</p>
-                    </div>
-                )}
-            </Modal>
         </div>
     );
 }

@@ -26,6 +26,7 @@ async fn main() {
 
     // Load configuration
     let config = AppConfig::from_env();
+    tracing::info!("DEBUG: Database Config URL: {}", config.database_url); // Warning: prints secrets in dev, ok for local debug
 
     tracing::info!(
         "Starting Management System ERP v{}",

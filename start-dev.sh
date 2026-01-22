@@ -25,6 +25,7 @@ if [ -f .env ]; then
     echo -e "${GREEN}Environment loaded from .env${NC}"
     echo "DB Port: ${DB_PORT}"
     echo "Redis Port: ${REDIS_PORT}"
+    echo "DB URL: ${DATABASE_URL}"
 else
     echo "⚠️ .env file not found! Copying from .env.example"
     cp .env.example .env

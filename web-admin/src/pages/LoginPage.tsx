@@ -1,7 +1,7 @@
 // Login Page with Dark Theme
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, AlertCircle, Eye, EyeOff, Package } from 'lucide-react';
+import { LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { api } from '../api/http';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -52,21 +52,29 @@ export function LoginPage() {
 
             <div className="w-full max-w-md relative z-10">
                 {/* Logo & Branding */}
-                <div className="text-center mb-8 space-y-4">
+                <div className="text-center mb-10 space-y-6">
                     <div className="relative group inline-block">
-                        <div className="absolute -inset-1 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
-                        <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gray-900 border border-gray-700/50 rounded-2xl shadow-xl overflow-hidden transform group-hover:scale-105 transition duration-300">
-                            <Package size={36} className="text-blue-500" />
+                        <div className="absolute -inset-4 bg-blue-500/20 rounded-full blur-2xl opacity-25 group-hover:opacity-50 transition duration-700"></div>
+                        <div className="relative inline-flex items-center justify-center w-24 h-24 bg-white border border-white/20 rounded-full shadow-2xl p-2 transform group-hover:scale-110 transition duration-500 ease-out">
+                            <img
+                                src="/logo-sjs.png"
+                                alt="SJS Logo"
+                                className="w-full h-full object-contain"
+                            />
                         </div>
                     </div>
 
-                    <div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight">
-                            Management System
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <h1 className="text-4xl font-black text-white tracking-tighter mb-1">
+                            SJS Group
                         </h1>
-                        <p className="text-gray-400 mt-3 font-medium text-sm uppercase tracking-wider">
-                            Admin Dashboard
-                        </p>
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="h-px w-8 bg-blue-500/50" />
+                            <p className="text-blue-400 font-bold text-xs uppercase tracking-[0.3em] whitespace-nowrap">
+                                Management System
+                            </p>
+                            <div className="h-px w-8 bg-blue-500/50" />
+                        </div>
                     </div>
                 </div>
 

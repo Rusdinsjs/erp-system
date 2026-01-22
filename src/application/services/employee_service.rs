@@ -83,6 +83,8 @@ impl EmployeeService {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             department_name: None,
+            assigned_asset_id: None,
+            work_area_id: None,
         };
 
         let created_employee = self.repository.create(&employee).await?;

@@ -126,7 +126,7 @@ const TabItem = ({
         style={{
           color,
           fontSize: 10,
-          marginTop: 4,
+          marginTop: 2,
           fontWeight: isFocused ? 'bold' : 'normal',
         }}
       >
@@ -151,7 +151,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: insets.bottom + 8, paddingTop: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: insets.bottom > 0 ? insets.bottom : 6, paddingTop: 4 }}
       >
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];

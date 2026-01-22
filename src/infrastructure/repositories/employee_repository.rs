@@ -22,14 +22,16 @@ impl EmployeeRepository {
                 ktp_number, place_of_birth, date_of_birth, gender, marital_status, religion, address,
                 start_date, end_contract_date, is_manager, manager_id,
                 bank_account, bank_name, basic_salary,
-                leave_balance, leave_used
+                leave_balance, leave_used,
+                assigned_asset_id, work_area_id
             )
             VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
                 $11, $12, $13, $14, $15, $16, $17,
                 $18, $19, $20, $21,
                 $22, $23, $24,
-                $25, $26
+                $25, $26,
+                $27, $28
             )
             RETURNING *
             "#,
@@ -61,6 +63,8 @@ impl EmployeeRepository {
         .bind(employee.basic_salary)
         .bind(employee.leave_balance)
         .bind(employee.leave_used)
+        .bind(employee.assigned_asset_id)
+        .bind(employee.work_area_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
@@ -144,6 +148,7 @@ impl EmployeeRepository {
                 bank_account = $26, bank_name = $27, npwp = $28, bpjs_kesehatan = $29, bpjs_tenaga_kerja = $30, basic_salary = $31,
                 education = $32,
                 leave_balance = $33, leave_used = $34,
+                assigned_asset_id = $35, work_area_id = $36,
                 updated_at = NOW()
             WHERE id = $1
             RETURNING *
@@ -184,6 +189,8 @@ impl EmployeeRepository {
         .bind(&employee.education)
         .bind(employee.leave_balance)
         .bind(employee.leave_used)
+        .bind(employee.assigned_asset_id)
+        .bind(employee.work_area_id)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;

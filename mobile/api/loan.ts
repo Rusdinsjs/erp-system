@@ -20,7 +20,7 @@ export const loanApi = {
     },
     requestLoan: async (data: {
         asset_id: string;
-        borrower_id: string;
+        borrower_id?: string;  // Optional - backend can determine from auth token
         loan_date: string;
         expected_return_date: string;
     }) => {

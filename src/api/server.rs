@@ -149,8 +149,12 @@ impl AppState {
         let sensor_service = SensorService::new(sensor_repo);
         let conversion_service =
             ConversionService::new(conversion_repo.clone(), asset_repo.clone());
-        let rental_service =
-            RentalService::new(rental_repo.clone(), client_repo.clone(), asset_repo.clone());
+        let rental_service = RentalService::new(
+            rental_repo.clone(),
+            client_repo.clone(),
+            asset_repo.clone(),
+            employee_repo.clone(),
+        );
         let rental_billing_service = crate::application::services::RentalBillingService::new(
             rental_billing_repo.clone(),
             rental_repo.clone(),

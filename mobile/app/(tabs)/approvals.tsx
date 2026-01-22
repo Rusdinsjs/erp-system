@@ -11,7 +11,8 @@ import {
     IconButton,
     Portal,
     Dialog,
-    TextInput
+    TextInput,
+    Divider
 } from 'react-native-paper';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { approvalApi, ApprovalRequest } from '../../api/approval';
@@ -127,9 +128,14 @@ export default function ApprovalScreen() {
             style={[styles.container, { paddingTop: insets.top }]}
         >
             <View style={styles.header}>
-                <Text variant="headlineMedium" style={{ color: 'white', fontWeight: 'bold' }}>Approval Center</Text>
+                <Text variant="titleLarge" style={{ color: 'white', fontWeight: 'bold' }}>Approval Center</Text>
                 {activeTab === 'pending' && pendingRequests.length > 0 && (
-                    <Chip icon="bell-ring" style={styles.countChip} textStyle={{ color: '#0f172a' }}>{pendingRequests.length} Pending</Chip>
+                    <View style={styles.countChip}>
+                        <IconButton icon="bell-ring" size={14} iconColor="#0f172a" style={{ margin: 0, marginRight: 2 }} />
+                        <Text style={{ color: '#0f172a', fontSize: 13, fontWeight: 'bold', marginRight: 4 }}>
+                            {pendingRequests.length} Pending
+                        </Text>
+                    </View>
                 )}
             </View>
 
@@ -181,58 +187,92 @@ export default function ApprovalScreen() {
                         <RefreshControl refreshing={loadingPending || loadingMy} onRefresh={onRefresh} tintColor="white" />
                     }
                 >
-                    {filteredData.map((req) => (
-                        <Card key={req.id} style={styles.card} mode="outlined">
-                            <Card.Title
-                                title={req.resource_type.replace(/_/g, ' ').toUpperCase()}
-                                titleStyle={{ color: 'white', fontWeight: 'bold' }}
-                                subtitle={format(new Date(req.created_at), 'dd MMM yyyy, HH:mm')}
-                                subtitleStyle={{ color: 'rgba(255,255,255,0.7)' }}
-                                left={(props) => <IconButton {...props} icon={getIcon(req.resource_type)} iconColor="white" style={{ backgroundColor: theme.colors.primary }} />}
-                                right={(props) => (
-                                    <Text
-                                        style={{
-                                            marginRight: 16,
-                                            color: getStatusColor(req.status),
-                                            fontWeight: 'bold'
-                                        }}
-                                    >
-                                        {req.status}
-                                    </Text>
-                                )}
-                            />
-                            <Card.Content>
-                                <Text variant="bodyMedium" style={{ marginBottom: 4, color: 'rgba(255,255,255,0.9)' }}>
-                                    <Text style={{ fontWeight: 'bold', color: 'white' }}>Action: </Text>
-                                    {req.action_type.replace(/_/g, ' ')}
-                                </Text>
-                                <Text variant="bodyMedium" style={{ marginBottom: 4, color: 'rgba(255,255,255,0.9)' }}>
-                                    <Text style={{ fontWeight: 'bold', color: 'white' }}>Requester: </Text>
-                                    {req.requester_name || req.requested_by}
-                                </Text>
+                    {filteredData.map((req) => {
+                        // Safe extraction of detail data for clearer display
+                        const detail = req.data_snapshot as any || {};
+                        const assetName = detail.asset_name || detail.name || 'Unknown Item';
+                        const approvalReason = detail.notes || detail.reason || '-';
 
-                                <View style={styles.detailsBox}>
-                                    <Text variant="bodySmall" style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', color: 'rgba(255,255,255,0.8)' }}>
-                                        {JSON.stringify(req.data_snapshot, null, 2).substring(0, 150)}...
-                                    </Text>
+                        return (
+                            <Card key={req.id} style={styles.card} mode="outlined">
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.headerLeft}>
+                                        <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary }]}>
+                                            <IconButton icon={getIcon(req.resource_type)} iconColor="white" size={20} />
+                                        </View>
+                                        <View style={styles.headerText}>
+                                            <Text variant="titleMedium" style={{ color: 'white', fontWeight: 'bold' }}>
+                                                {req.resource_type.replace(/_/g, ' ').toUpperCase()}
+                                            </Text>
+                                            <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                                {format(new Date(req.created_at), 'dd MMM yyyy, HH:mm')}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={{
+                                        backgroundColor: getStatusColor(req.status),
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 4,
+                                        borderRadius: 12,
+                                        height: 24,
+                                        justifyContent: 'center',
+                                        alignItems: 'center'
+                                    }}>
+                                        <Text style={{ color: '#0f172a', fontWeight: 'bold', fontSize: 10, lineHeight: 12 }}>
+                                            {req.status}
+                                        </Text>
+                                    </View>
                                 </View>
-                            </Card.Content>
 
-                            {activeTab === 'pending' && (
-                                <Card.Actions>
-                                    <Button
-                                        textColor={theme.colors.error}
-                                        onPress={() => showDialog(req, 'reject')}
-                                    >Reject</Button>
-                                    <Button
-                                        mode="contained"
-                                        buttonColor={theme.colors.primary}
-                                        onPress={() => showDialog(req, 'approve')}
-                                    >Approve</Button>
-                                </Card.Actions>
-                            )}
-                        </Card>
-                    ))}
+                                <Divider style={{ backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 8 }} />
+
+                                <Card.Content>
+                                    <View style={styles.infoRow}>
+                                        <Text variant="labelSmall" style={styles.label}>Requester</Text>
+                                        <Text variant="bodyMedium" style={styles.value}>{req.requester_name || req.requested_by}</Text>
+                                    </View>
+
+                                    <View style={styles.infoRow}>
+                                        <Text variant="labelSmall" style={styles.label}>Action</Text>
+                                        <Text variant="bodyMedium" style={styles.value}>{req.action_type.replace(/_/g, ' ')}</Text>
+                                    </View>
+
+                                    <View style={styles.detailContainer}>
+                                        <Text variant="labelSmall" style={{ color: theme.colors.primary, marginBottom: 4 }}>DETAILS</Text>
+                                        <Text variant="bodyMedium" style={{ color: 'white', fontWeight: 'bold' }}>{assetName}</Text>
+
+                                        {detail.from_state && (
+                                            <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                                State: {detail.from_state} → {detail.to_state || '...'}
+                                            </Text>
+                                        )}
+
+                                        {approvalReason !== '-' && (
+                                            <Text variant="bodySmall" style={{ color: 'rgba(255,255,255,0.7)', marginTop: 2, fontStyle: 'italic' }}>
+                                                "{approvalReason}"
+                                            </Text>
+                                        )}
+                                    </View>
+                                </Card.Content>
+
+                                {activeTab === 'pending' && (
+                                    <Card.Actions style={{ marginTop: 8 }}>
+                                        <Button
+                                            textColor={theme.colors.error}
+                                            onPress={() => showDialog(req, 'reject')}
+                                            compact
+                                        >Reject</Button>
+                                        <Button
+                                            mode="contained"
+                                            buttonColor={theme.colors.primary}
+                                            onPress={() => showDialog(req, 'approve')}
+                                            compact
+                                        >Approve</Button>
+                                    </Card.Actions>
+                                )}
+                            </Card>
+                        )
+                    })}
                     {!filteredData.length && (
                         <Text style={styles.emptyText}>No requests found.</Text>
                     )}
@@ -284,6 +324,12 @@ const styles = StyleSheet.create({
     },
     countChip: {
         backgroundColor: '#fbbf24', // Amber
+        height: 30,
+        borderRadius: 15,
+        flexDirection: 'row', // Important for Icon + Text row
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 0,
     },
     tabs: {
         marginHorizontal: 16,
@@ -302,7 +348,7 @@ const styles = StyleSheet.create({
     list: {
         padding: 16,
         paddingTop: 0,
-        paddingBottom: 80,
+        paddingBottom: 130, // Slight increase from 125
     },
     loading: {
         flex: 1,
@@ -324,5 +370,50 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 32,
         color: 'rgba(255,255,255,0.5)',
+    },
+    // New Styles for Refactored Card
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        padding: 16,
+        paddingBottom: 0,
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        marginRight: 8,
+    },
+    iconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    headerText: {
+        flex: 1,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        marginBottom: 6,
+    },
+    label: {
+        width: 80,
+        color: 'rgba(255,255,255,0.6)',
+    },
+    value: {
+        flex: 1,
+        color: 'white',
+    },
+    detailContainer: {
+        marginTop: 12,
+        padding: 12,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: '#3b82f6', // bright blue
     }
 });

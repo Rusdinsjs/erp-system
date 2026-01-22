@@ -126,8 +126,16 @@ impl TimesheetService {
             })?;
 
         // Intelligent Maintenance: Auto-create Work Order if Breakdown > 0
-        if let Some(breakdown) = created.breakdown_hours {
-            if breakdown > Decimal::ZERO {
+        // Intelligent Maintenance: Auto-create Work Order if Breakdown status or hours > 0
+        if created.operation_status == "breakdown"
+            || created.breakdown_start_time.is_some()
+            || created
+                .breakdown_hours
+                .map(|h| h > Decimal::ZERO)
+                .unwrap_or(false)
+        {
+            // Logic to prevent duplicate WO if needed (omitted for now as per requirement)
+            if true {
                 // Find asset ID
                 let asset_id = if let Some(items) = &rental.items {
                     items

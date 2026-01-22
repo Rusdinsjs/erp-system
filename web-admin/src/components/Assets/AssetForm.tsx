@@ -58,6 +58,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         useful_life_months: initialValues?.useful_life_months,
         notes: initialValues?.notes || '',
         is_rental: initialValues?.is_rental || false,
+        is_fuel: initialValues?.is_fuel || false,
         // Vehicle Details
         vehicle_license_plate: initialValues?.vehicle_details?.license_plate || '',
         vehicle_vin: initialValues?.vehicle_details?.vin || '',
@@ -100,6 +101,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 useful_life_months: initialValues.useful_life_months,
                 notes: initialValues.notes || '',
                 is_rental: initialValues.is_rental || false,
+                is_fuel: initialValues.is_fuel || false,
                 // Vehicle Details
                 vehicle_license_plate: initialValues.vehicle_details?.license_plate || '',
                 vehicle_vin: initialValues.vehicle_details?.vin || '',
@@ -151,6 +153,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 useful_life_months: undefined,
                 notes: '',
                 is_rental: false,
+                is_fuel: false,
                 vehicle_license_plate: '',
                 vehicle_vin: '',
                 vehicle_engine_number: '',
@@ -303,6 +306,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             useful_life_months: formData.useful_life_months,
             notes: formData.notes || undefined,
             is_rental: formData.is_rental,
+            is_fuel: formData.is_fuel,
         };
 
         // Vehicle details
@@ -352,339 +356,474 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
             <Tabs defaultValue="general">
-                <TabsList>
-                    <TabsTrigger value="general" icon={<Info size={14} />}>General</TabsTrigger>
-                    <TabsTrigger
-                        value="details"
-                        icon={isVehicle ? <Car size={14} /> : isBuilding ? <Building2 size={14} /> : <FileText size={14} />}
-                    >
-                        {isVehicle ? 'Vehicle Details' : isBuilding ? 'Property Details' : 'Specifications'}
-                    </TabsTrigger>
-                    <TabsTrigger value="financial" icon={<DollarSign size={14} />}>Financial</TabsTrigger>
-                </TabsList>
+                <div className="flex items-center justify-between mb-8">
+                    <TabsList className="bg-white/5 p-1 rounded-2xl backdrop-blur-md border border-white/5">
+                        <TabsTrigger
+                            value="general"
+                            icon={<Info size={18} />}
+                            className="px-6 py-2.5 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-300"
+                        >
+                            General
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="details"
+                            icon={isVehicle ? <Car size={18} /> : isBuilding ? <Building2 size={18} /> : <FileText size={18} />}
+                            className="px-6 py-2.5 rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300"
+                        >
+                            {isVehicle ? 'Vehicle' : isBuilding ? 'Property' : 'Specifications'}
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="financial"
+                            icon={<DollarSign size={18} />}
+                            className="px-6 py-2.5 rounded-xl data-[state=active]:bg-amber-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300"
+                        >
+                            Financial
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 {/* General Tab */}
-                <TabsContent value="general">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input
-                            label="Asset Code"
-                            value={formData.asset_code}
-                            onChange={(e) => updateField('asset_code', e.target.value)}
-                            error={errors.asset_code}
-                            required
-                        />
-                        <Select
-                            label="Status"
-                            value={formData.status}
-                            onChange={(val) => updateField('status', val)}
-                            options={[
-                                { value: 'planning', label: 'Planning' },
-                                { value: 'active', label: 'Active' },
-                                { value: 'maintenance', label: 'Maintenance' },
-                                { value: 'disposed', label: 'Disposed' },
-                                { value: 'sold', label: 'Sold' },
-                                { value: 'lost', label: 'Lost/Missing' },
-                                { value: 'archived', label: 'Archived' },
-                            ]}
-                        />
-                        {/* Is Rental Checkbox */}
-                        <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                            <input
-                                type="checkbox"
-                                id="is_rental"
-                                checked={formData.is_rental}
-                                onChange={(e) => updateField('is_rental', e.target.checked)}
-                                className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-emerald-500"
-                            />
-                            <label htmlFor="is_rental" className="text-sm text-slate-300 cursor-pointer">
-                                <span className="font-medium text-white">Is Rentable</span>
-                                <span className="block text-xs text-slate-500">Centang jika asset ini bisa disewakan</span>
-                            </label>
+                <TabsContent value="general" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Primary Info Card */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-cyan-500/10 transition-colors duration-500" />
+                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-cyan-500 rounded-full" />
+                                    Identity & Category
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Input
+                                        label="Asset Code"
+                                        placeholder="e.g. AST-001"
+                                        value={formData.asset_code}
+                                        onChange={(e) => updateField('asset_code', e.target.value)}
+                                        error={errors.asset_code}
+                                        required
+                                        className="bg-black/20 border-white/5 focus:border-cyan-500/50 transition-all"
+                                    />
+                                    <Select
+                                        label="Status"
+                                        value={formData.status}
+                                        onChange={(val) => updateField('status', val)}
+                                        options={[
+                                            { value: 'planning', label: 'Planning' },
+                                            { value: 'active', label: 'Active' },
+                                            { value: 'maintenance', label: 'Maintenance' },
+                                            { value: 'disposed', label: 'Disposed' },
+                                            { value: 'sold', label: 'Sold' },
+                                            { value: 'lost', label: 'Lost/Missing' },
+                                            { value: 'archived', label: 'Archived' },
+                                        ]}
+                                    />
+                                    <div className="md:col-span-2">
+                                        <Input
+                                            label="Asset Name"
+                                            placeholder="Enter descriptive name"
+                                            value={formData.name}
+                                            onChange={(e) => updateField('name', e.target.value)}
+                                            error={errors.name}
+                                            required
+                                            className="bg-black/20 border-white/5 focus:border-cyan-500/50 transition-all"
+                                        />
+                                    </div>
+                                    <Select
+                                        label="Category"
+                                        value={formData.category_id}
+                                        onChange={(val) => updateField('category_id', val)}
+                                        options={categoryOptions}
+                                        placeholder="Select category..."
+                                        error={errors.category_id}
+                                        required
+                                        onCreate={() => setShowCategoryModal(true)}
+                                    />
+                                    <Select
+                                        label="Location"
+                                        value={formData.location_id}
+                                        onChange={(val) => updateField('location_id', val)}
+                                        options={locationOptions}
+                                        placeholder="Select location..."
+                                        onCreate={() => window.open('/locations', '_blank')}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
+                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                                    Manufacturing & Brand
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <Input
+                                        label="Brand"
+                                        value={formData.brand}
+                                        onChange={(e) => updateField('brand', e.target.value)}
+                                        className="bg-black/20 border-white/5"
+                                    />
+                                    <Input
+                                        label="Model"
+                                        value={formData.model}
+                                        onChange={(e) => updateField('model', e.target.value)}
+                                        className="bg-black/20 border-white/5"
+                                    />
+                                    <NumberInput
+                                        label="Year"
+                                        value={formData.year_manufacture}
+                                        onChange={(val) => updateField('year_manufacture', val)}
+                                        className="bg-black/20 border-white/5"
+                                    />
+                                    <div className="md:col-span-2">
+                                        <Input
+                                            label="Serial Number"
+                                            value={formData.serial_number}
+                                            onChange={(e) => updateField('serial_number', e.target.value)}
+                                            className="bg-black/20 border-white/5"
+                                        />
+                                    </div>
+                                    <Select
+                                        label="Department"
+                                        value={formData.department_id}
+                                        onChange={(val) => updateField('department_id', val)}
+                                        options={departmentOptions}
+                                        placeholder="Select department..."
+                                        onCreate={() => window.open('/departments', '_blank')}
+                                        disabled={!!user?.department && user.role !== 'super_admin'}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div className="md:col-span-2">
-                            <Input
-                                label="Asset Name"
-                                value={formData.name}
-                                onChange={(e) => updateField('name', e.target.value)}
-                                error={errors.name}
-                                required
-                            />
+
+                        {/* Right Panel - Settings & Notes */}
+                        <div className="space-y-6">
+                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl h-fit">
+                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
+                                    Operations
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="group flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-3xl border border-white/5 transition-all duration-300 cursor-pointer"
+                                        onClick={() => updateField('is_rental', !formData.is_rental)}>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_rental ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                            {formData.is_rental && <Plus size={14} className="text-white rotate-45" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-white text-sm">Rentable Asset</p>
+                                            <p className="text-xs text-slate-500">Allow this asset to be rented</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="group flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-3xl border border-white/5 transition-all duration-300 cursor-pointer"
+                                        onClick={() => updateField('is_fuel', !formData.is_fuel)}>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_fuel ? 'bg-cyan-500 border-cyan-500' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                            {formData.is_fuel && <Plus size={14} className="text-white rotate-45" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-white text-sm">Fuel Consumption</p>
+                                            <p className="text-xs text-slate-500">Asset requires fuel monitoring</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl flex-1">
+                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-slate-500 rounded-full" />
+                                    Additional Notes
+                                </h3>
+                                <Textarea
+                                    placeholder="Enter any additional information..."
+                                    value={formData.notes}
+                                    onChange={(e) => updateField('notes', e.target.value)}
+                                    rows={8}
+                                    className="bg-black/20 border-white/5 focus:border-white/20 resize-none rounded-2xl"
+                                />
+                            </div>
                         </div>
-                        <Select
-                            label="Category"
-                            value={formData.category_id}
-                            onChange={(val) => updateField('category_id', val)}
-                            options={categoryOptions}
-                            placeholder="Select category..."
-                            error={errors.category_id}
-                            required
-                            onCreate={() => setShowCategoryModal(true)}
-                        />
-                        <Select
-                            label="Location"
-                            value={formData.location_id}
-                            onChange={(val) => updateField('location_id', val)}
-                            options={locationOptions}
-                            placeholder="Select location..."
-                            onCreate={() => window.open('/locations', '_blank')}
-                        />
-                        <Input
-                            label="Brand"
-                            value={formData.brand}
-                            onChange={(e) => updateField('brand', e.target.value)}
-                        />
-                        <Input
-                            label="Model"
-                            value={formData.model}
-                            onChange={(e) => updateField('model', e.target.value)}
-                        />
-                        <Select
-                            label="Department"
-                            value={formData.department_id}
-                            onChange={(val) => updateField('department_id', val)}
-                            options={departmentOptions}
-                            placeholder="Select department..."
-                            onCreate={() => window.open('/departments', '_blank')}
-                            disabled={!!user?.department && user.role !== 'super_admin'}
-                        />
-                        <Input
-                            label="Serial Number"
-                            value={formData.serial_number}
-                            onChange={(e) => updateField('serial_number', e.target.value)}
-                        />
-                        <NumberInput
-                            label="Year Manufacture"
-                            value={formData.year_manufacture}
-                            onChange={(val) => updateField('year_manufacture', val)}
-                        />
-                    </div>
-                    <div className="mt-4">
-                        <Textarea
-                            label="Notes"
-                            value={formData.notes}
-                            onChange={(e) => updateField('notes', e.target.value)}
-                            rows={3}
-                        />
                     </div>
                 </TabsContent>
 
                 {/* Details Tab */}
-                <TabsContent value="details">
-                    {isVehicle && (
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-white">Vehicle Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                    label="License Plate (No Polisi)"
-                                    value={formData.vehicle_license_plate}
-                                    onChange={(e) => updateField('vehicle_license_plate', e.target.value)}
-                                />
-                                <Input
-                                    label="VIN (Chassis No)"
-                                    value={formData.vehicle_vin}
-                                    onChange={(e) => updateField('vehicle_vin', e.target.value)}
-                                />
-                                <Input
-                                    label="Engine Number"
-                                    value={formData.vehicle_engine_number}
-                                    onChange={(e) => updateField('vehicle_engine_number', e.target.value)}
-                                />
-                                <Input
-                                    label="Color"
-                                    value={formData.vehicle_color}
-                                    onChange={(e) => updateField('vehicle_color', e.target.value)}
-                                />
-                                <Input
-                                    label="BPKB Number"
-                                    value={formData.vehicle_bpkb_number}
-                                    onChange={(e) => updateField('vehicle_bpkb_number', e.target.value)}
-                                />
-                                <NumberInput
-                                    label="Odometer"
-                                    value={formData.vehicle_odometer}
-                                    onChange={(val) => updateField('vehicle_odometer', val)}
-                                />
-                                <DateInput
-                                    label="STNK Expiry"
-                                    value={formData.vehicle_stnk_expiry}
-                                    onChange={(date) => updateField('vehicle_stnk_expiry', date)}
-                                />
-                                <DateInput
-                                    label="KIR Expiry"
-                                    value={formData.vehicle_kir_expiry}
-                                    onChange={(date) => updateField('vehicle_kir_expiry', date)}
-                                />
-                                <Select
-                                    label="Fuel Type"
-                                    value={formData.vehicle_fuel_type}
-                                    onChange={(val) => updateField('vehicle_fuel_type', val)}
-                                    options={[
-                                        { value: 'Petrol', label: 'Petrol' },
-                                        { value: 'Diesel', label: 'Diesel' },
-                                        { value: 'Electric', label: 'Electric' },
-                                        { value: 'Hybrid', label: 'Hybrid' },
-                                    ]}
-                                    placeholder="Select fuel type..."
-                                />
-                                <Select
-                                    label="Transmission"
-                                    value={formData.vehicle_transmission}
-                                    onChange={(val) => updateField('vehicle_transmission', val)}
-                                    options={[
-                                        { value: 'Manual', label: 'Manual' },
-                                        { value: 'Automatic', label: 'Automatic' },
-                                    ]}
-                                    placeholder="Select transmission..."
-                                />
-                                <Input
-                                    label="Capacity (CC/Ton)"
-                                    value={formData.vehicle_capacity}
-                                    onChange={(e) => updateField('vehicle_capacity', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    )}
+                <TabsContent value="details" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[3rem] p-10 shadow-xl relative overflow-hidden min-h-[400px]">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
 
-                    {isBuilding && (
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-white">Property / Land Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
+                        {isVehicle ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-emerald-500/20 rounded-3xl flex items-center justify-center text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                                        <Car size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-white">Vehicle Specifications</h3>
+                                        <p className="text-slate-400">Manage technical details for this vehicle/heavy equipment</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                     <Input
-                                        label="Address"
-                                        value={formData.building_address}
-                                        onChange={(e) => updateField('building_address', e.target.value)}
+                                        label="License Plate"
+                                        placeholder="B 1234 ABC"
+                                        value={formData.vehicle_license_plate}
+                                        onChange={(e) => updateField('vehicle_license_plate', e.target.value)}
+                                    />
+                                    <Input
+                                        label="VIN (Chassis No)"
+                                        value={formData.vehicle_vin}
+                                        onChange={(e) => updateField('vehicle_vin', e.target.value)}
+                                    />
+                                    <Input
+                                        label="Engine Number"
+                                        value={formData.vehicle_engine_number}
+                                        onChange={(e) => updateField('vehicle_engine_number', e.target.value)}
+                                    />
+                                    <Input
+                                        label="Color"
+                                        value={formData.vehicle_color}
+                                        onChange={(e) => updateField('vehicle_color', e.target.value)}
+                                    />
+                                    <Input
+                                        label="BPKB Number"
+                                        value={formData.vehicle_bpkb_number}
+                                        onChange={(e) => updateField('vehicle_bpkb_number', e.target.value)}
+                                    />
+                                    <NumberInput
+                                        label="Current Odometer (KM)"
+                                        value={formData.vehicle_odometer}
+                                        onChange={(val) => updateField('vehicle_odometer', val)}
+                                    />
+                                    <DateInput
+                                        label="STNK Expiry"
+                                        value={formData.vehicle_stnk_expiry}
+                                        onChange={(date) => updateField('vehicle_stnk_expiry', date)}
+                                    />
+                                    <DateInput
+                                        label="KIR Expiry"
+                                        value={formData.vehicle_kir_expiry}
+                                        onChange={(date) => updateField('vehicle_kir_expiry', date)}
+                                    />
+                                    <Select
+                                        label="Fuel Type"
+                                        value={formData.vehicle_fuel_type}
+                                        onChange={(val) => updateField('vehicle_fuel_type', val)}
+                                        options={[
+                                            { value: 'Petrol', label: 'Petrol' },
+                                            { value: 'Diesel', label: 'Diesel' },
+                                            { value: 'Electric', label: 'Electric' },
+                                            { value: 'Hybrid', label: 'Hybrid' },
+                                        ]}
+                                    />
+                                    <Select
+                                        label="Transmission"
+                                        value={formData.vehicle_transmission}
+                                        onChange={(val) => updateField('vehicle_transmission', val)}
+                                        options={[
+                                            { value: 'Manual', label: 'Manual' },
+                                            { value: 'Automatic', label: 'Automatic' },
+                                        ]}
+                                    />
+                                    <Input
+                                        label="Capacity (CC/Ton)"
+                                        value={formData.vehicle_capacity}
+                                        onChange={(e) => updateField('vehicle_capacity', e.target.value)}
                                     />
                                 </div>
-                                <Input
-                                    label="City / Region"
-                                    value={formData.building_city}
-                                    onChange={(e) => updateField('building_city', e.target.value)}
-                                />
-                                <Input
-                                    label="Certificate Number (SHM/HGB)"
-                                    value={formData.building_certificate_number}
-                                    onChange={(e) => updateField('building_certificate_number', e.target.value)}
-                                />
-                                <NumberInput
-                                    label="Land Area (m²)"
-                                    value={formData.building_land_area}
-                                    onChange={(val) => updateField('building_land_area', val)}
-                                />
-                                <NumberInput
-                                    label="Building Area (m²)"
-                                    value={formData.building_building_area}
-                                    onChange={(val) => updateField('building_building_area', val)}
-                                />
-                                <Input
-                                    label="PBB Number (NOP)"
-                                    value={formData.building_pbb_number}
-                                    onChange={(e) => updateField('building_pbb_number', e.target.value)}
-                                />
-                                <DateInput
-                                    label="Certificate Expiry"
-                                    value={formData.building_certificate_expiry}
-                                    onChange={(date) => updateField('building_certificate_expiry', date)}
-                                />
                             </div>
-                        </div>
-                    )}
-
-                    {!isVehicle && !isBuilding && (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                                <h3 className="text-lg font-semibold text-white">Custom Specifications</h3>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    type="button"
-                                    onClick={addSpec}
-                                    leftIcon={<Plus size={14} />}
-                                >
-                                    Add Attribute
-                                </Button>
-                            </div>
-
-                            {customSpecs.length === 0 && (
-                                <div className="flex flex-col items-center justify-center py-8 text-slate-500 bg-slate-900/30 rounded-lg border border-dashed border-slate-800">
-                                    <FileText size={32} className="mb-2 opacity-50" />
-                                    <p>No specific attributes defined.</p>
-                                    <p className="text-xs">Click "Add Attribute" to add custom details (e.g., Color, Weight, RAM).</p>
-                                </div>
-                            )}
-
-                            <div className="space-y-3">
-                                {customSpecs.map((spec, index) => (
-                                    <div key={index} className="flex gap-3 items-start animate-in fade-in slide-in-from-top-2 duration-200">
-                                        <div className="flex-1">
-                                            <Input
-                                                placeholder="Attribute Name (e.g. Color)"
-                                                value={spec.key}
-                                                onChange={(e) => updateSpec(index, 'key', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="flex-1">
-                                            <Input
-                                                placeholder="Value (e.g. Red)"
-                                                value={spec.value}
-                                                onChange={(e) => updateSpec(index, 'value', e.target.value)}
-                                            />
-                                        </div>
-                                        <ActionIcon
-                                            variant="danger"
-                                            className="mt-1"
-                                            type="button"
-                                            onClick={() => removeSpec(index)}
-                                            title="Remove attribute"
-                                        >
-                                            <Trash2 size={16} />
-                                        </ActionIcon>
+                        ) : isBuilding ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-blue-500/20 rounded-3xl flex items-center justify-center text-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                                        <Building2 size={32} />
                                     </div>
-                                ))}
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-white">Property Details</h3>
+                                        <p className="text-slate-400">Land, buildings, and infrastructure information</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <div className="md:col-span-2">
+                                        <Input
+                                            label="Address"
+                                            value={formData.building_address}
+                                            onChange={(e) => updateField('building_address', e.target.value)}
+                                        />
+                                    </div>
+                                    <Input
+                                        label="City / Region"
+                                        value={formData.building_city}
+                                        onChange={(e) => updateField('building_city', e.target.value)}
+                                    />
+                                    <Input
+                                        label="Certificate Number (SHM/HGB)"
+                                        value={formData.building_certificate_number}
+                                        onChange={(e) => updateField('building_certificate_number', e.target.value)}
+                                    />
+                                    <NumberInput
+                                        label="Land Area (m²)"
+                                        value={formData.building_land_area}
+                                        onChange={(val) => updateField('building_land_area', val)}
+                                    />
+                                    <NumberInput
+                                        label="Building Area (m²)"
+                                        value={formData.building_building_area}
+                                        onChange={(val) => updateField('building_building_area', val)}
+                                    />
+                                    <Input
+                                        label="PBB Number (NOP)"
+                                        value={formData.building_pbb_number}
+                                        onChange={(e) => updateField('building_pbb_number', e.target.value)}
+                                    />
+                                    <DateInput
+                                        label="Certificate Expiry"
+                                        value={formData.building_certificate_expiry}
+                                        onChange={(date) => updateField('building_certificate_expiry', date)}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 bg-slate-500/20 rounded-3xl flex items-center justify-center text-slate-400 shadow-[0_0_30px_rgba(100,116,139,0.2)]">
+                                            <FileText size={32} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-white">Custom Specifications</h3>
+                                            <p className="text-slate-400">Define unique attributes for this asset</p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        size="md"
+                                        variant="outline"
+                                        type="button"
+                                        onClick={addSpec}
+                                        leftIcon={<Plus size={18} />}
+                                        className="rounded-2xl border-white/10"
+                                    >
+                                        Add Attribute
+                                    </Button>
+                                </div>
+
+                                {customSpecs.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-20 text-slate-500 bg-black/20 rounded-[2rem] border border-dashed border-white/10">
+                                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                            <Plus size={32} className="opacity-20" />
+                                        </div>
+                                        <p className="text-lg font-medium">No custom attributes yet</p>
+                                        <p className="text-sm opacity-60">Add attributes like Color, Weight, or Technical Specs</p>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {customSpecs.map((spec, index) => (
+                                        <div key={index} className="flex gap-4 items-start p-4 bg-white/5 rounded-[1.5rem] border border-white/5 group transition-all duration-300 hover:bg-white/[0.08]">
+                                            <div className="flex-1 space-y-3">
+                                                <Input
+                                                    placeholder="Attribute Name"
+                                                    value={spec.key}
+                                                    onChange={(e) => updateSpec(index, 'key', e.target.value)}
+                                                    className="bg-black/30 border-transparent focus:border-white/10"
+                                                />
+                                                <Input
+                                                    placeholder="Value"
+                                                    value={spec.value}
+                                                    onChange={(e) => updateSpec(index, 'value', e.target.value)}
+                                                    className="bg-black/30 border-transparent focus:border-white/10"
+                                                />
+                                            </div>
+                                            <ActionIcon
+                                                variant="danger"
+                                                className="mt-1 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all rounded-xl"
+                                                type="button"
+                                                onClick={() => removeSpec(index)}
+                                            >
+                                                <Trash2 size={18} />
+                                            </ActionIcon>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </TabsContent>
 
                 {/* Financial Tab */}
-                <TabsContent value="financial">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <DateInput
-                            label="Purchase Date"
-                            value={formData.purchase_date}
-                            onChange={(date) => updateField('purchase_date', date)}
-                        />
-                        <NumberInput
-                            label="Purchase Price"
-                            prefix="Rp "
-                            value={formData.purchase_price}
-                            onChange={(val) => updateField('purchase_price', val)}
-                            thousandSeparator
-                        />
-                        <NumberInput
-                            label="Residual Value"
-                            prefix="Rp "
-                            value={formData.residual_value}
-                            onChange={(val) => updateField('residual_value', val)}
-                            thousandSeparator
-                        />
-                        <NumberInput
-                            label="Useful Life (Months)"
-                            value={formData.useful_life_months}
-                            onChange={(val) => updateField('useful_life_months', val)}
-                        />
+                <TabsContent value="financial" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[3rem] p-10 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
+
+                        <div className="flex items-center gap-4 mb-10">
+                            <div className="w-16 h-16 bg-amber-500/20 rounded-3xl flex items-center justify-center text-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                                <DollarSign size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white">Financial Details</h3>
+                                <p className="text-slate-400">Track purchase history, valuation, and depreciation</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                            <div className="space-y-8">
+                                <DateInput
+                                    label="Purchase Date"
+                                    value={formData.purchase_date}
+                                    onChange={(date) => updateField('purchase_date', date)}
+                                />
+                                <NumberInput
+                                    label="Purchase Price"
+                                    prefix="Rp "
+                                    value={formData.purchase_price}
+                                    onChange={(val) => updateField('purchase_price', val)}
+                                    thousandSeparator
+                                />
+                            </div>
+                            <div className="space-y-8">
+                                <NumberInput
+                                    label="Residual Value"
+                                    prefix="Rp "
+                                    value={formData.residual_value}
+                                    onChange={(val) => updateField('residual_value', val)}
+                                    thousandSeparator
+                                />
+                                <NumberInput
+                                    label="Useful Life (Months)"
+                                    value={formData.useful_life_months}
+                                    onChange={(val) => updateField('useful_life_months', val)}
+                                />
+                            </div>
+                            <div className="bg-amber-500/5 rounded-[2rem] p-8 border border-amber-500/10 flex flex-col justify-center items-center text-center space-y-4">
+                                <div className="w-12 h-12 bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500">
+                                    <Info size={24} />
+                                </div>
+                                <div>
+                                    <p className="text-white font-semibold">Value Depreciation</p>
+                                    <p className="text-xs text-slate-500 px-4">These values are used to calculate current book value and maintenance thresholds.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                <Button variant="outline" type="button" onClick={onCancel}>
+            <div className="flex justify-end gap-4 pt-8 border-t border-white/5">
+                <Button
+                    variant="ghost"
+                    type="button"
+                    onClick={onCancel}
+                    className="px-8 py-3 rounded-2xl text-slate-400 hover:bg-white/5 hover:text-white transition-all"
+                >
                     Cancel
                 </Button>
-                <Button type="submit" loading={isLoading} leftIcon={<Save size={16} />}>
+                <Button
+                    type="submit"
+                    loading={isLoading}
+                    leftIcon={<Save size={20} />}
+                    className="px-10 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 shadow-[0_10px_20px_rgba(6,182,212,0.3)] hover:shadow-[0_15px_30px_rgba(6,182,212,0.4)] transition-all duration-300"
+                >
                     Save Asset
                 </Button>
             </div>
@@ -695,8 +834,6 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 onClose={() => setShowCategoryModal(false)}
                 onSuccess={(newId) => {
                     updateField('category_id', newId);
-                    // Optionally refresh categories query if needed, 
-                    // generally invalidating 'categories-tree' or 'departments' handled in mutation
                 }}
             />
         </form>

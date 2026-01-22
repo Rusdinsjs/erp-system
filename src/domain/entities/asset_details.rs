@@ -8,9 +8,14 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+fn default_uuid() -> Uuid {
+    Uuid::nil()
+}
+
 /// Vehicle Details (1:1 with Asset)
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct VehicleDetails {
+    #[serde(default = "default_uuid")]
     pub asset_id: Uuid,
     pub license_plate: Option<String>,
     pub brand: Option<String>,
@@ -26,8 +31,14 @@ pub struct VehicleDetails {
     pub transmission: Option<String>,
     pub capacity: Option<String>,
     pub odometer_last: Option<i64>,
+    #[serde(default = "default_datetime")]
     pub created_at: DateTime<Utc>,
+    #[serde(default = "default_datetime")]
     pub updated_at: DateTime<Utc>,
+}
+
+fn default_datetime() -> DateTime<Utc> {
+    Utc::now()
 }
 
 /// Insurance Details (1:N with Asset)

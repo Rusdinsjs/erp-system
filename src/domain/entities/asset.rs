@@ -26,6 +26,7 @@ pub struct Asset {
 
     // Classification
     pub is_rental: bool,
+    pub is_fuel: bool,
     pub asset_class: Option<String>,
     pub status: String,
     pub condition_id: Option<i32>,
@@ -76,6 +77,7 @@ impl Asset {
             assigned_to: None,
             vendor_id: None,
             is_rental: false,
+            is_fuel: false,
             asset_class: None,
             status: AssetState::Planning.as_str().to_string(),
             condition_id: None,
@@ -139,6 +141,8 @@ pub struct AssetSummary {
     pub asset_class: Option<String>,
     #[sqlx(default)]
     pub is_rental: bool,
+    #[sqlx(default)]
+    pub is_fuel: bool,
     pub brand: Option<String>,
     pub purchase_price: Option<Decimal>,
     pub category_id: Uuid,

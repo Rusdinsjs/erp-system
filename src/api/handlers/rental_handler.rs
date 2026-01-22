@@ -31,9 +31,10 @@ pub struct ScheduleParams {
 /// List all rentals
 pub async fn list_rentals(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Query(_params): Query<PaginationParams>, // Pagination not implemented in service yet
 ) -> Result<Json<Vec<Rental>>, AppError> {
-    let rentals = state.rental_service.list_rentals().await?;
+    let rentals = state.rental_service.list_rentals(&claims).await?;
     Ok(Json(rentals))
 }
 

@@ -69,17 +69,6 @@ export default function InputScreen() {
         }
     }, [params.rentalId]);
 
-    // Auto-calculate Hours
-    useEffect(() => {
-        if (hmEnd && hmStart) {
-            const start = parseFloat(hmStart);
-            const end = parseFloat(hmEnd);
-            if (!isNaN(start) && !isNaN(end) && end >= start) {
-                setOperatingHours((end - start).toFixed(1));
-            }
-        }
-    }, [hmStart, hmEnd]);
-
     const mutation = useMutation({
         mutationFn: timesheetApi.create,
         onSuccess: () => {
@@ -95,6 +84,15 @@ export default function InputScreen() {
         }
     });
 
+    // Helper to calc hours from HH:MM
+    const calculateTimeDiff = (start: string, end: string) => {
+        if (!start || !end) return 0;
+        const [h1, m1] = start.split(':').map(Number);
+        const [h2, m2] = end.split(':').map(Number);
+        const diff = (h2 + m2 / 60) - (h1 + m1 / 60);
+        return diff > 0 ? diff : 0;
+    };
+
     const handleSubmit = () => {
         if (!rentalId) {
             Alert.alert('Validation', 'Please select a rental assignment');
@@ -102,21 +100,37 @@ export default function InputScreen() {
         }
 
         // Ensure time has seconds for NaiveTime
-        const formatTime = (t: string) => t.length === 5 ? `${t}:00` : t;
+        const formatTime = (t: string) => (!t || t.length === 0) ? undefined : (t.length === 5 ? `${t}:00` : t);
 
         const payload: TimesheetRequest = {
             rental_id: rentalId,
             work_date: workDate,
-            start_time: formatTime(startTime),
-            end_time: formatTime(endTime),
-            operating_hours: parseFloat(operatingHours) || 0,
-            hm_km_start: parseFloat(hmStart) || 0,
-            hm_km_end: parseFloat(hmEnd) || 0,
+
+            // Map generic state/UI fields to specific DTO fields based on Status
             operation_status: status,
+
+            // Operating (Working)
+            operating_hours: status === 'operating' ? (parseFloat(operatingHours) || 0) : 0,
+            hm_km_start: status === 'operating' ? (parseFloat(hmStart) || 0) : undefined,
+            hm_km_end: status === 'operating' ? (parseFloat(hmEnd) || 0) : undefined,
+            // Default shift times for "Working" if not explicitly asked, or maybe omit? 
+            // We'll set generic start/end for working record
+            start_time: status === 'operating' ? '08:00:00' : undefined,
+            end_time: status === 'operating' ? '17:00:00' : undefined,
+
+            // Standby
+            standby_start_time: status === 'standby' ? formatTime(startTime) : undefined,
+            standby_end_time: status === 'standby' ? formatTime(endTime) : undefined,
+            standby_hours: status === 'standby' ? calculateTimeDiff(startTime, endTime) : 0,
+
+            // Breakdown
+            breakdown_start_time: status === 'breakdown' ? formatTime(startTime) : undefined,
+            breakdown_end_time: status === 'breakdown' ? formatTime(endTime) : undefined,
+            breakdown_hours: status === 'breakdown' ? calculateTimeDiff(startTime, endTime) : 0,
+
             checker_notes: notes,
-            // Simple logic for standby/breakdown hours distribution could be added here
-            standby_hours: status === 'standby' ? 8 : 0,
-            breakdown_hours: status === 'breakdown' ? 8 : 0,
+
+            breakdown_reason: status === 'breakdown' ? notes : undefined,
         };
 
         mutation.mutate(payload);
@@ -166,23 +180,32 @@ export default function InputScreen() {
                         </Card.Content>
                     </Card>
 
-                    {/* Status Section */}
+                    {/* Status Tabs */}
                     <View style={styles.section}>
-                        <Text variant="labelLarge" style={styles.label}>Operation Status</Text>
                         <SegmentedButtons
                             value={status}
-                            onValueChange={val => setStatus(val as any)}
+                            onValueChange={val => {
+                                setStatus(val as any);
+                                // Reset fields when switching? Maybe safer.
+                                if (val === 'operating') {
+                                    setStartTime('08:00');
+                                    setEndTime('17:00');
+                                } else if (val === 'standby' || val === 'breakdown') {
+                                    setStartTime('');
+                                    setEndTime('');
+                                }
+                            }}
                             buttons={[
                                 { value: 'operating', label: 'Working' },
                                 { value: 'standby', label: 'Standby' },
-                                { value: 'breakdown', label: 'Broken' },
+                                { value: 'breakdown', label: 'Breakdown' },
                             ]}
                             theme={{ colors: { secondaryContainer: theme.colors.primary, onSecondaryContainer: 'white', outline: 'rgba(255,255,255,0.2)' } }}
                             style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
                         />
                     </View>
 
-                    {/* Date & Time */}
+                    {/* Work Date - Always Visible */}
                     <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
                         <Card.Content>
                             <TextInput
@@ -194,70 +217,80 @@ export default function InputScreen() {
                                 theme={inputTheme}
                                 textColor="white"
                             />
-                            <View style={styles.row}>
-                                <TextInput
-                                    label="Start Time"
-                                    value={startTime}
-                                    onChangeText={setStartTime}
-                                    mode="outlined"
-                                    style={[styles.input, styles.half]}
-                                    theme={inputTheme}
-                                    textColor="white"
-                                />
-                                <TextInput
-                                    label="End Time"
-                                    value={endTime}
-                                    onChangeText={setEndTime}
-                                    mode="outlined"
-                                    style={[styles.input, styles.half]}
-                                    theme={inputTheme}
-                                    textColor="white"
-                                />
-                            </View>
                         </Card.Content>
                     </Card>
 
-                    {/* HM Section */}
-                    <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
-                        <Card.Content>
-                            <Text variant="titleMedium" style={{ marginBottom: 10, color: 'white' }}>Machine Hours (HM)</Text>
-                            <View style={styles.row}>
-                                <TextInput
-                                    label="HM Start"
-                                    value={hmStart}
-                                    onChangeText={setHmStart}
-                                    keyboardType="numeric"
-                                    mode="outlined"
-                                    style={[styles.input, styles.half]}
-                                    theme={inputTheme}
-                                    textColor="white"
-                                />
-                                <TextInput
-                                    label="HM End"
-                                    value={hmEnd}
-                                    onChangeText={setHmEnd}
-                                    keyboardType="numeric"
-                                    mode="outlined"
-                                    style={[styles.input, styles.half]}
-                                    theme={inputTheme}
-                                    textColor="white"
-                                />
-                            </View>
-                            <TextInput
-                                label="Total Operating Hours"
-                                value={operatingHours}
-                                onChangeText={setOperatingHours}
-                                keyboardType="numeric"
-                                mode="outlined"
-                                style={styles.input}
-                                theme={inputTheme}
-                                textColor="white"
-                            />
-                            <HelperText type="info" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                                Auto-calculated: {hmEnd && hmStart ? (parseFloat(hmEnd) - parseFloat(hmStart)).toFixed(1) : 0}
-                            </HelperText>
-                        </Card.Content>
-                    </Card>
+                    {/* WORKING MODE: HM Inputs */}
+                    {status === 'operating' && (
+                        <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
+                            <Card.Content>
+                                <Text variant="titleMedium" style={{ marginBottom: 10, color: 'white' }}>Machine Hours (HM)</Text>
+                                <View style={styles.row}>
+                                    <TextInput
+                                        label="HM Start"
+                                        value={hmStart}
+                                        onChangeText={setHmStart}
+                                        keyboardType="numeric"
+                                        mode="outlined"
+                                        style={[styles.input, styles.half]}
+                                        theme={inputTheme}
+                                        textColor="white"
+                                    />
+                                    <TextInput
+                                        label="HM End"
+                                        value={hmEnd}
+                                        onChangeText={setHmEnd}
+                                        keyboardType="numeric"
+                                        mode="outlined"
+                                        style={[styles.input, styles.half]}
+                                        theme={inputTheme}
+                                        textColor="white"
+                                    />
+                                </View>
+                                <HelperText type="info" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                    Total: {hmEnd && hmStart ? (parseFloat(hmEnd) - parseFloat(hmStart)).toFixed(1) : 0} hours
+                                </HelperText>
+                            </Card.Content>
+                        </Card>
+                    )}
+
+                    {/* STANDBY / BREAKDOWN MODE: Time Inputs */}
+                    {(status === 'standby' || status === 'breakdown') && (
+                        <Card style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined">
+                            <Card.Content>
+                                <Text variant="titleMedium" style={{ marginBottom: 10, color: theme.colors.error }}>
+                                    {status === 'breakdown' ? 'Breakdown Details' : 'Standby Duration'}
+                                </Text>
+                                {status === 'breakdown' && (
+                                    <HelperText type="info" style={{ color: theme.colors.error, marginBottom: 10 }}>
+                                        Entering Start Time will trigger a High Priority Work Order.
+                                    </HelperText>
+                                )}
+                                <View style={styles.row}>
+                                    <TextInput
+                                        label="Start Time (HH:MM)"
+                                        value={startTime}
+                                        onChangeText={setStartTime}
+                                        mode="outlined"
+                                        style={[styles.input, styles.half]}
+                                        theme={inputTheme}
+                                        textColor="white"
+                                        placeholder="00:00"
+                                    />
+                                    <TextInput
+                                        label="End Time (Optional)"
+                                        value={endTime}
+                                        onChangeText={setEndTime}
+                                        mode="outlined"
+                                        style={[styles.input, styles.half]}
+                                        theme={inputTheme}
+                                        textColor="white"
+                                        placeholder="00:00"
+                                    />
+                                </View>
+                            </Card.Content>
+                        </Card>
+                    )}
 
                     <TextInput
                         label="Notes / Remarks"
@@ -322,6 +355,7 @@ const styles = StyleSheet.create({
     },
     scroll: {
         padding: 16,
+        paddingBottom: 100, // Reduced from 150 as requested
     },
     header: {
         marginBottom: 16,

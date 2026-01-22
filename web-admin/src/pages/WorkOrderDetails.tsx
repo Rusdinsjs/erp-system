@@ -340,74 +340,105 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                 </Tabs>
             </Card>
 
-            {/* Add Task Modal */}
-            <Modal isOpen={taskModalOpen} onClose={() => setTaskModalOpen(false)} title="Add Task">
-                <div className="space-y-4">
+            <Modal isOpen={taskModalOpen} onClose={() => setTaskModalOpen(false)} title="Add Work Task" size="xl">
+                <div className="space-y-6 p-4 relative">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-[50px] pointer-events-none" />
                     <NumberInput
-                        label="Task Number"
+                        label="Sequence #"
                         value={newTask.task_number}
-                        onChange={(v) => setNewTask({ ...newTask, task_number: v || 1 })}
+                        onChange={(v: number | undefined) => setNewTask({ ...newTask, task_number: v || 1 })}
+                        className="bg-black/20 border-white/5"
                     />
                     <Input
-                        label="Description"
+                        label="Task Description"
+                        placeholder="e.g. Change oil filter, Inspect brake pads..."
                         value={newTask.description}
-                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTask({ ...newTask, description: e.target.value })}
+                        className="bg-black/20 border-white/5"
                     />
-                    <div className="flex justify-end">
-                        <Button onClick={() => addTaskMutation.mutate(newTask)} loading={addTaskMutation.isPending}>Add</Button>
+                    <div className="flex justify-end pt-4">
+                        <Button
+                            onClick={() => addTaskMutation.mutate(newTask)}
+                            loading={addTaskMutation.isPending}
+                            className="bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl px-8"
+                        >
+                            Add Task
+                        </Button>
                     </div>
                 </div>
             </Modal>
 
-            {/* Add Part Modal */}
-            <Modal isOpen={partModalOpen} onClose={() => setPartModalOpen(false)} title="Add Spare Part">
-                <div className="space-y-4">
+            <Modal isOpen={partModalOpen} onClose={() => setPartModalOpen(false)} title="Add Spare Part" size="xl">
+                <div className="space-y-6 p-4 relative">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-[50px] pointer-events-none" />
                     <Input
-                        label="Part Name"
+                        label="Part Name / Specification"
+                        placeholder="e.g. Filter Oli Hino, Pad Rem Depan..."
                         value={newPart.part_name}
-                        onChange={(e) => setNewPart({ ...newPart, part_name: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPart({ ...newPart, part_name: e.target.value })}
+                        className="bg-black/20 border-white/5"
                     />
-                    <NumberInput
-                        label="Quantity"
-                        value={newPart.quantity}
-                        onChange={(v) => setNewPart({ ...newPart, quantity: v || 1 })}
-                    />
-                    <NumberInput
-                        label="Unit Cost"
-                        prefix="Rp "
-                        value={newPart.unit_cost}
-                        onChange={(v) => setNewPart({ ...newPart, unit_cost: v || 0 })}
-                    />
-                    <div className="flex justify-end">
-                        <Button onClick={() => addPartMutation.mutate(newPart)} loading={addPartMutation.isPending}>Add</Button>
+                    <div className="grid grid-cols-2 gap-6">
+                        <NumberInput
+                            label="Quantity"
+                            value={newPart.quantity}
+                            onChange={(v: number | undefined) => setNewPart({ ...newPart, quantity: v || 1 })}
+                            className="bg-black/20 border-white/5"
+                        />
+                        <NumberInput
+                            label="Unit Cost"
+                            prefix="Rp "
+                            value={newPart.unit_cost}
+                            onChange={(v: number | undefined) => setNewPart({ ...newPart, unit_cost: v || 0 })}
+                            thousandSeparator
+                            className="bg-black/20 border-white/5 text-emerald-400 font-medium"
+                        />
+                    </div>
+                    <div className="flex justify-end pt-4">
+                        <Button
+                            onClick={() => addPartMutation.mutate(newPart)}
+                            loading={addPartMutation.isPending}
+                            className="bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl px-8"
+                        >
+                            Add Part
+                        </Button>
                     </div>
                 </div>
             </Modal>
 
-            {/* Complete Modal */}
-            <Modal isOpen={completeModalOpen} onClose={() => setCompleteModalOpen(false)} title="Complete Work Order">
-                <div className="space-y-4">
+            <Modal isOpen={completeModalOpen} onClose={() => setCompleteModalOpen(false)} title="Complete Work Order" size="xl">
+                <div className="space-y-6 p-4 relative text-white">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none" />
                     <Input
-                        label="Work Performed"
+                        label="Final Work Performed"
+                        placeholder="Summary of actions taken..."
                         value={completeData.work_performed}
-                        onChange={(e) => setCompleteData({ ...completeData, work_performed: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompleteData({ ...completeData, work_performed: e.target.value })}
+                        className="bg-black/20 border-white/5"
                     />
                     <NumberInput
-                        label="Actual Labor Cost"
+                        label="Total Labor Cost"
                         prefix="Rp "
                         value={completeData.actual_cost}
-                        onChange={(v) => setCompleteData({ ...completeData, actual_cost: v || 0 })}
-                        hint="Parts cost is calculated automatically"
+                        onChange={(v: number | undefined) => setCompleteData({ ...completeData, actual_cost: v || 0 })}
+                        thousandSeparator
+                        className="bg-black/20 border-white/5 text-emerald-400 font-bold"
+                        hint="Parts cost: Rp {partsCost.toLocaleString('id-ID')}"
                     />
-                    <div className="flex items-start gap-3 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
-                        <AlertCircle size={20} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
+                        <AlertCircle size={20} className="text-emerald-400 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-slate-300">
-                            Completing this WO will change asset status to DEPLOYED.
+                            Completing this WO will finalize costs and update the asset status to <strong>ACTIVE</strong>.
                         </p>
                     </div>
-                    <div className="flex justify-end">
-                        <Button variant="primary" onClick={() => completeMutation.mutate(completeData)} loading={completeMutation.isPending}>
-                            Complete
+                    <div className="flex justify-end pt-4">
+                        <Button
+                            variant="primary"
+                            onClick={() => completeMutation.mutate(completeData)}
+                            loading={completeMutation.isPending}
+                            className="bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-xl px-12 h-12 text-lg font-bold"
+                        >
+                            Complete Work Order
                         </Button>
                     </div>
                 </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import {
     Text,
     Card,
@@ -71,17 +71,20 @@ export default function LoansScreen() {
             const loanDate = format(new Date(), 'yyyy-MM-dd');
             const expectedDate = format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
 
+            // Backend determines borrower from auth token, no need to send borrower_id
             await loanApi.requestLoan({
-                asset_id: assetId,
-                borrower_id: user?.id || '',
+                asset_id: assetId.trim(),
                 loan_date: loanDate,
                 expected_return_date: expectedDate,
             });
             setModalVisible(false);
             setAssetId('');
             fetchLoans();
-        } catch (error) {
+            alert('Permintaan pinjaman berhasil dikirim!');
+        } catch (error: any) {
             console.error('Failed to request loan:', error);
+            const message = error.response?.data?.message || error.response?.data?.error || 'Gagal mengirim permintaan';
+            alert(`Error: ${message}`);
         } finally {
             setSubmitting(false);
         }
@@ -152,31 +155,35 @@ export default function LoansScreen() {
                     onDismiss={() => setModalVisible(false)}
                     contentContainerStyle={styles.modal}
                 >
-                    <Text variant="titleLarge" style={{ marginBottom: 16, color: '#1e293b' }}>Request Pinjaman Baru</Text>
-                    <TextInput
-                        label="ID Aset atau Kode Barcode"
-                        value={assetId}
-                        onChangeText={setAssetId}
-                        mode="outlined"
-                        placeholder="Masukkan kode aset..."
-                        style={{ marginBottom: 16, backgroundColor: 'white' }}
-                        textColor="#1e293b"
-                    />
-                    <Text variant="bodySmall" style={{ marginBottom: 20, opacity: 0.7, color: '#475569' }}>
-                        Pinjaman akan diajukan untuk durasi standar (7 hari). Anda dapat merubahnya di web admin jika diperlukan.
-                    </Text>
-                    <Button
-                        mode="contained"
-                        onPress={handleRequestLoan}
-                        loading={submitting}
-                        disabled={!assetId || submitting}
-                        buttonColor={theme.colors.primary}
-                    >
-                        Kirim Permintaan
-                    </Button>
-                    <Button onPress={() => setModalVisible(false)} style={{ marginTop: 8 }} textColor={theme.colors.secondary}>
-                        Batal
-                    </Button>
+                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text variant="titleLarge" style={{ marginBottom: 16, color: '#1e293b' }}>Request Pinjaman Baru</Text>
+                            <TextInput
+                                label="ID Aset atau Kode Barcode"
+                                value={assetId}
+                                onChangeText={setAssetId}
+                                mode="outlined"
+                                placeholder="Masukkan kode aset..."
+                                style={{ marginBottom: 16, backgroundColor: 'white' }}
+                                textColor="#1e293b"
+                            />
+                            <Text variant="bodySmall" style={{ marginBottom: 20, opacity: 0.7, color: '#475569' }}>
+                                Pinjaman akan diajukan untuk durasi standar (7 hari). Anda dapat merubahnya di web admin jika diperlukan.
+                            </Text>
+                            <Button
+                                mode="contained"
+                                onPress={handleRequestLoan}
+                                loading={submitting}
+                                disabled={!assetId || submitting}
+                                buttonColor={theme.colors.primary}
+                            >
+                                Kirim Permintaan
+                            </Button>
+                            <Button onPress={() => setModalVisible(false)} style={{ marginTop: 8 }} textColor={theme.colors.secondary}>
+                                Batal
+                            </Button>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
                 </Modal>
             </Portal>
 
@@ -233,7 +240,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         margin: 16,
         right: 0,
-        bottom: 0,
+        bottom: 120, // Raised higher above tab bar
         borderRadius: 16,
     },
     modal: {

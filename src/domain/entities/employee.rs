@@ -88,6 +88,9 @@ pub struct Employee {
     // Optional joined fields
     #[sqlx(default)]
     pub department_name: Option<String>,
+
+    pub assigned_asset_id: Option<Uuid>,
+    pub work_area_id: Option<Uuid>,
 }
 
 impl Employee {

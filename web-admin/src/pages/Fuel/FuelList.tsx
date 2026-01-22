@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useToast } from '../../components/ui';
 import { FuelApprovalModal } from './FuelApprovalModal';
 import { FuelCompletionModal } from './FuelCompletionModal';
+import { FuelReceiptModal } from './FuelReceiptModal';
 
 interface FuelListProps {
     scope: 'my_requests' | 'pending_approvals' | 'history';
@@ -27,6 +28,7 @@ export const FuelList: React.FC<FuelListProps> = ({ scope, refreshTrigger, onAct
     const [selectedLog, setSelectedLog] = useState<FuelLog | null>(null);
     const [isApprovalOpen, setIsApprovalOpen] = useState(false);
     const [isCompletionOpen, setIsCompletionOpen] = useState(false);
+    const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
     const fetchLogs = async () => {
         setLoading(true);
@@ -64,6 +66,16 @@ export const FuelList: React.FC<FuelListProps> = ({ scope, refreshTrigger, onAct
     const handleComplete = (log: FuelLog) => {
         setSelectedLog(log);
         setIsCompletionOpen(true);
+    };
+
+    const handlePrintCoupon = (log: FuelLog) => {
+        setSelectedLog(log);
+        setIsApprovalOpen(true);
+    };
+
+    const handleViewReceipt = (log: FuelLog) => {
+        setSelectedLog(log);
+        setIsReceiptOpen(true);
     };
 
     const handleReject = async (log: FuelLog) => {
@@ -164,7 +176,7 @@ export const FuelList: React.FC<FuelListProps> = ({ scope, refreshTrigger, onAct
 
                                             {log.status === 'approved' && (
                                                 <>
-                                                    <Button size="sm" variant="outline" title="Print Coupon">
+                                                    <Button size="sm" variant="outline" title="Print Coupon" onClick={() => handlePrintCoupon(log)}>
                                                         <Printer size={14} />
                                                     </Button>
                                                     {(scope === 'my_requests' || scope === 'history') && (
@@ -176,7 +188,7 @@ export const FuelList: React.FC<FuelListProps> = ({ scope, refreshTrigger, onAct
                                             )}
 
                                             {log.status === 'completed' && (
-                                                <Button size="sm" variant="ghost" title="View Receipt">
+                                                <Button size="sm" variant="ghost" title="View Receipt" onClick={() => handleViewReceipt(log)}>
                                                     <FileText size={16} />
                                                 </Button>
                                             )}
@@ -207,6 +219,11 @@ export const FuelList: React.FC<FuelListProps> = ({ scope, refreshTrigger, onAct
                             setIsCompletionOpen(false);
                             onActionComplete();
                         }}
+                        log={selectedLog}
+                    />
+                    <FuelReceiptModal
+                        isOpen={isReceiptOpen}
+                        onClose={() => setIsReceiptOpen(false)}
                         log={selectedLog}
                     />
                 </>

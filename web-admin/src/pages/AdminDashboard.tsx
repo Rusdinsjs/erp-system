@@ -9,11 +9,12 @@ import {
     Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
     Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw, Fuel, Shield
 } from 'lucide-react';
-import { PageLoading } from '../components/ui';
+import { PageLoading, Logo } from '../components/ui';
 
 // Import all views
 const DashboardView = lazy(() => import('./Dashboard').then(m => ({ default: m.Dashboard })));
 const AssetsView = lazy(() => import('./Assets').then(m => ({ default: m.Assets })));
+const AssetDetailsView = lazy(() => import('./AssetDetails').then(m => ({ default: m.AssetDetails })));
 const CategoriesView = lazy(() => import('./Categories').then(m => ({ default: m.Categories })));
 const WorkOrdersView = lazy(() => import('./WorkOrders').then(m => ({ default: m.WorkOrders })));
 const WorkOrderDetailsView = lazy(() => import('./WorkOrderDetails').then(m => ({ default: m.WorkOrderDetails })));
@@ -139,11 +140,11 @@ const navItems: NavEntry[] = [
         minLevel: 5,
         children: [
             { id: 'assets', icon: Package, label: 'Daftar Aset', minLevel: 5 },
-            { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)', minLevel: 3 },
             { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
             { id: 'conversions', icon: RefreshCw, label: 'Conversions', minLevel: 3 },
             { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal', minLevel: 5 },
             { id: 'fuel', icon: Fuel, label: 'Fuel / BBM', minLevel: 5 },
+            { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)', minLevel: 3 },
         ]
     },
     {
@@ -264,6 +265,7 @@ export default function AdminDashboard() {
     // For sub-views that need parameters
     const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<string | null>(null);
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+    const [assetViewMode, setAssetViewMode] = useState<'list' | 'lifecycle' | 'details'>('list');
     const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
 
     const { user, logout } = useAuthStore();
@@ -279,6 +281,17 @@ export default function AdminDashboard() {
         if (lifecycleMatch?.params.id) {
             setActiveTab('assets');
             setSelectedAssetId(lifecycleMatch.params.id);
+            setAssetViewMode('lifecycle');
+            setSelectedWorkOrderId(null);
+            setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
+            return;
+        }
+
+        const assetDetailMatch = matchPath('/assets/:id', path);
+        if (assetDetailMatch?.params.id) {
+            setActiveTab('assets');
+            setSelectedAssetId(assetDetailMatch.params.id);
+            setAssetViewMode('details');
             setSelectedWorkOrderId(null);
             setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
             return;
@@ -381,11 +394,13 @@ export default function AdminDashboard() {
             }
 
             setSelectedAssetId(null);
+            setAssetViewMode('list');
             setSelectedWorkOrderId(null);
             setSelectedRentalId(null);
         } else if (path === '/') {
             setActiveTab('dashboard');
             setSelectedAssetId(null);
+            setAssetViewMode('list');
             setSelectedWorkOrderId(null);
             setSelectedRentalId(null);
         }
@@ -514,7 +529,11 @@ export default function AdminDashboard() {
     const renderContent = () => {
         // Special case for deep views
         if (activeTab === 'assets' && selectedAssetId) {
-            return <AssetLifecycleView assetId={selectedAssetId} />;
+            if (assetViewMode === 'lifecycle') {
+                return <AssetLifecycleView assetId={selectedAssetId} />;
+            } else if (assetViewMode === 'details') {
+                return <AssetDetailsView assetId={selectedAssetId} />;
+            }
         }
         if (activeTab === 'work-orders' && selectedWorkOrderId) {
             return <WorkOrderDetailsView workOrderId={selectedWorkOrderId} />;
@@ -598,12 +617,9 @@ export default function AdminDashboard() {
         `}
             >
                 {/* Logo */}
-                <div className="h-16 flex items-center justify-between px-4 border-b border-gray-800">
-                    {sidebarOpen && (
-                        <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-                            Management System
-                        </span>
-                    )}
+                <div className="h-16 flex items-center px-4 border-b border-gray-800 gap-3">
+                    <Logo collapsed={!sidebarOpen} />
+
 
                     {/* Desktop Toggle Button */}
                     <button
@@ -659,6 +675,8 @@ export default function AdminDashboard() {
                     >
                         <Menu size={24} />
                     </button>
+
+                    <Logo className="lg:hidden" collapsed={false} />
 
                     <div className="flex-1" /> {/* Spacer */}
 

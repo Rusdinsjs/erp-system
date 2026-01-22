@@ -3,6 +3,7 @@ import { Text, TextInput, Button, useTheme, Title, HelperText } from 'react-nati
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { authApi } from '../../api/auth';
 import GlassView from '../../components/ui/GlassView';
 import { StatusBar } from 'expo-status-bar';
 
@@ -12,7 +13,8 @@ export default function LoginScreen() {
     const login = useAuthStore((state) => state.login);
 
     const [email, setEmail] = useState('admin@example.com');
-    const [password, setPassword] = useState('password');
+    const [password, setPassword] = useState('123456');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -20,26 +22,31 @@ export default function LoginScreen() {
         setIsLoading(true);
         setError('');
 
-        // Simulate API Delay
-        setTimeout(async () => {
-            try {
-                // Mock Authentication for Demo
-                const mockToken = 'demo-token-123';
-                const mockUser = {
-                    id: 'user-001',
-                    email: email,
-                    name: 'Demo Admin',
-                    role: 'admin'
-                };
+        try {
+            // Call real backend API
+            const response = await authApi.login({ email, password });
 
-                await login(mockToken, mockUser);
-                router.replace('/(tabs)');
-            } catch (e) {
-                setError('Invalid credentials');
-            } finally {
-                setIsLoading(false);
+            // Extract token and user from response
+            const { token, user } = response;
+
+            if (token && user) {
+                await login(token, user);
+                // Navigation is handled by authStore.login()
+            } else {
+                setError('Invalid response from server');
             }
-        }, 1500);
+        } catch (e: any) {
+            console.error('Login error:', e);
+            if (e.response?.status === 401) {
+                setError('Email atau password salah');
+            } else if (e.response?.data?.message) {
+                setError(e.response.data.message);
+            } else {
+                setError('Gagal terhubung ke server');
+            }
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -77,13 +84,20 @@ export default function LoginScreen() {
                         label="Password"
                         value={password}
                         onChangeText={setPassword}
-                        secureTextEntry
+                        secureTextEntry={!showPassword}
                         mode="outlined"
                         style={styles.input}
                         outlineColor="rgba(255,255,255,0.2)"
                         activeOutlineColor={theme.colors.primary}
                         textColor="white"
                         theme={{ colors: { onSurfaceVariant: 'rgba(255,255,255,0.7)' } }}
+                        right={
+                            <TextInput.Icon
+                                icon={showPassword ? "eye-off" : "eye"}
+                                onPress={() => setShowPassword(!showPassword)}
+                                color="rgba(255,255,255,0.7)"
+                            />
+                        }
                     />
 
                     {error ? <HelperText type="error" visible={!!error}>{error}</HelperText> : null}

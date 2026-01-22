@@ -161,7 +161,7 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
             isOpen={opened}
             onClose={handleClose}
             title="Batch Import Assets"
-            size="xl"
+            size="3xl"
         // Footer removed from props, manually added to content below
         >
             <div className="space-y-4">

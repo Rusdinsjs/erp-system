@@ -114,7 +114,7 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
             isOpen={isOpen}
             onClose={handleClose}
             title="Create New Category (Quick Add)"
-            size="lg"
+            size="2xl"
         >
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>

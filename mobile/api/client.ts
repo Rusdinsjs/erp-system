@@ -8,6 +8,8 @@ const debuggerHost = Constants.expoConfig?.hostUri; // Get the IP address of the
 const localhost = debuggerHost?.split(':')[0] || '10.0.2.2'; // Fallback to Android Emulator localhost
 
 export const API_URL = `http://${localhost}:8080/api`;
+console.log("DEBUG: API_URL set to:", API_URL);
+
 
 export const api = axios.create({
     baseURL: API_URL,

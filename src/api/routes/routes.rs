@@ -4,7 +4,7 @@ use axum::{
     extract::Path,
     handler::Handler,
     middleware as axum_middleware,
-    routing::{delete, get, patch, post, put},
+    routing::{delete, get, post, put},
     Extension, Router,
 };
 
@@ -310,21 +310,7 @@ pub fn create_router(state: AppState) -> Router {
             "/api/hrd/leaves/:id/reject",
             post(leave_handler::reject_leave),
         )
-        // Rental Billing
-        .route(
-            "/api/rentals/:rental_id/billing/preview",
-            post(rental_billing_handler::preview_billing),
-        )
-        .route(
-            "/api/rentals/:rental_id/billing",
-            post(rental_billing_handler::create_billing),
-        )
-        // New endpoint for updating/adjusting billing
-        .route(
-            "/api/rentals/billing/:id",
-            patch(rental_billing_handler::update_billing),
-        )
-        // I'll rewrite this block more cleanly
+        // Rental Billing routes moved to rental_routes.rs to avoid conflicts
         // RBAC
         .route("/api/rbac/roles", get(list_roles))
         .route("/api/rbac/permissions", get(list_permissions))

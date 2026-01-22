@@ -199,58 +199,73 @@ impl RentalRepository {
     /// Optimizes by JSON aggregating items or just fetching headers if needed.
     /// Use search params later.
     pub async fn list_active(&self) -> Result<Vec<Rental>, sqlx::Error> {
-        // For list view, we want to show headers and maybe a count of items,
-        // OR we want to show all including items if list is not huge.
-        // Let's fetch headers + items using JSON agg or separate queries.
-        // Given complexity, let's fetch headers first, then loop populate (N+1 but simple)
-        // OR use sqlx join unroll.
-        // Let's stick to Header + items populated for now (Pagination needed later).
+        self.list_active_filtered(None, None).await
+    }
 
-        let mut rentals = sqlx::query(
-            r#"
-            SELECT 
-                r.*,
-                c.name as client_name
-            FROM rentals r
-            JOIN clients c ON r.client_id = c.id
-            ORDER BY r.created_at DESC
-            LIMIT 50
-            "#,
-        )
-        .map(|row: sqlx::postgres::PgRow| {
-            use sqlx::Row;
-            Rental {
-                id: row.get("id"),
-                rental_number: row.get("rental_number"),
-                client_id: row.get("client_id"),
-                status: row.get("status"),
-                request_date: row.get("request_date"),
-                start_date: row.get("start_date"),
-                expected_end_date: row.get("expected_end_date"),
-                actual_end_date: row.get("actual_end_date"),
-                subtotal: row.get("subtotal"),
-                deposit_amount: row.get("deposit_amount"),
-                deposit_returned: row.get("deposit_returned"),
-                penalty_amount: row.get("penalty_amount"),
-                total_amount: row.get("total_amount"),
-                requested_by: row.get("requested_by"),
-                approved_by: row.get("approved_by"),
-                approved_at: row.get("approved_at"),
-                rejection_reason: row.get("rejection_reason"),
-                agreement_document: row.get("agreement_document"),
-                invoice_number: row.get("invoice_number"),
-                notes: row.get("notes"),
-                created_at: row.get("created_at"),
-                updated_at: row.get("updated_at"),
-                items: Some(vec![]),
-                client_name: row.get("client_name"),
-            }
-        })
-        .fetch_all(&self.pool)
-        .await?;
+    /// List active rentals with optional filtering by Asset ID (Operator) or Location ID (Checker)
+    pub async fn list_active_filtered(
+        &self, 
+        asset_id: Option<Uuid>, 
+        location_id: Option<Uuid>
+    ) -> Result<Vec<Rental>, sqlx::Error> {
+        // Logic using standard sqlx::query with branches to avoid dynamic binding complexity
+        let rentals = if let Some(aid) = asset_id {
+             sqlx::query(
+                r#"
+                SELECT DISTINCT
+                    r.*, c.name as client_name
+                FROM rentals r
+                JOIN clients c ON r.client_id = c.id
+                JOIN rental_items ri ON ri.rental_id = r.id
+                WHERE r.status = 'rented_out' AND ri.asset_id = $1
+                ORDER BY r.created_at DESC LIMIT 50
+                "#
+            )
+            .bind(aid)
+            .map(Self::map_rental_row)
+            .fetch_all(&self.pool)
+            .await?
+        } else if let Some(lid) = location_id {
+             sqlx::query(
+                r#"
+                SELECT DISTINCT
+                    r.*, c.name as client_name
+                FROM rentals r
+                JOIN clients c ON r.client_id = c.id
+                JOIN rental_items ri ON ri.rental_id = r.id
+                JOIN assets a ON ri.asset_id = a.id
+                WHERE r.status = 'rented_out' AND a.location_id = $1
+                ORDER BY r.created_at DESC LIMIT 50
+                "#
+            )
+            .bind(lid)
+            .map(Self::map_rental_row)
+            .fetch_all(&self.pool)
+            .await?
+        } else {
+             // Default no filter
+             sqlx::query(
+                r#"
+                SELECT 
+                    r.*,
+                    c.name as client_name
+                FROM rentals r
+                JOIN clients c ON r.client_id = c.id
+                WHERE r.status = 'rented_out'
+                ORDER BY r.created_at DESC
+                LIMIT 50
+                "#
+            )
+            .map(Self::map_rental_row)
+            .fetch_all(&self.pool)
+            .await?
+        };
 
-        // Populate items
-        for r in &mut rentals {
+        // Populate items (N+1 efficiency trade-off accepted for simplicity here)
+        // Note: We need a mutable rentals list.
+        let mut result_rentals = rentals;
+        
+        for r in &mut result_rentals {
             let items = sqlx::query_as!(
                 RentalItem,
                 r#"
@@ -269,7 +284,38 @@ impl RentalRepository {
             r.items = Some(items);
         }
 
-        Ok(rentals)
+        Ok(result_rentals)
+    }
+
+    // Helper for mapping rows to Rental
+    fn map_rental_row(row: sqlx::postgres::PgRow) -> Rental {
+        use sqlx::Row;
+        Rental {
+            id: row.get("id"),
+            rental_number: row.get("rental_number"),
+            client_id: row.get("client_id"),
+            status: row.get("status"),
+            request_date: row.get("request_date"),
+            start_date: row.get("start_date"),
+            expected_end_date: row.get("expected_end_date"),
+            actual_end_date: row.get("actual_end_date"),
+            subtotal: row.get("subtotal"),
+            deposit_amount: row.get("deposit_amount"),
+            deposit_returned: row.get("deposit_returned"),
+            penalty_amount: row.get("penalty_amount"),
+            total_amount: row.get("total_amount"),
+            requested_by: row.get("requested_by"),
+            approved_by: row.get("approved_by"),
+            approved_at: row.get("approved_at"),
+            rejection_reason: row.get("rejection_reason"),
+            agreement_document: row.get("agreement_document"),
+            invoice_number: row.get("invoice_number"),
+            notes: row.get("notes"),
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            items: Some(vec![]),
+            client_name: row.get("client_name"),
+        }
     }
 
     /// Update rental header
