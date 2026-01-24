@@ -6,20 +6,24 @@ use serde::{Deserialize, Serialize};
 use crate::api::server::AppState;
 use crate::shared::errors::AppError;
 
-#[derive(Deserialize)]
+use utoipa::ToSchema;
+
+#[derive(Deserialize, ToSchema)]
 pub struct LoginRequest {
+    #[schema(example = "admin@example.com")]
     pub email: String,
+    #[schema(example = "password")]
     pub password: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct LoginResponse {
     pub success: bool,
     pub token: String,
     pub user: UserInfo,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct UserInfo {
     pub id: String,
     pub email: String,
@@ -27,6 +31,16 @@ pub struct UserInfo {
     pub role: String,
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/login",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = LoginResponse),
+        (status = 401, description = "Unauthorized")
+    ),
+    tag = "auth"
+)]
 pub async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
@@ -46,4 +60,26 @@ pub async fn login(
             role: user.role,
         },
     }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/auth/register",
+    request_body = crate::application::dto::user_dto::CreateUserRequest,
+    responses(
+        (status = 201, description = "User created", body = crate::domain::entities::User),
+        (status = 400, description = "Bad Request")
+    ),
+    tag = "auth"
+)]
+pub async fn register(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::application::dto::user_dto::CreateUserRequest>,
+) -> Result<(axum::http::StatusCode, Json<crate::domain::entities::User>), AppError> {
+    let user = state
+        .auth_service
+        .register(&payload.email, &payload.password, &payload.name)
+        .await?;
+
+    Ok((axum::http::StatusCode::CREATED, Json(user)))
 }

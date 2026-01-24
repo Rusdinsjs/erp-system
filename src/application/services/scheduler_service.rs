@@ -13,6 +13,7 @@ pub struct SchedulerService {
     loan_service: LoanService,
     maintenance_service: MaintenanceService,
     work_order_service: WorkOrderService,
+    notification_service: crate::application::services::NotificationService,
 }
 
 impl SchedulerService {
@@ -20,11 +21,13 @@ impl SchedulerService {
         loan_service: LoanService,
         maintenance_service: MaintenanceService,
         work_order_service: WorkOrderService,
+        notification_service: crate::application::services::NotificationService,
     ) -> Self {
         Self {
             loan_service,
             maintenance_service,
             work_order_service,
+            notification_service,
         }
     }
 
@@ -54,11 +57,13 @@ impl SchedulerService {
         // Job 2: Check maintenance due daily at 01:00
         let maintenance_service = self.maintenance_service.clone();
         let work_order_service = self.work_order_service.clone();
+        let notification_service = self.notification_service.clone();
 
         sched
             .add(Job::new_async("0 0 1 * * *", move |_uuid, _l| {
                 let m_service = maintenance_service.clone();
                 let wo_service = work_order_service.clone();
+                let n_service = notification_service.clone();
                 Box::pin(async move {
                     info!("Running scheduled job: Check Maintenance Due");
                     match m_service.check_upcoming_maintenance().await {
@@ -84,11 +89,26 @@ impl SchedulerService {
                                     location_id: None,
                                 };
 
-                                if let Err(e) = wo_service.create(req, None).await {
-                                    error!(
-                                        "Failed to auto-create WO for asset {}: {}",
-                                        record.asset_id, e
-                                    );
+                                match wo_service.create(req, None).await {
+                                    Ok(wo) => {
+                                        info!("Successfully auto-created WO: {}", wo.wo_number);
+                                        // Send notification to admins
+                                        let _ = n_service.notify_admins(
+                                            "maintenance_due",
+                                            serde_json::json!({
+                                                "asset_name": format!("Asset ID: {}", record.asset_id),
+                                                "due_date": record.next_service_date.unwrap_or_default().to_string()
+                                            }),
+                                            Some("asset"),
+                                            Some(record.asset_id)
+                                        ).await;
+                                    },
+                                    Err(e) => {
+                                        error!(
+                                            "Failed to auto-create WO for asset {}: {}",
+                                            record.asset_id, e
+                                        );
+                                    }
                                 }
                             }
                             info!(

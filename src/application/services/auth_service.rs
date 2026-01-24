@@ -73,6 +73,11 @@ impl AuthService {
                 .map(|s| s.to_string())
                 .collect()
         };
+        tracing::info!(
+            "User {} login with permissions: {:?}",
+            user.email,
+            permissions
+        );
 
         // Fetch employee ID if linked
         let employee = self
@@ -119,6 +124,10 @@ impl AuthService {
         })? {
             return Err(DomainError::conflict("Email already registered"));
         }
+
+        // Validate password policy
+        crate::shared::utils::validation::validate_password(password)
+            .map_err(|e| DomainError::validation("password", &e))?;
 
         let password_hash =
             hash_password(password).map_err(|e| DomainError::ExternalServiceError {

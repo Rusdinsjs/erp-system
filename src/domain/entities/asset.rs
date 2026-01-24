@@ -9,13 +9,18 @@ use serde_json::Value as JsonValue;
 use sqlx::FromRow;
 use uuid::Uuid;
 
+use utoipa::ToSchema;
+
 use super::AssetState;
 
 /// Asset model - full representation
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Asset {
+    #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub id: Uuid,
+    #[schema(example = "AST-001")]
     pub asset_code: String,
+    #[schema(example = "MacBook Pro")]
     pub name: String,
     pub category_id: Uuid,
     pub location_id: Option<Uuid>,
@@ -27,7 +32,9 @@ pub struct Asset {
     // Classification
     pub is_rental: bool,
     pub is_fuel: bool,
+    pub is_loan: bool,
     pub asset_class: Option<String>,
+    #[schema(example = "in_use")]
     pub status: String,
     pub condition_id: Option<i32>,
 
@@ -38,16 +45,20 @@ pub struct Asset {
     pub year_manufacture: Option<i32>,
 
     // Dynamic specifications (based on category)
+    #[schema(value_type = Option<Object>)]
     pub specifications: Option<JsonValue>,
 
     // Financial data
+    #[schema(value_type = Option<String>, example = "2023-01-01")]
     pub purchase_date: Option<NaiveDate>,
+    #[schema(value_type = Option<f64>, example = 1500.00)]
     pub purchase_price: Option<Decimal>,
     pub currency_id: Option<i32>,
     pub unit_id: Option<i32>,
     pub quantity: Option<i32>,
 
     // Depreciation
+    #[schema(value_type = Option<f64>)]
     pub residual_value: Option<Decimal>,
     pub useful_life_months: Option<i32>,
 
@@ -78,6 +89,7 @@ impl Asset {
             vendor_id: None,
             is_rental: false,
             is_fuel: false,
+            is_loan: false,
             asset_class: None,
             status: AssetState::Planning.as_str().to_string(),
             condition_id: None,
@@ -131,8 +143,10 @@ impl Asset {
     }
 }
 
+// ... impl Asset ...
+
 /// Asset for list view (simplified)
-#[derive(Debug, Clone, Serialize, FromRow)]
+#[derive(Debug, Clone, Serialize, FromRow, ToSchema)]
 pub struct AssetSummary {
     pub id: Uuid,
     pub asset_code: String,
@@ -143,7 +157,10 @@ pub struct AssetSummary {
     pub is_rental: bool,
     #[sqlx(default)]
     pub is_fuel: bool,
+    #[sqlx(default)]
+    pub is_loan: bool,
     pub brand: Option<String>,
+    #[schema(value_type = Option<f64>)]
     pub purchase_price: Option<Decimal>,
     pub category_id: Uuid,
     pub location_id: Option<Uuid>,
@@ -155,7 +172,7 @@ pub struct AssetSummary {
 }
 
 /// Asset with joined data for detail view
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct AssetDetail {
     #[serde(flatten)]
     pub asset: Asset,
@@ -166,13 +183,17 @@ pub struct AssetDetail {
     pub assigned_to_name: Option<String>,
     pub vendor_name: Option<String>,
     pub condition_name: Option<String>,
+    // JSONB or complex types might need value_type override if they don't impl ToSchema
+    #[schema(value_type = Option<Object>)]
     pub vehicle_details: Option<super::asset_details::VehicleDetails>,
+    #[schema(value_type = Option<f64>)]
     pub total_maintenance_cost: Option<Decimal>,
+    #[schema(value_type = Option<f64>)]
     pub total_rental_income: Option<Decimal>,
 }
 
 /// Asset history entry for tracking changes
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct AssetHistory {
     pub id: Uuid,
     pub asset_id: Uuid,

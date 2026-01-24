@@ -10,11 +10,21 @@ use crate::infrastructure::repositories::{SensorAlert, SensorRepository, SensorT
 #[derive(Clone)]
 pub struct SensorService {
     repository: SensorRepository,
+    asset_repo: crate::infrastructure::repositories::AssetRepository,
+    notification_service: crate::application::services::NotificationService,
 }
 
 impl SensorService {
-    pub fn new(repository: SensorRepository) -> Self {
-        Self { repository }
+    pub fn new(
+        repository: SensorRepository,
+        asset_repo: crate::infrastructure::repositories::AssetRepository,
+        notification_service: crate::application::services::NotificationService,
+    ) -> Self {
+        Self {
+            repository,
+            asset_repo,
+            notification_service,
+        }
     }
 
     /// Record sensor reading
@@ -224,12 +234,49 @@ impl SensorService {
             created_at: Utc::now(),
         };
 
-        self.repository
-            .create_alert(&alert)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
+        let created_alert = self.repository.create_alert(&alert).await.map_err(|e| {
+            DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
-            })
+            }
+        })?;
+
+        // Notify Admins
+        let asset = self.asset_repo.find_by_id(asset_id).await.ok().flatten();
+        let asset_name = asset
+            .map(|a| a.name)
+            .unwrap_or_else(|| "Unknown Asset".to_string());
+
+        let _ = self
+            .notification_service
+            .notify_sensor_alert(
+                Uuid::nil(), // notify_admins will find actual IDs
+                &asset_name,
+                &sensor_id,
+                value,
+                0.0, // Should be threshold value if available
+                severity,
+                asset_id,
+            )
+            .await;
+
+        // Broadcast to admins
+        let _ = self
+            .notification_service
+            .notify_admins(
+                "sensor_alert",
+                serde_json::json!({
+                    "asset_name": asset_name,
+                    "sensor_type": sensor_id,
+                    "value": value,
+                    "threshold": 0.0,
+                    "severity": severity
+                }),
+                Some("asset"),
+                Some(asset_id),
+            )
+            .await;
+
+        Ok(created_alert)
     }
 }

@@ -13,7 +13,7 @@ import {
     LoadingOverlay,
     useToast,
 } from '../ui';
-import { ClipboardList, Activity, FileText, CreditCard, ArrowRight, Calendar, MapPin, Wrench } from 'lucide-react';
+import { ClipboardList, Activity, FileText, CreditCard, ArrowRight } from 'lucide-react';
 
 interface WorkOrderFormProps {
     maintenanceId?: string | null;
@@ -206,7 +206,6 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
                                 value={formData.scheduled_date}
                                 onChange={(date: Date | null) => updateField('scheduled_date', date)}
                                 className="bg-black/20 border-white/5"
-                                icon={<Calendar size={18} className="text-slate-400" />}
                             />
 
                             <Select
@@ -216,7 +215,6 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
                                 onChange={(val: string) => updateField('location_id', val)}
                                 options={locations}
                                 className="bg-black/20 border-white/5"
-                                icon={<MapPin size={18} className="text-slate-400" />}
                             />
                         </div>
                     </div>
@@ -328,7 +326,6 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
                                     value={formData.odometer_reading}
                                     onChange={(val: number | undefined) => updateField('odometer_reading', val)}
                                     className="bg-black/20 border-white/5"
-                                    icon={<Wrench size={18} className="text-slate-400" />}
                                 />
                             )}
                         </div>

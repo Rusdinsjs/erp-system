@@ -7,8 +7,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+use utoipa::ToSchema;
+
 /// User roles
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum UserRole {
     SuperAdmin,
@@ -66,19 +68,26 @@ impl std::str::FromStr for UserRole {
 }
 
 /// User entity
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+/// User entity
+#[derive(Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct User {
+    #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub id: Uuid,
+    #[schema(example = "user@example.com")]
     pub email: String,
     #[serde(skip_serializing)]
+    #[schema(ignore)] // Do not expose password hash in docs
     pub password_hash: String,
+    #[schema(example = "John Doe")]
     pub name: String,
 
     // RBAC
     pub role_id: Option<Uuid>,
     #[sqlx(rename = "role_code")] // Mapped from join
+    #[schema(example = "user")]
     pub role: String,
     #[sqlx(default)]
+    #[schema(example = 5)]
     pub role_level: i32, // Mapped from join
 
     pub department: Option<String>,
@@ -99,6 +108,31 @@ pub struct User {
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+impl std::fmt::Debug for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("User")
+            .field("id", &self.id)
+            .field("email", &self.email)
+            .field("password_hash", &"[REDACTED]")
+            .field("name", &self.name)
+            .field("role_id", &self.role_id)
+            .field("role", &self.role)
+            .field("role_level", &self.role_level)
+            .field("department", &self.department)
+            .field("department_id", &self.department_id)
+            .field("organization_id", &self.organization_id)
+            .field("employee_id", &self.employee_id)
+            .field("phone", &self.phone)
+            .field("avatar_url", &self.avatar_url)
+            .field("is_active", &self.is_active)
+            .field("email_verified", &self.email_verified)
+            .field("last_login_at", &self.last_login_at)
+            .field("created_at", &self.created_at)
+            .field("updated_at", &self.updated_at)
+            .finish()
+    }
 }
 
 impl User {

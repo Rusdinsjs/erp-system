@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::api::server::AppState;
 use crate::application::dto::{ApiResponse, PaginationParams};
-use crate::infrastructure::repositories::Notification;
+use crate::domain::entities::notification::Notification;
 use crate::shared::errors::AppError;
 
 #[derive(Serialize)]

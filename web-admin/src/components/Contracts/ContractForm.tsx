@@ -1,30 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { X, Save } from 'lucide-react';
 import { contractApi } from '../../api/contract';
 import { clientApi } from '../../api/client-management';
-import type { CreateContractRequest } from '../../types/contract';
+import { contractTemplateApi } from '../../api/contractTemplate';
+import type { CreateContractRequest, Contract } from '../../types/contract';
+import type { ContractTemplate } from '../../types/contractTemplate';
 
 interface ContractFormProps {
     onClose: () => void;
     onSuccess: () => void;
+    contract?: Contract; // Optional: for edit mode
 }
 
-const ContractForm: React.FC<ContractFormProps> = ({ onClose, onSuccess }) => {
+const ContractForm: React.FC<ContractFormProps> = ({ onClose, onSuccess, contract }) => {
+    const isEditMode = !!contract;
+
     const [formData, setFormData] = useState<CreateContractRequest>({
         client_id: '',
         start_date: '',
         end_date: '',
+        template_id: '',
         payment_terms: 'NET_30',
         auto_renew: false,
         price_lock: true,
         notes: ''
     });
 
+    // Populate form data when editing
+    useEffect(() => {
+        if (contract) {
+            setFormData({
+                client_id: contract.client_id,
+                start_date: contract.start_date,
+                end_date: contract.end_date,
+                payment_terms: contract.payment_terms,
+                auto_renew: contract.auto_renew,
+                price_lock: contract.price_lock,
+                notes: contract.notes || ''
+            });
+        }
+    }, [contract]);
+
     // Fetch clients for dropdown
     const { data: clientsResponse } = useQuery({
         queryKey: ['clients'],
         queryFn: () => clientApi.list({ limit: 100 })
+    });
+
+    // Fetch templates for dropdown
+    const { data: templates } = useQuery({
+        queryKey: ['contract-templates'],
+        queryFn: () => contractTemplateApi.getAll()
     });
 
     // Extract clients array from nested response structure
@@ -38,18 +65,36 @@ const ContractForm: React.FC<ContractFormProps> = ({ onClose, onSuccess }) => {
         }
     });
 
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: CreateContractRequest }) =>
+            contractApi.update(id, data),
+        onSuccess: () => {
+            onSuccess();
+        }
+    });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        createMutation.mutate(formData);
+        if (isEditMode && contract) {
+            updateMutation.mutate({ id: contract.id, data: formData });
+        } else {
+            createMutation.mutate(formData);
+        }
     };
+
+    const isPending = createMutation.isPending || updateMutation.isPending;
 
     return (
         <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-300">
             <div className="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-700/50 animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center p-6 border-b border-gray-700/50 sticky top-0 bg-gray-800 z-10">
                     <div>
-                        <h2 className="text-xl font-bold text-white">Create New Contract</h2>
-                        <p className="text-sm text-gray-400 mt-1">Define terms for a new rental agreement</p>
+                        <h2 className="text-xl font-bold text-white">
+                            {isEditMode ? 'Edit Contract' : 'Create New Contract'}
+                        </h2>
+                        <p className="text-sm text-gray-400 mt-1">
+                            {isEditMode ? 'Update contract terms and details' : 'Define terms for a new rental agreement'}
+                        </p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-white">
                         <X size={20} />
@@ -72,6 +117,28 @@ const ContractForm: React.FC<ContractFormProps> = ({ onClose, onSuccess }) => {
                                     {clients.map((client: any) => (
                                         <option key={client.id} value={client.id} className="bg-gray-800">
                                             {client.name} ({client.client_code})
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Template Selection */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Contract Template</label>
+                            <div className="relative">
+                                <select
+                                    value={formData.template_id}
+                                    onChange={(e) => setFormData({ ...formData, template_id: e.target.value })}
+                                    className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none"
+                                >
+                                    <option value="" className="bg-gray-800 text-gray-400">Default (No Template)</option>
+                                    {templates?.map((template: ContractTemplate) => (
+                                        <option key={template.id} value={template.id} className="bg-gray-800">
+                                            {template.name}
                                         </option>
                                     ))}
                                 </select>
@@ -175,12 +242,12 @@ const ContractForm: React.FC<ContractFormProps> = ({ onClose, onSuccess }) => {
                         </button>
                         <button
                             type="submit"
-                            disabled={createMutation.isPending}
+                            disabled={isPending}
                             className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-500 shadow-lg shadow-blue-500/20 
                                      flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             <Save size={18} />
-                            {createMutation.isPending ? 'Creating...' : 'Create Contract'}
+                            {isPending ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Contract' : 'Create Contract')}
                         </button>
                     </div>
                 </form>

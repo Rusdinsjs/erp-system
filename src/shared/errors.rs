@@ -103,6 +103,9 @@ impl IntoResponse for AppError {
             Self::Domain(DomainError::Database(message)) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "DATABASE_ERROR", message)
             }
+            Self::Domain(DomainError::Storage { message }) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "STORAGE_ERROR", message)
+            }
         };
 
         let body = Json(ErrorResponse {

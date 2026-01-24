@@ -18,6 +18,16 @@ use crate::domain::entities::{Asset, AssetSummary};
 use crate::shared::errors::AppError;
 use axum::{extract::Extension, response::IntoResponse};
 
+#[utoipa::path(
+    get,
+    path = "/api/assets",
+    params(AssetSearchParams),
+    responses(
+        (status = 200, description = "List assets", body = PaginatedResponse<AssetSummary>),
+        (status = 400, description = "Bad Request")
+    ),
+    tag = "assets"
+)]
 pub async fn list_assets(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
@@ -36,6 +46,16 @@ pub async fn list_assets(
     Ok(Json(result))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/assets/search",
+    params(AssetSearchParams),
+    responses(
+        (status = 200, description = "Search assets", body = PaginatedResponse<AssetSummary>),
+        (status = 400, description = "Bad Request")
+    ),
+    tag = "assets"
+)]
 pub async fn search_assets(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
@@ -50,6 +70,18 @@ pub async fn search_assets(
     Ok(Json(result))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/assets/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Asset ID")
+    ),
+    responses(
+        (status = 200, description = "Asset details", body = crate::domain::entities::asset::AssetDetail),
+        (status = 404, description = "Asset not found")
+    ),
+    tag = "assets"
+)]
 pub async fn get_asset(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -58,6 +90,17 @@ pub async fn get_asset(
     Ok(Json(asset))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/assets",
+    request_body = CreateAssetRequest,
+    responses(
+        (status = 201, description = "Asset created", body = ApiResponse<Asset>),
+        (status = 202, description = "Approval pending", body = ApiResponse<crate::infrastructure::repositories::approval_repository::ApprovalRequest>),
+        (status = 400, description = "Bad Request")
+    ),
+    tag = "assets"
+)]
 pub async fn create_asset(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
@@ -119,6 +162,19 @@ pub async fn bulk_create_assets(
         .into_response())
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/assets/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Asset ID")
+    ),
+    request_body = UpdateAssetRequest,
+    responses(
+        (status = 200, description = "Asset updated", body = ApiResponse<Asset>),
+        (status = 404, description = "Asset not found")
+    ),
+    tag = "assets"
+)]
 pub async fn update_asset(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -131,6 +187,18 @@ pub async fn update_asset(
     )))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/assets/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Asset ID")
+    ),
+    responses(
+        (status = 200, description = "Asset archived", body = ApiResponse<()>),
+        (status = 404, description = "Asset not found")
+    ),
+    tag = "assets"
+)]
 pub async fn delete_asset(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,

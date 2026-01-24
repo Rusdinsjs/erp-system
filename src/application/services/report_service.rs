@@ -1,7 +1,12 @@
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{AssetRepository, MaintenanceRepository};
 use chrono::NaiveDate;
+use genpdf::{elements, style, Element};
+use std::io::Cursor;
 
+/// Service for generating reports and analytics data.
+///
+/// Handles PDF/CSV export generation and aggregates data for dashboards.
 #[derive(Clone)]
 pub struct ReportService {
     asset_repo: AssetRepository,
@@ -16,6 +21,9 @@ impl ReportService {
         }
     }
 
+    /// Generates a CSV string containing all non-archived assets.
+    ///
+    /// Columns: ID, Code, Name, Status, Class, Brand, Model, Serial, Purchase Date, Price, Condition.
     pub async fn generate_asset_inventory_csv(&self) -> DomainResult<String> {
         let assets = self
             .asset_repo
@@ -121,5 +129,92 @@ impl ReportService {
         .map_err(|e| DomainError::internal(e.to_string()))?;
 
         Ok(data)
+    }
+
+    /// Generates a PDF byte vector containing the Asset Inventory report.
+    ///
+    /// Uses `genpdf` with custom fonts. Returns raw bytes suitable for creating a Blob response.
+    pub async fn generate_asset_inventory_pdf(&self) -> DomainResult<Vec<u8>> {
+        let assets = self
+            .asset_repo
+            .find_all()
+            .await
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
+        // Create a new PDF document
+        let font_family = genpdf::fonts::from_files("assets/fonts", "Roboto", None)
+            .map_err(|e| DomainError::internal(format!("Failed to load fonts: {}", e)))?;
+
+        let mut doc = genpdf::Document::new(font_family);
+        doc.set_title("Asset Inventory Report");
+
+        // Decorator
+        let mut decorator = genpdf::SimplePageDecorator::new();
+        decorator.set_margins(10);
+        doc.set_page_decorator(decorator);
+
+        // Title
+        doc.push(
+            elements::Paragraph::new("Asset Inventory Report")
+                .aligned(genpdf::Alignment::Center)
+                .styled(style::Style::new().bold().with_font_size(20)),
+        );
+        doc.push(elements::Break::new(1.0));
+
+        // Table
+        let mut table = elements::TableLayout::new(vec![1, 2, 4, 2, 2]); // Relative column widths: ID, Code, Name, Status, Asset Class
+        table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
+
+        // Table Header
+        let headers = ["ID", "Code", "Name", "Status", "Class"];
+        let mut header_row = table.row();
+        for header in headers {
+            header_row
+                .push_element(elements::Paragraph::new(header).styled(style::Style::new().bold()));
+        }
+        header_row
+            .push()
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
+        // Table Body
+        for asset in assets {
+            let mut row = table.row();
+            row.push_element(elements::Paragraph::new(asset.id.to_string()));
+            row.push_element(elements::Paragraph::new(asset.asset_code));
+            row.push_element(elements::Paragraph::new(asset.name));
+            row.push_element(elements::Paragraph::new(asset.status));
+            row.push_element(elements::Paragraph::new(
+                asset.asset_class.unwrap_or_default(),
+            ));
+            row.push()
+                .map_err(|e| DomainError::internal(e.to_string()))?;
+        }
+
+        doc.push(table);
+
+        // Render to buffer
+        let mut buffer = Cursor::new(Vec::new());
+        doc.render(&mut buffer)
+            .map_err(|e| DomainError::internal(format!("Failed to render PDF: {}", e)))?;
+
+        Ok(buffer.into_inner())
+    }
+
+    pub async fn get_monthly_costs(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::analytics::MonthlyCost>> {
+        self.maintenance_repo
+            .get_monthly_costs()
+            .await
+            .map_err(|e| DomainError::internal(e.to_string()))
+    }
+
+    pub async fn get_asset_status_distribution(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::analytics::AssetStatusStats>> {
+        self.asset_repo
+            .get_status_distribution()
+            .await
+            .map_err(|e| DomainError::internal(e.to_string()))
     }
 }

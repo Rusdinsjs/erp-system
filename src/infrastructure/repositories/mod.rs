@@ -3,12 +3,17 @@
 //! Data access layer implementations.
 
 pub mod approval_repository;
+pub mod approval_workflow_repository;
 pub mod asset_repository;
 pub mod audit_repository;
 pub mod category_repository;
 pub mod category_template_repository;
 pub mod client_repository;
+pub mod contract_approval_repository;
+pub mod contract_document_repository;
+pub mod contract_renewal_repository;
 pub mod contract_repository;
+pub mod contract_template_repository;
 pub mod conversion_repository; // Added this line based on the example
 pub mod employee_repository;
 pub mod finance_repository;
@@ -23,18 +28,24 @@ pub mod notification_repository;
 pub mod rbac_repository;
 pub mod rental_repository;
 pub mod sensor_repository;
+pub mod settings_repository;
 pub mod timesheet_repository;
 pub mod user_repository;
 pub mod vendor_repository;
 pub mod work_order_repository;
 
 pub use approval_repository::*;
+pub use approval_workflow_repository::*;
 pub use asset_repository::*;
 pub use audit_repository::*;
 pub use category_repository::*;
 pub use category_template_repository::*;
 pub use client_repository::*;
+pub use contract_approval_repository::*;
+pub use contract_document_repository::*;
+pub use contract_renewal_repository::*;
 pub use contract_repository::*;
+pub use contract_template_repository::*;
 pub use conversion_repository::*;
 pub use employee_repository::*;
 pub use finance_repository::*;
@@ -49,6 +60,7 @@ pub use notification_repository::*;
 pub use rbac_repository::*;
 pub use rental_repository::*;
 pub use sensor_repository::*;
+pub use settings_repository::*;
 pub use timesheet_repository::*;
 pub use user_repository::*;
 pub use vendor_repository::*;

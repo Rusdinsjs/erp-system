@@ -2,7 +2,7 @@
 // Work Order Management Page
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, AlertTriangle, Wrench, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workOrderApi } from '../api/work-order';
 import type { WorkOrder } from '../api/work-order';
@@ -91,107 +91,186 @@ export function WorkOrders() {
     };
 
     return (
-        <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-white">Work Orders</h1>
-                <PermissionGate requiredLevel={3}>
-                    <Button leftIcon={<Plus size={16} />} onClick={handleCreate}>
-                        New Work Order
-                    </Button>
-                </PermissionGate>
+        <div className="p-8">
+            {/* Header Section */}
+            <div className="flex justify-between items-end mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">Work Orders</h1>
+                    <p className="text-gray-400 mt-2">Manage maintenance, repairs, and service schedules</p>
+                </div>
+                <div className="flex gap-3">
+                    <PermissionGate requiredLevel={3}>
+                        <Button
+                            leftIcon={<Plus size={20} />}
+                            onClick={handleCreate}
+                            className="rounded-xl shadow-lg shadow-blue-500/20"
+                        >
+                            New Work Order
+                        </Button>
+                    </PermissionGate>
+                </div>
             </div>
 
-            <Card padding="lg">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-                    <TabsList>
-                        <TabsTrigger value="active">Active & Planned</TabsTrigger>
-                        <TabsTrigger value="overdue" icon={<AlertTriangle size={14} className="text-red-400" />}>
-                            Overdue
-                        </TabsTrigger>
-                        <TabsTrigger value="history">History</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">Active & Planned</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {records.filter(r => r.status !== 'completed').length}
+                            </h3>
+                        </div>
+                        <div className="p-3 bg-blue-500/20 rounded-xl">
+                            <Wrench className="text-blue-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">Overdue</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {records.filter(r => r.status === 'overdue').length || (activeTab === 'overdue' ? records.length : 0)}
+                            </h3>
+                        </div>
+                        <div className="p-3 bg-red-500/20 rounded-xl">
+                            <AlertCircle className="text-red-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">In Progress</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {records.filter(r => r.status === 'in_progress').length}
+                            </h3>
+                        </div>
+                        <div className="p-3 bg-amber-500/20 rounded-xl">
+                            <Clock className="text-amber-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">Completed</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {records.filter(r => r.status === 'completed').length}
+                            </h3>
+                        </div>
+                        <div className="p-3 bg-green-500/20 rounded-xl">
+                            <CheckCircle className="text-green-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Main Content Area */}
+            <Card className="overflow-hidden p-0">
+                {/* Tabs Bar */}
+                <div className="px-6 py-4 border-b border-white/5 bg-gray-900/30 flex justify-between items-center">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-0">
+                        <TabsList className="bg-white/5">
+                            <TabsTrigger value="active" className="px-6">Active & Planned</TabsTrigger>
+                            <TabsTrigger value="overdue" icon={<AlertTriangle size={14} className="text-red-400" />} className="px-6">
+                                Overdue
+                            </TabsTrigger>
+                            <TabsTrigger value="history" className="px-6">History</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
 
                 {/* Table */}
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableTh>Asset</TableTh>
-                            <TableTh>Type</TableTh>
-                            <TableTh>Status</TableTh>
-                            <TableTh>Approval</TableTh>
-                            <TableTh>Scheduled</TableTh>
-                            <TableTh>Cost</TableTh>
-                            <TableTh align="center">Actions</TableTh>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableRow>
-                                <TableTd colSpan={7} align="center">
-                                    <div className="py-8 text-slate-400">Loading...</div>
-                                </TableTd>
+                <div className="relative">
+                    <Table className="border-none rounded-none shadow-none">
+                        <TableHead>
+                            <TableRow className="bg-gray-900/50 border-white/5">
+                                <TableTh>Asset</TableTh>
+                                <TableTh>Type</TableTh>
+                                <TableTh>Status</TableTh>
+                                <TableTh>Scheduled</TableTh>
+                                <TableTh>Cost</TableTh>
+                                <TableTh align="center">Actions</TableTh>
                             </TableRow>
-                        ) : records.length === 0 ? (
-                            <TableEmpty colSpan={7} message="No work orders found" />
-                        ) : (
-                            records.map((record: any) => (
-                                <TableRow
-                                    key={record.id}
-                                    onClick={() => navigate(`/work-orders/${record.id}`)}
-                                    className="cursor-pointer"
-                                >
-                                    <TableTd>
-                                        <span className="font-medium text-white">
-                                            {record.asset_name || record.asset?.name || record.asset_id}
-                                        </span>
-                                    </TableTd>
-                                    <TableTd>{record.wo_type}</TableTd>
-                                    <TableTd>
-                                        <StatusBadge status={record.status} />
-                                    </TableTd>
-                                    <TableTd>
-                                        <StatusBadge status="-" />
-                                    </TableTd>
-                                    <TableTd>{record.scheduled_date}</TableTd>
-                                    <TableTd>
-                                        {record.status === 'completed' && record.actual_cost
-                                            ? `Rp ${Number(record.actual_cost).toLocaleString('id-ID')}`
-                                            : record.estimated_cost
-                                                ? `Rp ${Number(record.estimated_cost).toLocaleString('id-ID')}`
-                                                : '-'}
-                                    </TableTd>
-                                    <TableTd align="center">
-                                        <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                            <PermissionGate requiredLevel={3}>
-                                                <ActionIcon
-                                                    onClick={(e) => { e.stopPropagation(); handleEdit(record.id); }}
-                                                    title="Edit Work Order"
-                                                >
-                                                    <Edit size={16} />
-                                                </ActionIcon>
-                                            </PermissionGate>
-                                            <PermissionGate requiredLevel={2}>
-                                                <ActionIcon
-                                                    variant="danger"
-                                                    onClick={(e) => handleDelete(record.id, e)}
-                                                    title="Delete Work Order"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </ActionIcon>
-                                            </PermissionGate>
+                        </TableHead>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableTd colSpan={6} align="center">
+                                        <div className="py-12 flex flex-col items-center gap-3">
+                                            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                            <p className="text-gray-500 text-sm font-medium tracking-wide">Loading work orders...</p>
                                         </div>
                                     </TableTd>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                            ) : records.length === 0 ? (
+                                <TableEmpty colSpan={6} message="No work orders found" />
+                            ) : (
+                                records.map((record: any) => (
+                                    <TableRow
+                                        key={record.id}
+                                        onClick={() => navigate(`/work-orders/${record.id}`)}
+                                        className="hover:bg-gray-700/30 border-white/5 group transition-all cursor-pointer"
+                                    >
+                                        <TableTd>
+                                            <span className="font-medium text-white group-hover:text-blue-400 transition-colors">
+                                                {record.asset_name || record.asset?.name || record.asset_id}
+                                            </span>
+                                        </TableTd>
+                                        <TableTd className="capitalize">{record.wo_type}</TableTd>
+                                        <TableTd>
+                                            <StatusBadge status={record.status} />
+                                        </TableTd>
+                                        <TableTd className="text-gray-400">{record.scheduled_date}</TableTd>
+                                        <TableTd className="font-medium text-gray-200">
+                                            {record.status === 'completed' && record.actual_cost
+                                                ? `Rp ${Number(record.actual_cost).toLocaleString('id-ID')}`
+                                                : record.estimated_cost
+                                                    ? `Rp ${Number(record.estimated_cost).toLocaleString('id-ID')}`
+                                                    : '-'}
+                                        </TableTd>
+                                        <TableTd align="center">
+                                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                                <PermissionGate requiredLevel={3}>
+                                                    <ActionIcon
+                                                        onClick={(e) => { e.stopPropagation(); handleEdit(record.id); }}
+                                                        title="Edit Work Order"
+                                                        className="hover:bg-amber-500/20 text-amber-400"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </ActionIcon>
+                                                </PermissionGate>
+                                                <PermissionGate requiredLevel={2}>
+                                                    <ActionIcon
+                                                        variant="danger"
+                                                        onClick={(e) => handleDelete(record.id, e)}
+                                                        title="Delete Work Order"
+                                                        className="hover:bg-red-500/20 text-red-400"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </ActionIcon>
+                                                </PermissionGate>
+                                            </div>
+                                        </TableTd>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
 
                 {/* Pagination */}
                 {activeTab !== 'overdue' && totalPages > 1 && (
-                    <div className="flex justify-center mt-4">
+                    <div className="flex justify-center p-4 border-t border-white/5 bg-gray-900/20">
                         <Pagination
                             currentPage={page}
                             totalPages={totalPages}

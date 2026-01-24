@@ -8,7 +8,10 @@ export { Drawer } from './Drawer';
 export { Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty } from './Table';
 export { Badge, StatusBadge } from './Badge';
 export { Card, CardHeader, CardTitle, CardContent, CardFooter } from './Card';
-export { Spinner, LoadingOverlay, PageLoading, Skeleton } from './Loading';
+export { LoadingSpinner } from './LoadingSpinner';
+export { LoadingOverlay } from './LoadingOverlay';
+export { Skeleton, TableSkeleton } from './Skeleton';
+export { PageLoading } from './Loading'; // Keep legacy PageLoading for now if needed, or deprecate
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
 export { ToastProvider, useToast } from './Toast';
 export { ActionIcon } from './ActionIcon';

@@ -34,6 +34,9 @@ pub enum DomainError {
     /// Internal error
     Internal { message: String },
 
+    /// File storage error
+    Storage { message: String },
+
     /// Database error
     Database(String),
 }
@@ -122,6 +125,9 @@ impl fmt::Display for DomainError {
             Self::Internal { message } => {
                 write!(f, "Internal error: {}", message)
             }
+            Self::Storage { message } => {
+                write!(f, "Storage error: {}", message)
+            }
             Self::Database(message) => {
                 write!(f, "Database error: {}", message)
             }
@@ -133,3 +139,52 @@ impl std::error::Error for DomainError {}
 
 /// Result type alias for domain operations
 pub type DomainResult<T> = Result<T, DomainError>;
+
+// Implement IntoResponse for DomainError
+use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
+use serde_json::json;
+
+impl IntoResponse for DomainError {
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            DomainError::NotFound { entity, id } => (
+                StatusCode::NOT_FOUND,
+                format!("{} with id {} not found", entity, id),
+            ),
+            DomainError::ValidationError { field, message } => (
+                StatusCode::BAD_REQUEST,
+                format!("Validation error on field '{}': {}", field, message),
+            ),
+            DomainError::BusinessRuleViolation { rule, message } => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                format!("Business rule '{}' violated: {}", rule, message),
+            ),
+            DomainError::InvalidStateTransition { from, to } => (
+                StatusCode::CONFLICT,
+                format!("Invalid state transition from '{}' to '{}'", from, to),
+            ),
+            DomainError::Unauthorized { action } => (
+                StatusCode::FORBIDDEN,
+                format!("Unauthorized to perform action: {}", action),
+            ),
+            DomainError::Conflict { message } => (StatusCode::CONFLICT, message),
+            DomainError::ExternalServiceError { service, message } => (
+                StatusCode::BAD_GATEWAY,
+                format!("External service '{}' error: {}", service, message),
+            ),
+            DomainError::BadRequest { message } => (StatusCode::BAD_REQUEST, message),
+            DomainError::Internal { message } => (StatusCode::INTERNAL_SERVER_ERROR, message),
+            DomainError::Storage { message } => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Storage error: {}", message),
+            ),
+            DomainError::Database(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+        };
+
+        let body = Json(json!({
+            "error": error_message,
+        }));
+
+        (status, body).into_response()
+    }
+}

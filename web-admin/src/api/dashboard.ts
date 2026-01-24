@@ -41,6 +41,17 @@ export interface DepreciationSummary {
     total_book_value: number;
 }
 
+export interface MonthlyCost {
+    month: string;
+    maintenance_cost: number;
+}
+
+export interface AssetStatusStats {
+    status: string;
+    count: number;
+    [key: string]: any;
+}
+
 export const dashboardApi = {
     getStats: async () => {
         const response = await api.get<DashboardStats>('/dashboard');
@@ -54,6 +65,16 @@ export const dashboardApi = {
 
     getDepreciation: async () => {
         const response = await api.get<DepreciationSummary>('/dashboard/depreciation');
+        return response.data;
+    },
+
+    getCostAnalytics: async () => {
+        const response = await api.get<MonthlyCost[]>('/analytics/costs');
+        return response.data;
+    },
+
+    getAssetStatusStats: async () => {
+        const response = await api.get<AssetStatusStats[]>('/analytics/status');
         return response.data;
     }
 };

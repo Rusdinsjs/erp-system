@@ -1,16 +1,23 @@
-use crate::api::server::AppState;
-use crate::application::services::analytics_service::AssetRoiResponse;
-use crate::shared::errors::AppError;
 use axum::{
-    extract::{Path, State},
-    Json,
+    extract::State,
+    response::{IntoResponse, Json},
 };
-use uuid::Uuid;
 
-pub async fn get_asset_roi(
+use crate::api::server::AppState;
+use crate::shared::errors::AppError;
+
+pub async fn get_cost_analytics(
     State(state): State<AppState>,
-    Path(asset_id): Path<Uuid>,
-) -> Result<Json<AssetRoiResponse>, AppError> {
-    let result = state.analytics_service.get_asset_roi(asset_id).await?;
-    Ok(Json(result))
+) -> Result<impl IntoResponse, AppError> {
+    let costs = state.report_service.get_monthly_costs().await?;
+
+    Ok(Json(costs))
+}
+
+pub async fn get_asset_status_distribution(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, AppError> {
+    let stats = state.report_service.get_asset_status_distribution().await?;
+
+    Ok(Json(stats))
 }

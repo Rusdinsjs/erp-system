@@ -28,6 +28,9 @@ pub enum AssetOperationResult {
 }
 
 /// Asset service for business logic
+/// Service for managing the lifecycle of assets.
+///
+/// Handles creation, updates, status changes, and history tracking.
 #[derive(Clone)]
 pub struct AssetService {
     repository: AssetRepository,
@@ -190,6 +193,9 @@ impl AssetService {
     }
 
     /// Create new asset
+    /// Creates a new asset and logs the creation in history.
+    ///
+    /// Requires `create_asset` permission. Auto-assigns "available" status.
     pub async fn create(
         &self,
         request: CreateAssetRequest,
@@ -221,6 +227,11 @@ impl AssetService {
 
         // --- Normal Creation Logic ---
 
+        tracing::info!(
+            "AssetService: Creating asset with code: {}",
+            request.asset_code
+        );
+
         // Check if code already exists
         if let Some(_) = self
             .repository
@@ -231,9 +242,11 @@ impl AssetService {
                 message: e.to_string(),
             })?
         {
+            tracing::error!("AssetService: Code {} already exists", request.asset_code);
             return Err(DomainError::conflict("Asset code already exists"));
         }
 
+        tracing::info!("AssetService: Code unique. Inserting...");
         let mut asset = Asset::new(request.asset_code, request.name, request.category_id);
 
         // Set optional fields
@@ -462,7 +475,6 @@ impl AssetService {
 
         let current = AssetState::from_str(&asset.status)
             .ok_or_else(|| DomainError::validation("status", "Invalid current state"))?;
-
         let target = AssetState::from_str(new_state)
             .ok_or_else(|| DomainError::validation("new_state", "Invalid target state"))?;
 

@@ -3,6 +3,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::entities::analytics::MonthlyCost;
 use crate::domain::entities::{MaintenanceRecord, MaintenanceSummary};
 
 #[derive(Clone)]
@@ -209,5 +210,21 @@ impl MaintenanceRepository {
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn get_monthly_costs(&self) -> Result<Vec<MonthlyCost>, sqlx::Error> {
+        sqlx::query_as::<_, MonthlyCost>(
+            r#"
+            SELECT 
+                TO_CHAR(DATE_TRUNC('month', scheduled_date), 'Mon') as month,
+                COALESCE(SUM(cost), 0) as maintenance_cost
+            FROM maintenance_records
+            WHERE scheduled_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '6 months')
+            GROUP BY DATE_TRUNC('month', scheduled_date)
+            ORDER BY DATE_TRUNC('month', scheduled_date)
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 }

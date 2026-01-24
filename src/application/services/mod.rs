@@ -2,6 +2,7 @@
 
 pub mod analytics_service;
 pub mod approval_service; // Added
+pub mod approval_workflow_service;
 pub mod asset_service;
 pub mod audit_service; // Added
 pub mod auth_service;
@@ -10,6 +11,7 @@ pub mod category_service;
 pub mod category_template_service;
 pub mod client_service;
 pub mod contract_service;
+pub mod contract_template_service;
 pub mod conversion_service;
 pub mod employee_service;
 pub mod leave_service;
@@ -20,11 +22,13 @@ pub mod notification_service;
 pub mod rbac_service;
 pub mod rental_service;
 pub mod sensor_service;
+pub mod settings_service;
 pub mod timesheet_service;
 pub mod work_order_service;
 
 pub use analytics_service::*;
 pub use approval_service::*; // Added
+pub use approval_workflow_service::*;
 pub use asset_service::*;
 pub use audit_service::*;
 pub use auth_service::*;
@@ -33,6 +37,7 @@ pub use category_service::*;
 pub use category_template_service::*;
 pub use client_service::*;
 pub use contract_service::*;
+pub use contract_template_service::*;
 pub use conversion_service::*;
 pub use employee_service::*;
 pub use leave_service::*;
@@ -43,6 +48,7 @@ pub use notification_service::*;
 pub use rbac_service::*;
 pub use rental_service::*;
 pub use sensor_service::*;
+pub use settings_service::*;
 pub use timesheet_service::*;
 pub use work_order_service::*;
 pub mod data_service;

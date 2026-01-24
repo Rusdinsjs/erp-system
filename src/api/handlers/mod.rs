@@ -1,7 +1,9 @@
 //! API Handlers
 
 pub mod analytics_handler;
+
 pub mod approval_handler;
+pub mod approval_workflow_handler;
 pub mod asset_handler;
 pub mod audit_handler;
 pub mod auth_handler;
@@ -10,6 +12,7 @@ pub mod category_handler;
 pub mod category_template_handler;
 pub mod client_handler;
 pub mod contract_handler;
+pub mod contract_template_handler;
 pub mod conversion_handler;
 pub mod dashboard_handler;
 pub mod data_handler;
@@ -23,6 +26,7 @@ pub mod leave_handler;
 pub mod lifecycle_handler;
 pub mod loan_handler;
 pub mod lookup_handler;
+pub mod settings_handler;
 
 pub mod mobile_handler;
 pub mod notification_handler;
@@ -38,6 +42,7 @@ pub mod user_handler;
 pub mod work_order_handler;
 
 pub use approval_handler::*;
+pub use approval_workflow_handler::*;
 pub use asset_handler::*;
 pub use audit_handler::*;
 pub use auth_handler::*;
@@ -45,6 +50,7 @@ pub use billing_handler::*;
 pub use category_handler::*;
 pub use client_handler::*;
 pub use contract_handler::*;
+pub use contract_template_handler::*;
 pub use dashboard_handler::*;
 pub use employee_handler::*;
 pub use health_handler::*;

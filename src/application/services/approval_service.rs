@@ -128,7 +128,7 @@ impl ApprovalService {
                     service: "database".to_string(),
                     message: e.to_string(),
                 })?
-                .unwrap();
+                .ok_or_else(|| DomainError::not_found("Approval request", request_id.to_string()))?;
 
             Ok(updated)
         } else if request.current_approval_level == 2 {

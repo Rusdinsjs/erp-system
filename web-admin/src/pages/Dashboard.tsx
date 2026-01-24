@@ -4,6 +4,7 @@ import { Package, DollarSign, Wrench, AlertTriangle, Clock, ClipboardCheck } fro
 import { api } from '../api/http';
 import { Card, PageLoading } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
+import { PendingApprovalsWidget } from '../components/dashboard/PendingApprovalsWidget';
 
 // Stat Card Component
 interface StatCardProps {
@@ -165,10 +166,11 @@ export function Dashboard() {
             <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
 
             {/* Top Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {statItems.map((item) => (
                     <StatCard key={item.label} {...item} />
                 ))}
+                <PendingApprovalsWidget />
             </div>
 
             {/* Main Content Grid */}

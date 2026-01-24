@@ -20,22 +20,16 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Card, Button } from '../../components/ui';
-import { dashboardApi, type DashboardStats, type RecentActivity as APIRecentActivity } from '../../api/dashboard';
+import { dashboardApi, type DashboardStats, type RecentActivity as APIRecentActivity, type MonthlyCost, type AssetStatusStats } from '../../api/dashboard';
+import { PieChart, Pie, Cell, Legend } from 'recharts';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 dayjs.extend(relativeTime);
 
-// Mock Data for Chart (Backend doesn't have time-series endpoint yet)
-const costTrendData = [
-    { name: 'Jan', total: 45, fuel: 20, maintenance: 25 },
-    { name: 'Feb', total: 52, fuel: 22, maintenance: 30 },
-    { name: 'Mar', total: 48, fuel: 25, maintenance: 23 },
-    { name: 'Apr', total: 61, fuel: 28, maintenance: 33 },
-    { name: 'May', total: 55, fuel: 24, maintenance: 31 },
-    { name: 'Jun', total: 67, fuel: 30, maintenance: 37 },
-    { name: 'Jul', total: 72, fuel: 35, maintenance: 37 },
-];
+dayjs.extend(relativeTime);
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const PremiumStatCard = ({ title, value, subtext, trend, icon: Icon, gradient }: any) => (
     <div className={`
@@ -109,17 +103,23 @@ const ActivityItem = ({ item }: { item: APIRecentActivity }) => {
 const OverviewTab: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [activities, setActivities] = useState<APIRecentActivity[]>([]);
+    const [costData, setCostData] = useState<MonthlyCost[]>([]);
+    const [statusData, setStatusData] = useState<AssetStatusStats[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [statsData, activitiesData] = await Promise.all([
+                const [statsData, activitiesData, costs, statuses] = await Promise.all([
                     dashboardApi.getStats(),
-                    dashboardApi.getActivities()
+                    dashboardApi.getActivities(),
+                    dashboardApi.getCostAnalytics(),
+                    dashboardApi.getAssetStatusStats()
                 ]);
                 setStats(statsData);
                 setActivities(activitiesData);
+                setCostData(costs);
+                setStatusData(statuses);
             } catch (error) {
                 console.error("Failed to load dashboard data:", error);
             } finally {
@@ -206,23 +206,18 @@ const OverviewTab: React.FC = () => {
                             <option>Year to Date</option>
                         </select>
                     </div>
-                    {/* Note: This chart is still using mock data because backend aggregations are pending */}
                     <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={costTrendData}>
+                            <AreaChart data={costData}>
                                 <defs>
-                                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                    <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
                                         <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorFuel" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                                 <XAxis
-                                    dataKey="name"
+                                    dataKey="month"
                                     stroke="#64748b"
                                     fontSize={12}
                                     tickLine={false}
@@ -233,7 +228,7 @@ const OverviewTab: React.FC = () => {
                                     fontSize={12}
                                     tickLine={false}
                                     axisLine={false}
-                                    tickFormatter={(value) => `${value}M`}
+                                    tickFormatter={(value) => `${value}`}
                                 />
                                 <Tooltip
                                     contentStyle={{
@@ -244,26 +239,50 @@ const OverviewTab: React.FC = () => {
                                         backdropFilter: 'blur(4px)'
                                     }}
                                     itemStyle={{ fontSize: '12px' }}
+                                    formatter={(value: any) => formatCurrency(value || 0)}
                                 />
                                 <Area
                                     type="monotone"
-                                    dataKey="total"
+                                    dataKey="maintenance_cost"
                                     stroke="#3B82F6"
                                     strokeWidth={3}
                                     fillOpacity={1}
-                                    fill="url(#colorTotal)"
-                                    name="Total Cost"
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="fuel"
-                                    stroke="#8B5CF6"
-                                    strokeWidth={3}
-                                    fillOpacity={1}
-                                    fill="url(#colorFuel)"
-                                    name="Fuel Spend"
+                                    fill="url(#colorCost)"
+                                    name="Maintenance Cost"
                                 />
                             </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+
+                {/* Asset Status Pie Chart */}
+                <Card className="lg:col-span-1">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                        <h3 className="text-lg font-bold text-white">Asset Status</h3>
+                    </div>
+                    <div className="h-[300px] w-full flex flex-col items-center justify-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={statusData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="count"
+                                    nameKey="status"
+                                >
+                                    {statusData.map((_, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
+                                    itemStyle={{ color: '#fff' }}
+                                />
+                                <Legend verticalAlign="bottom" height={36} />
+                            </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>

@@ -5,6 +5,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::entities::analytics::AssetStatusStats;
 use crate::domain::entities::asset_details::VehicleDetails;
 use crate::domain::entities::{Asset, AssetHistory, AssetSummary};
 
@@ -25,7 +26,7 @@ impl AssetRepository {
             r#"
             SELECT 
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, is_fuel, asset_class, status, condition_id,
+                is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
@@ -67,7 +68,7 @@ impl AssetRepository {
             r#"
             SELECT 
                 a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.assigned_to, a.vendor_id,
-                a.is_rental, a.is_fuel, a.asset_class, a.status, a.condition_id,
+                a.is_rental, a.is_fuel, a.is_loan, a.asset_class, a.status, a.condition_id,
                 a.serial_number, a.brand, a.model, a.year_manufacture,
                 a.specifications,
                 a.purchase_date, a.purchase_price, a.currency_id, a.unit_id, a.quantity,
@@ -132,6 +133,7 @@ impl AssetRepository {
                 vendor_id: r.get("vendor_id"),
                 is_rental: r.get::<bool, _>("is_rental"),
                 is_fuel: r.get::<bool, _>("is_fuel"),
+                is_loan: r.get::<bool, _>("is_loan"),
                 asset_class: r.get("asset_class"),
                 status: r.get("status"),
                 condition_id: r.get("condition_id"),
@@ -193,7 +195,7 @@ impl AssetRepository {
             r#"
             SELECT 
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, is_fuel, asset_class, status, condition_id,
+                is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
@@ -218,7 +220,7 @@ impl AssetRepository {
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         sqlx::query_as::<_, AssetSummary>(
             r#"
-            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.brand, a.purchase_price, 
+            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
                    a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
             LEFT JOIN locations l ON a.location_id = l.id
@@ -242,7 +244,7 @@ impl AssetRepository {
             r#"
             SELECT 
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, is_fuel, asset_class, status, condition_id,
+                is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
@@ -281,7 +283,7 @@ impl AssetRepository {
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         sqlx::query_as::<_, AssetSummary>(
             r#"
-            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.brand, a.purchase_price, 
+            SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
                    a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
             LEFT JOIN locations l ON a.location_id = l.id
@@ -315,14 +317,14 @@ impl AssetRepository {
             r#"
             INSERT INTO assets (
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
-                is_rental, is_fuel, asset_class, status, condition_id,
+                is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
             RETURNING *
             "#,
         )
@@ -337,6 +339,7 @@ impl AssetRepository {
         .bind(asset.vendor_id)
         .bind(asset.is_rental)
         .bind(asset.is_fuel)
+        .bind(asset.is_loan)
         .bind(&asset.asset_class)
         .bind(&asset.status)
         .bind(asset.condition_id)
@@ -365,12 +368,12 @@ impl AssetRepository {
             UPDATE assets SET
                 asset_code = $2, name = $3, category_id = $4, location_id = $5,
                 department_id = $6, department = $7, assigned_to = $8, vendor_id = $9,
-                is_rental = $10, is_fuel = $11, asset_class = $12, status = $13, condition_id = $14,
-                serial_number = $15, brand = $16, model = $17, year_manufacture = $18,
-                specifications = $19,
-                purchase_date = $20, purchase_price = $21, currency_id = $22, unit_id = $23, quantity = $24,
-                residual_value = $25, useful_life_months = $26,
-                qr_code_url = $27, notes = $28,
+                is_rental = $10, is_fuel = $11, is_loan = $12, asset_class = $13, status = $14, condition_id = $15,
+                serial_number = $16, brand = $17, model = $18, year_manufacture = $19,
+                specifications = $20,
+                purchase_date = $21, purchase_price = $22, currency_id = $23, unit_id = $24, quantity = $25,
+                residual_value = $26, useful_life_months = $27,
+                qr_code_url = $28, notes = $29,
                 updated_at = NOW()
             WHERE id = $1
             RETURNING *
@@ -387,6 +390,7 @@ impl AssetRepository {
         .bind(asset.vendor_id)
         .bind(asset.is_rental)
         .bind(asset.is_fuel)
+        .bind(asset.is_loan)
         .bind(&asset.asset_class)
         .bind(&asset.status)
         .bind(asset.condition_id)
@@ -528,5 +532,19 @@ impl AssetRepository {
         .execute(&self.pool)
         .await?;
         Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn get_status_distribution(&self) -> Result<Vec<AssetStatusStats>, sqlx::Error> {
+        sqlx::query_as::<_, AssetStatusStats>(
+            r#"
+            SELECT status, COUNT(*) as count
+            FROM assets
+            WHERE status != 'archived'
+            GROUP BY status
+            ORDER BY count DESC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 }

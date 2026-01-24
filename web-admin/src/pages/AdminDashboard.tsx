@@ -7,7 +7,7 @@ import {
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
-    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw, Fuel, Shield
+    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw, Fuel, Shield, Layers
 } from 'lucide-react';
 import { PageLoading, Logo } from '../components/ui';
 
@@ -31,6 +31,9 @@ const RentalsView = lazy(() => import('./rentals/Rentals').then(m => ({ default:
 const RentalFormView = lazy(() => import('./rentals/RentalForm').then(m => ({ default: m.RentalForm })));
 const RentalDetailView = lazy(() => import('./rentals/RentalDetail').then(m => ({ default: m.RentalDetail })));
 const ContractListView = lazy(() => import('./Contracts').then(m => ({ default: m.default }))); // Added ContractList
+const ContractDetailView = lazy(() => import('./ContractDetail')); // Added ContractDetail
+const ContractAnalyticsView = lazy(() => import('./ContractAnalytics')); // Added ContractAnalytics
+const ContractTemplatesView = lazy(() => import('./ContractTemplates')); // Added ContractTemplates
 const ClientsView = lazy(() => import('./Clients').then(m => ({ default: m.Clients })));
 const LoansView = lazy(() => import('./Loans').then(m => ({ default: m.Loans })));
 const LocationsView = lazy(() => import('./Locations').then(m => ({ default: m.Locations })));
@@ -57,6 +60,8 @@ const PurchaseQuotesView = lazy(() => import('./Finance/PurchaseQuotes').then(mo
 const PurchaseOrdersView = lazy(() => import('./Finance/PurchaseOrders').then(module => ({ default: module.PurchaseOrders })));
 const PurchaseShipmentsView = lazy(() => import('./Finance/PurchaseShipments').then(module => ({ default: module.PurchaseShipments })));
 const PurchaseBillsView = lazy(() => import('./Finance/PurchaseBills').then(module => ({ default: module.PurchaseBills })));
+const ApprovalWorkflowSettingsView = lazy(() => import('./ApprovalWorkflowSettings'));
+const SettingsView = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
 
 const ExpensesView = lazy(() => import('./Finance/Expenses').then(m => ({ default: m.Expenses })));
 
@@ -70,6 +75,9 @@ type TabId =
     | 'rentals'
     | 'rental-form'
     | 'contracts' // Added
+    | 'contract-detail' // Added
+    | 'contract-analytics' // Added
+    | 'contract-templates' // Added
     | 'clients'
     | 'loans'
     | 'fuel'
@@ -92,6 +100,7 @@ type TabId =
     | 'cash-bank'
     | 'sales'
     | 'sales-overview'
+    | 'approval-workflow-settings'
     | 'sales-quotes'
     | 'sales-orders'
     | 'sales-shipments'
@@ -104,6 +113,7 @@ type TabId =
     | 'purchase-bills'
     | 'expenses'
     | 'asset-lifecycle'
+    | 'settings' // Added
     | 'profile';
 
 interface NavItem {
@@ -155,6 +165,7 @@ const navItems: NavEntry[] = [
         children: [
             { id: 'rentals', icon: Truck, label: 'Daftar Rental', minLevel: 4 },
             { id: 'contracts', icon: FileText, label: 'Kontrak', minLevel: 4 },
+            { id: 'contract-templates', icon: Settings, label: 'Template Kontrak', minLevel: 3 },
         ]
     },
     {
@@ -239,7 +250,9 @@ const navItems: NavEntry[] = [
         children: [
             { id: 'users', icon: Users, label: 'User Management', minLevel: 2 },
             { id: 'roles', icon: Shield, label: 'Role & Permissions', minLevel: 2 },
+            { id: 'approval-workflow-settings', icon: Layers, label: 'Approval Workflows', minLevel: 2 },
             { id: 'audit', icon: Scan, label: 'Audit Mode', minLevel: 2 },
+            { id: 'settings', icon: Settings, label: 'General Settings', minLevel: 2 },
             { id: 'profile', icon: UserCircle, label: 'Profil', minLevel: 5 },
         ]
     },
@@ -267,6 +280,7 @@ export default function AdminDashboard() {
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
     const [assetViewMode, setAssetViewMode] = useState<'list' | 'lifecycle' | 'details'>('list');
     const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
+    const [selectedContractId] = useState<string | null>(null);
 
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
@@ -552,7 +566,16 @@ export default function AdminDashboard() {
             case 'rental-form':
                 return <RentalFormView />;
             case 'contracts': // Added
+                if (selectedContractId) return <ContractDetailView />;
                 return <ContractListView />;
+            case 'approval-workflow-settings':
+                return <ApprovalWorkflowSettingsView />;
+            case 'contract-detail':
+                return <ContractDetailView />;
+            case 'contract-analytics':
+                return <ContractAnalyticsView />;
+            case 'contract-templates':
+                return <ContractTemplatesView />;
             case 'clients': return <ClientsView />;
             case 'loans': return <LoansView />;
             case 'fuel': return <FuelView />;
@@ -592,6 +615,7 @@ export default function AdminDashboard() {
                 return <PurchaseOverviewView />; // Default to overview for the group
             case 'expenses': return <ExpensesView />;
             case 'asset-lifecycle': return <AssetLifecycleView />;
+            case 'settings': return <SettingsView />;
             case 'profile': return <ProfileView />;
             default: return <DashboardView />;
         }

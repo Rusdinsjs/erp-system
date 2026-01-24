@@ -3,24 +3,9 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Notification model
-#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize)]
-pub struct Notification {
-    pub id: Uuid,
-    pub user_id: Uuid,
-    pub template_id: Option<Uuid>,
-    pub title: String,
-    pub message: String,
-    pub data: Option<serde_json::Value>,
-    pub channel: String,
-    pub entity_type: Option<String>,
-    pub entity_id: Option<Uuid>,
-    pub is_read: bool,
-    pub read_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub is_sent: bool,
-    pub sent_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-}
+use crate::domain::entities::notification::{
+    Notification, NotificationPreference, NotificationTemplate,
+};
 
 #[derive(Clone)]
 pub struct NotificationRepository {
@@ -86,8 +71,8 @@ impl NotificationRepository {
     pub async fn create(&self, notification: &Notification) -> Result<Notification, sqlx::Error> {
         sqlx::query_as::<_, Notification>(
             r#"
-            INSERT INTO notifications (id, user_id, template_id, title, message, data, channel, entity_type, entity_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO notifications (id, user_id, template_id, title, message, data, channel, entity_type, entity_id, is_read, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
             "#
         )
@@ -100,6 +85,8 @@ impl NotificationRepository {
         .bind(&notification.channel)
         .bind(&notification.entity_type)
         .bind(notification.entity_id)
+        .bind(notification.is_read)
+        .bind(notification.created_at)
         .fetch_one(&self.pool)
         .await
     }
@@ -129,5 +116,43 @@ impl NotificationRepository {
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected() > 0)
+    }
+
+    // Template Methods
+    pub async fn find_template_by_code(
+        &self,
+        code: &str,
+    ) -> Result<Option<NotificationTemplate>, sqlx::Error> {
+        sqlx::query_as::<_, NotificationTemplate>(
+            "SELECT * FROM notification_templates WHERE code = $1",
+        )
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    pub async fn get_user_preferences(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Vec<NotificationPreference>, sqlx::Error> {
+        sqlx::query_as::<_, NotificationPreference>(
+            "SELECT * FROM notification_preferences WHERE user_id = $1",
+        )
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn find_admins(&self) -> Result<Vec<Uuid>, sqlx::Error> {
+        let result: Vec<(Uuid,)> = sqlx::query_as(
+            r#"
+            SELECT u.id FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
+            WHERE r.code IN ('admin', 'super_admin') OR u.role IN ('admin', 'super_admin')
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(result.into_iter().map(|(id,)| id).collect())
     }
 }

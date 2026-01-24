@@ -41,6 +41,8 @@ pub struct RentalContract {
     pub id: Uuid,
     pub contract_number: String,
     pub client_id: Uuid,
+    #[sqlx(default)]
+    pub client_name: Option<String>, // Populated via JOIN, not stored in DB
 
     // Contract period
     pub start_date: NaiveDate,
@@ -69,12 +71,18 @@ pub struct RentalContract {
     pub updated_at: Option<DateTime<Utc>>,
     pub updated_by: Option<Uuid>,
 
+    pub submitted_for_approval_at: Option<DateTime<Utc>>,
     pub approved_at: Option<DateTime<Utc>>,
     pub approved_by: Option<Uuid>,
 
     pub terminated_at: Option<DateTime<Utc>>,
     pub terminated_by: Option<Uuid>,
     pub termination_reason: Option<String>,
+
+    pub current_approval_step: i32,
+    pub total_approval_steps: i32,
+    pub template_id: Option<Uuid>,
+    pub delegated_to: Option<Uuid>,
 }
 
 impl RentalContract {

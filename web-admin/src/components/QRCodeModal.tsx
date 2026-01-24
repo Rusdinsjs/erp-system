@@ -1,5 +1,5 @@
 import { QRCodeSVG } from 'qrcode.react';
-import { X, Printer, Download } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { Modal, Button } from './ui';
 
 interface QRCodeModalProps {

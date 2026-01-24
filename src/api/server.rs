@@ -3,7 +3,9 @@
 use sqlx::PgPool;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
+use utoipa::OpenApi;
 
+// use crate::api::middleware::security_headers::security_headers_middleware;
 use crate::api::routes::create_router;
 use crate::application::services::{
     AnalyticsService,
@@ -16,6 +18,7 @@ use crate::application::services::{
     CategoryTemplateService,
     ClientService,
     ContractService,
+    ContractTemplateService,
     ConversionService,
     DataService,
     EmployeeService,
@@ -32,6 +35,7 @@ use crate::application::services::{
     ReportService,
     SchedulerService,
     SensorService,
+    SettingsService,
     TimesheetService,
     UserService,
     WorkOrderService,
@@ -39,11 +43,13 @@ use crate::application::services::{
 use crate::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
 use crate::infrastructure::repositories::{
     ApprovalRepository, AssetRepository, AuditRepository, CategoryRepository,
-    CategoryTemplateRepository, ClientRepository, ContractRepository, ConversionRepository,
+    CategoryTemplateRepository, ClientRepository, ContractDocumentRepository, ConversionRepository,
     EmployeeRepository, FinanceRepository, FuelRepository, JournalRepository, LifecycleRepository,
     LoanRepository, MaintenanceRepository, NotificationRepository, RbacRepository,
-    RentalRepository, SensorRepository, TimesheetRepository, UserRepository, WorkOrderRepository,
+    RentalRepository, SensorRepository, SettingsRepository, TimesheetRepository, UserRepository,
+    WorkOrderRepository,
 };
+use crate::infrastructure::storage::FileStorage;
 use crate::shared::utils::jwt::JwtConfig;
 use std::sync::Arc;
 
@@ -59,6 +65,7 @@ pub struct AppState {
     pub category_template_service: CategoryTemplateService,
     pub client_service: ClientService,
     pub contract_service: ContractService,
+    pub contract_template_service: ContractTemplateService,
     pub conversion_service: ConversionService,
     pub lifecycle_service: LifecycleService,
     pub loan_service: LoanService,
@@ -77,14 +84,19 @@ pub struct AppState {
     pub employee_service: EmployeeService,
     pub location_service: LocationService, // Added
     pub leave_service: crate::application::services::LeaveService,
-    pub finance_service: FinanceService, // Added
-    pub fuel_service: FuelService,       // Added
-    pub journal_service: JournalService, // Added
+    pub finance_service: FinanceService,   // Added
+    pub fuel_service: FuelService,         // Added
+    pub journal_service: JournalService,   // Added
+    pub settings_service: SettingsService, // Added
     pub rental_billing_service: crate::application::services::RentalBillingService, // Added
     pub pdf_service: crate::application::services::PDFService, // Added
     pub email_service: crate::application::services::EmailService, // Added
+    pub approval_workflow_service: crate::application::services::ApprovalWorkflowService,
+    pub file_storage: Arc<FileStorage>,
+    pub contract_document_repo: Arc<ContractDocumentRepository>,
     pub pool: PgPool,
     pub ws_manager: Arc<crate::api::handlers::notification_ws::WebSocketManager>,
+    pub jwt_config: JwtConfig, // Added for middleware access
 }
 
 impl AppState {
@@ -106,11 +118,17 @@ impl AppState {
         let conversion_repo = ConversionRepository::new(pool.clone());
         let sensor_repo = SensorRepository::new(pool.clone());
         let client_repo = ClientRepository::new(pool.clone());
-        let contract_repo = ContractRepository::new(pool.clone());
         let rental_repo = RentalRepository::new(pool.clone());
         let timesheet_repo = TimesheetRepository::new(pool.clone());
         let rental_billing_repo =
             crate::infrastructure::repositories::RentalBillingRepository::new(pool.clone());
+        let settings_repo = Arc::new(SettingsRepository::new(pool.clone()));
+        let contract_template_repo = Arc::new(
+            crate::infrastructure::repositories::ContractTemplateRepository::new(pool.clone()),
+        );
+        let approval_workflow_repo = Arc::new(
+            crate::infrastructure::repositories::ApprovalWorkflowRepository::new(pool.clone()),
+        );
 
         // Create cache
         let redis_config = RedisConfig::from_env();
@@ -126,27 +144,45 @@ impl AppState {
             user_repo.clone(),
             rbac_repo.clone(),
             employee_repo.clone(),
-            jwt_config,
+            jwt_config.clone(),
         );
         let category_service = CategoryService::new(category_repo);
-        let contract_service = ContractService::new(Arc::new(contract_repo));
         let category_template_service = CategoryTemplateService::new(category_template_repo);
-        let notification_service = NotificationService::new(notification_repo);
+        let ws_manager = Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new());
+        let notification_service = NotificationService::new(notification_repo, ws_manager.clone());
+        let email_service = crate::application::services::EmailService::new();
+        let approval_workflow_service = crate::application::services::ApprovalWorkflowService::new(
+            approval_workflow_repo.clone(),
+        );
+        let contract_service = ContractService::new(
+            pool.clone(),
+            notification_service.clone(),
+            email_service.clone(),
+            approval_workflow_service.clone(),
+        );
+        let contract_template_service =
+            ContractTemplateService::new(contract_template_repo.clone());
         let loan_service =
             LoanService::new(loan_repo, asset_repo.clone(), notification_service.clone());
         let maintenance_service = MaintenanceService::new(
             maintenance_repo.clone(),
             asset_repo.clone(),
             approval_service.clone(),
+            notification_service.clone(),
         );
         let work_order_service = WorkOrderService::new(
             work_order_repo,
             lifecycle_repo.clone(),
             asset_repo.clone(),
             cache.clone(),
+            notification_service.clone(),
         );
         let rbac_service = RbacService::new(rbac_repo.clone());
-        let sensor_service = SensorService::new(sensor_repo);
+        let sensor_service = SensorService::new(
+            sensor_repo,
+            asset_repo.clone(),
+            notification_service.clone(),
+        );
         let conversion_service =
             ConversionService::new(conversion_repo.clone(), asset_repo.clone());
         let rental_service = RentalService::new(
@@ -170,6 +206,7 @@ impl AppState {
             loan_service.clone(),
             maintenance_service.clone(),
             work_order_service.clone(),
+            notification_service.clone(),
         );
         let user_service = UserService::new(user_repo, rbac_repo);
         let report_service = ReportService::new(asset_repo.clone(), maintenance_repo.clone());
@@ -199,6 +236,12 @@ impl AppState {
         let fuel_repo = FuelRepository::new(pool.clone());
         let fuel_service = FuelService::new(fuel_repo);
 
+        let settings_service = SettingsService::new(settings_repo);
+
+        // File storage and contract document repository
+        let file_storage = Arc::new(FileStorage::new("uploads/contracts"));
+        let contract_document_repo = Arc::new(ContractDocumentRepository::new(pool.clone()));
+
         Self {
             asset_service,
             audit_service,
@@ -207,6 +250,7 @@ impl AppState {
             category_template_service,
             client_service,
             contract_service,
+            contract_template_service,
             conversion_service,
             lifecycle_service,
             loan_service,
@@ -218,6 +262,7 @@ impl AppState {
             rental_billing_service,
             pdf_service,
             email_service,
+            approval_workflow_service,
             approval_service,
             sensor_service,
             timesheet_service,
@@ -229,12 +274,16 @@ impl AppState {
             analytics_service,
             employee_service,
             location_service,
+            file_storage,
+            contract_document_repo,
             pool,
-            ws_manager: Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new()),
+            ws_manager,
             leave_service,
             finance_service,
             fuel_service,
             journal_service,
+            settings_service,
+            jwt_config: jwt_config.clone(), // Initialize
         }
     }
 }
@@ -242,6 +291,40 @@ impl AppState {
 /// Create the application router
 pub fn create_app(state: AppState) -> axum::Router {
     create_router(state)
+        .merge(utoipa_swagger_ui::SwaggerUi::new("/swagger-ui").url(
+            "/api-docs/openapi.json",
+            crate::api::docs::ApiDoc::openapi(),
+        ))
         .nest_service("/api/uploads", ServeDir::new("uploads"))
-        .layer(CorsLayer::permissive())
+        .layer(axum::middleware::from_fn(
+            crate::api::middleware::rate_limit::rate_limit_middleware,
+        ))
+        .layer(axum::middleware::from_fn(
+            crate::api::middleware::security_headers::security_headers_middleware,
+        ))
+        .layer(
+            CorsLayer::new()
+                .allow_origin([
+                    "http://localhost:3000"
+                        .parse::<axum::http::HeaderValue>()
+                        .unwrap(),
+                    "http://localhost:5173"
+                        .parse::<axum::http::HeaderValue>()
+                        .unwrap(),
+                ])
+                .allow_methods([
+                    axum::http::Method::GET,
+                    axum::http::Method::POST,
+                    axum::http::Method::PUT,
+                    axum::http::Method::DELETE,
+                    axum::http::Method::PATCH,
+                    axum::http::Method::OPTIONS,
+                ])
+                .allow_headers([
+                    axum::http::header::AUTHORIZATION,
+                    axum::http::header::CONTENT_TYPE,
+                    axum::http::header::ACCEPT,
+                ])
+                .allow_credentials(true),
+        )
 }

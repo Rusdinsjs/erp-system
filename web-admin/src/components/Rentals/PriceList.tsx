@@ -6,7 +6,7 @@ import { rentalApi, type RentalRate } from '../../api/rental';
 import {
     Table, TableHead, TableBody, TableRow, TableTh, TableTd,
     Button, Badge, ActionIcon, Modal, Input, NumberInput, Select,
-    LoadingOverlay, useToast, Card
+    LoadingOverlay, useToast
 } from '../ui';
 
 interface PriceFormState {
@@ -123,70 +123,69 @@ export function PriceList() {
     };
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h4 className="text-lg font-bold text-white">Standard Price List (Templates)</h4>
-                <Button leftIcon={<Plus size={16} />} onClick={() => {
+        <div className="flex flex-col h-full">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-gray-900/10">
+                <h4 className="text-lg font-bold text-white">Standard Price Templates</h4>
+                <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => {
                     setEditingRate(null);
                     setForm(initialFormState);
                     setOpened(true);
-                }}>
-                    Add New Template
+                }} className="rounded-xl shadow-lg shadow-blue-500/20">
+                    Add template
                 </Button>
             </div>
 
-            <Card padding="none" className="overflow-hidden">
-                <div className="relative">
-                    <LoadingOverlay visible={isLoading} />
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableTh>Template Name</TableTh>
-                                <TableTh>Basis</TableTh>
-                                <TableTh>Rate (IDR)</TableTh>
-                                <TableTh>Min Hours</TableTh>
-                                <TableTh>Overtime</TableTh>
-                                <TableTh>Standby</TableTh>
-                                <TableTh>Action</TableTh>
+            <div className="relative flex-1">
+                <LoadingOverlay visible={isLoading} />
+                <Table className="border-none rounded-none shadow-none">
+                    <TableHead>
+                        <TableRow className="bg-gray-900/50 border-white/5">
+                            <TableTh>Template Name</TableTh>
+                            <TableTh>Basis</TableTh>
+                            <TableTh>Rate (IDR)</TableTh>
+                            <TableTh>Min Hours</TableTh>
+                            <TableTh>Overtime</TableTh>
+                            <TableTh>Standby</TableTh>
+                            <TableTh align="center" className="w-24">Action</TableTh>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {rates?.map((rate: RentalRate) => (
+                            <TableRow key={rate.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
+                                <TableTd className="font-medium text-gray-200">{rate.name}</TableTd>
+                                <TableTd>
+                                    <Badge variant="default" className="bg-white/5 border-white/10 text-gray-400 capitalize">
+                                        {rate.rate_basis}
+                                    </Badge>
+                                </TableTd>
+                                <TableTd className="font-bold text-emerald-400">Rp {Number(rate.rate_amount).toLocaleString('id-ID')}</TableTd>
+                                <TableTd className="text-gray-400">{rate.minimum_hours}h / mo</TableTd>
+                                <TableTd className="text-gray-400">{((rate.overtime_multiplier || 1) * 100).toFixed(0)}%</TableTd>
+                                <TableTd className="text-gray-400">{((rate.standby_multiplier || 0) * 100).toFixed(0)}%</TableTd>
+                                <TableTd align="center">
+                                    <div className="flex gap-2 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ActionIcon className="hover:bg-blue-500/20 text-blue-400" onClick={() => handleEdit(rate)}>
+                                            <Edit size={16} />
+                                        </ActionIcon>
+                                        <ActionIcon
+                                            className="hover:bg-red-500/20 text-red-400"
+                                            onClick={() => handleDelete(rate.id)}
+                                        >
+                                            <Trash size={16} />
+                                        </ActionIcon>
+                                    </div>
+                                </TableTd>
                             </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {rates?.map((rate: RentalRate) => (
-                                <TableRow key={rate.id}>
-                                    <TableTd className="font-medium text-white">{rate.name}</TableTd>
-                                    <TableTd>
-                                        <Badge variant="outline">{rate.rate_basis}</Badge>
-                                    </TableTd>
-                                    <TableTd>{Number(rate.rate_amount).toLocaleString()}</TableTd>
-                                    <TableTd>{rate.minimum_hours}h / mo</TableTd>
-                                    <TableTd>{((rate.overtime_multiplier || 1) * 100).toFixed(0)}%</TableTd>
-                                    <TableTd>{((rate.standby_multiplier || 0) * 100).toFixed(0)}%</TableTd>
-                                    <TableTd>
-                                        <div className="flex gap-2">
-                                            <ActionIcon className="text-blue-400 hover:text-blue-300" onClick={() => handleEdit(rate)}>
-                                                <Edit size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                className="text-red-400 hover:text-red-300"
-                                                onClick={() => handleDelete(rate.id)}
-                                            >
-                                                <Trash size={16} />
-                                            </ActionIcon>
-                                        </div>
-                                    </TableTd>
-                                </TableRow>
-                            ))}
-                            {!rates?.length && !isLoading && (
-                                <TableRow>
-                                    <TableTd colSpan={7} className="text-center py-8 text-slate-500">
-                                        No price templates defined.
-                                    </TableTd>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            </Card>
+                        ))}
+                    </TableBody>
+                </Table>
+                {!rates?.length && !isLoading && (
+                    <div className="h-64 flex flex-col items-center justify-center text-gray-500">
+                        <Plus size={48} className="mb-4 opacity-20" />
+                        <p>No price templates defined</p>
+                    </div>
+                )}
+            </div>
 
             <Modal
                 isOpen={opened}

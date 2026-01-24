@@ -6,17 +6,25 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+use utoipa::ToSchema;
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
 pub struct VehicleDetailsDto {
+    #[schema(example = "B 1234 CD")]
     pub license_plate: Option<String>,
+    #[schema(example = "Toyota")]
     pub brand: Option<String>,
     pub model: Option<String>,
     pub color: Option<String>,
     pub vin: Option<String>,
     pub engine_number: Option<String>,
     pub bpkb_number: Option<String>,
+    // Dates need explicit type or example
+    #[schema(value_type = Option<String>, example = "2025-01-01")]
     pub stnk_expiry: Option<NaiveDate>,
+    #[schema(value_type = Option<String>, example = "2025-01-01")]
     pub kir_expiry: Option<NaiveDate>,
+    #[schema(value_type = Option<String>, example = "2025-01-01")]
     pub tax_expiry: Option<NaiveDate>,
     pub fuel_type: Option<String>,
     pub transmission: Option<String>,
@@ -25,9 +33,11 @@ pub struct VehicleDetailsDto {
 }
 
 /// Create asset request
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
 pub struct CreateAssetRequest {
+    #[schema(example = "AST-006")]
     pub asset_code: String,
+    #[schema(example = "New Asset")]
     pub name: String,
     pub category_id: Uuid,
     pub location_id: Option<Uuid>,
@@ -44,12 +54,16 @@ pub struct CreateAssetRequest {
     pub brand: Option<String>,
     pub model: Option<String>,
     pub year_manufacture: Option<i32>,
+    #[schema(value_type = Option<Object>)]
     pub specifications: Option<JsonValue>,
+    #[schema(value_type = Option<String>)]
     pub purchase_date: Option<NaiveDate>,
+    #[schema(value_type = Option<f64>)]
     pub purchase_price: Option<Decimal>,
     pub currency_id: Option<i32>,
     pub unit_id: Option<i32>,
     pub quantity: Option<i32>,
+    #[schema(value_type = Option<f64>)]
     pub residual_value: Option<Decimal>,
     pub useful_life_months: Option<i32>,
     pub notes: Option<String>,
@@ -57,13 +71,13 @@ pub struct CreateAssetRequest {
 }
 
 /// Bulk create asset request
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct BulkCreateAssetRequest {
     pub assets: Vec<CreateAssetRequest>,
 }
 
 /// Update asset request
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, ToSchema)]
 pub struct UpdateAssetRequest {
     pub asset_code: Option<String>,
     pub name: Option<String>,
@@ -82,12 +96,16 @@ pub struct UpdateAssetRequest {
     pub brand: Option<String>,
     pub model: Option<String>,
     pub year_manufacture: Option<i32>,
+    #[schema(value_type = Option<Object>)]
     pub specifications: Option<JsonValue>,
+    #[schema(value_type = Option<String>)]
     pub purchase_date: Option<NaiveDate>,
+    #[schema(value_type = Option<f64>)]
     pub purchase_price: Option<Decimal>,
     pub currency_id: Option<i32>,
     pub unit_id: Option<i32>,
     pub quantity: Option<i32>,
+    #[schema(value_type = Option<f64>)]
     pub residual_value: Option<Decimal>,
     pub useful_life_months: Option<i32>,
     pub notes: Option<String>,
@@ -95,7 +113,7 @@ pub struct UpdateAssetRequest {
 }
 
 /// Asset search parameters
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct AssetSearchParams {
     pub query: Option<String>,
     pub category_id: Option<Uuid>,
@@ -108,7 +126,7 @@ pub struct AssetSearchParams {
 }
 
 /// Asset transfer request
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AssetTransferRequest {
     pub to_location_id: Uuid,
     pub notes: Option<String>,

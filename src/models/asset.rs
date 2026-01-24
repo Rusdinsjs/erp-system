@@ -18,6 +18,8 @@ pub struct Asset {
     pub vendor_id: Option<Uuid>,
 
     pub is_rental: bool,
+    pub is_fuel: bool,
+    pub is_loan: bool,
     pub asset_class: Option<String>,
     pub status: String,
     pub condition_id: Option<i32>,
@@ -85,6 +87,8 @@ pub struct CreateAssetRequest {
     pub vendor_id: Option<Uuid>,
 
     pub is_rental: Option<bool>,
+    pub is_fuel: Option<bool>,
+    pub is_loan: Option<bool>,
     pub asset_class: Option<String>,
     pub condition_id: Option<i32>,
 
@@ -119,6 +123,8 @@ pub struct UpdateAssetRequest {
     pub vendor_id: Option<Uuid>,
 
     pub is_rental: Option<bool>,
+    pub is_fuel: Option<bool>,
+    pub is_loan: Option<bool>,
     pub asset_class: Option<String>,
     pub status: Option<String>,
     pub condition_id: Option<i32>,

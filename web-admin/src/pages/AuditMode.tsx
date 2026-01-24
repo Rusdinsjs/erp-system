@@ -8,7 +8,7 @@ import {
     Button,
     Card,
     Input,
-    Spinner,
+    LoadingSpinner,
     useToast,
 } from '../components/ui';
 
@@ -101,7 +101,7 @@ export function AuditMode() {
     if (isLoadingSession) {
         return (
             <div className="flex items-center justify-center h-64">
-                <Spinner size="lg" />
+                <LoadingSpinner size="lg" />
             </div>
         );
     }

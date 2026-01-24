@@ -82,9 +82,9 @@ impl AssetState {
                 Self::UnderMaintenance | Self::UnderRepair | Self::UnderConversion | Self::Retired
             ),
             Self::RentedOut => matches!(target, Self::InInventory),
-            Self::UnderMaintenance => matches!(target, Self::Deployed),
-            Self::UnderRepair => matches!(target, Self::Deployed),
-            Self::UnderConversion => matches!(target, Self::Deployed),
+            Self::UnderMaintenance => matches!(target, Self::Deployed | Self::InInventory),
+            Self::UnderRepair => matches!(target, Self::Deployed | Self::InInventory),
+            Self::UnderConversion => matches!(target, Self::Deployed | Self::InInventory),
             Self::Retired => matches!(target, Self::Disposed),
             Self::Disposed => false,
             Self::LostStolen => matches!(target, Self::Archived),

@@ -22,6 +22,7 @@ pub fn create_router(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/health", get(health_check))
         .route("/api/auth/login", post(login))
+        .route("/api/auth/register", post(register))
         .route(
             "/api/upload",
             post(upload_handler::upload_file).layer(tower_http::limit::RequestBodyLimitLayer::new(
@@ -344,9 +345,24 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/api/reports/assets", get(report_handler::export_assets))
         .route(
+            "/api/reports/assets/pdf",
+            get(report_handler::export_assets_pdf),
+        )
+        .route(
             "/api/reports/maintenance",
             get(report_handler::export_maintenance),
         )
+        // Analytics
+        .route(
+            "/api/analytics/costs",
+            get(analytics_handler::get_cost_analytics),
+        )
+        .route(
+            "/api/analytics/status",
+            get(analytics_handler::get_asset_status_distribution),
+        )
+        // Settings
+        .route("/api/settings", get(settings_handler::get_all_settings))
         .route("/api/dashboard", get(get_dashboard_stats))
         .route("/api/dashboard/activity", get(get_recent_activities))
         .route("/api/dashboard/depreciation", get(get_depreciation_summary))
@@ -419,13 +435,16 @@ pub fn create_router(state: AppState) -> Router {
         .merge(crate::api::routes::timesheet_routes::timesheet_routes())
         .merge(crate::api::routes::billing_routes::billing_routes())
         .merge(crate::api::routes::fuel_routes::fuel_routes())
-        .merge(crate::api::routes::analytics_routes::routes())
         .merge(crate::api::routes::contract_routes::contract_routes())
-        .layer(axum_middleware::from_fn(auth_middleware));
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ));
 
     Router::new()
         .merge(public_routes)
         .merge(lookup_routes)
         .merge(protected_routes)
+        .merge(crate::api::routes::settings_routes::settings_routes())
         .with_state(state)
 }

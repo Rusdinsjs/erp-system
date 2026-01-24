@@ -296,7 +296,38 @@ impl LoanService {
 
     /// Check and update overdue loans (Background Task)
     pub async fn check_overdue_loans(&self) -> DomainResult<()> {
-        // Placeholder for background logic
+        let overdue_loans =
+            self.loan_repo
+                .list_overdue()
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+
+        for loan in overdue_loans {
+            if let Some(borrower_id) = loan.borrower_id {
+                let asset = self
+                    .asset_repo
+                    .find_by_id(loan.asset_id)
+                    .await
+                    .ok()
+                    .flatten();
+                let asset_name = asset
+                    .map(|a| a.name)
+                    .unwrap_or_else(|| "Unknown Asset".to_string());
+
+                let now = Utc::now().date_naive();
+                let days_overdue = (now - loan.expected_return_date).num_days();
+
+                if days_overdue > 0 {
+                    let _ = self
+                        .notification_service
+                        .notify_loan_overdue(borrower_id, &asset_name, days_overdue, loan.id)
+                        .await;
+                }
+            }
+        }
         Ok(())
     }
 

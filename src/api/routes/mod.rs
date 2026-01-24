@@ -1,6 +1,5 @@
 //! API Routes
 
-pub mod analytics_routes;
 pub mod approval_routes;
 pub mod billing_routes;
 pub mod category_routes;
@@ -16,5 +15,6 @@ pub mod data_routes;
 pub mod fuel_routes;
 pub mod location_routes;
 pub mod mobile_routes;
+pub mod settings_routes;
 pub use billing_routes::billing_routes;
 pub use timesheet_routes::timesheet_routes;

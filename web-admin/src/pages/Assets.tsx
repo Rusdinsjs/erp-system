@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Edit, Trash2, RefreshCw, Upload, Eye } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock } from 'lucide-react';
 import { assetApi } from '../api/assets';
 import type { Asset, CreateAssetRequest } from '../api/assets';
 import { api } from '../api/http';
@@ -15,8 +15,8 @@ import {
     ActionIcon,
     Pagination,
     Modal,
-    LoadingOverlay,
     useToast,
+    TableSkeleton,
 } from '../components/ui';
 
 // Helper to flatten category tree
@@ -161,123 +161,225 @@ export function Assets() {
     const totalPages = assetsData?.total_pages || 1;
 
     return (
-        <div className="space-y-4">
-            {/* Header */}
-            <Card padding="lg">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-white">Asset Management</h1>
-                        <p className="text-sm text-slate-400">Manage company assets, vehicles, and equipment</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        {/* Search */}
-                        <div className="relative">
-                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                            <input
-                                type="text"
-                                placeholder="Search assets..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full sm:w-64 pl-10 pr-4 py-2.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none transition-all"
-                            />
+        <div className="p-8">
+            {/* Header Section */}
+            <div className="flex justify-between items-end mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">Asset Management</h1>
+                    <p className="text-gray-400 mt-2">Manage company assets, vehicles, and equipment</p>
+                </div>
+                <div className="flex gap-3">
+                    <Button
+                        variant="outline"
+                        leftIcon={<Upload size={18} />}
+                        onClick={() => setImportModalOpen(true)}
+                        className="rounded-xl"
+                    >
+                        Import
+                    </Button>
+                    <Button
+                        leftIcon={<Plus size={20} />}
+                        onClick={handleAddNew}
+                        className="rounded-xl shadow-lg shadow-blue-500/20"
+                    >
+                        Add Asset
+                    </Button>
+                </div>
+            </div>
+
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">Total Assets</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {assetsData?.total || 0}
+                            </h3>
                         </div>
-                        <Button
-                            variant="outline"
-                            leftIcon={<Upload size={16} />}
-                            onClick={() => setImportModalOpen(true)}
-                        >
-                            Import
-                        </Button>
-                        <Button
-                            leftIcon={<Plus size={16} />}
-                            onClick={handleAddNew}
-                        >
-                            Add Asset
-                        </Button>
+                        <div className="p-3 bg-blue-500/20 rounded-xl">
+                            <Package className="text-blue-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">Active Assets</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {assetsData?.data?.filter((a: any) => a.status === 'active').length || 0}
+                            </h3>
+                        </div>
+                        <div className="p-3 bg-green-500/20 rounded-xl">
+                            <CheckCircle className="text-green-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">Maintenance</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {assetsData?.data?.filter((a: any) => a.status === 'maintenance').length || 0}
+                            </h3>
+                        </div>
+                        <div className="p-3 bg-amber-500/20 rounded-xl">
+                            <Wrench className="text-amber-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="relative overflow-hidden group p-6">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex justify-between items-start relative z-10">
+                        <div>
+                            <p className="text-gray-400 text-sm font-medium">Planning</p>
+                            <h3 className="text-3xl font-bold text-white mt-1">
+                                {assetsData?.data?.filter((a: any) => a.status === 'planning').length || 0}
+                            </h3>
+                        </div>
+                        <div className="p-3 bg-cyan-500/20 rounded-xl">
+                            <Clock className="text-cyan-400" size={24} />
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Main Content Area */}
+            <Card className="overflow-hidden p-0">
+                {/* Search & Filters Bar */}
+                <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-900/30">
+                    <div className="relative w-full sm:w-96">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <input
+                            type="text"
+                            placeholder="Search assets..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/5 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                        />
+                    </div>
+
+                    <div className="flex gap-2">
+                        {['all', 'active', 'maintenance', 'planning'].map(s => (
+                            <button
+                                key={s}
+                                onClick={() => {
+                                    // Handle status filter logic if needed
+                                }}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all duration-200
+                                    ${(statusFilter === s || (!statusFilter && s === 'all'))
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                    }`}
+                            >
+                                {s}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
                 {/* Table */}
                 <div className="relative">
-                    <LoadingOverlay visible={assetsLoading} />
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableTh>Asset Code</TableTh>
-                                <TableTh>Name</TableTh>
-                                <TableTh>Location</TableTh>
-                                <TableTh>Department</TableTh>
-                                <TableTh>Brand/Model</TableTh>
-                                <TableTh>Status</TableTh>
-                                <TableTh align="center">Actions</TableTh>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {assetsData?.data?.map((asset: any) => (
-                                <TableRow key={asset.id}>
-                                    <TableTd>
-                                        <span className="font-medium text-white">{asset.asset_code}</span>
-                                    </TableTd>
-                                    <TableTd>{asset.name}</TableTd>
-                                    <TableTd>{asset.location_name || '-'}</TableTd>
-                                    <TableTd>{asset.department || '-'}</TableTd>
-                                    <TableTd>
-                                        {asset.brand} {asset.model}
-                                    </TableTd>
-                                    <TableTd>
-                                        <StatusBadge status={asset.status || 'active'} />
-                                    </TableTd>
-                                    <TableTd align="center">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <ActionIcon
-                                                onClick={() => navigate(`/assets/${asset.id}`)}
-                                                title="View Details"
-                                            >
-                                                <Eye size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}
-                                                title="Manage Lifecycle"
-                                            >
-                                                <RefreshCw size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                onClick={() => handleEdit(asset)}
-                                                title="Edit Asset"
-                                            >
-                                                <Edit size={16} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                variant="danger"
-                                                onClick={() => handleDelete(asset.id)}
-                                                title="Delete Asset"
-                                            >
-                                                <Trash2 size={16} />
-                                            </ActionIcon>
-                                        </div>
-                                    </TableTd>
+                    {assetsLoading ? (
+                        <div className="p-4">
+                            <TableSkeleton rows={10} cols={7} />
+                        </div>
+                    ) : (
+                        <Table className="border-none rounded-none shadow-none">
+                            <TableHead>
+                                <TableRow className="bg-gray-900/50 border-white/5">
+                                    <TableTh>Asset Code</TableTh>
+                                    <TableTh>Name</TableTh>
+                                    <TableTh>Location</TableTh>
+                                    <TableTh>Department</TableTh>
+                                    <TableTh>Brand/Model</TableTh>
+                                    <TableTh>Status</TableTh>
+                                    <TableTh align="center">Actions</TableTh>
                                 </TableRow>
-                            ))}
-                            {(!assetsData?.data || assetsData.data.length === 0) && !assetsLoading && (
-                                <TableEmpty colSpan={7} message="No assets found" />
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHead>
+                            <TableBody>
+                                {assetsData?.data?.map((asset: any) => (
+                                    <TableRow key={asset.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
+                                        <TableTd>
+                                            <span className="font-mono text-sm text-blue-400 font-medium group-hover:text-blue-300 transition-colors">
+                                                {asset.asset_code}
+                                            </span>
+                                        </TableTd>
+                                        <TableTd className="font-medium">{asset.name}</TableTd>
+                                        <TableTd>{asset.location_name || '-'}</TableTd>
+                                        <TableTd>{asset.department || '-'}</TableTd>
+                                        <TableTd>
+                                            <div className="text-sm">
+                                                <span className="text-gray-200">{asset.brand}</span>
+                                                <span className="text-gray-500 ml-1">{asset.model}</span>
+                                            </div>
+                                        </TableTd>
+                                        <TableTd>
+                                            <StatusBadge status={asset.status || 'active'} />
+                                        </TableTd>
+                                        <TableTd align="center">
+                                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <ActionIcon
+                                                    onClick={() => navigate(`/assets/${asset.id}`)}
+                                                    title="View Details"
+                                                    className="hover:bg-blue-500/20 text-blue-400"
+                                                >
+                                                    <Eye size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}
+                                                    title="Manage Lifecycle"
+                                                    className="hover:bg-emerald-500/20 text-emerald-400"
+                                                >
+                                                    <RefreshCw size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    onClick={() => handleEdit(asset)}
+                                                    title="Edit Asset"
+                                                    className="hover:bg-amber-500/20 text-amber-400"
+                                                >
+                                                    <Edit size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    variant="danger"
+                                                    onClick={() => handleDelete(asset.id)}
+                                                    title="Delete Asset"
+                                                    className="hover:bg-red-500/20 text-red-400"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </ActionIcon>
+                                            </div>
+                                        </TableTd>
+                                    </TableRow>
+                                ))}
+                                {(!assetsData?.data || assetsData.data.length === 0) && !assetsLoading && (
+                                    <TableEmpty colSpan={7} message="No assets found" />
+                                )}
+                            </TableBody>
+                        </Table>
+                    )}
                 </div>
 
                 {/* Pagination */}
-                {
-                    totalPages > 1 && (
-                        <div className="flex justify-end mt-4">
-                            <Pagination
-                                currentPage={page}
-                                totalPages={totalPages}
-                                onPageChange={setPage}
-                            />
-                        </div>
-                    )
-                }
-            </Card >
+                {totalPages > 1 && (
+                    <div className="flex justify-between items-center p-4 border-t border-white/5 bg-gray-900/20">
+                        <p className="text-sm text-gray-500">
+                            Showing <span className="text-gray-300">{assetsData?.data?.length || 0}</span> of <span className="text-gray-300">{assetsData?.total || 0}</span> assets
+                        </p>
+                        <Pagination
+                            currentPage={page}
+                            totalPages={totalPages}
+                            onPageChange={setPage}
+                        />
+                    </div>
+                )}
+            </Card>
 
             {/* Asset Form Modal */}
             <Modal
@@ -296,7 +398,6 @@ export function Assets() {
                 />
             </Modal>
 
-            {/* Import Modal - Using Mantine for now */}
             {/* Import Modal */}
             <ImportAssetsModal
                 opened={importModalOpen}

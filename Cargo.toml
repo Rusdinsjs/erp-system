@@ -58,14 +58,20 @@ tokio-cron-scheduler = "0.15.1"
 image = "0.24"
 
 # Validation (optional, for future use)
+regex = "1.10"
 # validator = { version = "0.18", features = ["derive"] }
 
+
+# OpenAPI
+utoipa = { version = "4.2", features = ["axum_extras", "uuid", "chrono"] }
+utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
 
 # Real-time / WebSockets
 # axum-tungstenite removed, relying on axum "ws" feature
 futures = "0.3"
 genpdf = "0.2.0"
 lettre = { version = "0.11.19", features = ["smtp-transport", "tokio1", "builder", "tokio1-native-tls"] }
+mime_guess = "2.0"
 
 [dev-dependencies]
 http-body-util = "0.1.3"
@@ -81,3 +87,15 @@ path = "src/main.rs"
 # Fix for Windows Linker Error LNK1318 (PDB size limit)
 [profile.dev]
 debug = 0
+
+[[test]]
+name = "auth_flow_tests"
+path = "tests/integration/auth_flow_tests.rs"
+
+[[test]]
+name = "asset_crud_tests"
+path = "tests/integration/asset_crud_tests.rs"
+
+[[test]]
+name = "notification_tests"
+path = "tests/integration/notification_tests.rs"

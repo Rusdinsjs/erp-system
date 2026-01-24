@@ -1,5 +1,6 @@
 use axum::{
     extract::{Query, State},
+    http::header,
     response::{IntoResponse, Response},
 };
 use chrono::NaiveDate;
@@ -19,13 +20,29 @@ pub async fn export_assets(State(state): State<AppState>) -> Result<Response, Ap
 
     Ok((
         [
-            ("Content-Type", "text/csv"),
+            (header::CONTENT_TYPE, "text/csv"),
             (
-                "Content-Disposition",
+                header::CONTENT_DISPOSITION,
                 "attachment; filename=\"asset_inventory.csv\"",
             ),
         ],
         csv_content,
+    )
+        .into_response())
+}
+
+pub async fn export_assets_pdf(State(state): State<AppState>) -> Result<Response, AppError> {
+    let pdf_bytes = state.report_service.generate_asset_inventory_pdf().await?;
+
+    Ok((
+        [
+            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=\"asset_inventory.pdf\"",
+            ),
+        ],
+        pdf_bytes,
     )
         .into_response())
 }
@@ -41,9 +58,9 @@ pub async fn export_maintenance(
 
     Ok((
         [
-            ("Content-Type", "text/csv"),
+            (header::CONTENT_TYPE, "text/csv"),
             (
-                "Content-Disposition",
+                header::CONTENT_DISPOSITION,
                 "attachment; filename=\"maintenance_logs.csv\"",
             ),
         ],

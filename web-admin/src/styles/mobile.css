@@ -1,0 +1,90 @@
+/* Mobile-specific utilities */
+
+/* Touch-friendly tap targets */
+.tap-target {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* Active state for touch feedback */
+.touch-active:active {
+    transform: scale(0.98);
+    opacity: 0.8;
+    transition: all 0.1s ease;
+}
+
+/* Prevent text selection on touch */
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling on mobile */
+.mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Bottom safe area (for notched devices like iPhone X+) */
+.safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Top safe area */
+.safe-top {
+    padding-top: env(safe-area-inset-top);
+}
+
+/* Prevent bounce scroll on iOS */
+.no-bounce {
+    overscroll-behavior: none;
+}
+
+/* Hide scrollbar on mobile */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Mobile-friendly card shadows */
+.mobile-card-shadow {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.mobile-card-shadow:active {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Floating Action Button */
+.fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 40;
+}
+
+.fab:active {
+    transform: scale(0.95);
+}
+
+/* Bottom navigation safe area */
+.bottom-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+}
+
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+}

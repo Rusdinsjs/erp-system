@@ -25,6 +25,7 @@ interface Asset {
     name: string;
     asset_code: string;
     status: string;
+    is_loan?: boolean;
 }
 
 const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'danger' | 'default'> = {
@@ -82,7 +83,7 @@ export function Loans() {
         try {
             const [loansRes, assetsRes, employeesRes] = await Promise.all([
                 activeTab === 'overdue' ? loanApi.listOverdue() : loanApi.list(),
-                assetApi.list({ page: 1, per_page: 200 }),
+                assetApi.list({ page: 1, per_page: 200, is_loan: true }),
                 employeeApi.list(),
             ]);
             setLoans(Array.isArray(loansRes) ? loansRes : []);
@@ -207,7 +208,7 @@ export function Loans() {
         return asset ? `${asset.asset_code} - ${asset.name}` : assetId;
     }
 
-    const availableAssets = assets.filter((a) => ['in_inventory', 'available'].includes(a.status));
+    const availableAssets = assets.filter((a) => ['in_inventory', 'available'].includes(a.status) && a.is_loan === true);
 
     const TabButton = ({ value, children, count, danger }: { value: string; children: React.ReactNode; count?: number; danger?: boolean }) => (
         <button

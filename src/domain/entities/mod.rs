@@ -2,6 +2,8 @@
 //!
 //! Core business entities representing the main concepts in the asset management domain.
 
+pub mod analytics;
+pub mod approval_workflow;
 pub mod asset;
 pub mod asset_details;
 pub mod asset_lifecycle;
@@ -10,6 +12,10 @@ pub mod audit;
 pub mod category;
 pub mod category_attribute_template;
 pub mod client;
+pub mod contract_approval;
+pub mod contract_document;
+pub mod contract_renewal;
+pub mod contract_template;
 pub mod conversion;
 pub mod department;
 pub mod employee;
@@ -19,6 +25,7 @@ pub mod journal;
 pub mod leave;
 pub mod loan;
 pub mod location;
+
 pub mod maintenance;
 pub mod notification;
 pub mod organization;
@@ -28,11 +35,13 @@ pub mod rental_billing;
 pub mod rental_contract;
 pub mod rental_timesheet;
 pub mod sensor;
+pub mod setting;
 pub mod tier_config;
 pub mod user;
 pub mod vendor;
 pub mod work_order;
 
+pub use approval_workflow::*;
 pub use asset::{Asset, AssetHistory, AssetSummary};
 pub use asset_details::*;
 pub use asset_lifecycle::*;
@@ -41,6 +50,10 @@ pub use audit::*;
 pub use category::Category;
 pub use category_attribute_template::*;
 pub use client::*;
+pub use contract_approval::*;
+pub use contract_document::*;
+pub use contract_renewal::*;
+pub use contract_template::*;
 pub use department::*;
 pub use employee::*;
 pub use finance::*;

@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { rentalApi } from '../../api/rental';
 import {
     Table, TableHead, TableBody, TableRow, TableTh, TableEmpty,
-    Button
+    Button, LoadingOverlay
 } from '../ui';
 
 export function ClientList() {
@@ -14,18 +14,19 @@ export function ClientList() {
     });
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col h-full">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-gray-900/10">
                 <h2 className="text-lg font-bold text-white">Clients</h2>
-                <Button leftIcon={<Plus size={16} />}>
+                <Button variant="primary" leftIcon={<Plus size={18} />} className="rounded-xl shadow-lg shadow-blue-500/20">
                     Add Client
                 </Button>
             </div>
 
-            <div className="relative min-h-[100px]">
-                <Table>
+            <div className="relative flex-1">
+                <LoadingOverlay visible={isLoading} />
+                <Table className="border-none rounded-none shadow-none">
                     <TableHead>
-                        <TableRow>
+                        <TableRow className="bg-gray-900/50 border-white/5">
                             <TableTh>Name</TableTh>
                             <TableTh>Code</TableTh>
                             <TableTh>Email</TableTh>
@@ -33,13 +34,13 @@ export function ClientList() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {Array.isArray(clients) && clients.length > 0 ? (
+                        {clients && clients.length > 0 ? (
                             clients.map((client) => (
-                                <TableRow key={client.id}>
-                                    <td className="px-4 py-3 text-slate-200">{client.name}</td>
-                                    <td className="px-4 py-3 text-slate-200">{client.code}</td>
-                                    <td className="px-4 py-3 text-slate-200">{client.email}</td>
-                                    <td className="px-4 py-3 text-slate-200">{client.phone}</td>
+                                <TableRow key={client.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
+                                    <td className="px-4 py-3 text-gray-300 font-medium">{client.name}</td>
+                                    <td className="px-4 py-3 font-mono text-gray-400">{client.code}</td>
+                                    <td className="px-4 py-3 text-gray-400">{client.email || '-'}</td>
+                                    <td className="px-4 py-3 text-gray-400">{client.phone || '-'}</td>
                                 </TableRow>
                             ))
                         ) : (

@@ -16,7 +16,10 @@ use crate::shared::utils::jwt::{decode_token, JwtConfig};
 pub fn extract_user_claims(request: &Request) -> Option<UserClaims> {
     // Try to get from extensions first (if auth_middleware ran)
     if let Some(claims) = request.extensions().get::<UserClaims>() {
+        tracing::debug!("Found claims in extensions: {:?}", claims.sub);
         return Some(claims.clone());
+    } else {
+        tracing::warn!("No claims in extensions!");
     }
 
     // Fallback: parse header manually (if middleware didn't run or order is different)
@@ -46,10 +49,25 @@ pub fn require_permission(
         Box::pin(async move {
             let claims = extract_user_claims(&request).ok_or(StatusCode::UNAUTHORIZED)?;
 
-            // Check if user has permission
-            if claims.permissions.contains(&permission.to_string()) {
+            // Check if user has permission (supporting wildcards)
+            let has_permission = claims.permissions.iter().any(|p| {
+                *p == "*" || *p == permission || {
+                    if let Some(prefix) = p.strip_suffix(".*") {
+                        permission.starts_with(prefix)
+                    } else {
+                        false
+                    }
+                }
+            });
+
+            if has_permission {
                 Ok(next.run(request).await)
             } else {
+                tracing::warn!(
+                    "Permission denied. Required: {}, User Has: {:?}",
+                    permission,
+                    claims.permissions
+                );
                 Err(StatusCode::FORBIDDEN)
             }
         })

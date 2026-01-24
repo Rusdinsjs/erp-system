@@ -361,7 +361,11 @@ impl RentalRepository {
 
         tx.commit().await?;
 
-        self.find_by_id(rental.id).await.map(|opt| opt.unwrap())
+        // After update, fetch the updated rental
+        // If not found, this is a data consistency issue
+        self.find_by_id(rental.id)
+            .await?
+            .ok_or_else(|| sqlx::Error::RowNotFound)
     }
 
     /// Approve Rental (and all items)
@@ -745,6 +749,47 @@ impl RentalRepository {
                 client_name: row.get("client_name"),
             }
         })
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut result = Vec::new();
+        for mut r in rentals {
+            let items = sqlx::query_as!(
+                RentalItem,
+                r#"
+                SELECT 
+                    ri.*,
+                    a.name as asset_name,
+                    a.asset_code as asset_code
+                FROM rental_items ri
+                JOIN assets a ON ri.asset_id = a.id
+                WHERE ri.rental_id = $1
+                "#,
+                r.id
+            )
+            .fetch_all(&self.pool)
+            .await?;
+            r.items = Some(items);
+            result.push(r);
+        }
+        Ok(result)
+    }
+
+    /// Find rentals linked to a specific contract
+    pub async fn find_by_contract_id(&self, contract_id: Uuid) -> Result<Vec<Rental>, sqlx::Error> {
+        let rentals = sqlx::query(
+            r#"
+            SELECT 
+                r.*,
+                c.name as client_name
+            FROM rentals r
+            JOIN clients c ON r.client_id = c.id
+            WHERE r.contract_id = $1
+            ORDER BY r.created_at DESC
+            "#,
+        )
+        .bind(contract_id)
+        .map(Self::map_rental_row)
         .fetch_all(&self.pool)
         .await?;
 

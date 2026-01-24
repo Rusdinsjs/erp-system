@@ -1,9 +1,8 @@
-//! Common DTOs
-
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 /// Pagination parameters
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct PaginationParams {
     pub page: Option<i64>,
     pub per_page: Option<i64>,
@@ -33,13 +32,14 @@ impl Default for PaginationParams {
 }
 
 /// Paginated response wrapper
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[aliases(PaginatedResponseAssetSummary = PaginatedResponse<crate::domain::entities::asset::AssetSummary>)]
 pub struct PaginatedResponse<T> {
     pub data: Vec<T>,
     pub pagination: PaginationMeta,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct PaginationMeta {
     pub total: i64,
     pub page: i64,
@@ -67,7 +67,8 @@ impl<T> PaginatedResponse<T> {
 }
 
 /// API response wrapper
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[aliases(ApiResponseAsset = ApiResponse<crate::domain::entities::asset::Asset>, ApiResponseApprovalRequest = ApiResponse<crate::infrastructure::repositories::approval_repository::ApprovalRequest>)]
 pub struct ApiResponse<T> {
     pub success: bool,
     pub message: Option<String>,

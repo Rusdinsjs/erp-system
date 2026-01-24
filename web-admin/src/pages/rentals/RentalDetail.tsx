@@ -25,7 +25,8 @@ import {
     Checkbox,
     Select,
     LoadingOverlay,
-    useToast
+    useToast,
+    StatusBadge
 } from '../../components/ui';
 
 function HandoverList({ rentalId }: { rentalId: string }) {
@@ -39,33 +40,37 @@ function HandoverList({ rentalId }: { rentalId: string }) {
 
     if (!handovers || handovers.length === 0) {
         return (
-            <div className="text-center py-8 border-2 border-dashed border-gray-700/50 rounded-lg bg-white/5">
-                <ClipboardList className="mx-auto h-8 w-8 text-gray-500 mb-2" />
-                <p className="text-sm text-gray-400">No handover records found.</p>
+            <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl bg-white/5">
+                <ClipboardList className="mx-auto h-12 w-12 text-gray-700 mb-4 opacity-20" />
+                <p className="text-gray-500 font-medium">No handover records found for this rental.</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 p-6">
             {handovers.map((handover: any) => (
-                <div key={handover.id} className="bg-gray-950/50 border border-white/5 rounded-lg p-6 hover:border-white/10 transition-colors">
-                    <div className="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
-                        <div>
+                <div key={handover.id} className="bg-gray-950/30 border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-colors relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        {handover.handover_type === 'dispatch' ? <Receipt size={64} /> : <Calendar size={64} />}
+                    </div>
+
+                    <div className="flex justify-between items-start mb-8 border-b border-white/5 pb-6">
+                        <div className="relative z-10">
                             <div className="flex items-center gap-3">
-                                <Badge variant={handover.handover_type === 'dispatch' ? 'info' : 'warning'} className="uppercase">
+                                <Badge variant={handover.handover_type === 'dispatch' ? 'info' : 'warning'} className="uppercase px-3 py-1 rounded-full text-[10px] font-bold tracking-widest">
                                     {handover.handover_type}
                                 </Badge>
-                                <span className="text-sm text-gray-400">
-                                    Recorded on {new Date(handover.recorded_at).toLocaleDateString()}
+                                <span className="text-xs font-mono text-gray-500 uppercase tracking-tighter">
+                                    {new Date(handover.recorded_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
                                 </span>
                             </div>
                             {handover.condition_notes && (
-                                <p className="text-gray-300 mt-2 text-sm">{handover.condition_notes}</p>
+                                <p className="text-gray-300 mt-4 text-sm leading-relaxed max-w-2xl">{handover.condition_notes}</p>
                             )}
                         </div>
                         {handover.has_damage && (
-                            <Badge variant="danger">Damage Reported</Badge>
+                            <Badge variant="danger" className="animate-pulse shadow-lg shadow-rose-500/20">Damage Reported</Badge>
                         )}
                     </div>
 
@@ -75,22 +80,6 @@ function HandoverList({ rentalId }: { rentalId: string }) {
         </div>
     );
 }
-
-// Status Badge Helper
-const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'info' | 'success' | 'warning' | 'danger'> = {
-        draft: 'default',
-        requested: 'info',
-        pending_approval: 'warning',
-        approved: 'info',
-        rented_out: 'success',
-        returned: 'default',
-        completed: 'success',
-        cancelled: 'danger',
-        rejected: 'danger',
-    };
-    return <Badge variant={variants[status] || 'default'} className="capitalize">{status.replace('_', ' ')}</Badge>;
-};
 
 interface RentalDetailProps {
     rentalId?: string;
@@ -199,188 +188,250 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
     });
 
     if (isLoading) return <LoadingOverlay visible />;
-    // if (error || !rental) return <div className="text-red-400">Failed to load rental details</div>;
 
     if (!rental) return <div className="text-red-400 p-8">Rental not found</div>;
 
     return (
-        <div className="space-y-6 pb-20">
-            {/* Header */}
+        <div className="p-8 space-y-8 pb-20 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+            {/* Header Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-4">
-                    <Button variant="ghost" onClick={() => navigate('/rentals')}>
-                        <ArrowLeft size={20} />
+                <div className="flex items-center gap-6">
+                    <Button
+                        variant="ghost"
+                        onClick={() => navigate('/rentals')}
+                        className="rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 w-12 h-12 p-0 flex items-center justify-center transition-all hover:scale-105"
+                    >
+                        <ArrowLeft size={24} className="text-gray-300" />
                     </Button>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-white">Rental #{rental.rental_number}</h1>
-                        {getStatusBadge(rental.status)}
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-3xl font-bold text-white tracking-tight">Rental #{rental.rental_number}</h1>
+                            <StatusBadge status={rental.status} className="px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest" />
+                        </div>
+                        <p className="text-gray-400 mt-1 flex items-center gap-2">
+                            <User size={14} className="opacity-50" /> {rental.client_name}
+                        </p>
                     </div>
                 </div>
 
-                <div className="flex gap-2">
-                    <div className="flex gap-2">
-                        {/* Workflow Actions */}
-                        {['requested', 'pending_approval'].includes(rental.status) && (
-                            <>
-                                <Button variant="danger" leftIcon={<X size={16} />} onClick={() => setRejectOpened(true)}>Reject</Button>
-                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" leftIcon={<Check size={16} />} onClick={() => setApproveOpened(true)}>Approve</Button>
-                            </>
-                        )}
-                    </div>
+                <div className="flex gap-3">
+                    {['requested', 'pending_approval'].includes(rental.status) && (
+                        <>
+                            <Button
+                                variant="outline"
+                                leftIcon={<X size={18} />}
+                                onClick={() => setRejectOpened(true)}
+                                className="rounded-xl border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
+                            >
+                                Reject
+                            </Button>
+                            <Button
+                                variant="primary"
+                                leftIcon={<Check size={18} />}
+                                onClick={() => setApproveOpened(true)}
+                                className="rounded-xl shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500"
+                            >
+                                Approve Rental
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
-            {/* Info Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div className="md:col-span-8">
-                    <Card padding="md">
-                        <h3 className="text-lg font-bold text-white mb-4">Contract Details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-1">
-                                <span className="text-sm text-slate-500">Client</span>
-                                <div className="flex items-center gap-2 text-white">
-                                    <User size={18} className="text-slate-500" />
-                                    <span className="font-medium">{rental.client_name}</span>
-                                </div>
+            {/* Info Cards Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                    <Card className="p-6 relative overflow-hidden border-white/5 rounded-2xl bg-gray-900/40 backdrop-blur-xl">
+                        {/* Decorative background element */}
+                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/5 rounded-full blur-[60px] pointer-events-none" />
+
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 rounded-lg bg-blue-500/10">
+                                <Receipt size={20} className="text-blue-400" />
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-sm text-slate-500">Contract No.</span>
-                                <div className="flex items-center gap-2 text-white">
-                                    <Receipt size={18} className="text-slate-500" />
-                                    <span className="font-medium">{rental.rental_number}</span>
+                            <h3 className="text-lg font-bold text-white">Contract Overview</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Period</label>
+                                    <div className="flex items-center gap-3 text-gray-200 bg-black/20 p-3 rounded-xl border border-white/5">
+                                        <Calendar size={18} className="text-blue-400 opacity-60" />
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium">{rental.start_date}</span>
+                                            <span className="text-[10px] text-gray-500 uppercase">{rental.expected_end_date ? `UNTIL ${rental.expected_end_date}` : 'OPEN-ENDED'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="col-span-1 md:col-span-2 h-px bg-white/5 my-2" />
-
-                            <div className="space-y-1">
-                                <span className="text-sm text-gray-400">Start Date</span>
-                                <div className="flex items-center gap-2 text-white">
-                                    <Calendar size={18} className="text-gray-500" />
-                                    <span>{rental.start_date}</span>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Internal Notes</label>
+                                    <div className="text-sm text-gray-300 bg-black/20 p-4 rounded-xl border border-white/5 min-h-[85px] leading-relaxed">
+                                        {rental.notes || 'No specific notes recorded for this rental.'}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-sm text-gray-400">Expected End</span>
-                                <div className="flex items-center gap-2 text-white">
-                                    <Calendar size={18} className="text-gray-500" />
-                                    <span>{rental.expected_end_date || 'Open-Ended'}</span>
-                                </div>
-                            </div>
+                        </div>
+                    </Card>
 
-                            <div className="col-span-1 md:col-span-2">
-                                <h4 className="text-sm text-gray-400 mb-1">Notes</h4>
-                                <p className="text-sm text-gray-300 bg-gray-900/50 p-3 rounded-md">
-                                    {rental.notes || 'No notes provided.'}
+                    {/* Rented Assets Table Card */}
+                    <Card className="overflow-hidden border-white/5 rounded-2xl bg-gray-900/40 backdrop-blur-xl p-0">
+                        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-gray-900/30">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-emerald-500/10">
+                                    <Tags size={20} className="text-emerald-400" />
+                                </div>
+                                <h3 className="text-lg font-bold text-white">Rented Assets</h3>
+                            </div>
+                            <Badge variant="default" className="bg-white/5 text-gray-400 border-white/5">{rental.items?.length || 0} Total</Badge>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm text-gray-300 border-separate border-spacing-0">
+                                <thead className="bg-gray-950/50 text-[10px] uppercase font-bold text-gray-500 tracking-widest border-b border-white/5">
+                                    <tr>
+                                        <th className="px-6 py-4">Asset Details</th>
+                                        <th className="px-6 py-4">Pricing Template</th>
+                                        <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {rental.items?.map((item: any) => (
+                                        <tr key={item.id} className="hover:bg-white/[0.02] group transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-white group-hover:text-blue-400 transition-colors">{item.asset_name}</div>
+                                                <div className="text-[10px] font-mono text-gray-500 mt-1 uppercase">{item.asset_code}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-gray-300">Rp {item.rental_rate_amount?.toLocaleString('id-ID')}</div>
+                                                <div className="text-[10px] text-gray-500 capitalize">{item.rate_name}</div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <StatusBadge status={item.status} className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider" />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-center">
+                                                    {rental.status === 'approved' && item.status === 'pending' && (
+                                                        <Button
+                                                            variant="primary"
+                                                            size="sm"
+                                                            onClick={() => { setDispatchOpened(true); setSelectedItem(item); }}
+                                                            className="rounded-xl px-4 py-2 text-xs font-bold shadow-lg shadow-blue-500/10"
+                                                        >
+                                                            Dispatch
+                                                        </Button>
+                                                    )}
+                                                    {item.status === 'rented_out' && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="rounded-xl px-4 py-2 text-xs font-bold border-orange-500/20 text-orange-400 hover:bg-orange-500/10"
+                                                            onClick={() => { setReturnOpened(true); setSelectedItem(item); }}
+                                                        >
+                                                            Return
+                                                        </Button>
+                                                    )}
+                                                    {item.status === 'returned' && (
+                                                        <div className="text-gray-600 italic text-xs">Closed</div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                </div>
+
+                <div className="lg:col-span-1">
+                    <Card className="p-6 h-full relative overflow-hidden border-white/5 rounded-2xl bg-gray-900/40 backdrop-blur-xl">
+                        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/5 rounded-full blur-[60px] pointer-events-none" />
+
+                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2 font-display uppercase tracking-widest text-[13px] opacity-70">
+                            Billing Summary
+                        </h3>
+
+                        <div className="space-y-8 relative z-10">
+                            <div className="bg-black/20 p-6 rounded-2xl border border-white/5 border-l-emerald-500/40 border-l-4">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Total Billed</span>
+                                <p className="text-3xl font-bold text-emerald-400 tracking-tighter">
+                                    <span className="text-xs font-medium mr-1 opacity-60">Rp</span>
+                                    {rental.total_amount?.toLocaleString('id-ID') || '0'}
                                 </p>
                             </div>
-                        </div>
-                    </Card>
-                </div>
 
-                <div className="md:col-span-4">
-                    <Card padding="md" className="h-full">
-                        <h3 className="text-lg font-bold text-white mb-4">Summary</h3>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-400">Total Items</span>
-                                <span className="text-lg font-bold text-white">
-                                    {rental.items?.length || 0} Assets
-                                </span>
-                            </div>
-                            <div className="w-full h-px bg-white/5" />
-                            <div>
-                                <span className="text-sm text-gray-500">Total Billed to Date</span>
-                                <p className="text-2xl font-bold text-white mt-1">Rp {rental.total_amount?.toLocaleString() || '0'}</p>
+                            <div className="space-y-4 px-2">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-400">Status</span>
+                                    <StatusBadge status={rental.status} />
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-400">Total Items</span>
+                                    <span className="text-white font-bold">{rental.items?.length || 0} Assets</span>
+                                </div>
                             </div>
                         </div>
                     </Card>
                 </div>
             </div>
 
-            {/* ASSETS LIST */}
-            <Card padding="md">
-                <h3 className="text-lg font-bold text-white mb-4">Rented Assets</h3>
-                <div className="overflow-x-auto border border-white/5 rounded-lg">
-                    <table className="w-full text-left text-sm text-gray-300">
-                        <thead className="bg-gray-800 text-xs uppercase font-semibold text-gray-400">
-                            <tr>
-                                <th className="px-4 py-3">Asset</th>
-                                <th className="px-4 py-3">Rate</th>
-                                <th className="px-4 py-3">Status</th>
-                                <th className="px-4 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-700/50">
-                            {rental.items?.map((item: any) => (
-                                <tr key={item.id} className="hover:bg-gray-800/30">
-                                    <td className="px-4 py-3">
-                                        <div className="font-medium text-white">{item.asset_name}</div>
-                                        <div className="text-xs text-slate-500">{item.asset_code}</div>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        Rp {item.rental_rate_amount?.toLocaleString()} ({item.rate_name})
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {getStatusBadge(item.status)}
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        {rental.status === 'approved' && item.status === 'pending' && (
-                                            <Button size="sm" onClick={() => { setDispatchOpened(true); setSelectedItem(item); }}>
-                                                Dispatch
-                                            </Button>
-                                        )}
-                                        {item.status === 'rented_out' && (
-                                            <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => { setReturnOpened(true); setSelectedItem(item); }}>
-                                                Return
-                                            </Button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
-
-            {/* Tabs for Sub-modules */}
-            <Card padding="none" className="overflow-hidden">
+            {/* Tabs Area */}
+            <Card className="overflow-hidden border-white/5 rounded-2xl bg-gray-900/40 backdrop-blur-sm p-0">
                 <Tabs defaultValue="overview">
-                    <div className="px-4 pt-4 border-b border-slate-800">
-                        <TabsList>
-                            <TabsTrigger value="overview" icon={<ClipboardList size={14} />}>Overview</TabsTrigger>
-                            <TabsTrigger value="timesheets" icon={<Clock size={14} />}>Timesheets</TabsTrigger>
-                            <TabsTrigger value="billing" icon={<Receipt size={14} />}>Billing History</TabsTrigger>
-                            <TabsTrigger value="handovers" icon={<Tags size={14} />}>Handovers</TabsTrigger>
+                    <div className="px-6 py-4 border-b border-white/5 bg-gray-900/30">
+                        <TabsList className="bg-white/5">
+                            <TabsTrigger value="overview" icon={<ClipboardList size={16} />} className="px-6">Overview</TabsTrigger>
+                            <TabsTrigger value="timesheets" icon={<Clock size={16} />} className="px-6">Timesheets</TabsTrigger>
+                            <TabsTrigger value="billing" icon={<Receipt size={16} />} className="px-6">Billing History</TabsTrigger>
+                            <TabsTrigger value="handovers" icon={<Tags size={16} />} className="px-6">Handovers</TabsTrigger>
                         </TabsList>
                     </div>
 
-                    <div className="bg-slate-900/50 min-h-[300px]">
-                        <TabsContent value="overview" className="p-6">
-                            <div className="space-y-2">
-                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Notes</h4>
-                                <p className="text-white bg-slate-950 p-4 rounded-lg border border-slate-800">
-                                    {rental.notes || 'No notes available.'}
+                    <div className="min-h-[400px]">
+                        <TabsContent value="overview" className="p-0">
+                            <div className="p-10 text-center max-w-2xl mx-auto">
+                                <div className="p-4 bg-white/5 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                                    <ClipboardList size={32} className="text-gray-500 opacity-40" />
+                                </div>
+                                <h4 className="text-xl font-bold text-white mb-3">Rental Process Details</h4>
+                                <p className="text-gray-400 leading-relaxed mb-8">
+                                    This rental agreement covers the following assets managed for {rental.client_name}.
+                                    All activities including timesheets and billing are tracked automatically through the modules below.
                                 </p>
+                                <div className="grid grid-cols-2 gap-4 text-left">
+                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Created At</div>
+                                        <div className="text-sm text-gray-200">System Record Logged</div>
+                                    </div>
+                                    <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Contract Manager</div>
+                                        <div className="text-sm text-gray-200">Fleet Operations</div>
+                                    </div>
+                                </div>
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="timesheets" className="p-6">
+                        <TabsContent value="timesheets" className="p-0">
                             <TimesheetList rentalId={id} />
                         </TabsContent>
 
-                        <TabsContent value="billing" className="p-6 space-y-8">
-                            {/* Generator */}
+                        <TabsContent value="billing" className="p-0 space-y-0">
+                            <div className="p-6 bg-blue-500/5 border-b border-white/5">
+                                <h3 className="text-lg font-bold text-white mb-1">Billing Automation</h3>
+                                <p className="text-sm text-gray-400">Review automated billing cycles and verify manual overrides.</p>
+                            </div>
                             <BillingGenerator rentalId={id!} />
-
-                            {/* History */}
-                            <div>
-                                <h3 className="text-lg font-bold text-white mb-4">Invoice History</h3>
-                                {id && <BillingHistory rentalId={id} />}
+                            <div className="border-t border-white/5">
+                                <BillingHistory rentalId={id} />
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="handovers" className="p-6">
+                        <TabsContent value="handovers" className="p-0">
                             <HandoverList rentalId={id!} />
                         </TabsContent>
                     </div>
@@ -390,35 +441,76 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
             {/* MODALS */}
 
             {/* Approve Modal */}
-            <Modal isOpen={approveOpened} onClose={() => setApproveOpened(false)} title="Approve Rental Request">
-                <div className="space-y-4">
-                    <p className="text-sm text-slate-300">Are you sure you want to approve this rental request?</p>
+            <Modal
+                isOpen={approveOpened}
+                onClose={() => setApproveOpened(false)}
+                title="Approve Rental Request"
+                size="xl"
+            >
+                <div className="relative space-y-6">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none" />
+
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                            <Check size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-emerald-400">Ready to Activate</h4>
+                            <p className="text-xs text-emerald-500/70">Approving this request will allow assets to be dispatched to {rental.client_name}.</p>
+                        </div>
+                    </div>
+
                     <Textarea
                         label="Approval Notes (Optional)"
+                        placeholder="Add internal notes about this approval..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
+                        className="bg-black/20 border-white/5 rounded-xl min-h-[120px]"
                     />
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setApproveOpened(false)}>Cancel</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => approveMutation.mutate()} loading={approveMutation.isPending}>
-                            Confirm Approval
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                        <Button variant="ghost" onClick={() => setApproveOpened(false)} className="rounded-xl">Cancel</Button>
+                        <Button
+                            variant="primary"
+                            className="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-8 shadow-lg shadow-emerald-500/20"
+                            onClick={() => approveMutation.mutate()}
+                            loading={approveMutation.isPending}
+                        >
+                            Approve Now
                         </Button>
                     </div>
                 </div>
             </Modal>
 
             {/* Reject Modal */}
-            <Modal isOpen={rejectOpened} onClose={() => setRejectOpened(false)} title="Reject Rental Request">
-                <div className="space-y-4">
+            <Modal isOpen={rejectOpened} onClose={() => setRejectOpened(false)} title="Reject Rental Request" size="lg">
+                <div className="space-y-6">
+                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400">
+                            <X size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-rose-400">Rejecting Request</h4>
+                            <p className="text-xs text-rose-500/70">Please provide a reason for rejecting this rental application.</p>
+                        </div>
+                    </div>
+
                     <Textarea
                         label="Reason for Rejection"
                         required
+                        placeholder="Client credit limit exceeded, asset unavailable, etc..."
                         value={rejectReason}
                         onChange={(e) => setRejectReason(e.target.value)}
+                        className="bg-black/20 border-white/5 rounded-xl min-h-[120px]"
                     />
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setRejectOpened(false)}>Cancel</Button>
-                        <Button variant="danger" onClick={() => rejectMutation.mutate()} loading={rejectMutation.isPending}>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                        <Button variant="ghost" onClick={() => setRejectOpened(false)} className="rounded-xl">Cancel</Button>
+                        <Button
+                            variant="danger"
+                            onClick={() => rejectMutation.mutate()}
+                            loading={rejectMutation.isPending}
+                            className="rounded-xl px-8 shadow-lg shadow-rose-500/20"
+                        >
                             Reject Request
                         </Button>
                     </div>
@@ -426,25 +518,51 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
             </Modal>
 
             {/* Dispatch Modal */}
-            <Modal isOpen={dispatchOpened} onClose={() => setDispatchOpened(false)} title="Dispatch Asset">
-                <div className="space-y-4">
-                    <p className="text-sm text-slate-300">Confirm dispatch of asset to client.</p>
-                    <Select
-                        label="Destination Location"
-                        placeholder="Select client site..."
-                        options={locations}
-                        value={selectedLocation}
-                        onChange={setSelectedLocation}
-                    />
+            <Modal isOpen={dispatchOpened} onClose={() => setDispatchOpened(false)} title="Dispatch Asset" size="xl">
+                <div className="space-y-6 relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
+
+                    <div className="flex items-center gap-4 p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
+                        <div className="p-3 bg-blue-500/20 rounded-xl">
+                            <Tags size={24} className="text-blue-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-blue-400/60 font-bold uppercase tracking-widest">Asset Dispatching</p>
+                            <h4 className="text-lg font-bold text-white">{selectedItem?.asset_name}</h4>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Select
+                            label="Destination Location"
+                            placeholder="Select client site..."
+                            options={locations}
+                            value={selectedLocation}
+                            onChange={setSelectedLocation}
+                            className="bg-black/20 border-white/5 rounded-xl"
+                        />
+                        <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col justify-center">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Current Date</span>
+                            <span className="text-sm text-gray-200">{new Date().toLocaleDateString('id-ID')}</span>
+                        </div>
+                    </div>
+
                     <Textarea
                         label="Dispatch Notes"
-                        placeholder="Condition notes, accessories included..."
+                        placeholder="Condition notes, accessories included, operator name..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
+                        className="bg-black/20 border-white/5 rounded-xl min-h-[100px]"
                     />
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setDispatchOpened(false)}>Cancel</Button>
-                        <Button onClick={() => dispatchMutation.mutate()} loading={dispatchMutation.isPending}>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                        <Button variant="ghost" onClick={() => setDispatchOpened(false)} className="rounded-xl">Cancel</Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => dispatchMutation.mutate()}
+                            loading={dispatchMutation.isPending}
+                            className="rounded-xl px-8 shadow-lg shadow-blue-500/20"
+                        >
                             Confirm Dispatch
                         </Button>
                     </div>
@@ -452,34 +570,62 @@ export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
             </Modal>
 
             {/* Return Modal */}
-            <Modal isOpen={returnOpened} onClose={() => setReturnOpened(false)} title="Register Asset Return">
-                <div className="space-y-4">
-                    <NumberInput
-                        label="Final Meter Reading"
-                        placeholder="HM / KM"
-                        value={meterReading}
-                        onChange={(v) => setMeterReading(Number(v))}
-                    />
-                    <Checkbox
-                        label="Has Damage?"
-                        checked={hasDamage}
-                        onChange={(checked: any) => setHasDamage(checked)}
-                    />
+            <Modal isOpen={returnOpened} onClose={() => setReturnOpened(false)} title="Register Asset Return" size="xl">
+                <div className="space-y-6">
+                    <div className="flex items-center gap-4 p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl">
+                        <div className="p-3 bg-orange-500/20 rounded-xl">
+                            <ArrowLeft size={24} className="text-orange-400" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-orange-400/60 font-bold uppercase tracking-widest">Receiving Return</p>
+                            <h4 className="text-lg font-bold text-white">{selectedItem?.asset_name}</h4>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <NumberInput
+                            label="Final Meter Reading"
+                            placeholder="HM / KM"
+                            value={meterReading}
+                            onChange={(v) => setMeterReading(Number(v))}
+                            className="bg-black/20 border-white/5 rounded-xl"
+                        />
+                        <Select
+                            label="Return Location"
+                            placeholder="Warehouse/yard..."
+                            options={locations}
+                            value={selectedLocation}
+                            onChange={setSelectedLocation}
+                            className="bg-black/20 border-white/5 rounded-xl col-span-2"
+                        />
+                    </div>
+
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <Checkbox
+                            label="Has Damage / Issues encountered?"
+                            checked={hasDamage}
+                            onChange={(e) => setHasDamage(e.target.checked)}
+                        />
+                        {hasDamage && (
+                            <p className="text-[10px] text-rose-400/70 mt-2 font-bold uppercase">Attention: Damage report will be logged</p>
+                        )}
+                    </div>
+
                     <Textarea
                         label="Return Notes / Damage Description"
+                        placeholder="General condition upon return..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
+                        className="bg-black/20 border-white/5 rounded-xl min-h-[100px]"
                     />
-                    <Select
-                        label="Return Location"
-                        placeholder="Select warehouse/yard..."
-                        options={locations}
-                        value={selectedLocation}
-                        onChange={setSelectedLocation}
-                    />
-                    <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="ghost" onClick={() => setReturnOpened(false)}>Cancel</Button>
-                        <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => returnMutation.mutate()} loading={returnMutation.isPending}>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                        <Button variant="ghost" onClick={() => setReturnOpened(false)} className="rounded-xl">Cancel</Button>
+                        <Button
+                            className="bg-orange-600 hover:bg-orange-500 text-white rounded-xl px-8 shadow-lg shadow-orange-500/20 border-none"
+                            onClick={() => returnMutation.mutate()}
+                            loading={returnMutation.isPending}
+                        >
                             Confirm Return
                         </Button>
                     </div>

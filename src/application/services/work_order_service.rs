@@ -37,6 +37,7 @@ pub struct WorkOrderService {
     lifecycle_repo: LifecycleRepository,
     asset_repo: AssetRepository,
     cache: Arc<dyn CacheOperations>,
+    notification_service: crate::application::services::NotificationService,
 }
 
 impl WorkOrderService {
@@ -45,12 +46,14 @@ impl WorkOrderService {
         lifecycle_repo: LifecycleRepository,
         asset_repo: AssetRepository,
         cache: Arc<dyn CacheOperations>,
+        notification_service: crate::application::services::NotificationService,
     ) -> Self {
         Self {
             repository,
             lifecycle_repo,
             asset_repo,
             cache,
+            notification_service,
         }
     }
 
@@ -179,7 +182,30 @@ impl WorkOrderService {
                 message: e.to_string(),
             })?;
 
-        self.get_by_id(id).await
+        let updated_wo = self.get_by_id(id).await?;
+
+        // Notify Technician
+        let asset = self
+            .asset_repo
+            .find_by_id(updated_wo.asset_id)
+            .await
+            .ok()
+            .flatten();
+        let asset_name = asset
+            .map(|a| a.name)
+            .unwrap_or_else(|| "Unknown Asset".to_string());
+
+        let _ = self
+            .notification_service
+            .notify_work_order_assigned(
+                technician_id,
+                &updated_wo.wo_number,
+                &asset_name,
+                updated_wo.id,
+            )
+            .await;
+
+        Ok(updated_wo)
     }
 
     /// Start work on a work order - also transitions asset lifecycle

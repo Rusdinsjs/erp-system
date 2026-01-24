@@ -26,6 +26,7 @@ pub struct MaintenanceService {
     repository: MaintenanceRepository,
     asset_repository: AssetRepository,
     approval_service: ApprovalService,
+    notification_service: crate::application::services::NotificationService,
 }
 
 impl MaintenanceService {
@@ -33,11 +34,13 @@ impl MaintenanceService {
         repository: MaintenanceRepository,
         asset_repository: AssetRepository,
         approval_service: ApprovalService,
+        notification_service: crate::application::services::NotificationService,
     ) -> Self {
         Self {
             repository,
             asset_repository,
             approval_service,
+            notification_service,
         }
     }
 
@@ -130,6 +133,30 @@ impl MaintenanceService {
                     Some(data_json),
                 )
                 .await?;
+
+            // Notify Admins about high cost maintenance
+            let asset_name = self
+                .asset_repository
+                .find_by_id(request.asset_id)
+                .await
+                .ok()
+                .flatten()
+                .map(|a| a.name)
+                .unwrap_or_else(|| "Unknown Asset".to_string());
+
+            let _ = self
+                .notification_service
+                .notify_admins(
+                    "maintenance_approval",
+                    serde_json::json!({
+                        "asset_name": asset_name,
+                        "cost": request.cost.unwrap_or_default().to_string(),
+                        "requester": user_id.to_string()
+                    }),
+                    Some("maintenance"),
+                    Some(created.id),
+                )
+                .await;
 
             return Ok(MaintenanceOperationResult::PendingApproval(
                 approval_request,
@@ -226,6 +253,29 @@ impl MaintenanceService {
                         .await;
                 }
             }
+        }
+
+        // Notify if technician assigned
+        if let Some(technician_id) = request.assigned_to {
+            let asset_name = self
+                .asset_repository
+                .find_by_id(record.asset_id)
+                .await
+                .ok()
+                .flatten()
+                .map(|a| a.name)
+                .unwrap_or_else(|| "Unknown Asset".to_string());
+
+            let _ = self
+                .notification_service
+                .create(
+                    technician_id,
+                    "Maintenance Assignment",
+                    &format!("You have been assigned maintenance for {}", asset_name),
+                    Some("maintenance"),
+                    Some(record.id),
+                )
+                .await;
         }
 
         Ok(updated)

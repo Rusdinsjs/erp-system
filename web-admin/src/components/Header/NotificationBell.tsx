@@ -4,6 +4,8 @@ import { Bell, Check, Info, Wrench, Box, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '../../api/notifications';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useWebSocket } from '../../contexts/WebSocketContext';
+import { useToast } from '../ui';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -12,6 +14,8 @@ dayjs.extend(relativeTime);
 export function NotificationBell() {
     const user = useAuthStore((state) => state.user);
     const queryClient = useQueryClient();
+    const { lastMessage } = useWebSocket();
+    const { info } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +29,23 @@ export function NotificationBell() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Listen for WebSocket notifications
+    useEffect(() => {
+        if (lastMessage && (
+            lastMessage.event_type === 'NOTIFICATION_RECEIVED' ||
+            lastMessage.event_type === 'LOAN_APPROVED' ||
+            lastMessage.event_type === 'LOAN_OVERDUE' ||
+            lastMessage.event_type === 'MAINTENANCE_DUE' ||
+            lastMessage.event_type === 'WORK_ORDER_ASSIGNED'
+        )) {
+            // Check if it's for this user
+            if (lastMessage.payload.user_id === user?.id) {
+                queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                info(lastMessage.payload.message || 'New notification', lastMessage.payload.title || 'Notification');
+            }
+        }
+    }, [lastMessage, queryClient, user?.id, info]);
 
     // Fetch unread count
     const { data: unreadCount } = useQuery({

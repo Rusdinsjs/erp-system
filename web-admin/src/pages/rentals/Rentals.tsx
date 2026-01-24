@@ -17,49 +17,75 @@ import { RentalScheduler } from '../../components/Rentals/RentalScheduler';
 
 export function Rentals() {
     return (
-        <div className="h-full flex flex-col space-y-6">
-            <h1 className="text-2xl font-bold text-white">Rental Management</h1>
+        <div className="p-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+            {/* Header Section */}
+            <div className="relative">
+                {/* Decorative background element */}
+                <div className="absolute -top-10 -left-10 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
 
-            <Card padding="none" className="flex-1 flex flex-col overflow-hidden">
-                <Tabs defaultValue="active" className="h-full flex flex-col">
-                    <div className="px-4 pt-4 border-b border-slate-800 shrink-0">
-                        <TabsList>
-                            <TabsTrigger value="active" icon={<Truck size={16} />}>Active Rentals</TabsTrigger>
-                            <TabsTrigger value="scheduler" icon={<Clock size={16} />}>Scheduler</TabsTrigger>
-                            <TabsTrigger value="timesheets" icon={<Tags size={16} />}>Timesheets</TabsTrigger>
-                            <TabsTrigger value="reviewer" icon={<CheckSquare size={16} />}>Reviewer</TabsTrigger>
-                            <TabsTrigger value="pricelist" icon={<Tags size={16} />}>Price List</TabsTrigger>
-                            <TabsTrigger value="billing" icon={<Receipt size={16} />}>Billing</TabsTrigger>
-                            <TabsTrigger value="clients" icon={<Users size={16} />}>Clients</TabsTrigger>
+                <div className="relative z-10">
+                    <h1 className="text-4xl font-black text-white tracking-tight uppercase">
+                        Rental <span className="text-blue-500">Management</span>
+                    </h1>
+                    <p className="text-gray-400 mt-2 flex items-center gap-2 font-medium">
+                        <span className="w-8 h-[1px] bg-blue-500/50"></span>
+                        Orchestrate assets, schedules, and revenue streams
+                    </p>
+                </div>
+            </div>
+
+            {/* Main Content Card */}
+            <Card className="overflow-hidden border border-white/5 rounded-2xl bg-gray-900/20 backdrop-blur-xl p-0 shadow-2xl">
+                <Tabs defaultValue="active" className="flex flex-col">
+                    <div className="px-6 py-2 border-b border-white/5 bg-gray-950/20 backdrop-blur-md sticky top-0 z-50">
+                        <TabsList className="bg-transparent gap-2 h-14">
+                            {[
+                                { value: 'active', label: 'Active Rentals', icon: <Truck size={16} /> },
+                                { value: 'scheduler', label: 'Scheduler', icon: <Clock size={16} /> },
+                                { value: 'timesheets', label: 'Timesheets', icon: <Tags size={16} /> },
+                                { value: 'reviewer', label: 'Reviewer', icon: <CheckSquare size={16} /> },
+                                { value: 'pricelist', label: 'Price List', icon: <Tags size={16} /> },
+                                { value: 'billing', label: 'Billing', icon: <Receipt size={16} /> },
+                                { value: 'clients', label: 'Clients', icon: <Users size={16} /> },
+                            ].map((tab) => (
+                                <TabsTrigger
+                                    key={tab.value}
+                                    value={tab.value}
+                                    icon={tab.icon}
+                                    className="px-6 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-xl transition-all duration-300 font-bold uppercase tracking-widest text-[10px]"
+                                >
+                                    {tab.label}
+                                </TabsTrigger>
+                            ))}
                         </TabsList>
                     </div>
 
-                    <div className="flex-1 overflow-hidden relative bg-slate-900/50">
-                        <TabsContent value="active" className="h-full overflow-y-auto p-6">
+                    <div className="flex-1 min-h-[600px]">
+                        <TabsContent value="active" className="p-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <RentalList />
                         </TabsContent>
 
-                        <TabsContent value="scheduler" className="h-full overflow-y-auto p-6">
+                        <TabsContent value="scheduler" className="p-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <RentalScheduler />
                         </TabsContent>
 
-                        <TabsContent value="timesheets" className="h-full overflow-y-auto p-6">
+                        <TabsContent value="timesheets" className="p-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <TimesheetList />
                         </TabsContent>
 
-                        <TabsContent value="reviewer" className="h-full overflow-y-auto p-6">
+                        <TabsContent value="reviewer" className="p-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <TimesheetReviewer />
                         </TabsContent>
 
-                        <TabsContent value="pricelist" className="h-full overflow-y-auto p-6">
+                        <TabsContent value="pricelist" className="p-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <PriceList />
                         </TabsContent>
 
-                        <TabsContent value="billing" className="h-full overflow-y-auto p-6">
+                        <TabsContent value="billing" className="p-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <BillingList />
                         </TabsContent>
 
-                        <TabsContent value="clients" className="h-full overflow-y-auto p-6">
+                        <TabsContent value="clients" className="p-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
                             <ClientList />
                         </TabsContent>
                     </div>

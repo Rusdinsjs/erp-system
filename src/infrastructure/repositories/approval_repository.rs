@@ -5,14 +5,21 @@ use sqlx::FromRow;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+use utoipa::ToSchema;
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct ApprovalRequest {
+    #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub id: Uuid,
+    #[schema(example = "Asset")]
     pub resource_type: String,
     pub resource_id: Uuid,
+    #[schema(example = "CREATE")]
     pub action_type: String,
     pub requested_by: Uuid,
+    #[schema(value_type = Option<Object>)]
     pub data_snapshot: Option<JsonValue>,
+    #[schema(example = "PENDING")]
     pub status: String,
     pub current_approval_level: i32,
     pub approved_by_l1: Option<Uuid>,

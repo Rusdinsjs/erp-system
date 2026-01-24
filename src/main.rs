@@ -36,10 +36,16 @@ async fn main() {
 
     // Database connection pool
     let pool = PgPoolOptions::new()
-        .max_connections(10)
+        .max_connections(50)
+        .min_connections(5)
+        .acquire_timeout(std::time::Duration::from_secs(30))
+        .idle_timeout(std::time::Duration::from_secs(600))
         .connect(&config.database_url)
         .await
-        .expect("Failed to connect to database");
+        .expect(&format!(
+            "Failed to connect to database at {}",
+            config.database_url
+        ));
 
     tracing::info!("Database connected successfully");
 
@@ -64,14 +70,17 @@ async fn main() {
     let app = create_app(state);
 
     // Start server
-    let addr: SocketAddr = format!("{}:{}", config.server_host, config.server_port)
+    let addr_str = format!("{}:{}", config.server_host, config.server_port);
+    let addr: SocketAddr = addr_str
         .parse()
-        .expect("Invalid server address");
+        .expect(&format!("Invalid server address: {}", addr_str));
 
     // Force rebuild for migrations
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect("Failed to bind to address");
+        .expect(&format!("Failed to bind to address: {}", addr));
 
-    axum::serve(listener, app).await.expect("Server error");
+    axum::serve(listener, app)
+        .await
+        .expect("Server error during execution");
 }

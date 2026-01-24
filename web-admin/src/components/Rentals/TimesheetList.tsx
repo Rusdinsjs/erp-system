@@ -1,17 +1,16 @@
-// TimesheetList Component - Pure Tailwind
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, Check, X, Plus } from 'lucide-react';
+import { Eye, Check, X, Plus, Calendar, Clock, ClipboardList } from 'lucide-react';
 import { timesheetApi } from '../../api/timesheet';
 import { rentalApi } from '../../api/rental';
 import { CreateTimesheetModal } from './CreateTimesheetModal';
 import {
-    Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty,
     Select,
     LoadingOverlay,
     ActionIcon,
     StatusBadge,
-    Button
+    Button,
+    Badge
 } from '../ui';
 
 interface TimesheetListProps {
@@ -40,91 +39,162 @@ export function TimesheetList({ rentalId }: TimesheetListProps) {
     });
 
     return (
-        <div className="space-y-4">
-            <div className="relative min-h-[100px]">
-                <LoadingOverlay visible={isLoading} />
-
-                <div className="flex justify-between items-end mb-6">
+        <div className="flex flex-col h-full bg-gray-900/10">
+            {/* Contextual Header */}
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-gray-950/20 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
                     {!rentalId ? (
-                        <div className="max-w-sm w-full">
-                            <Select
-                                placeholder="Select Rental Asset"
-                                options={rentalOptions}
-                                value={selectedRentalInternal}
-                                onChange={(val) => setSelectedRentalInternal(val)}
-                            />
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                <Calendar size={20} className="text-blue-400" />
+                            </div>
+                            <div className="max-w-sm w-[300px]">
+                                <Select
+                                    placeholder="Select Rental Asset Stream"
+                                    options={rentalOptions}
+                                    value={selectedRentalInternal}
+                                    onChange={(val) => setSelectedRentalInternal(val)}
+                                    className="bg-black/40 border-white/5 rounded-xl h-11"
+                                />
+                            </div>
                         </div>
-                    ) : <div></div>}
-
-                    {activeRentalId && (
-                        <Button leftIcon={<Plus size={16} />} onClick={() => setCreateModalOpen(true)}>
-                            Add Entry
-                        </Button>
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                <Clock size={20} className="text-blue-400" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-bold text-white uppercase tracking-wider">Operational Logs</h4>
+                                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">Timesheets & Performance Data</p>
+                            </div>
+                        </div>
                     )}
                 </div>
+                {activeRentalId && (
+                    <Button
+                        variant="primary"
+                        leftIcon={<Plus size={18} />}
+                        onClick={() => setCreateModalOpen(true)}
+                        className="rounded-xl shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-500 h-11 px-6 text-[11px] font-black uppercase tracking-widest"
+                    >
+                        Register Entry
+                    </Button>
+                )}
+            </div>
+
+            <div className="relative flex-1 overflow-hidden flex flex-col">
+                <LoadingOverlay visible={isLoading} />
 
                 {activeRentalId ? (
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableTh>Date</TableTh>
-                                <TableTh>Asset</TableTh>
-                                <TableTh>Operating Hours</TableTh>
-                                <TableTh>Standby</TableTh>
-                                <TableTh>Volume</TableTh>
-                                <TableTh>Status</TableTh>
-                                <TableTh className="text-right">Actions</TableTh>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {timesheets && timesheets.length > 0 ? (
-                                timesheets.map((ts) => (
-                                    <TableRow key={ts.id}>
-                                        <TableTd>{ts.work_date}</TableTd>
-                                        <TableTd>{(ts as any).asset_name || '-'}</TableTd>
-                                        <TableTd>{ts.operating_hours}</TableTd>
-                                        <TableTd>{ts.standby_hours}</TableTd>
-                                        <TableTd>
-                                            {ts.production_volume ? (
-                                                <span className="font-medium text-emerald-400">
-                                                    {ts.production_volume} <span className="text-slate-500 text-xs">{ts.production_unit}</span>
-                                                </span>
-                                            ) : '-'}
-                                        </TableTd>
-                                        <TableTd>
-                                            <StatusBadge status={ts.status} />
-                                        </TableTd>
-                                        <TableTd className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <ActionIcon title="View Details">
-                                                    <Eye size={16} />
-                                                </ActionIcon>
-                                                {ts.status === 'submitted' && (
-                                                    <>
-                                                        <ActionIcon variant="success" title="Verify">
-                                                            <Check size={16} />
-                                                        </ActionIcon>
-                                                        <ActionIcon variant="danger" title="Reject">
-                                                            <X size={16} />
-                                                        </ActionIcon>
-                                                    </>
-                                                )}
-                                                {ts.status === 'verified' && (
-                                                    <ActionIcon className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" title="Supervisor Approve">
-                                                        <Check size={16} />
+                    <div className="flex-1 overflow-auto custom-scrollbar">
+                        <table className="w-full text-left text-sm text-gray-300 border-separate border-spacing-0">
+                            <thead className="bg-gray-950/80 sticky top-0 z-20 backdrop-blur-md">
+                                <tr>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Work Date</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Asset Instance</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Utilization</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 text-center">Standby / BD</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Performance</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Lifecycle</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {timesheets && timesheets.length > 0 ? (
+                                    timesheets.map((ts) => (
+                                        <tr key={ts.id} className="group hover:bg-white/[0.03] transition-all duration-300">
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight whitespace-nowrap">
+                                                    {ts.work_date}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-gray-300 font-medium whitespace-nowrap">{(ts as any).asset_name || '-'}</span>
+                                                    <span className="text-[10px] font-mono text-gray-600">ID: {ts.id.slice(0, 8)}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-blue-400 font-black text-lg tracking-tighter">{ts.operating_hours}</span>
+                                                    <span className="text-[10px] font-bold text-gray-600 uppercase">Hours</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <Badge variant="warning" className="bg-amber-500/5 border-amber-500/10 text-amber-500/70 font-bold text-[10px]">
+                                                        {ts.standby_hours}h S
+                                                    </Badge>
+                                                    <Badge variant="danger" className="bg-rose-500/5 border-rose-500/10 text-rose-500/70 font-bold text-[10px]">
+                                                        {ts.breakdown_hours}h B
+                                                    </Badge>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {ts.production_volume ? (
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="font-black text-emerald-400 tracking-tighter italic">
+                                                            {ts.production_volume}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-gray-600 uppercase">{ts.production_unit}</span>
+                                                    </div>
+                                                ) : <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">No Data</span>}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <StatusBadge status={ts.status} className="px-3 py-1 text-[10px] uppercase font-black tracking-widest shadow-lg shadow-black/20" />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                    <ActionIcon variant="default" className="rounded-xl hover:bg-white/10 w-10 h-10">
+                                                        <Eye size={16} />
                                                     </ActionIcon>
-                                                )}
-                                            </div>
-                                        </TableTd>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                !isLoading && <TableEmpty colSpan={6} message="No timesheets found" />
-                            )}
-                        </TableBody>
-                    </Table>
+                                                    {ts.status === 'submitted' && (
+                                                        <>
+                                                            <ActionIcon variant="success" className="rounded-xl hover:bg-emerald-500/20 w-10 h-10 border border-emerald-500/20">
+                                                                <Check size={16} />
+                                                            </ActionIcon>
+                                                            <ActionIcon variant="danger" className="rounded-xl hover:bg-rose-500/20 w-10 h-10 border border-rose-500/20">
+                                                                <X size={16} />
+                                                            </ActionIcon>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    !isLoading && (
+                                        <tr>
+                                            <td colSpan={7} className="py-24 text-center">
+                                                <div className="flex flex-col items-center justify-center gap-4 text-gray-600">
+                                                    <div className="p-6 bg-white/5 rounded-full">
+                                                        <ClipboardList size={48} className="opacity-20" />
+                                                    </div>
+                                                    <p className="text-sm font-bold uppercase tracking-widest opacity-50">No operational records found for this stream</p>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => setCreateModalOpen(true)}
+                                                        className="rounded-xl"
+                                                    >
+                                                        Initialize Log Entry
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 ) : (
-                    <p className="text-center text-slate-500 py-8">Select a rental to view timesheets</p>
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+                        <div className="w-24 h-24 rounded-full bg-blue-500/5 border border-dashed border-blue-500/20 flex items-center justify-center mb-6">
+                            <Plus size={48} className="text-blue-500/20" />
+                        </div>
+                        <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">Stream Selection Required</h4>
+                        <p className="text-gray-500 max-w-sm font-medium">Select a rental asset from the dropdown above to view or manage operational timesheets.</p>
+                    </div>
                 )}
             </div>
 

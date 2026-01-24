@@ -32,6 +32,7 @@ export interface Asset {
     condition_id?: number;
     is_rental?: boolean;
     is_fuel?: boolean;
+    is_loan?: boolean;
 
     serial_number?: string;
     brand?: string;
@@ -81,6 +82,7 @@ export interface AssetSearchParams {
     status?: string;
     is_rental?: boolean;
     is_fuel?: boolean;
+    is_loan?: boolean;
     page: number;
     per_page: number;
 }

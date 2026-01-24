@@ -56,102 +56,113 @@ export function RentalScheduler() {
     if (isLoading) return <PageLoading />;
 
     return (
-        <div className="space-y-4 font-sans">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex flex-col h-full bg-transparent">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-gray-900/10">
                 <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-indigo-400" />
-                    <h2 className="text-xl font-bold text-white">
+                    <Calendar className="w-5 h-5 text-blue-400" />
+                    <h2 className="text-xl font-bold text-white tracking-tight">
                         {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                     </h2>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="secondary" onClick={handlePrevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-                    <Button variant="secondary" onClick={() => setViewDate(new Date())}>Today</Button>
-                    <Button variant="secondary" onClick={handleNextMonth}><ChevronRight className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="sm" onClick={handlePrevMonth} className="rounded-xl border border-white/5 bg-white/5 hover:bg-white/10">
+                        <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setViewDate(new Date())} className="rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 px-4">
+                        Today
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleNextMonth} className="rounded-xl border border-white/5 bg-white/5 hover:bg-white/10">
+                        <ChevronRight className="w-4 h-4" />
+                    </Button>
                 </div>
             </div>
 
-            <Card className="overflow-x-auto p-0 bg-slate-900 border-slate-800">
-                <div className="min-w-[800px]">
-                    {/* Header Row */}
-                    <div className="grid grid-cols-[200px_1fr] border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
-                        <div className="p-3 font-semibold text-slate-400 text-sm border-r border-slate-800">Asset</div>
-                        <div className="grid" style={{ gridTemplateColumns: `repeat(${daysInMonth}, minmax(30px, 1fr))` }}>
-                            {days.map(d => (
-                                <div key={d} className={`text-center py-2 text-xs text-slate-500 border-r border-slate-800/50 ${d === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'bg-indigo-900/30 text-white font-bold' : ''}`}>
-                                    {d}
+            <div className="p-6">
+                <Card className="overflow-x-auto p-0 border-white/5 rounded-2xl">
+                    <div className="min-w-[800px]">
+                        {/* Header Row */}
+                        <div className="grid grid-cols-[200px_1fr] border-b border-white/5 sticky top-0 bg-gray-950 z-10 shadow-lg shadow-black/50">
+                            <div className="p-4 font-bold text-gray-400 text-xs uppercase tracking-widest border-r border-white/5">Asset</div>
+                            <div className="grid" style={{ gridTemplateColumns: `repeat(${daysInMonth}, minmax(30px, 1fr))` }}>
+                                {days.map(d => (
+                                    <div key={d} className={`text-center py-4 text-[10px] font-bold text-gray-500 border-r border-white/5 ${d === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'bg-blue-500/20 text-blue-400' : ''}`}>
+                                        {d}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Rows */}
+                        <div className="bg-gray-900/40">
+                            {assets.map(asset => (
+                                <div key={asset.id} className="grid grid-cols-[200px_1fr] border-b border-white/5 hover:bg-white/5 transition-colors group">
+                                    <div className="p-4 border-r border-white/5 bg-black/20 group-hover:bg-transparent">
+                                        <div className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">{asset.name}</div>
+                                        <div className="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-tighter">{asset.code}</div>
+                                    </div>
+                                    <div className="relative h-16">
+                                        {/* Grid Lines */}
+                                        <div className="absolute inset-0 grid h-full pointer-events-none" style={{ gridTemplateColumns: `repeat(${daysInMonth}, minmax(30px, 1fr))` }}>
+                                            {days.map(d => (
+                                                <div key={d} className={`border-r border-white/5 h-full ${d === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'bg-blue-500/5' : ''}`}></div>
+                                            ))}
+                                        </div>
+
+                                        {/* Bars */}
+                                        {asset.schedules.map((item: any) => {
+                                            // Calculate position
+                                            const itemStart = new Date(item.start_date);
+                                            const itemEnd = item.actual_end_date ? new Date(item.actual_end_date) : (item.expected_end_date ? new Date(item.expected_end_date) : endOfMonth);
+
+                                            // Clamp to current month view
+                                            const viewStart = startOfMonth;
+                                            const viewEnd = endOfMonth;
+
+                                            if (itemEnd < viewStart || itemStart > viewEnd) return null;
+
+                                            const effectiveStart = itemStart < viewStart ? viewStart : itemStart;
+                                            const effectiveEnd = itemEnd > viewEnd ? viewEnd : itemEnd;
+
+                                            const startDay = effectiveStart.getDate();
+                                            const endDay = effectiveEnd.getDate();
+                                            const duration = endDay - startDay + 1; // Inclusive
+
+                                            // Color based on status
+                                            let barClass = "bg-blue-600 shadow-blue-500/20";
+                                            if (item.status === 'rented_out') barClass = "bg-emerald-600 shadow-emerald-500/20";
+                                            if (item.status === 'overdue') barClass = "bg-rose-600 shadow-rose-500/20";
+                                            if (item.status === 'returned') barClass = "bg-gray-600 shadow-gray-500/20";
+                                            if (item.status === 'approved') barClass = "bg-indigo-600 shadow-indigo-500/20";
+
+
+                                            return (
+                                                <div
+                                                    key={item.rental_item_id}
+                                                    className={`absolute top-3 bottom-3 rounded-lg ${barClass} text-[10px] font-bold text-white flex items-center px-3 truncate shadow-lg group cursor-pointer transition-all hover:scale-[1.02] hover:brightness-110 z-20 border border-white/10`}
+                                                    style={{
+                                                        left: `calc(((100% / ${daysInMonth}) * ${startDay - 1}) + 2px)`,
+                                                        width: `calc(((100% / ${daysInMonth}) * ${duration}) - 4px)`
+                                                    }}
+                                                    title={`${item.client_name} (${item.status})`}
+                                                >
+                                                    <span className="truncate w-full leading-none tracking-tight">{item.client_name}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             ))}
                         </div>
+
+                        {assets.length === 0 && (
+                            <div className="py-24 text-center">
+                                <Calendar size={48} className="mx-auto mb-4 text-gray-700 opacity-20" />
+                                <p className="text-gray-500 font-medium">No rentals scheduled for this month.</p>
+                            </div>
+                        )}
                     </div>
-
-                    {/* Rows */}
-                    {assets.map(asset => (
-                        <div key={asset.id} className="grid grid-cols-[200px_1fr] border-b border-slate-800/50 hover:bg-slate-800/20">
-                            <div className="p-3 border-r border-slate-800">
-                                <div className="text-sm font-medium text-white">{asset.name}</div>
-                                <div className="text-xs text-slate-500">{asset.code}</div>
-                            </div>
-                            <div className="relative h-14 border-slate-800/50">
-                                {/* Grid Lines */}
-                                <div className="absolute inset-0 grid h-full pointer-events-none" style={{ gridTemplateColumns: `repeat(${daysInMonth}, minmax(30px, 1fr))` }}>
-                                    {days.map(d => (
-                                        <div key={d} className={`border-r border-slate-800/30 h-full ${d === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'bg-indigo-500/5' : ''}`}></div>
-                                    ))}
-                                </div>
-
-                                {/* Bars */}
-                                {asset.schedules.map((item: any) => {
-                                    // Calculate position
-                                    const itemStart = new Date(item.start_date);
-                                    const itemEnd = item.actual_end_date ? new Date(item.actual_end_date) : (item.expected_end_date ? new Date(item.expected_end_date) : endOfMonth);
-
-                                    // Clamp to current month view
-                                    const viewStart = startOfMonth;
-                                    const viewEnd = endOfMonth;
-
-                                    if (itemEnd < viewStart || itemStart > viewEnd) return null;
-
-                                    const effectiveStart = itemStart < viewStart ? viewStart : itemStart;
-                                    const effectiveEnd = itemEnd > viewEnd ? viewEnd : itemEnd;
-
-                                    const startDay = effectiveStart.getDate();
-                                    const endDay = effectiveEnd.getDate();
-                                    const duration = endDay - startDay + 1; // Inclusive
-
-                                    // Color based on status
-                                    let color = "bg-blue-500";
-                                    if (item.status === 'rented_out') color = "bg-emerald-500";
-                                    if (item.status === 'overdue') color = "bg-red-500";
-                                    if (item.status === 'returned') color = "bg-slate-600";
-                                    if (item.status === 'approved') color = "bg-indigo-500";
-
-
-                                    return (
-                                        <div
-                                            key={item.rental_item_id}
-                                            className={`absolute top-2 bottom-2 rounded-md ${color} text-[10px] text-white flex items-center px-2 truncate shadow-sm group cursor-pointer transition-all hover:brightness-110`}
-                                            style={{
-                                                left: `calc(((100% / ${daysInMonth}) * ${startDay - 1}) + 2px)`,
-                                                width: `calc(((100% / ${daysInMonth}) * ${duration}) - 4px)`
-                                            }}
-                                            title={`${item.client_name} (${item.status})`}
-                                        >
-                                            <span className="truncate w-full">{item.client_name}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
-
-                    {assets.length === 0 && (
-                        <div className="p-8 text-center text-slate-500">
-                            No rentals scheduled for this month.
-                        </div>
-                    )}
-                </div>
-            </Card>
+                </Card>
+            </div>
         </div>
     );
 }

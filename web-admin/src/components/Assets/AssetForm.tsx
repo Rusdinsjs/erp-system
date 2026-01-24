@@ -59,6 +59,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         notes: initialValues?.notes || '',
         is_rental: initialValues?.is_rental || false,
         is_fuel: initialValues?.is_fuel || false,
+        is_loan: initialValues?.is_loan || false,
         // Vehicle Details
         vehicle_license_plate: initialValues?.vehicle_details?.license_plate || '',
         vehicle_vin: initialValues?.vehicle_details?.vin || '',
@@ -102,6 +103,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 notes: initialValues.notes || '',
                 is_rental: initialValues.is_rental || false,
                 is_fuel: initialValues.is_fuel || false,
+                is_loan: initialValues.is_loan || false,
                 // Vehicle Details
                 vehicle_license_plate: initialValues.vehicle_details?.license_plate || '',
                 vehicle_vin: initialValues.vehicle_details?.vin || '',
@@ -154,6 +156,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 notes: '',
                 is_rental: false,
                 is_fuel: false,
+                is_loan: false,
                 vehicle_license_plate: '',
                 vehicle_vin: '',
                 vehicle_engine_number: '',
@@ -307,6 +310,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             notes: formData.notes || undefined,
             is_rental: formData.is_rental,
             is_fuel: formData.is_fuel,
+            is_loan: formData.is_loan,
         };
 
         // Vehicle details
@@ -523,6 +527,17 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         <div>
                                             <p className="font-semibold text-white text-sm">Fuel Consumption</p>
                                             <p className="text-xs text-slate-500">Asset requires fuel monitoring</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="group flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-3xl border border-white/5 transition-all duration-300 cursor-pointer"
+                                        onClick={() => updateField('is_loan', !formData.is_loan)}>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_loan ? 'bg-purple-500 border-purple-500' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                            {formData.is_loan && <Plus size={14} className="text-white rotate-45" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-white text-sm">Loanable Asset</p>
+                                            <p className="text-xs text-slate-500">Allow internal employee loans</p>
                                         </div>
                                     </div>
                                 </div>
