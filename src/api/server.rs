@@ -100,7 +100,11 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(pool: PgPool, jwt_config: JwtConfig) -> Self {
+    pub fn new(
+        pool: PgPool,
+        jwt_config: JwtConfig,
+        config: &crate::shared::config::AppConfig,
+    ) -> Self {
         // Create repositories
         let asset_repo = AssetRepository::new(pool.clone());
         let user_repo = UserRepository::new(pool.clone());
@@ -150,7 +154,7 @@ impl AppState {
         let category_template_service = CategoryTemplateService::new(category_template_repo);
         let ws_manager = Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new());
         let notification_service = NotificationService::new(notification_repo, ws_manager.clone());
-        let email_service = crate::application::services::EmailService::new();
+        let email_service = crate::application::services::EmailService::new(config);
         let approval_workflow_service = crate::application::services::ApprovalWorkflowService::new(
             approval_workflow_repo.clone(),
         );
@@ -200,7 +204,7 @@ impl AppState {
             rental_repo.clone(),
             client_repo.clone(),
         );
-        let email_service = crate::application::services::EmailService::new();
+        let email_service = crate::application::services::EmailService::new(config);
         let data_service = DataService::new(asset_repo.clone());
         let scheduler_service = SchedulerService::new(
             loan_service.clone(),
@@ -309,6 +313,12 @@ pub fn create_app(state: AppState) -> axum::Router {
                         .parse::<axum::http::HeaderValue>()
                         .unwrap(),
                     "http://localhost:5173"
+                        .parse::<axum::http::HeaderValue>()
+                        .unwrap(),
+                    "http://localhost:5174"
+                        .parse::<axum::http::HeaderValue>()
+                        .unwrap(),
+                    "http://localhost:5175"
                         .parse::<axum::http::HeaderValue>()
                         .unwrap(),
                 ])

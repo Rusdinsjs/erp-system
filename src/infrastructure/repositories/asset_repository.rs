@@ -293,7 +293,16 @@ impl AssetRepository {
                 AND ($2::uuid IS NULL OR a.category_id = $2)
                 AND ($3::uuid IS NULL OR a.location_id = $3)
                 AND ($4::text IS NULL OR a.department = $4 OR d.name = $4)
-                AND (($5::text IS NOT NULL AND a.status = $5) OR ($5::text IS NULL AND a.status != 'archived'))
+                AND (
+                    ($5::text IS NULL AND a.status != 'archived')
+                    OR ($5::text IS NOT NULL AND (
+                        a.status = ANY(string_to_array($5, ','))
+                        OR (
+                            'active' = ANY(string_to_array($5, ','))
+                            AND a.status NOT IN ('archived', 'maintenance', 'under_maintenance', 'under_repair', 'under_conversion', 'retired', 'disposed', 'planning', 'lost_stolen')
+                        )
+                    ))
+                )
                 AND ($8::boolean IS NULL OR a.is_fuel = $8)
             ORDER BY a.created_at DESC
             LIMIT $6 OFFSET $7

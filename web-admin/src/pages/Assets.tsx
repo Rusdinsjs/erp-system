@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText } from 'lucide-react';
 import { assetApi } from '../api/assets';
 import type { Asset, CreateAssetRequest } from '../api/assets';
 import { api } from '../api/http';
@@ -17,6 +17,7 @@ import {
     Modal,
     useToast,
     TableSkeleton,
+    MultiSelect,
 } from '../components/ui';
 
 // Helper to flatten category tree
@@ -158,6 +159,13 @@ export function Assets() {
         }
     }, [editingAsset, updateMutation, createMutation]);
 
+    // Fetch Dashboard Stats
+    const { data: stats } = useQuery({
+        queryKey: ['dashboard-stats'],
+        queryFn: assetApi.getDashboardStats,
+        staleTime: 30000
+    });
+
     const totalPages = assetsData?.total_pages || 1;
 
     return (
@@ -169,6 +177,38 @@ export function Assets() {
                     <p className="text-gray-400 mt-2">Manage company assets, vehicles, and equipment</p>
                 </div>
                 <div className="flex gap-3">
+                    <Button
+                        variant="outline"
+                        leftIcon={<FileText size={18} />}
+                        onClick={async () => {
+                            try {
+                                const response = await api.get('/reports/assets/pdf', {
+                                    responseType: 'blob'
+                                });
+                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.setAttribute('download', `Asset_Inventory_${new Date().toISOString().split('T')[0]}.pdf`);
+                                document.body.appendChild(link);
+                                link.click();
+                                link.remove();
+                                success('PDF Export downloaded successfully', 'Export Complete');
+                            } catch (error: any) {
+                                let errorMessage = 'Export Error';
+                                if (error.response && error.response.data instanceof Blob) {
+                                    try {
+                                        const text = await error.response.data.text();
+                                        const json = JSON.parse(text);
+                                        errorMessage = json.error || errorMessage;
+                                    } catch (e) { }
+                                }
+                                showError(errorMessage, 'Failed to export PDF');
+                            }
+                        }}
+                        className="rounded-xl"
+                    >
+                        Export PDF
+                    </Button>
                     <Button
                         variant="outline"
                         leftIcon={<Upload size={18} />}
@@ -195,7 +235,7 @@ export function Assets() {
                         <div>
                             <p className="text-gray-400 text-sm font-medium">Total Assets</p>
                             <h3 className="text-3xl font-bold text-white mt-1">
-                                {assetsData?.total || 0}
+                                {stats?.assets?.total || 0}
                             </h3>
                         </div>
                         <div className="p-3 bg-blue-500/20 rounded-xl">
@@ -210,7 +250,10 @@ export function Assets() {
                         <div>
                             <p className="text-gray-400 text-sm font-medium">Active Assets</p>
                             <h3 className="text-3xl font-bold text-white mt-1">
-                                {assetsData?.data?.filter((a: any) => a.status === 'active').length || 0}
+                                {/* Sum of active statuses */}
+                                {stats?.assets?.by_status?.filter((s: any) =>
+                                    ['available', 'in_use', 'deployed', 'InInventory'].includes(s.status)
+                                ).reduce((acc: number, curr: any) => acc + curr.count, 0) || 0}
                             </h3>
                         </div>
                         <div className="p-3 bg-green-500/20 rounded-xl">
@@ -225,7 +268,7 @@ export function Assets() {
                         <div>
                             <p className="text-gray-400 text-sm font-medium">Maintenance</p>
                             <h3 className="text-3xl font-bold text-white mt-1">
-                                {assetsData?.data?.filter((a: any) => a.status === 'maintenance').length || 0}
+                                {stats?.maintenance?.pending || 0}
                             </h3>
                         </div>
                         <div className="p-3 bg-amber-500/20 rounded-xl">
@@ -240,7 +283,7 @@ export function Assets() {
                         <div>
                             <p className="text-gray-400 text-sm font-medium">Planning</p>
                             <h3 className="text-3xl font-bold text-white mt-1">
-                                {assetsData?.data?.filter((a: any) => a.status === 'planning').length || 0}
+                                {stats?.assets?.by_status?.find((s: any) => s.status === 'planning')?.count || 0}
                             </h3>
                         </div>
                         <div className="p-3 bg-cyan-500/20 rounded-xl">
@@ -265,22 +308,36 @@ export function Assets() {
                         />
                     </div>
 
-                    <div className="flex gap-2">
-                        {['all', 'active', 'maintenance', 'planning'].map(s => (
-                            <button
-                                key={s}
-                                onClick={() => {
-                                    // Handle status filter logic if needed
-                                }}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all duration-200
-                                    ${(statusFilter === s || (!statusFilter && s === 'all'))
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-                                    }`}
-                            >
-                                {s}
-                            </button>
-                        ))}
+                    <div className="w-full sm:w-auto min-w-[200px]">
+                        <MultiSelect
+                            placeholder="Filter Status..."
+                            options={[
+                                { value: 'active', label: 'Active (All Operational)' },
+                                { value: 'planning', label: 'Planning' },
+                                { value: 'procurement', label: 'Procurement' },
+                                { value: 'received', label: 'Received' },
+                                { value: 'in_inventory', label: 'In Inventory' },
+                                { value: 'deployed', label: 'Deployed' },
+                                { value: 'rented_out', label: 'Rented Out' },
+                                { value: 'under_maintenance', label: 'Under Maintenance' },
+                                { value: 'under_repair', label: 'Under Repair' },
+                                { value: 'under_conversion', label: 'Under Conversion' },
+                                { value: 'retired', label: 'Retired' },
+                                { value: 'disposed', label: 'Disposed' },
+                                { value: 'lost_stolen', label: 'Lost/Stolen' },
+                                { value: 'archived', label: 'Archived' },
+                            ]}
+                            value={statusFilter ? statusFilter.split(',') : []}
+                            onChange={(values) => {
+                                const newParams = new URLSearchParams(searchParams);
+                                if (values.length === 0) {
+                                    newParams.delete('status');
+                                } else {
+                                    newParams.set('status', values.join(','));
+                                }
+                                navigate(`?${newParams.toString()}`);
+                            }}
+                        />
                     </div>
                 </div>
 

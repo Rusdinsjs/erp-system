@@ -124,11 +124,11 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
             />
 
             {/* Details Tabs */}
-            <Tabs defaultValue="details">
-                <TabsList className="mb-4">
-                    <TabsTrigger value="details">General Info</TabsTrigger>
-                    <TabsTrigger value="roi">ROI & Profitability</TabsTrigger>
-                    <TabsTrigger value="qrcode">QR Code Label</TabsTrigger>
+            <Tabs defaultValue="details" className="w-full">
+                <TabsList className="mb-4 w-full justify-start overflow-x-auto global-scrollbar pb-1">
+                    <TabsTrigger value="details" className="flex-shrink-0">General Info</TabsTrigger>
+                    <TabsTrigger value="roi" className="flex-shrink-0">ROI & Profitability</TabsTrigger>
+                    <TabsTrigger value="qrcode" className="flex-shrink-0">QR Code Label</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details">
@@ -190,13 +190,14 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
 
                 <TabsContent value="qrcode">
                     <Card padding="lg">
-                        <div className="flex flex-col items-center py-8">
-                            <div className="bg-white p-6 rounded-2xl mb-6 shadow-2xl shadow-cyan-500/20">
+                        <div className="flex flex-col items-center py-4 md:py-8">
+                            <div className="bg-white p-4 md:p-6 rounded-2xl mb-6 shadow-2xl shadow-cyan-500/20 max-w-[250px] w-full aspect-square flex items-center justify-center">
                                 <QRCodeSVG
                                     value={asset.id}
-                                    size={200}
+                                    size={180}
                                     level="H"
                                     includeMargin={false}
+                                    className="w-full h-full"
                                 />
                             </div>
 
@@ -205,16 +206,16 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
                                 <p className="text-slate-400">{asset.name}</p>
                             </div>
 
-                            <div className="flex gap-4">
+                            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
                                 <Button
                                     onClick={() => handlePrint(asset)}
                                     leftIcon={<Printer size={20} />}
                                     size="lg"
-                                    className="px-8"
+                                    className="px-8 w-full sm:w-auto justify-center"
                                 >
                                     Print QR Label
                                 </Button>
-                                <Button variant="outline" size="lg" onClick={() => {
+                                <Button variant="outline" size="lg" className="w-full sm:w-auto justify-center" onClick={() => {
                                     const svg = document.querySelector('svg');
                                     if (svg) {
                                         const svgData = new XMLSerializer().serializeToString(svg);

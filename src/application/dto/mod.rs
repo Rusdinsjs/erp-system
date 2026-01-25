@@ -1,4 +1,5 @@
 pub mod asset_dto;
+pub mod audit_dto;
 pub mod category_dto;
 pub mod common;
 pub mod contract_dto;
@@ -13,6 +14,7 @@ pub mod rental_timesheet_dto;
 pub mod user_dto;
 
 pub use asset_dto::*;
+pub use audit_dto::*;
 pub use category_dto::*;
 pub use common::*;
 pub use contract_dto::*;

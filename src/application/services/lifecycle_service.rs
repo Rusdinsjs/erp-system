@@ -84,9 +84,8 @@ impl LifecycleService {
             self.repository.get_asset_status_and_name(asset_id).await?;
 
         // Parse states
-        let current_state = AssetState::from_str(&current_status).ok_or_else(|| {
-            DomainError::bad_request(&format!("Invalid current state: {}", current_status))
-        })?;
+        // Gracefully handle invalid states by defaulting to Planning to allow recovery
+        let current_state = AssetState::from_str(&current_status).unwrap_or(AssetState::Planning);
 
         let new_state = AssetState::from_str(target_state).ok_or_else(|| {
             DomainError::bad_request(&format!("Invalid target state: {}", target_state))
@@ -218,9 +217,8 @@ impl LifecycleService {
         let current_status = self.repository.get_asset_status(asset_id).await?;
 
         // Parse states
-        let current_state = AssetState::from_str(&current_status).ok_or_else(|| {
-            DomainError::bad_request(&format!("Invalid current state: {}", current_status))
-        })?;
+        // Gracefully handle invalid states by defaulting to Planning to allow recovery
+        let current_state = AssetState::from_str(&current_status).unwrap_or(AssetState::Planning);
 
         let new_state = AssetState::from_str(target_state).ok_or_else(|| {
             DomainError::bad_request(&format!("Invalid target state: {}", target_state))
@@ -254,9 +252,8 @@ impl LifecycleService {
     ) -> DomainResult<Vec<StateInfoWithApproval>> {
         let current_status = self.repository.get_asset_status(asset_id).await?;
 
-        let current_state = AssetState::from_str(&current_status).ok_or_else(|| {
-            DomainError::bad_request(&format!("Invalid state: {}", current_status))
-        })?;
+        // Gracefully handle invalid states by defaulting to Planning
+        let current_state = AssetState::from_str(&current_status).unwrap_or(AssetState::Planning);
 
         Ok(current_state
             .valid_transitions()
@@ -284,9 +281,8 @@ impl LifecycleService {
     pub async fn get_valid_transitions(&self, asset_id: Uuid) -> DomainResult<Vec<AssetState>> {
         let current_status = self.repository.get_asset_status(asset_id).await?;
 
-        let current_state = AssetState::from_str(&current_status).ok_or_else(|| {
-            DomainError::bad_request(&format!("Invalid state: {}", current_status))
-        })?;
+        // Gracefully handle invalid states by defaulting to Planning
+        let current_state = AssetState::from_str(&current_status).unwrap_or(AssetState::Planning);
 
         Ok(current_state.valid_transitions())
     }

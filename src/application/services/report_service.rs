@@ -142,8 +142,14 @@ impl ReportService {
             .map_err(|e| DomainError::internal(e.to_string()))?;
 
         // Create a new PDF document
-        let font_family = genpdf::fonts::from_files("assets/fonts", "Roboto", None)
-            .map_err(|e| DomainError::internal(format!("Failed to load fonts: {}", e)))?;
+        let font_dir = "assets/fonts";
+        let font_family = genpdf::fonts::from_files(font_dir, "Roboto", None).map_err(|e| {
+            let cwd = std::env::current_dir().unwrap_or_default();
+            DomainError::internal(format!(
+                "Failed to load fonts from '{}' (CWD: {:?}): {}",
+                font_dir, cwd, e
+            ))
+        })?;
 
         let mut doc = genpdf::Document::new(font_family);
         doc.set_title("Asset Inventory Report");

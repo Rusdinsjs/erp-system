@@ -362,7 +362,7 @@ pub fn create_router(state: AppState) -> Router {
             get(analytics_handler::get_asset_status_distribution),
         )
         // Settings
-        .route("/api/settings", get(settings_handler::get_all_settings))
+        // Settings route moved to settings_routes.rs
         .route("/api/dashboard", get(get_dashboard_stats))
         .route("/api/dashboard/activity", get(get_recent_activities))
         .route("/api/dashboard/depreciation", get(get_depreciation_summary))
@@ -386,6 +386,7 @@ pub fn create_router(state: AppState) -> Router {
             "/api/audit/sessions/:id/progress",
             get(audit_handler::get_audit_progress),
         )
+        .route("/api/audit-logs", get(audit_handler::get_audit_logs))
         // Lifecycle routes
         .route(
             "/api/assets/:id/lifecycle/transition",
@@ -446,5 +447,9 @@ pub fn create_router(state: AppState) -> Router {
         .merge(lookup_routes)
         .merge(protected_routes)
         .merge(crate::api::routes::settings_routes::settings_routes())
+        .route(
+            "/api/test/email",
+            axum::routing::post(crate::api::handlers::test_handler::send_test_email),
+        )
         .with_state(state)
 }

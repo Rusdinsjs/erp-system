@@ -24,6 +24,7 @@ const RolesView = lazy(() => import('./Roles').then(m => ({ default: m.Roles }))
 const ProfileView = lazy(() => import('./Profile').then(m => ({ default: m.Profile })));
 const ReportsView = lazy(() => import('./Reports/ReportCenter'));
 const AuditModeView = lazy(() => import('./AuditMode').then(m => ({ default: m.AuditMode })));
+const AuditLogsView = lazy(() => import('./AuditLogs').then(m => ({ default: m.AuditLogs })));
 const AssetLifecycleView = lazy(() => import('./AssetLifecycle').then(m => ({ default: m.AssetLifecycle })));
 const ConversionsView = lazy(() => import('./Conversions').then(m => ({ default: m.Conversions })));
 const FuelView = lazy(() => import('./Fuel/FuelDashboard').then(m => ({ default: m.FuelDashboard })));
@@ -64,6 +65,7 @@ const ApprovalWorkflowSettingsView = lazy(() => import('./ApprovalWorkflowSettin
 const SettingsView = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
 
 const ExpensesView = lazy(() => import('./Finance/Expenses').then(m => ({ default: m.Expenses })));
+const AnalyticsDashboardView = lazy(() => import('./AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
 
 // Define the available tabs
 type TabId =
@@ -90,6 +92,7 @@ type TabId =
     | 'users'
     | 'roles'
     | 'audit'
+    | 'system-audit'
     | 'departments'
     | 'finance'
     | 'journal-entries'
@@ -114,6 +117,7 @@ type TabId =
     | 'expenses'
     | 'asset-lifecycle'
     | 'settings' // Added
+    | 'analytics' // Added
     | 'profile';
 
 interface NavItem {
@@ -143,6 +147,7 @@ const isNavGroup = (entry: NavEntry): entry is NavGroup => {
 // Navigation structure
 const navItems: NavEntry[] = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', minLevel: 5 },
+    { id: 'analytics', icon: TrendingUp, label: 'Analytics', minLevel: 3 },
     {
         id: 'asset_management_group',
         label: 'Asset Management',
@@ -252,6 +257,7 @@ const navItems: NavEntry[] = [
             { id: 'roles', icon: Shield, label: 'Role & Permissions', minLevel: 2 },
             { id: 'approval-workflow-settings', icon: Layers, label: 'Approval Workflows', minLevel: 2 },
             { id: 'audit', icon: Scan, label: 'Audit Mode', minLevel: 2 },
+            { id: 'system-audit', icon: History, label: 'System Logs', minLevel: 2 },
             { id: 'settings', icon: Settings, label: 'General Settings', minLevel: 2 },
             { id: 'profile', icon: UserCircle, label: 'Profil', minLevel: 5 },
         ]
@@ -587,6 +593,7 @@ export default function AdminDashboard() {
             case 'users': return <UsersView />;
             case 'roles': return <RolesView />;
             case 'audit': return <AuditModeView />;
+            case 'system-audit': return <AuditLogsView />;
             case 'departments': return <DepartmentsView />;
             case 'finance': return <ChartOfAccountsView />;
             case 'journal-entries': return <JournalEntriesView />;
@@ -616,6 +623,7 @@ export default function AdminDashboard() {
             case 'expenses': return <ExpensesView />;
             case 'asset-lifecycle': return <AssetLifecycleView />;
             case 'settings': return <SettingsView />;
+            case 'analytics': return <AnalyticsDashboardView />;
             case 'profile': return <ProfileView />;
             default: return <DashboardView />;
         }

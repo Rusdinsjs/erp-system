@@ -75,4 +75,41 @@ impl AuditService {
     pub async fn get_progress(&self, session_id: Uuid) -> DomainResult<(i64, i64)> {
         self.repository.get_session_progress(session_id).await
     }
+
+    pub async fn get_system_logs(
+        &self,
+        query: crate::application::dto::AuditLogQuery,
+    ) -> DomainResult<
+        crate::application::dto::PaginatedResponse<crate::domain::entities::AuditLogEntry>,
+    > {
+        let page = query.page.unwrap_or(1).max(1);
+        let per_page = query.per_page.unwrap_or(20).clamp(1, 100);
+        let offset = (page - 1) * per_page;
+
+        let items = self
+            .repository
+            .find_logs(
+                query.entity_type.as_deref(),
+                query.action.as_deref(),
+                query.user_id,
+                query.entity_id,
+                offset,
+                per_page,
+            )
+            .await?;
+
+        let total = self
+            .repository
+            .count_logs(
+                query.entity_type.as_deref(),
+                query.action.as_deref(),
+                query.user_id,
+                query.entity_id,
+            )
+            .await?;
+
+        Ok(crate::application::dto::PaginatedResponse::new(
+            items, total, page, per_page,
+        ))
+    }
 }

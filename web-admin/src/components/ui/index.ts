@@ -24,4 +24,5 @@ export { Timeline, TimelineItem } from './Timeline';
 export { TreeItem } from './Tree';
 export { TagsInput } from './TagsInput';
 export { Logo } from './Logo';
+export { MultiSelect } from './MultiSelect';
 

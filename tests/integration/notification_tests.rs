@@ -1,12 +1,12 @@
-use axum::http::StatusCode;
-use chrono::Utc;
+// use axum::http::StatusCode;
+// use chrono::Utc;
 use uuid::Uuid;
 
 mod test_utils;
 
 #[tokio::test]
 async fn test_notification_flow() {
-    let app = test_utils::setup_app().await;
+    let _app = test_utils::setup_app().await;
     // We need direct access to the service or database to verify side effects if we don't expose everything via API.
     // However, we have API endpoints for notifications.
     // GET /api/users/:id/notifications

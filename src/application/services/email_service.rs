@@ -6,10 +6,11 @@
 use lettre::message::{Attachment, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
-use std::env;
 
 use crate::domain::entities::RentalBillingPeriod;
 use crate::domain::errors::{DomainError, DomainResult};
+
+use crate::shared::config::AppConfig;
 
 #[derive(Clone)]
 pub struct EmailService {
@@ -18,16 +19,15 @@ pub struct EmailService {
 }
 
 impl EmailService {
-    pub fn new() -> Self {
-        let smtp_host = env::var("SMTP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-        let smtp_user = env::var("SMTP_USER").ok();
-        let smtp_pass = env::var("SMTP_PASS").ok();
-        let from_email =
-            env::var("SMTP_FROM").unwrap_or_else(|_| "noreply@example.com".to_string());
+    pub fn new(config: &AppConfig) -> Self {
+        let smtp_host = &config.smtp_host;
+        let smtp_user = &config.smtp_user;
+        let smtp_pass = &config.smtp_pass;
+        let from_email = config.smtp_from.clone();
 
         let mailer = if let (Some(user), Some(pass)) = (smtp_user, smtp_pass) {
-            let creds = Credentials::new(user, pass);
-            match AsyncSmtpTransport::<Tokio1Executor>::relay(&smtp_host) {
+            let creds = Credentials::new(user.clone(), pass.clone());
+            match AsyncSmtpTransport::<Tokio1Executor>::relay(smtp_host) {
                 Ok(builder) => Some(builder.credentials(creds).build()),
                 Err(e) => {
                     eprintln!("Failed to build SMTP transport: {}", e);
@@ -36,7 +36,7 @@ impl EmailService {
             }
         } else {
             // Development / No Auth - Use builder_dangerous for no-auth/relaxed TLS
-            Some(AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&smtp_host).build())
+            Some(AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(smtp_host).build())
         };
 
         Self { mailer, from_email }
@@ -82,18 +82,17 @@ impl EmailService {
                             .header(lettre::message::header::ContentType::TEXT_PLAIN)
                             .body(body),
                     )
-                    .singlepart(
-                        Attachment::new(filename).body(
-                            invoice_pdf,
-                            lettre::message::header::ContentType::parse("application/pdf")
-                                .map_err(|e| {
-                                    DomainError::internal(format!(
-                                        "Failed to parse PDF content type: {}",
-                                        e
-                                    ))
-                                })?,
-                        ),
-                    ),
+                    .singlepart(Attachment::new(filename).body(
+                        invoice_pdf,
+                        lettre::message::header::ContentType::parse("application/pdf").map_err(
+                            |e| {
+                                DomainError::internal(format!(
+                                    "Failed to parse PDF content type: {}",
+                                    e
+                                ))
+                            },
+                        )?,
+                    )),
             )
             .map_err(|e| DomainError::internal(format!("Failed to build email: {}", e)))?;
 

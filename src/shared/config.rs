@@ -11,6 +11,10 @@ pub struct AppConfig {
     pub jwt_secret: String,
     pub jwt_expiry_hours: i64,
     pub environment: String,
+    pub smtp_host: String,
+    pub smtp_user: Option<String>,
+    pub smtp_pass: Option<String>,
+    pub smtp_from: String,
 }
 
 impl AppConfig {
@@ -32,6 +36,10 @@ impl AppConfig {
                 .parse()
                 .unwrap_or(24),
             environment: env::var("ENVIRONMENT").unwrap_or_else(|_| "development".to_string()),
+            smtp_host: env::var("SMTP_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+            smtp_user: env::var("SMTP_USER").ok(),
+            smtp_pass: env::var("SMTP_PASS").ok(),
+            smtp_from: env::var("SMTP_FROM").unwrap_or_else(|_| "noreply@example.com".to_string()),
         }
     }
 

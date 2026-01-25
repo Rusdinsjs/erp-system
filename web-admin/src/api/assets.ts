@@ -97,8 +97,16 @@ export interface PaginatedResponse<T> {
 
 export const assetApi = {
     list: async (params: AssetSearchParams) => {
-        const response = await api.get<PaginatedResponse<Asset>>('/assets/search', { params });
-        return response.data;
+        const response = await api.get<any>('/assets/search', { params });
+        const { data, pagination } = response.data;
+        // Flatten the response to match PaginatedResponse interface
+        return {
+            data,
+            total: pagination.total,
+            page: pagination.page,
+            per_page: pagination.per_page,
+            total_pages: pagination.total_pages
+        };
     },
 
     get: async (id: string) => {
@@ -123,5 +131,10 @@ export const assetApi = {
 
     getVehicleDetails: async (_assetId: string) => {
         return null;
+    },
+
+    getDashboardStats: async () => {
+        const response = await api.get('/dashboard');
+        return response.data;
     }
 };

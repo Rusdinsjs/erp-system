@@ -9,7 +9,7 @@ use axum::{
 
 use crate::api::server::AppState;
 use crate::domain::entities::UserClaims;
-use crate::shared::utils::jwt::{decode_token, JwtConfig};
+use crate::shared::utils::jwt::decode_token;
 
 /// Auth middleware
 pub async fn auth_middleware(

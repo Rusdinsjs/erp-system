@@ -61,7 +61,7 @@ async fn main() {
     let jwt_config = JwtConfig::new(config.jwt_secret.clone(), config.jwt_expiry_hours);
 
     // Create application state
-    let state = AppState::new(pool, jwt_config);
+    let state = AppState::new(pool, jwt_config, &config);
 
     // Start scheduler
     let _ = state.scheduler_service.start().await;
@@ -80,7 +80,10 @@ async fn main() {
         .await
         .expect(&format!("Failed to bind to address: {}", addr));
 
-    axum::serve(listener, app)
-        .await
-        .expect("Server error during execution");
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .expect("Server error during execution");
 }

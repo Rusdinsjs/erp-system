@@ -87,15 +87,15 @@ async fn test_create_and_get_asset() {
     let unique = Uuid::new_v4();
     let asset_code = format!("TST-{}", unique);
     let name = "Test Asset Laptop".to_string();
-    let category_id = Uuid::nil(); // Using NIL for test if foreign keys allow, else might fail if FK constraints exist.
-                                   // Note: In integration test with real DB, FKs matter.
-                                   // We should ideally create a category first or assume seeding.
-                                   // Let's rely on common seeding or allow NULL if schema permits (schema usually requires valid FK).
-                                   // Plan B: Create a category if needed.
-                                   // For now, let's try assuming a seeded category or use random UUID if constraints aren't strict.
-                                   // Actually, create_asset usually requires valid FKs.
-                                   // Let's assume standard seeds exist or try insertion.
-                                   // Logic: In a real test env, we'd query a category first.
+    // Initial category setup logic moved below
+    // Note: In integration test with real DB, FKs matter.
+    // We should ideally create a category first or assume seeding.
+    // Let's rely on common seeding or allow NULL if schema permits (schema usually requires valid FK).
+    // Plan B: Create a category if needed.
+    // For now, let's try assuming a seeded category or use random UUID if constraints aren't strict.
+    // Actually, create_asset usually requires valid FKs.
+    // Let's assume standard seeds exist or try insertion.
+    // Logic: In a real test env, we'd query a category first.
 
     // Let's quickly insert a dummy category using raw sqlx to be safe
     let category_id = sqlx::query_scalar!(

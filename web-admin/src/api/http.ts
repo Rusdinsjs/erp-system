@@ -21,11 +21,15 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         const message = error.response?.data?.message || 'Something went wrong';
-        console.error(message);
 
+        // Ignore 401s as they are handled by auth store redirection (usually)
+        // But we still show a toast if it's not a silent refresh failure
         if (error.response?.status === 401) {
             useAuthStore.getState().logout();
-            showToast('Please login again', 'error', 'Session Expired');
+            showToast('Session expired. Please login again.', 'error', 'Authentication Error');
+        } else if (error.response?.status >= 400) {
+            // General API errors
+            showToast(message, 'error', 'Error');
         }
 
         return Promise.reject(error);

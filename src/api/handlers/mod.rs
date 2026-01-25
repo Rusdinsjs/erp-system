@@ -36,6 +36,7 @@ pub mod rbac_handler;
 pub mod rental_handler;
 pub mod report_handler;
 pub mod sensor_handler;
+pub mod test_handler;
 pub mod timesheet_handler;
 pub mod upload_handler;
 pub mod user_handler;

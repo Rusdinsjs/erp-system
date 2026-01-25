@@ -26,7 +26,8 @@ async fn setup_test_app() -> Router {
         expiry_hours: 24,
     };
 
-    let state = management_system::api::server::AppState::new(pool, jwt_config);
+    let app_config = management_system::shared::config::AppConfig::from_env();
+    let state = management_system::api::server::AppState::new(pool, jwt_config, &app_config);
     management_system::api::server::create_app(state)
 }
 

@@ -21,7 +21,9 @@ async fn setup_test_app() -> Router {
         expiry_hours: 24,
     };
 
-    let state = management_system::api::server::AppState::new(pool.clone(), jwt_config);
+    let app_config = management_system::shared::config::AppConfig::from_env();
+    let state =
+        management_system::api::server::AppState::new(pool.clone(), jwt_config, &app_config);
 
     // Fix passwords for test users (copy from admin which is known to work)
     // This is needed because the seed data hash might be incompatible/old
