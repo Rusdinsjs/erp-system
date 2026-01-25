@@ -281,11 +281,11 @@ export function Assets() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Active Assets</p>
+                            <p className="text-gray-400 text-sm font-medium">In Use</p>
                             <h3 className="text-3xl font-bold text-white mt-1">
-                                {/* Sum of active statuses */}
+                                {/* Sum of in_use/deployed statuses */}
                                 {stats?.assets?.by_status?.filter((s: any) =>
-                                    ['available', 'in_use', 'deployed', 'InInventory'].includes(s.status)
+                                    ['in_use', 'deployed', 'active'].includes(s.status)
                                 ).reduce((acc: number, curr: any) => acc + curr.count, 0) || 0}
                             </h3>
                         </div>
@@ -316,9 +316,9 @@ export function Assets() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Planning</p>
+                            <p className="text-gray-400 text-sm font-medium">Rent Out</p>
                             <h3 className="text-3xl font-bold text-white mt-1">
-                                {stats?.assets?.by_status?.find((s: any) => s.status === 'planning')?.count || 0}
+                                {stats?.assets?.by_status?.find((s: any) => s.status === 'rented_out')?.count || 0}
                             </h3>
                         </div>
                         <div className="p-3 bg-cyan-500/20 rounded-xl">
@@ -372,11 +372,11 @@ export function Assets() {
                             <MultiSelect
                                 placeholder="Filter Status..."
                                 options={[
-                                    { value: 'planning', label: 'Planning' },
+                                    { value: 'planning', label: 'Rent Out' },
                                     { value: 'procurement', label: 'Procurement' },
                                     { value: 'received', label: 'Received' },
                                     { value: 'in_inventory', label: 'In Inventory' },
-                                    { value: 'deployed', label: 'Deployed' },
+                                    { value: 'in_use', label: 'In Use' },
                                     { value: 'rented_out', label: 'Rented Out' },
                                     { value: 'under_maintenance', label: 'Under Maintenance' },
                                     { value: 'under_repair', label: 'Under Repair' },

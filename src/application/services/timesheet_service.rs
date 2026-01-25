@@ -168,6 +168,10 @@ impl TimesheetService {
                         safety_requirements: None,
                         lockout_tagout_required: None,
                         location_id: None,
+                        target_category_id: None,
+                        target_specifications: None,
+                        conversion_notes: None,
+                        conversion_type: None,
                     };
 
                     // Log error but don't fail timesheet creation

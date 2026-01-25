@@ -21,6 +21,7 @@ pub enum AssetState {
     UnderConversion,
     Retired,
     Disposed,
+    Sold,
     LostStolen,
     Archived,
 }
@@ -40,6 +41,7 @@ impl AssetState {
             Self::UnderConversion => "under_conversion",
             Self::Retired => "retired",
             Self::Disposed => "disposed",
+            Self::Sold => "sold",
             Self::LostStolen => "lost_stolen",
             Self::Archived => "archived",
         }
@@ -59,6 +61,7 @@ impl AssetState {
             "under_conversion" | "in_conversion" => Some(Self::UnderConversion),
             "retired" => Some(Self::Retired),
             "disposed" => Some(Self::Disposed),
+            "sold" => Some(Self::Sold),
             "lost_stolen" => Some(Self::LostStolen),
             "archived" => Some(Self::Archived),
             _ => None,
@@ -76,17 +79,21 @@ impl AssetState {
             Self::Planning => matches!(target, Self::Procurement),
             Self::Procurement => matches!(target, Self::Received),
             Self::Received => matches!(target, Self::InInventory),
-            Self::InInventory => matches!(target, Self::Deployed | Self::RentedOut),
+            Self::InInventory => matches!(target, Self::Deployed | Self::RentedOut | Self::Sold),
             Self::Deployed => matches!(
                 target,
-                Self::UnderMaintenance | Self::UnderRepair | Self::UnderConversion | Self::Retired
+                Self::UnderMaintenance
+                    | Self::UnderRepair
+                    | Self::UnderConversion
+                    | Self::Retired
+                    | Self::Sold
             ),
-            Self::RentedOut => matches!(target, Self::InInventory),
+            Self::RentedOut => matches!(target, Self::InInventory | Self::Sold),
             Self::UnderMaintenance => matches!(target, Self::Deployed | Self::InInventory),
             Self::UnderRepair => matches!(target, Self::Deployed | Self::InInventory),
             Self::UnderConversion => matches!(target, Self::Deployed | Self::InInventory),
-            Self::Retired => matches!(target, Self::Disposed),
-            Self::Disposed => false,
+            Self::Retired => matches!(target, Self::Disposed | Self::Sold),
+            Self::Disposed | Self::Sold => false,
             Self::LostStolen => matches!(target, Self::Archived),
             Self::Archived => false,
         }
@@ -100,22 +107,23 @@ impl AssetState {
             Self::Planning => transitions.push(Self::Procurement),
             Self::Procurement => transitions.push(Self::Received),
             Self::Received => transitions.push(Self::InInventory),
-            Self::InInventory => transitions.extend([Self::Deployed, Self::RentedOut]),
+            Self::InInventory => transitions.extend([Self::Deployed, Self::RentedOut, Self::Sold]),
             Self::Deployed => {
                 transitions.extend([
                     Self::UnderMaintenance,
                     Self::UnderRepair,
                     Self::UnderConversion,
                     Self::Retired,
+                    Self::Sold,
                 ]);
             }
-            Self::RentedOut => transitions.push(Self::InInventory),
+            Self::RentedOut => transitions.extend([Self::InInventory, Self::Sold]),
             Self::UnderMaintenance => transitions.push(Self::Deployed),
             Self::UnderRepair => transitions.push(Self::Deployed),
             Self::UnderConversion => transitions.push(Self::Deployed),
-            Self::Retired => transitions.push(Self::Disposed),
+            Self::Retired => transitions.extend([Self::Disposed, Self::Sold]),
             Self::LostStolen => transitions.push(Self::Archived),
-            Self::Disposed | Self::Archived => {
+            Self::Disposed | Self::Archived | Self::Sold => {
                 transitions.clear(); // No transitions from terminal states
             }
         }
@@ -125,7 +133,7 @@ impl AssetState {
 
     /// Check if this is a terminal state (no further transitions possible)
     pub fn is_terminal(&self) -> bool {
-        matches!(self, Self::Disposed | Self::Archived)
+        matches!(self, Self::Disposed | Self::Archived | Self::Sold)
     }
 
     /// Check if asset is actively in use
@@ -143,17 +151,18 @@ impl AssetState {
     /// Get display name for UI
     pub fn display_name(&self) -> &'static str {
         match self {
-            Self::Planning => "Planning",
+            Self::Planning => "Rent Out",
             Self::Procurement => "Procurement",
             Self::Received => "Received",
             Self::InInventory => "In Inventory",
-            Self::Deployed => "Deployed",
+            Self::Deployed => "In Use",
             Self::RentedOut => "Rented Out",
             Self::UnderMaintenance => "Under Maintenance",
             Self::UnderRepair => "Under Repair",
             Self::UnderConversion => "Under Conversion",
             Self::Retired => "Retired",
             Self::Disposed => "Disposed",
+            Self::Sold => "Sold",
             Self::LostStolen => "Lost/Stolen",
             Self::Archived => "Archived",
         }
@@ -173,6 +182,7 @@ impl AssetState {
             Self::UnderConversion => "violet",
             Self::Retired => "slate",
             Self::Disposed => "neutral",
+            Self::Sold => "lime",
             Self::LostStolen => "red",
             Self::Archived => "zinc",
         }

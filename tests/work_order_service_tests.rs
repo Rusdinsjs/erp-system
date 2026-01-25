@@ -5,8 +5,8 @@ use management_system::application::services::{
 use management_system::domain::entities::WorkOrderStatus;
 use management_system::infrastructure::cache::{CacheError, CacheOperations};
 use management_system::infrastructure::repositories::{
-    ApprovalRepository, AssetRepository, LifecycleRepository, NotificationRepository,
-    WorkOrderRepository,
+    ApprovalRepository, AssetRepository, JournalRepository, LifecycleRepository,
+    NotificationRepository, WorkOrderRepository,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -87,6 +87,7 @@ async fn test_work_order_lifecycle() {
     let lifecycle_repo = LifecycleRepository::new(pool.clone());
     let asset_repo = AssetRepository::new(pool.clone());
     let notif_repo = NotificationRepository::new(pool.clone());
+    let journal_repo = JournalRepository::new(pool.clone());
 
     // Services dependencies
     let cache = Arc::new(MockCache::new());
@@ -104,7 +105,8 @@ async fn test_work_order_lifecycle() {
     // Setup: Create an Asset first
     let approval_repo = ApprovalRepository::new(pool.clone());
     let approval_service = ApprovalService::new(approval_repo);
-    let asset_service = AssetService::new(asset_repo, cache.clone(), approval_service);
+    let asset_service =
+        AssetService::new(asset_repo, journal_repo, cache.clone(), approval_service);
 
     let unique = Uuid::new_v4();
     let asset_code = format!("WO-ASSET-{}", unique);
@@ -169,6 +171,10 @@ async fn test_work_order_lifecycle() {
         safety_requirements: None,
         lockout_tagout_required: None,
         location_id: None,
+        target_category_id: None,
+        target_specifications: None,
+        conversion_notes: None,
+        conversion_type: None,
     };
 
     let user_id = Uuid::new_v4();

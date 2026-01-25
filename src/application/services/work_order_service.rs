@@ -29,6 +29,10 @@ pub struct CreateWorkOrderRequest {
     pub safety_requirements: Option<Vec<String>>,
     pub lockout_tagout_required: Option<bool>,
     pub location_id: Option<Uuid>,
+    pub target_category_id: Option<Uuid>,
+    pub target_specifications: Option<serde_json::Value>,
+    pub conversion_notes: Option<String>,
+    pub conversion_type: Option<String>,
 }
 
 #[derive(Clone)]
@@ -62,6 +66,7 @@ impl WorkOrderService {
         match wo_type.to_lowercase().as_str() {
             "maintenance" | "preventive" | "pm" => Some(AssetState::UnderMaintenance),
             "repair" | "corrective" | "cm" | "breakdown" => Some(AssetState::UnderRepair),
+            "conversion" | "upgrade" => Some(AssetState::UnderConversion),
             _ => None,
         }
     }
@@ -82,6 +87,10 @@ impl WorkOrderService {
         wo.lockout_tagout_required = request.lockout_tagout_required.unwrap_or(false);
         wo.location_id = request.location_id;
         wo.created_by = created_by;
+        wo.target_category_id = request.target_category_id;
+        wo.target_specifications = request.target_specifications;
+        wo.conversion_notes = request.conversion_notes;
+        wo.conversion_type = request.conversion_type;
 
         self.repository
             .create(&wo)
@@ -287,11 +296,31 @@ impl WorkOrderService {
             let current_state =
                 AssetState::from_str(&current_status).unwrap_or(AssetState::Deployed);
 
-            // Only transition if currently under maintenance/repair
-            if matches!(
+            // Handle CONVERSION logic: Update asset category and specs
+            if wo.wo_type.to_lowercase() == "conversion" {
+                if let Some(target_cat) = wo.target_category_id {
+                    let _ = self
+                        .asset_repo
+                        .update_category(wo.asset_id, target_cat)
+                        .await;
+                }
+                if let Some(target_specs) = wo.target_specifications {
+                    let _ = self
+                        .asset_repo
+                        .update_specifications(wo.asset_id, target_specs)
+                        .await;
+                }
+            }
+
+            // Only transition if currently under maintenance/repair/conversion
+            let is_in_maintenance_state = matches!(
                 current_state,
-                AssetState::UnderMaintenance | AssetState::UnderRepair
-            ) {
+                AssetState::UnderMaintenance
+                    | AssetState::UnderRepair
+                    | AssetState::UnderConversion
+            );
+
+            if is_in_maintenance_state {
                 // Fetch asset to check assignment status
                 let target_state =
                     if let Ok(Some(asset)) = self.asset_repo.find_by_id(wo.asset_id).await {

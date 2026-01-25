@@ -19,6 +19,8 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
         notes: ''
     });
 
+    const [uploadProgress, setUploadProgress] = useState(0);
+
     const { data: documents, isLoading } = useQuery({
         queryKey: ['asset-documents', assetId],
         queryFn: () => assetApi.getDocuments(assetId)
@@ -27,9 +29,12 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
     const uploadMutation = useMutation({
         mutationFn: async () => {
             if (!uploadForm.file) throw new Error("Please select a file");
+            setUploadProgress(0);
 
-            // 1. Upload File
-            const fileData = await assetApi.uploadFile(uploadForm.file);
+            // 1. Upload File with progress tracking
+            const fileData = await assetApi.uploadFile(uploadForm.file, (percent) => {
+                setUploadProgress(percent);
+            });
 
             // 2. Add Document Record
             return assetApi.addDocument(assetId, {
@@ -46,9 +51,11 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
             queryClient.invalidateQueries({ queryKey: ['asset-documents', assetId] });
             setUploadForm({ name: '', type: 'MANUAL', file: null, notes: '' });
             setIsUploading(false);
+            setUploadProgress(0);
         },
         onError: (error: any) => {
             toast.error(error?.message || "Failed to add document");
+            setUploadProgress(0);
         }
     });
 
@@ -68,6 +75,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
         { value: 'BPKB', label: 'BPKB' },
         { value: 'PHOTO', label: 'Asset Photo' },
         { value: 'MAINTENANCE_REPORT', label: 'Maintenance Report' },
+        { value: 'TEST_ASSET', label: 'Test Asset Document' },
         { value: 'OTHER', label: 'Other' },
     ];
 
@@ -77,7 +85,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle>Documents & Attachments</CardTitle>
-                        <Button onClick={() => setIsUploading(!isUploading)} variant={isUploading ? "secondary" : "primary"}>
+                        <Button type="button" onClick={() => { setIsUploading(!isUploading); setUploadProgress(0); }} variant={isUploading ? "secondary" : "primary"}>
                             {isUploading ? "Cancel Upload" : "Add Document"}
                         </Button>
                     </div>
@@ -113,8 +121,26 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                                 placeholder="Additional details..."
                             />
                         </div>
+
+                        {/* Progress Bar Area */}
+                        {(uploadMutation.isPending || uploadProgress > 0) && (
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs text-slate-400">
+                                    <span>{uploadProgress < 100 ? 'Uploading...' : 'Processing...'}</span>
+                                    <span>{uploadProgress}%</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-cyan-500 transition-all duration-300"
+                                        style={{ width: `${uploadProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex justify-end pt-2">
                             <Button
+                                type="button"
                                 onClick={() => uploadMutation.mutate()}
                                 disabled={!uploadForm.file || uploadMutation.isPending}
                                 loading={uploadMutation.isPending}

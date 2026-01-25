@@ -1,7 +1,9 @@
 use management_system::application::dto::CreateAssetRequest;
 use management_system::application::services::{ApprovalService, AssetService};
 use management_system::infrastructure::cache::{CacheError, CacheOperations};
-use management_system::infrastructure::repositories::{ApprovalRepository, AssetRepository};
+use management_system::infrastructure::repositories::{
+    ApprovalRepository, AssetRepository, JournalRepository,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -78,10 +80,11 @@ async fn test_create_and_get_asset() {
 
     let asset_repo = AssetRepository::new(pool.clone());
     let approval_repo = ApprovalRepository::new(pool.clone());
+    let journal_repo = JournalRepository::new(pool.clone());
     let approval_service = ApprovalService::new(approval_repo);
     let cache = Arc::new(MockCache::new());
 
-    let asset_service = AssetService::new(asset_repo, cache, approval_service);
+    let asset_service = AssetService::new(asset_repo, journal_repo, cache, approval_service);
 
     // Test Data
     let unique = Uuid::new_v4();

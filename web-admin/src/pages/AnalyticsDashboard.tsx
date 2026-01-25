@@ -49,9 +49,14 @@ export function AnalyticsDashboard() {
                                     data={statusData}
                                     cx="50%"
                                     cy="50%"
-                                    labelLine={false}
-                                    label={({ name, percent }: { name?: string, percent?: number }) => `${name || 'Unknown'} ${((percent || 0) * 100).toFixed(0)}%`}
-                                    outerRadius={100}
+                                    labelLine={true}
+                                    label={({ status, percent }: { status?: string, percent?: number }) => {
+                                        if (!status) return 'Unknown';
+                                        let label = status === 'planning' ? 'Rent Out' : status === 'in_use' || status === 'deployed' ? 'In Use' : status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                        return `${label} ${((percent || 0) * 100).toFixed(0)}%`;
+                                    }}
+                                    nameKey="status"
+                                    outerRadius={80}
                                     fill="#8884d8"
                                     dataKey="count"
                                 >
@@ -61,6 +66,19 @@ export function AnalyticsDashboard() {
                                 </Pie>
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }}
+                                    formatter={(value: any, name?: string) => {
+                                        if (!name) return [value, 'Unknown'];
+                                        let formattedName = name === 'planning' ? 'Rent Out' : name === 'in_use' || name === 'deployed' ? 'In Use' : name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                        return [value, formattedName];
+                                    }}
+                                />
+                                <Legend
+                                    verticalAlign="bottom"
+                                    height={36}
+                                    formatter={(value?: string) => {
+                                        if (!value) return 'Unknown';
+                                        return value === 'planning' ? 'Rent Out' : value === 'in_use' || value === 'deployed' ? 'In Use' : value.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                    }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>

@@ -190,6 +190,54 @@ pub async fn update_asset(
 }
 
 #[utoipa::path(
+    post,
+    path = "/api/assets/{id}/sell",
+    params(
+        ("id" = Uuid, Path, description = "Asset ID")
+    ),
+    request_body = SellAssetRequest,
+    responses(
+        (status = 200, description = "Asset sold", body = ApiResponse<Asset>),
+        (status = 400, description = "Bad Request"),
+        (status = 404, description = "Asset not found")
+    ),
+    tag = "assets"
+)]
+pub async fn sell_asset(
+    State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<crate::application::dto::SellAssetRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let user_id = Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
+
+    let result = state
+        .asset_service
+        .sell_asset(id, payload, user_id, claims.role_level)
+        .await?;
+
+    match result {
+        AssetOperationResult::Success(asset) => Ok((
+            StatusCode::OK,
+            Json(ApiResponse::success_with_message(
+                asset,
+                "Asset sold successfully",
+            )),
+        )
+            .into_response()),
+        AssetOperationResult::PendingApproval(request) => Ok((
+            StatusCode::ACCEPTED,
+            Json(ApiResponse::success_with_message(
+                request,
+                "Sale request submitted for approval",
+            )),
+        )
+            .into_response()),
+    }
+}
+
+#[utoipa::path(
     delete,
     path = "/api/assets/{id}",
     params(

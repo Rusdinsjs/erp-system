@@ -20,6 +20,10 @@ impl AssetRepository {
         Self { pool }
     }
 
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
+    }
+
     /// Find asset by ID
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Asset>, sqlx::Error> {
         sqlx::query_as::<_, Asset>(
@@ -32,6 +36,7 @@ impl AssetRepository {
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
+                sale_price, sale_date, sold_to,
                 created_at, updated_at
             FROM assets
             WHERE id = $1
@@ -74,6 +79,7 @@ impl AssetRepository {
                 a.purchase_date, a.purchase_price, a.currency_id, a.unit_id, a.quantity,
                 a.residual_value, a.useful_life_months,
                 a.qr_code_url, a.notes,
+                a.sale_price, a.sale_date, a.sold_to,
                 a.created_at, a.updated_at,
                 (SELECT row_to_json(vd) FROM vehicle_details vd WHERE vd.asset_id = a.id) as vehicle_details,
                 c.name as category_name,
@@ -141,6 +147,11 @@ impl AssetRepository {
                 brand: r.get("brand"),
                 model: r.get("model"),
                 year_manufacture: r.get("year_manufacture"),
+
+                // Sale info
+                sale_date: r.get("sale_date"),
+                sale_price: r.get("sale_price"),
+                sold_to: r.get("sold_to"),
                 specifications: r.get("specifications"),
                 purchase_date: r.get("purchase_date"),
                 purchase_price: r.get("purchase_price"),
@@ -201,6 +212,7 @@ impl AssetRepository {
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
+                sale_price, sale_date, sold_to,
                 created_at, updated_at
             FROM assets
             WHERE asset_code = $1
@@ -251,6 +263,7 @@ impl AssetRepository {
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
+                sale_price, sale_date, sold_to,
                 created_at, updated_at
             FROM assets
             WHERE status != 'archived'
@@ -324,6 +337,15 @@ impl AssetRepository {
 
     /// Create new asset
     pub async fn create(&self, asset: &Asset) -> Result<Asset, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        self.create_with_executor(&mut conn, asset).await
+    }
+
+    pub async fn create_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        asset: &Asset,
+    ) -> Result<Asset, sqlx::Error> {
         sqlx::query_as::<_, Asset>(
             r#"
             INSERT INTO assets (
@@ -333,9 +355,10 @@ impl AssetRepository {
                 specifications,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
-                qr_code_url, notes
+                qr_code_url, notes,
+                sale_price, sale_date, sold_to
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
             RETURNING *
             "#,
         )
@@ -368,7 +391,10 @@ impl AssetRepository {
         .bind(asset.useful_life_months)
         .bind(&asset.qr_code_url)
         .bind(&asset.notes)
-        .fetch_one(&self.pool)
+        .bind(asset.sale_price)
+        .bind(asset.sale_date)
+        .bind(&asset.sold_to)
+        .fetch_one(executor)
         .await
     }
 
@@ -385,6 +411,7 @@ impl AssetRepository {
                 purchase_date = $21, purchase_price = $22, currency_id = $23, unit_id = $24, quantity = $25,
                 residual_value = $26, useful_life_months = $27,
                 qr_code_url = $28, notes = $29,
+                sale_price = $30, sale_date = $31, sold_to = $32,
                 updated_at = NOW()
             WHERE id = $1
             RETURNING *
@@ -419,6 +446,9 @@ impl AssetRepository {
         .bind(asset.useful_life_months)
         .bind(&asset.qr_code_url)
         .bind(&asset.notes)
+        .bind(asset.sale_price)
+        .bind(asset.sale_date)
+        .bind(&asset.sold_to)
         .fetch_one(&self.pool)
         .await
     }
@@ -440,6 +470,34 @@ impl AssetRepository {
             sqlx::query("UPDATE assets SET location_id = $2, updated_at = NOW() WHERE id = $1")
                 .bind(id)
                 .bind(location_id)
+                .execute(&self.pool)
+                .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// Update asset category
+    pub async fn update_category(&self, id: Uuid, category_id: Uuid) -> Result<bool, sqlx::Error> {
+        let result =
+            sqlx::query("UPDATE assets SET category_id = $2, updated_at = NOW() WHERE id = $1")
+                .bind(id)
+                .bind(category_id)
+                .execute(&self.pool)
+                .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// Update asset specifications
+    pub async fn update_specifications(
+        &self,
+        id: Uuid,
+        specifications: serde_json::Value,
+    ) -> Result<bool, sqlx::Error> {
+        let result =
+            sqlx::query("UPDATE assets SET specifications = $2, updated_at = NOW() WHERE id = $1")
+                .bind(id)
+                .bind(specifications)
                 .execute(&self.pool)
                 .await?;
 
@@ -501,13 +559,23 @@ impl AssetRepository {
         &self,
         details: &VehicleDetails,
     ) -> Result<VehicleDetails, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        self.upsert_vehicle_details_with_executor(&mut conn, details)
+            .await
+    }
+
+    pub async fn upsert_vehicle_details_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        details: &VehicleDetails,
+    ) -> Result<VehicleDetails, sqlx::Error> {
         let json = serde_json::to_value(details)
             .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
 
         sqlx::query("UPDATE assets SET vehicle_details = $2, updated_at = NOW() WHERE id = $1")
             .bind(details.asset_id)
             .bind(json)
-            .execute(&self.pool)
+            .execute(executor)
             .await?;
 
         Ok(details.clone())

@@ -53,26 +53,35 @@ pub async fn upload_file(
             // Compress if image
             let (final_data, final_ext) = if ["jpg", "jpeg", "png", "webp"].contains(&ext.as_str())
             {
-                // Try to load image
-                match image::load_from_memory(&data) {
-                    Ok(img) => {
-                        // Resize if larger than 1280px
-                        let resized = if img.width() > 1280 || img.height() > 1280 {
-                            img.resize(1280, 1280, image::imageops::FilterType::Lanczos3)
-                        } else {
-                            img
-                        };
+                let data_clone = data.clone();
+                let ext_clone = ext.clone();
 
-                        // Encode as JPEG with quality 80
-                        let mut comp_bytes: Vec<u8> = Vec::new();
-                        let mut cursor = std::io::Cursor::new(&mut comp_bytes);
-                        match resized.write_to(&mut cursor, image::ImageOutputFormat::Jpeg(80)) {
-                            Ok(_) => (comp_bytes.into(), "jpg".to_string()),
-                            Err(_) => (data.clone(), ext), // Fallback to original
+                let result = tokio::task::spawn_blocking(move || {
+                    // Try to load image
+                    match image::load_from_memory(&data_clone) {
+                        Ok(img) => {
+                            // Resize if larger than 1280px
+                            let resized = if img.width() > 1280 || img.height() > 1280 {
+                                img.resize(1280, 1280, image::imageops::FilterType::Lanczos3)
+                            } else {
+                                img
+                            };
+
+                            // Encode as WebP (Lossy quality 80)
+                            let mut comp_bytes: Vec<u8> = Vec::new();
+                            let mut cursor = std::io::Cursor::new(&mut comp_bytes);
+                            match resized.write_to(&mut cursor, image::ImageOutputFormat::WebP) {
+                                Ok(_) => (comp_bytes.into(), "webp".to_string()),
+                                Err(_) => (data_clone.into(), ext_clone), // Fallback to original
+                            }
                         }
+                        Err(_) => (data_clone.into(), ext_clone), // Fallback if load fails
                     }
-                    Err(_) => (data.clone(), ext), // Fallback if load fails
-                }
+                })
+                .await
+                .map_err(|e| AppError::Internal(format!("Blocking task failed: {}", e)))?;
+
+                result
             } else {
                 (data.clone(), ext)
             };

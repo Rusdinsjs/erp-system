@@ -102,9 +102,10 @@ impl WorkOrderRepository {
                 id, wo_number, asset_id, wo_type, priority, status,
                 scheduled_date, due_date, assigned_technician, vendor_id,
                 estimated_hours, estimated_cost, problem_description,
-                safety_requirements, lockout_tagout_required, created_by, location_id
+                safety_requirements, lockout_tagout_required, created_by, location_id,
+                target_category_id, target_specifications, conversion_notes, conversion_type
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
             RETURNING *
             "#,
         )
@@ -125,6 +126,10 @@ impl WorkOrderRepository {
         .bind(wo.lockout_tagout_required)
         .bind(wo.created_by)
         .bind(wo.location_id)
+        .bind(wo.target_category_id)
+        .bind(&wo.target_specifications)
+        .bind(&wo.conversion_notes)
+        .bind(&wo.conversion_type)
         .fetch_one(&self.pool)
         .await
     }

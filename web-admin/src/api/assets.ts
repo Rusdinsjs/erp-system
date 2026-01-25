@@ -112,6 +112,13 @@ export interface AssetSearchParams {
     per_page: number;
 }
 
+export interface SellAssetRequest {
+    sale_price: number;
+    sale_date: string;
+    sold_to: string;
+    notes?: string;
+}
+
 export interface PaginatedResponse<T> {
     data: T[];
     total: number;
@@ -154,6 +161,11 @@ export const assetApi = {
         return response.data;
     },
 
+    sell: async (id: string, data: SellAssetRequest) => {
+        const response = await api.post<Asset>(`/assets/${id}/sell`, data);
+        return response.data;
+    },
+
     getVehicleDetails: async (_assetId: string) => {
         return null;
     },
@@ -173,13 +185,19 @@ export const assetApi = {
         return response.data;
     },
 
-    uploadFile: async (file: File) => {
+    uploadFile: async (file: File, onProgress?: (percent: number) => void) => {
         const formData = new FormData();
         formData.append('file', file);
         const response = await api.post<{ url: string; original_name: string; content_type: string; size: number }>('/upload', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
+            onUploadProgress: (progressEvent) => {
+                if (onProgress && progressEvent.total) {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(percentCompleted);
+                }
+            }
         });
         return response.data;
     }

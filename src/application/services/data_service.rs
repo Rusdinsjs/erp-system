@@ -18,19 +18,10 @@ impl DataService {
         Self { asset_repository }
     }
 
-    /// Export assets to CSV
+    /// Export assets to CSV using batching for memory efficiency
     pub async fn export_assets_csv(&self) -> DomainResult<String> {
-        // Fetch all assets (pagination free for export, or batched)
-        // For simplicity, we'll fetch a large page
-        let assets = self
-            .asset_repository
-            .list(10000, 0, None)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?;
-
+        let batch_size = 500;
+        let mut offset = 0;
         let mut wtr = WriterBuilder::new().from_writer(vec![]);
 
         // Write header
@@ -49,25 +40,45 @@ impl DataService {
             message: e.to_string(),
         })?;
 
-        // Write records
-        for asset in assets {
-            wtr.write_record(&[
-                asset.id.to_string(),
-                asset.asset_code,
-                asset.name,
-                asset.status,
-                asset.brand.unwrap_or_default(),
-                asset.model.unwrap_or_default(),
-                asset.serial_number.unwrap_or_default(),
-                asset
-                    .purchase_price
-                    .map(|p| p.to_string())
-                    .unwrap_or_default(),
-            ])
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "csv_export".to_string(),
-                message: e.to_string(),
-            })?;
+        loop {
+            let assets = self
+                .asset_repository
+                .list(batch_size, offset, None)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+
+            if assets.is_empty() {
+                break;
+            }
+
+            // Write records
+            for asset in &assets {
+                wtr.write_record(&[
+                    asset.id.to_string(),
+                    asset.asset_code.clone(),
+                    asset.name.clone(),
+                    asset.status.clone(),
+                    asset.brand.clone().unwrap_or_default(),
+                    asset.model.clone().unwrap_or_default(),
+                    asset.serial_number.clone().unwrap_or_default(),
+                    asset
+                        .purchase_price
+                        .map(|p| p.to_string())
+                        .unwrap_or_default(),
+                ])
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "csv_export".to_string(),
+                    message: e.to_string(),
+                })?;
+            }
+
+            if assets.len() < batch_size as usize {
+                break;
+            }
+            offset += batch_size;
         }
 
         let data =

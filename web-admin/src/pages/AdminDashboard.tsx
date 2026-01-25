@@ -7,7 +7,7 @@ import {
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
-    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, RefreshCw, Fuel, Shield, Layers
+    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, Fuel, Shield, Layers
 } from 'lucide-react';
 import { PageLoading, Logo } from '../components/ui';
 
@@ -76,10 +76,10 @@ type TabId =
     | 'work-orders'
     | 'rentals'
     | 'rental-form'
-    | 'contracts' // Added
-    | 'contract-detail' // Added
-    | 'contract-analytics' // Added
-    | 'contract-templates' // Added
+    | 'contracts'
+    | 'contract-detail'
+    | 'contract-analytics'
+    | 'contract-templates'
     | 'clients'
     | 'loans'
     | 'fuel'
@@ -116,8 +116,8 @@ type TabId =
     | 'purchase-bills'
     | 'expenses'
     | 'asset-lifecycle'
-    | 'settings' // Added
-    | 'analytics' // Added
+    | 'settings'
+    | 'analytics'
     | 'profile';
 
 interface NavItem {
@@ -155,10 +155,9 @@ const navItems: NavEntry[] = [
         minLevel: 5,
         children: [
             { id: 'assets', icon: Package, label: 'Daftar Aset', minLevel: 5 },
-            { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
-            { id: 'conversions', icon: RefreshCw, label: 'Conversions', minLevel: 3 },
             { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal', minLevel: 5 },
             { id: 'fuel', icon: Fuel, label: 'Fuel / BBM', minLevel: 5 },
+            { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
             { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)', minLevel: 3 },
         ]
     },

@@ -41,6 +41,8 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
         actions_taken: '',
         odometer_reading: undefined as number | undefined,
         location_id: '',
+        target_category_id: '',
+        conversion_notes: '',
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -70,6 +72,15 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
         }
     });
 
+    // Fetch Categories
+    const { data: categoryOptions = [] } = useQuery({
+        queryKey: ['categories'],
+        queryFn: async () => {
+            const res = await api.get('/categories');
+            return res.data.map((c: any) => ({ value: c.id, label: c.name }));
+        }
+    });
+
     // Fetch Work Order if Edit
     const { data: workOrderData, isLoading: workOrderLoading } = useQuery({
         queryKey: ['work-order', maintenanceId],
@@ -92,24 +103,30 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
                 actions_taken: '',
                 odometer_reading: undefined,
                 location_id: '',
+                target_category_id: (r as any).target_category_id || '',
+                conversion_notes: (r as any).conversion_notes || '',
             });
         }
     }, [workOrderData]);
 
     const mutation = useMutation({
-        mutationFn: (values: typeof formData) => {
+        mutationFn: async (values: typeof formData) => {
             const payload: any = {
                 asset_id: values.asset_id,
                 wo_type: values.maintenance_type_id || 'maintenance',
                 priority: 'medium',
                 problem_description: values.description,
                 scheduled_date: values.scheduled_date ? values.scheduled_date.toISOString().split('T')[0] : undefined,
+                target_category_id: values.maintenance_type_id === 'conversion' ? values.target_category_id : undefined,
+                conversion_notes: values.maintenance_type_id === 'conversion' ? values.conversion_notes : undefined,
             };
 
             if (isEdit) {
-                throw new Error("Generic update not implemented for Work Order yet");
+                const res = await api.put(`/work-orders/${maintenanceId}`, payload);
+                return res.data;
             } else {
-                return workOrderApi.create(payload);
+                const res = await workOrderApi.create(payload);
+                return res.data;
             }
         },
         onSuccess: () => {
@@ -125,12 +142,12 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
     const assetOptions = useMemo(() => {
         if (!assetsData) return [];
         return assetsData
-            .filter(a => {
+            .filter((a: any) => {
                 if (isEdit && a.id === formData.asset_id) return true;
-                const blockedStatuses = ['under_maintenance', 'under_repair', 'maintenance', 'repair'];
+                const blockedStatuses = ['under_maintenance', 'under_repair', 'maintenance', 'repair', 'under_conversion'];
                 return !blockedStatuses.includes(a.status.toLowerCase());
             })
-            .map(a => ({ value: a.id, label: a.name }));
+            .map((a: any) => ({ value: a.id, label: a.name }));
     }, [assetsData, isEdit, formData.asset_id]);
 
     const validate = () => {
@@ -193,6 +210,7 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
                                     { value: 'inspection', label: 'Routine Inspection' },
                                     { value: 'emergency', label: 'Emergency Response' },
                                     { value: 'upgrade', label: 'Asset Upgrade' },
+                                    { value: 'conversion', label: 'Asset Conversion' },
                                 ]}
                                 value={formData.maintenance_type_id}
                                 onChange={(val: string) => updateField('maintenance_type_id', val)}
@@ -218,6 +236,25 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
                             />
                         </div>
                     </div>
+
+                    {/* Conversion Specific Fields */}
+                    {formData.maintenance_type_id === 'conversion' && (
+                        <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                            <Select
+                                label="Target Category"
+                                placeholder="Select new category..."
+                                value={formData.target_category_id}
+                                onChange={(val: string) => updateField('target_category_id', val)}
+                                options={categoryOptions}
+                                required
+                                className="bg-black/20 border-white/5"
+                            />
+                            <div className="flex items-end pb-1 text-sm text-cyan-400 italic">
+                                <ArrowRight size={16} className="mr-2" />
+                                Asset category will be updated upon WO completion
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Section 2: Job Description */}

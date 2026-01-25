@@ -70,6 +70,100 @@ pub struct RecentActivity {
 pub async fn get_dashboard_stats(
     State(state): State<AppState>,
 ) -> Result<Json<DashboardStats>, AppError> {
+    let stats = get_dashboard_stats_internal(&state).await?;
+    Ok(Json(stats))
+}
+
+pub async fn get_recent_activities(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<RecentActivity>>, AppError> {
+    let pool = state.pool.clone();
+    let activities: Vec<RecentActivity> =
+        sqlx::query_as::<_, (String, Uuid, String, chrono::DateTime<chrono::Utc>)>(
+            r#"
+        SELECT 
+            table_name, 
+            record_id, 
+            action,
+            al.created_at
+        FROM audit_logs al
+        ORDER BY al.created_at DESC
+        LIMIT 20
+        "#,
+        )
+        .fetch_all(&pool)
+        .await
+        .map_err(db_error)?
+        .into_iter()
+        .map(
+            |(entity_type, entity_id, action, created_at)| RecentActivity {
+                entity_type: entity_type.clone(),
+                entity_id,
+                action: action.clone(),
+                description: format!("{} on {}", action, entity_type),
+                user_name: None,
+                created_at,
+            },
+        )
+        .collect();
+
+    Ok(Json(activities))
+}
+
+#[derive(Serialize)]
+pub struct DepreciationSummary {
+    pub total_original_cost: Decimal,
+    pub total_accumulated_depreciation: Decimal,
+    pub total_book_value: Decimal,
+}
+
+pub async fn export_dashboard_pdf(
+    State(state): State<AppState>,
+) -> Result<impl axum::response::IntoResponse, AppError> {
+    tracing::info!("Received request to export dashboard PDF");
+
+    // 1. Get current stats
+    let stats = get_dashboard_stats_internal(&state).await.map_err(|e| {
+        tracing::error!("Failed to fetch dashboard stats for export: {:?}", e);
+        e
+    })?;
+
+    tracing::info!("Dashboard stats fetched successfully, generating PDF...");
+
+    // 2. Generate PDF using pdf_service
+    let pdf_bytes = state
+        .pdf_service
+        .generate_dashboard_summary(stats)
+        .await
+        .map_err(|e| {
+            tracing::error!("PDF generation failed: {}", e);
+            AppError::Internal(e)
+        })?;
+
+    tracing::info!(
+        "PDF generated successfully, size: {} bytes",
+        pdf_bytes.len()
+    );
+
+    // 3. Return as attachment
+    Ok((
+        axum::http::header::HeaderMap::from_iter(vec![
+            (
+                axum::http::header::CONTENT_TYPE,
+                "application/pdf".parse().unwrap(),
+            ),
+            (
+                axum::http::header::CONTENT_DISPOSITION,
+                "attachment; filename=\"dashboard_summary.pdf\""
+                    .parse()
+                    .unwrap(),
+            ),
+        ]),
+        pdf_bytes,
+    ))
+}
+
+async fn get_dashboard_stats_internal(state: &AppState) -> Result<DashboardStats, AppError> {
     let pool = state.pool.clone();
 
     // Asset stats
@@ -163,7 +257,7 @@ pub async fn get_dashboard_stats(
         })
         .collect();
 
-    Ok(Json(DashboardStats {
+    Ok(DashboardStats {
         assets: AssetStats {
             total: asset_total.0,
             by_status: asset_by_status,
@@ -183,50 +277,7 @@ pub async fn get_dashboard_stats(
             critical: alerts_critical.0,
         },
         category_distribution,
-    }))
-}
-
-pub async fn get_recent_activities(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<RecentActivity>>, AppError> {
-    let pool = state.pool.clone();
-    let activities: Vec<RecentActivity> =
-        sqlx::query_as::<_, (String, Uuid, String, chrono::DateTime<chrono::Utc>)>(
-            r#"
-        SELECT 
-            table_name, 
-            record_id, 
-            action,
-            al.created_at
-        FROM audit_logs al
-        ORDER BY al.created_at DESC
-        LIMIT 20
-        "#,
-        )
-        .fetch_all(&pool)
-        .await
-        .map_err(db_error)?
-        .into_iter()
-        .map(
-            |(entity_type, entity_id, action, created_at)| RecentActivity {
-                entity_type: entity_type.clone(),
-                entity_id,
-                action: action.clone(),
-                description: format!("{} on {}", action, entity_type),
-                user_name: None,
-                created_at,
-            },
-        )
-        .collect();
-
-    Ok(Json(activities))
-}
-
-#[derive(Serialize)]
-pub struct DepreciationSummary {
-    pub total_original_cost: Decimal,
-    pub total_accumulated_depreciation: Decimal,
-    pub total_book_value: Decimal,
+    })
 }
 
 pub async fn get_depreciation_summary(

@@ -1,9 +1,24 @@
 // Dashboard Page - Pure Tailwind
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Package, DollarSign, Wrench, AlertTriangle, Clock, ClipboardCheck } from 'lucide-react';
+import { Package, DollarSign, Wrench, AlertTriangle, Clock, ClipboardCheck, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
+import {
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+    PieChart,
+    Pie,
+    Cell,
+    Legend
+} from 'recharts';
 import { api } from '../api/http';
 import { Card, PageLoading } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
+import { showToast } from '../components/ui/Toast';
 import { PendingApprovalsWidget } from '../components/dashboard/PendingApprovalsWidget';
 
 // Stat Card Component
@@ -81,6 +96,8 @@ function RingProgress({ percentage }: { percentage: number }) {
 }
 
 export function Dashboard() {
+    const [isExporting, setIsExporting] = React.useState(false);
+
     // 1. Fetch Main Stats
     const { data: stats, isLoading: statsLoading } = useQuery({
         queryKey: ['dashboard-stats'],
@@ -108,10 +125,56 @@ export function Dashboard() {
         },
     });
 
+    // 4. Fetch Maintenance Trends
+    const { data: trends, isLoading: trendsLoading } = useQuery({
+        queryKey: ['analytics-trends'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/maintenance-trends');
+            return res.data;
+        },
+    });
+
+    // 5. Fetch Condition Distribution
+    const { data: conditionDist, isLoading: conditionLoading } = useQuery({
+        queryKey: ['analytics-condition'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/condition-distribution');
+            return res.data;
+        },
+    });
+
+    const handleExportPDF = async () => {
+        try {
+            setIsExporting(true);
+            showToast('Generating PDF report...', 'info');
+
+            const response = await api.get('/dashboard/export-pdf', {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Dashboard_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            showToast('PDF exported successfully', 'success');
+        } catch (error: any) {
+            console.error('Export failed', error);
+            const message = error.response?.data?.message || 'Failed to export PDF';
+            showToast(message, 'error', 'Export Error');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const { hasRoleLevel } = useAuthStore();
     const showFinancials = hasRoleLevel(3); // Level 3 (Manager) or higher
 
-    const isLoading = statsLoading || activityLoading || financialsLoading;
+    const isLoading = statsLoading || activityLoading || financialsLoading || trendsLoading || conditionLoading;
 
     if (isLoading) return <PageLoading />;
 
@@ -161,9 +224,21 @@ export function Dashboard() {
         },
     ];
 
+    const COLORS = ['#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
+                <button
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white rounded-lg transition-colors border border-slate-700"
+                >
+                    <DollarSign size={16} />
+                    {isExporting ? 'Generating PDF...' : 'Export Summary (PDF)'}
+                </button>
+            </div>
 
             {/* Top Stats Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -175,91 +250,160 @@ export function Dashboard() {
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Content Area - Left Column (2/3) */}
+                {/* Left Column (2/3) */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Financial Snapshot */}
-                    {showFinancials && (
-                        <Card padding="lg">
-                            <h2 className="text-lg font-semibold text-white mb-4">Financial Snapshot</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                <div>
-                                    <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Original Cost</p>
-                                    <p className="text-xl font-bold text-white">
-                                        {formatCurrency(financials?.total_original_cost || 0)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Est. Depreciation</p>
-                                    <p className="text-xl font-bold text-red-400">
-                                        -{formatCurrency(financials?.total_accumulated_depreciation || 0)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Book Value</p>
-                                    <p className="text-xl font-bold text-cyan-400">
-                                        {formatCurrency(financials?.total_book_value || 0)}
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* Recent Activity */}
+                    {/* Maintenance Trend Chart */}
                     <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
-                        {activities && activities.length > 0 ? (
-                            <div className="space-y-3 max-h-80 overflow-y-auto">
-                                {activities.slice(0, 10).map((activity: any, idx: number) => (
-                                    <div
-                                        key={idx}
-                                        className="flex items-center gap-3 p-3 bg-slate-950/50 rounded-lg border border-slate-800"
-                                    >
-                                        <div className="w-2 h-2 rounded-full bg-cyan-500" />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-white truncate">{activity.action}</p>
-                                            <p className="text-xs text-slate-500">{activity.entity_type}</p>
-                                        </div>
-                                        <span className="text-xs text-slate-500">
-                                            {new Date(activity.created_at).toLocaleDateString('id-ID')}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-500 text-center py-8">No recent activity</p>
-                        )}
+                        <div className="flex items-center gap-2 mb-6 text-white font-semibold">
+                            <TrendingUp size={20} className="text-cyan-400" />
+                            <h2>Maintenance Cost Trends</h2>
+                        </div>
+                        <div className="h-80 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={trends}>
+                                    <defs>
+                                        <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                    <XAxis
+                                        dataKey="month"
+                                        stroke="#64748b"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(val) => {
+                                            const parts = val.split('-');
+                                            const m = parts[1];
+                                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                            return months[parseInt(m) - 1];
+                                        }}
+                                    />
+                                    <YAxis
+                                        stroke="#64748b"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(val) => `Rp ${val / 1000000}M`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                                        formatter={(val: number | undefined) => [formatCurrency(val ?? 0), 'Total Cost']}
+                                    />
+                                    <Area type="monotone" dataKey="total_cost" stroke="#06b6d4" fillOpacity={1} fill="url(#colorCost)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </Card>
+
+                    {/* Financial Snapshot & Recent Activity Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {showFinancials && (
+                            <Card padding="lg">
+                                <h2 className="text-lg font-semibold text-white mb-4">Financial Snapshot</h2>
+                                <div className="space-y-6">
+                                    <div>
+                                        <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Book Value</p>
+                                        <p className="text-2xl font-bold text-cyan-400">
+                                            {formatCurrency(financials?.total_book_value || 0)}
+                                        </p>
+                                    </div>
+                                    <div className="pt-4 border-t border-slate-800 grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Orig. Cost</p>
+                                            <p className="text-sm font-bold text-slate-300">
+                                                {formatCurrency(financials?.total_original_cost || 0)}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Deprec.</p>
+                                            <p className="text-sm font-bold text-red-400">
+                                                -{formatCurrency(financials?.total_accumulated_depreciation || 0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+
+                        <Card padding="lg">
+                            <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
+                            {activities && activities.length > 0 ? (
+                                <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                                    {activities.slice(0, 5).map((activity: any, idx: number) => (
+                                        <div
+                                            key={idx}
+                                            className="flex items-center gap-2 p-2 bg-slate-950/30 rounded-lg border border-slate-800"
+                                        >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[13px] text-slate-200 truncate">{activity.action}</p>
+                                                <p className="text-[10px] text-slate-500 uppercase">{activity.entity_type}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-slate-500 text-center py-8">No recent activity</p>
+                            )}
+                        </Card>
+                    </div>
                 </div>
 
-                {/* Sidebar - Right Column (1/3) */}
+                {/* Right Column (1/3) */}
                 <div className="space-y-6">
-                    {/* Asset Availability */}
+                    {/* Asset Availability & Condition Distribution */}
                     <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-white mb-6">Asset Availability</h2>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-lg font-semibold text-white">Asset Condition</h2>
+                            <PieChartIcon size={18} className="text-cyan-400" />
+                        </div>
+
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={conditionDist}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="count"
+                                        nameKey="condition"
+                                    >
+                                        {conditionDist?.map((_: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                                    />
+                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </Card>
+
+                    {/* Asset Availability Ring */}
+                    <Card padding="lg">
+                        <h2 className="text-lg font-semibold text-white mb-6">Availability Rate</h2>
                         <div className="flex justify-center">
                             <RingProgress percentage={availablePercentage} />
-                        </div>
-                        <div className="flex justify-center gap-6 mt-4">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-cyan-500" />
-                                <span className="text-sm text-slate-400">Available</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-slate-700" />
-                                <span className="text-sm text-slate-400">In Use / Others</span>
-                            </div>
                         </div>
                     </Card>
 
                     {/* Operational Stats */}
                     <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-white mb-4">Operational Needs</h2>
+                        <h2 className="text-lg font-semibold text-white mb-4">Operational Status</h2>
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-purple-500/20 rounded-lg">
                                     <ClipboardCheck size={18} className="text-purple-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-slate-300">Pending Loan Approvals</span>
+                                <span className="flex-1 text-sm text-slate-300">Pending Loans</span>
                                 <span className="font-bold text-white">{stats?.loans?.pending_approval || 0}</span>
                             </div>
                             <div className="flex items-center gap-3">
@@ -273,7 +417,7 @@ export function Dashboard() {
                                 <div className="p-2 bg-red-500/20 rounded-lg">
                                     <Wrench size={18} className="text-red-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-slate-300">Overdue Maintenance</span>
+                                <span className="flex-1 text-sm text-slate-300">Repair Needs</span>
                                 <span className="font-bold text-red-400">{stats?.maintenance?.overdue || 0}</span>
                             </div>
                         </div>
@@ -283,3 +427,4 @@ export function Dashboard() {
         </div>
     );
 }
+

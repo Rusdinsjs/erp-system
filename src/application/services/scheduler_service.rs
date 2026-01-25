@@ -87,6 +87,10 @@ impl SchedulerService {
                                     safety_requirements: None,
                                     lockout_tagout_required: None,
                                     location_id: None,
+                                    target_category_id: None,
+                                    target_specifications: None,
+                                    conversion_notes: None,
+                                    conversion_type: None,
                                 };
 
                                 match wo_service.create(req, None).await {

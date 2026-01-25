@@ -1,4 +1,6 @@
-use crate::infrastructure::pdf::invoice_generator::InvoiceGenerator;
+use crate::infrastructure::pdf::{
+    invoice_generator::InvoiceGenerator, summary_generator::SummaryGenerator,
+};
 
 use crate::infrastructure::repositories::{
     ClientRepository, RentalBillingRepository, RentalRepository,
@@ -56,14 +58,29 @@ impl PDFService {
             .ok_or("Client record not found")?;
 
         // 4. Generate PDF
-        // Ensure invoice number is present, fallback if not
         let invoice_num = billing
             .invoice_number
             .clone()
             .unwrap_or_else(|| "DRAFT".to_string());
 
-        // Run generation in blocking thread since genpdf isn't async
         let generator = InvoiceGenerator::new(billing, asset_name, client, invoice_num);
+
+        let pdf_bytes =
+            tokio::task::spawn_blocking(move || generator.generate().map_err(|e| e.to_string()))
+                .await
+                .map_err(|e| e.to_string())??;
+
+        Ok(pdf_bytes)
+    }
+
+    pub async fn generate_dashboard_summary(
+        &self,
+        stats: crate::api::handlers::dashboard_handler::DashboardStats,
+    ) -> Result<Vec<u8>, String> {
+        let generator = SummaryGenerator::new(
+            stats,
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        );
 
         let pdf_bytes =
             tokio::task::spawn_blocking(move || generator.generate().map_err(|e| e.to_string()))

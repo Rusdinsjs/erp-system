@@ -57,6 +57,12 @@ pub struct Asset {
     pub unit_id: Option<i32>,
     pub quantity: Option<i32>,
 
+    // Sale details
+    #[schema(value_type = Option<f64>)]
+    pub sale_price: Option<Decimal>,
+    pub sale_date: Option<NaiveDate>,
+    pub sold_to: Option<String>,
+
     // Depreciation
     #[schema(value_type = Option<f64>)]
     pub residual_value: Option<Decimal>,
@@ -103,6 +109,9 @@ impl Asset {
             currency_id: None,
             unit_id: None,
             quantity: Some(1),
+            sale_price: None,
+            sale_date: None,
+            sold_to: None,
             residual_value: None,
             useful_life_months: None,
             qr_code_url: None,

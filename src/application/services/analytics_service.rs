@@ -31,6 +31,20 @@ pub struct AssetRoiResponse {
     pub utilization_days: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MonthlyTrend {
+    pub month: String,
+    pub total_cost: Decimal,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConditionDistribution {
+    pub condition: String,
+    pub count: i64,
+    pub total_value: Decimal,
+}
+
 #[derive(Clone)]
 pub struct AnalyticsService {
     pool: PgPool,
@@ -39,6 +53,71 @@ pub struct AnalyticsService {
 impl AnalyticsService {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
+    }
+
+    /// Get monthly maintenance costs for the last 12 months
+    pub async fn get_monthly_maintenance_trends(&self) -> DomainResult<Vec<MonthlyTrend>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT 
+                TO_CHAR(actual_end_date, 'YYYY-MM') as month,
+                COALESCE(SUM(actual_cost + parts_cost), 0) as total_cost,
+                COUNT(*) as count
+            FROM maintenance_work_orders
+            WHERE status = 'completed' 
+            AND actual_end_date >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY month
+            ORDER BY month ASC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::ExternalServiceError {
+            service: "db".into(),
+            message: e.to_string(),
+        })?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| MonthlyTrend {
+                month: r.month.unwrap_or_default(),
+                total_cost: r.total_cost.unwrap_or(Decimal::ZERO),
+                count: r.count.unwrap_or(0),
+            })
+            .collect())
+    }
+
+    /// Get distribution of assets by condition
+    pub async fn get_asset_condition_distribution(
+        &self,
+    ) -> DomainResult<Vec<ConditionDistribution>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT 
+                COALESCE(ac.name, 'Unknown') as condition_name,
+                COUNT(a.id) as count,
+                COALESCE(SUM(a.purchase_price), 0) as total_value
+            FROM assets a
+            LEFT JOIN asset_conditions ac ON a.condition_id = ac.id
+            GROUP BY ac.name
+            ORDER BY count DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::ExternalServiceError {
+            service: "db".into(),
+            message: e.to_string(),
+        })?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| ConditionDistribution {
+                condition: r.condition_name.unwrap_or_else(|| "Unknown".to_string()),
+                count: r.count.unwrap_or(0),
+                total_value: r.total_value.unwrap_or(Decimal::ZERO),
+            })
+            .collect())
     }
 
     pub async fn get_asset_roi(&self, asset_id: Uuid) -> DomainResult<AssetRoiResponse> {

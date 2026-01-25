@@ -76,6 +76,14 @@ pub fn create_router(state: AppState) -> Router {
                 ),
         )
         .route(
+            "/api/assets/:id/sell",
+            post(sell_asset.layer(axum_middleware::from_fn(require_permission("asset.update")))),
+        )
+        .route(
+            "/api/assets/export",
+            get(export_assets.layer(axum_middleware::from_fn(require_permission("asset.read")))),
+        )
+        .route(
             "/api/assets/:id/documents",
             get(get_asset_documents
                 .layer(axum_middleware::from_fn(require_permission("asset.read"))))
@@ -363,18 +371,19 @@ pub fn create_router(state: AppState) -> Router {
         )
         // Analytics
         .route(
-            "/api/analytics/costs",
-            get(analytics_handler::get_cost_analytics),
+            "/api/analytics/maintenance-trends",
+            get(analytics_handler::get_monthly_maintenance_trends),
         )
         .route(
-            "/api/analytics/status",
-            get(analytics_handler::get_asset_status_distribution),
+            "/api/analytics/condition-distribution",
+            get(analytics_handler::get_asset_condition_distribution),
         )
         // Settings
         // Settings route moved to settings_routes.rs
         .route("/api/dashboard", get(get_dashboard_stats))
         .route("/api/dashboard/activity", get(get_recent_activities))
         .route("/api/dashboard/depreciation", get(get_depreciation_summary))
+        .route("/api/dashboard/export-pdf", get(export_dashboard_pdf))
         .route(
             "/api/audit/sessions",
             post(audit_handler::start_audit_session),

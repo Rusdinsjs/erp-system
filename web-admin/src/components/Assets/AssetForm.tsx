@@ -16,6 +16,7 @@ import {
     ActionIcon,
 } from '../ui';
 import { CreateCategoryModal } from './CreateCategoryModal';
+import { AssetDocuments } from './AssetDocuments';
 
 interface Category {
     id: string;
@@ -384,6 +385,13 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                             className="px-6 py-2.5 rounded-xl data-[state=active]:bg-amber-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all duration-300"
                         >
                             Financial
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="documents"
+                            icon={<FileText size={18} />}
+                            className="px-6 py-2.5 rounded-xl data-[state=active]:bg-violet-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(139,92,246,0.5)] transition-all duration-300"
+                        >
+                            Documents
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -819,6 +827,25 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </TabsContent>
+
+                {/* Documents Tab */}
+                <TabsContent value="documents" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[3rem] p-10 shadow-xl min-h-[400px]">
+                        {initialValues?.id ? (
+                            <AssetDocuments assetId={initialValues.id} />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 h-full text-center">
+                                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5">
+                                    <FileText size={40} className="text-slate-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2">Create Asset First</h3>
+                                <p className="text-slate-400 max-w-md">
+                                    Please save the asset details first. Once created, you can upload documents, certificates, and photos in this tab.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>

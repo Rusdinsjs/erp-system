@@ -133,6 +133,8 @@ impl AppState {
         let approval_workflow_repo = Arc::new(
             crate::infrastructure::repositories::ApprovalWorkflowRepository::new(pool.clone()),
         );
+        let finance_repo = FinanceRepository::new(pool.clone());
+        let journal_repo = JournalRepository::new(pool.clone());
 
         // Create cache
         let redis_config = RedisConfig::from_env();
@@ -141,8 +143,12 @@ impl AppState {
 
         // Create services
         let approval_service = ApprovalService::new(approval_repo);
-        let asset_service =
-            AssetService::new(asset_repo.clone(), cache.clone(), approval_service.clone());
+        let asset_service = AssetService::new(
+            asset_repo.clone(),
+            journal_repo.clone(),
+            cache.clone(),
+            approval_service.clone(),
+        );
         let audit_service = AuditService::new(audit_repo);
         let auth_service = AuthService::new(
             user_repo.clone(),
@@ -232,9 +238,7 @@ impl AppState {
         let leave_service =
             crate::application::services::LeaveService::new(leave_repo, employee_repo);
 
-        let finance_repo = FinanceRepository::new(pool.clone());
-        let journal_repo = JournalRepository::new(pool.clone());
-        let journal_service = JournalService::new(journal_repo, finance_repo.clone());
+        let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
         let finance_service = FinanceService::new(finance_repo.clone(), journal_service.clone());
 
         let fuel_repo = FuelRepository::new(pool.clone());

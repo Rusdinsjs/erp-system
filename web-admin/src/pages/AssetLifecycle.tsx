@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowRight, Check, Clock, AlertTriangle, Package, Truck,
-    Wrench, Trash2, Archive, RefreshCw, Lock, Info
+    Wrench, Trash2, Archive, RefreshCw, Lock, Info, DollarSign
 } from 'lucide-react';
 import { lifecycleApi } from '../api/lifecycle';
 import { assetApi } from '../api/assets';
@@ -14,6 +14,7 @@ import { CreateLoanModal } from '../components/Assets/CreateLoanModal';
 import { RetiredModal } from '../components/Assets/RetiredModal';
 import { DisposedModal } from '../components/Assets/DisposedModal';
 import { LostStolenModal } from '../components/Assets/LostStolenModal';
+import { SoldModal } from '../components/Assets/SoldModal';
 import { LifecycleTimeline } from '../components/Assets/LifecycleTimeline';
 import { AssetFinancials } from '../components/Assets/AssetFinancials';
 import {
@@ -41,6 +42,7 @@ const stateIcons: Record<string, React.ReactNode> = {
     under_conversion: <RefreshCw size={16} />,
     retired: <AlertTriangle size={16} />,
     disposed: <Trash2 size={16} />,
+    sold: <DollarSign size={16} />,
     lost_stolen: <AlertTriangle size={16} />,
     archived: <Archive size={16} />,
 };
@@ -54,6 +56,7 @@ const getBadgeVariant = (state: string): 'default' | 'info' | 'success' | 'warni
         case 'procurement':
         case 'received':
         case 'under_conversion':
+        case 'sold':
             return 'info';
         case 'under_maintenance':
         case 'under_repair':
@@ -78,6 +81,7 @@ const transitionPermissions: Record<string, number> = {
     'under_conversion': 2,
     'retired': 2,
     'disposed': 2,
+    'sold': 2,
     'lost_stolen': 3,
     'archived': 2,
 };
@@ -98,6 +102,7 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
     const [loanModalOpen, setLoanModalOpen] = useState(false);
     const [retiredModalOpen, setRetiredModalOpen] = useState(false);
     const [disposedModalOpen, setDisposedModalOpen] = useState(false);
+    const [soldModalOpen, setSoldModalOpen] = useState(false);
     const [lostStolenModalOpen, setLostStolenModalOpen] = useState(false);
     const [selectedState, setSelectedState] = useState<string | null>(null);
     const [reason, setReason] = useState('');
@@ -202,6 +207,10 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
         }
         if (stateValue === 'disposed') {
             setDisposedModalOpen(true);
+            return;
+        }
+        if (stateValue === 'sold') {
+            setSoldModalOpen(true);
             return;
         }
         if (stateValue === 'lost_stolen') {
@@ -614,6 +623,17 @@ export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
                 opened={disposedModalOpen}
                 onClose={() => setDisposedModalOpen(false)}
                 assetId={assetId!}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
+                    queryClient.invalidateQueries({ queryKey: ['valid-transitions-with-approval', assetId] });
+                }}
+            />
+
+            <SoldModal
+                opened={soldModalOpen}
+                onClose={() => setSoldModalOpen(false)}
+                assetId={assetId!}
+                purchasePrice={Number(assetData?.purchase_price || 0)}
                 onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['current-status', assetId] });
                     queryClient.invalidateQueries({ queryKey: ['valid-transitions-with-approval', assetId] });

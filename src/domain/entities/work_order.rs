@@ -119,6 +119,12 @@ pub struct WorkOrder {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 
+    // Conversion fields
+    pub target_category_id: Option<Uuid>,
+    pub target_specifications: Option<JsonValue>,
+    pub conversion_notes: Option<String>,
+    pub conversion_type: Option<String>,
+
     // Joined fields
     #[sqlx(default)]
     pub asset_name: Option<String>,
@@ -163,6 +169,10 @@ impl WorkOrder {
             created_at: now,
             updated_at: now,
             asset_name: None,
+            target_category_id: None,
+            target_specifications: None,
+            conversion_notes: None,
+            conversion_type: None,
         }
     }
 

@@ -172,3 +172,15 @@ pub struct AssetDocumentResponse {
     pub uploaded_by: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+
+/// Request to sell an asset
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct SellAssetRequest {
+    #[schema(example = "15000000")]
+    pub sale_price: Decimal,
+    #[schema(example = "2024-03-20")]
+    pub sale_date: NaiveDate,
+    #[schema(example = "PT. Buyer Sejahtera")]
+    pub sold_to: String,
+    pub notes: Option<String>,
+}
