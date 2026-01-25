@@ -6,10 +6,10 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::application::dto::{
-    AssetSearchParams, BulkCreateAssetRequest, CreateAssetRequest, PaginatedResponse,
-    UpdateAssetRequest,
+    AssetSearchParams, BulkCreateAssetRequest, CreateAssetDocumentRequest, CreateAssetRequest,
+    PaginatedResponse, UpdateAssetRequest,
 };
-use crate::domain::entities::{Asset, AssetHistory, AssetState, AssetSummary};
+use crate::domain::entities::{Asset, AssetDocument, AssetHistory, AssetState, AssetSummary};
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::AssetRepository;
 
@@ -166,8 +166,8 @@ impl AssetService {
             .repository
             .search(
                 params.query.as_deref().unwrap_or(""),
-                params.category_id,
-                params.location_id,
+                params.category_id.as_deref(),
+                params.location_id.as_deref(),
                 params.department.as_deref(),
                 params.status.as_deref(),
                 params.is_fuel,
@@ -521,6 +521,51 @@ impl AssetService {
     pub async fn get_history(&self, id: Uuid) -> DomainResult<Vec<AssetHistory>> {
         self.repository
             .get_history(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
+    /// Add document to asset
+    pub async fn add_document(
+        &self,
+        asset_id: Uuid,
+        request: CreateAssetDocumentRequest,
+        uploaded_by: Option<Uuid>,
+    ) -> DomainResult<AssetDocument> {
+        // verify asset exists
+        let _ = self.get_by_id(asset_id).await?;
+
+        let document = AssetDocument {
+            id: Uuid::new_v4(),
+            asset_id,
+            name: request.name,
+            type_: request.type_,
+            file_path: request.file_path,
+            mime_type: request.mime_type,
+            size_bytes: request.size_bytes,
+            expiry_date: request.expiry_date,
+            notes: request.notes,
+            uploaded_by,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        self.repository
+            .create_document(&document)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
+    /// Get asset documents
+    pub async fn get_documents(&self, asset_id: Uuid) -> DomainResult<Vec<AssetDocument>> {
+        self.repository
+            .find_documents_by_asset_id(asset_id)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),

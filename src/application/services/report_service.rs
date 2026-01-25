@@ -156,27 +156,82 @@ impl ReportService {
 
         // Decorator
         let mut decorator = genpdf::SimplePageDecorator::new();
-        decorator.set_margins(10);
+        decorator.set_margins(20); // Increased margins for better aesthetics
         doc.set_page_decorator(decorator);
 
-        // Title
+        // --- Header Section ---
+        let mut header_table = elements::TableLayout::new(vec![3, 7]); // 30% Logo, 70% Info
+        header_table.set_cell_decorator(elements::FrameCellDecorator::new(false, false, false)); // No borders
+
+        let mut row = header_table.row();
+
+        // Logo Column
+        let logo_path = "assets/logo.png";
+        if let Ok(image) = elements::Image::from_path(logo_path) {
+            // Scale down logo if needed or let it fit the cell
+            row.push_element(image.with_alignment(genpdf::Alignment::Left));
+        } else {
+            // Fallback if logo invalid, empty cell
+            row.push_element(elements::Break::new(1.0));
+        }
+
+        // Company Info Column
+        let mut info_column = elements::LinearLayout::vertical();
+        info_column.push(
+            elements::Paragraph::new("PT. SARANA JAYA SERBAGUNA")
+                .styled(style::Style::new().bold().with_font_size(16)),
+        );
+        info_column.push(
+            elements::Paragraph::new("General Contractor, Supplier & Heavy Equipment Rental")
+                .styled(style::Style::new().italic().with_font_size(10)),
+        );
+        info_column.push(
+            elements::Paragraph::new("Jl. Pahlawan No. 123, Jakarta 12345")
+                .styled(style::Style::new().with_font_size(10)),
+        );
+        info_column.push(
+            elements::Paragraph::new("Telp: (021) 555-1234 | Email: info@sjs.co.id")
+                .styled(style::Style::new().with_font_size(10)),
+        );
+
+        row.push_element(info_column);
+        row.push()
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
+        doc.push(header_table);
+
+        // Separator line
+        doc.push(elements::Break::new(2.0));
+        doc.push(elements::Paragraph::new("____________________________________________________________________________________________________").aligned(genpdf::Alignment::Center)); // Visual separator
+        doc.push(elements::Break::new(2.0));
+
+        // Report Title & Date
         doc.push(
             elements::Paragraph::new("Asset Inventory Report")
                 .aligned(genpdf::Alignment::Center)
-                .styled(style::Style::new().bold().with_font_size(20)),
+                .styled(style::Style::new().bold().with_font_size(18)),
         );
-        doc.push(elements::Break::new(1.0));
+        let date_str = chrono::Utc::now().format("%Y-%m-%d %H:%M").to_string();
+        doc.push(
+            elements::Paragraph::new(format!("Generated on: {}", date_str))
+                .aligned(genpdf::Alignment::Center)
+                .styled(style::Style::new().italic().with_font_size(10)),
+        );
+        doc.push(elements::Break::new(2.0));
 
         // Table
-        let mut table = elements::TableLayout::new(vec![1, 2, 4, 2, 2]); // Relative column widths: ID, Code, Name, Status, Asset Class
+        let mut table = elements::TableLayout::new(vec![1, 2, 4, 3, 3]); // Re-adjusted relative column widths
         table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
 
         // Table Header
         let headers = ["ID", "Code", "Name", "Status", "Class"];
         let mut header_row = table.row();
         for header in headers {
-            header_row
-                .push_element(elements::Paragraph::new(header).styled(style::Style::new().bold()));
+            header_row.push_element(
+                elements::Paragraph::new(header)
+                    .styled(style::Style::new().bold())
+                    .padded(2),
+            );
         }
         header_row
             .push()
@@ -185,13 +240,17 @@ impl ReportService {
         // Table Body
         for asset in assets {
             let mut row = table.row();
-            row.push_element(elements::Paragraph::new(asset.id.to_string()));
-            row.push_element(elements::Paragraph::new(asset.asset_code));
-            row.push_element(elements::Paragraph::new(asset.name));
-            row.push_element(elements::Paragraph::new(asset.status));
-            row.push_element(elements::Paragraph::new(
-                asset.asset_class.unwrap_or_default(),
-            ));
+            // Use padded(2) for indentation/spacing
+            row.push_element(
+                elements::Paragraph::new(asset.id.to_string().chars().take(8).collect::<String>())
+                    .padded(2),
+            ); // Shorten ID for display
+            row.push_element(elements::Paragraph::new(asset.asset_code).padded(2));
+            row.push_element(elements::Paragraph::new(asset.name).padded(2));
+            row.push_element(elements::Paragraph::new(asset.status).padded(2));
+            row.push_element(
+                elements::Paragraph::new(asset.asset_class.unwrap_or_default()).padded(2),
+            );
             row.push()
                 .map_err(|e| DomainError::internal(e.to_string()))?;
         }

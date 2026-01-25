@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MapPin, Building2, Tag, Calendar, Truck, Printer, BarChart3 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { assetApi } from '../api/assets';
-import { AssetFinancials } from '../components/Assets/AssetFinancials';
+
+import { AssetDocuments } from '../components/Assets/AssetDocuments';
 import {
     Button,
     Card,
@@ -116,17 +117,13 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
                 </div>
             </div>
 
-            {/* Financial Overview Widget */}
-            <AssetFinancials
-                maintenanceCost={Number(asset.total_maintenance_cost || 0)}
-                rentalIncome={Number(asset.total_rental_income || 0)}
-                purchasePrice={Number(asset.purchase_price || 0)}
-            />
+
 
             {/* Details Tabs */}
             <Tabs defaultValue="details" className="w-full">
                 <TabsList className="mb-4 w-full justify-start overflow-x-auto global-scrollbar pb-1">
                     <TabsTrigger value="details" className="flex-shrink-0">General Info</TabsTrigger>
+                    <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
                     <TabsTrigger value="roi" className="flex-shrink-0">ROI & Profitability</TabsTrigger>
                     <TabsTrigger value="qrcode" className="flex-shrink-0">QR Code Label</TabsTrigger>
                 </TabsList>
@@ -159,6 +156,10 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
                             </div>
                         </Card>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="documents">
+                    <AssetDocuments assetId={id!} />
                 </TabsContent>
 
                 <TabsContent value="roi">

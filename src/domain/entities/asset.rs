@@ -163,6 +163,7 @@ pub struct AssetSummary {
     #[schema(value_type = Option<f64>)]
     pub purchase_price: Option<Decimal>,
     pub category_id: Uuid,
+    pub category_name: Option<String>,
     pub location_id: Option<Uuid>,
     pub location_name: Option<String>,
     pub department: Option<String>,

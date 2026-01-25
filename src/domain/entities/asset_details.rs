@@ -65,6 +65,7 @@ pub struct AssetDocument {
     pub id: Uuid,
     pub asset_id: Uuid,
     pub name: String,
+    #[sqlx(rename = "type")]
     pub type_: String, // type is reserved keyword
     pub file_path: String,
     pub mime_type: Option<String>,

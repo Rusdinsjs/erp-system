@@ -8,11 +8,13 @@ use axum::{
 use uuid::Uuid;
 
 use crate::api::server::AppState;
+use crate::application::dto::AssetDocumentResponse;
 use crate::application::dto::{
-    ApiResponse, AssetSearchParams, BulkCreateAssetRequest, CreateAssetRequest, PaginatedResponse,
-    PaginationParams, UpdateAssetRequest,
+    ApiResponse, AssetSearchParams, BulkCreateAssetRequest, CreateAssetDocumentRequest,
+    CreateAssetRequest, PaginatedResponse, PaginationParams, UpdateAssetRequest,
 };
 use crate::application::services::asset_service::AssetOperationResult;
+
 use crate::domain::entities::user::UserClaims;
 use crate::domain::entities::{Asset, AssetSummary};
 use crate::shared::errors::AppError;
@@ -208,4 +210,89 @@ pub async fn delete_asset(
         (),
         "Asset archived",
     )))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/assets/{id}/documents",
+    params(
+        ("id" = Uuid, Path, description = "Asset ID")
+    ),
+    request_body = CreateAssetDocumentRequest,
+    responses(
+        (status = 201, description = "Document added", body = ApiResponse<AssetDocumentResponse>),
+        (status = 404, description = "Asset not found")
+    ),
+    tag = "assets"
+)]
+pub async fn add_document_to_asset(
+    State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<CreateAssetDocumentRequest>,
+) -> Result<Json<ApiResponse<AssetDocumentResponse>>, AppError> {
+    let user_id = Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
+
+    let doc = state
+        .asset_service
+        .add_document(id, payload, Some(user_id))
+        .await?;
+
+    let response = AssetDocumentResponse {
+        id: doc.id,
+        asset_id: doc.asset_id,
+        name: doc.name,
+        type_: doc.type_,
+        file_path: doc.file_path,
+        mime_type: doc.mime_type,
+        size_bytes: doc.size_bytes,
+        expiry_date: doc.expiry_date,
+        notes: doc.notes,
+        uploaded_by: doc.uploaded_by,
+        created_at: doc.created_at,
+    };
+
+    Ok(Json(ApiResponse::success_with_message(
+        response,
+        "Document added",
+    )))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/assets/{id}/documents",
+    params(
+        ("id" = Uuid, Path, description = "Asset ID")
+    ),
+    responses(
+        (status = 200, description = "List documents", body = Vec<AssetDocumentResponse>),
+        (status = 404, description = "Asset not found")
+    ),
+    tag = "assets"
+)]
+pub async fn get_asset_documents(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<AssetDocumentResponse>>, AppError> {
+    let docs = state.asset_service.get_documents(id).await?;
+
+    let response: Vec<AssetDocumentResponse> = docs
+        .into_iter()
+        .map(|doc| AssetDocumentResponse {
+            id: doc.id,
+            asset_id: doc.asset_id,
+            name: doc.name,
+            type_: doc.type_,
+            file_path: doc.file_path,
+            mime_type: doc.mime_type,
+            size_bytes: doc.size_bytes,
+            expiry_date: doc.expiry_date,
+            notes: doc.notes,
+            uploaded_by: doc.uploaded_by,
+            created_at: doc.created_at,
+        })
+        .collect();
+
+    Ok(Json(response))
 }

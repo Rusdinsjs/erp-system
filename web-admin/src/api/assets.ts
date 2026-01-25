@@ -68,6 +68,30 @@ export interface Asset {
     total_rental_income?: number;
 }
 
+export interface AssetDocument {
+    id: string;
+    asset_id: string;
+    name: string;
+    type: string;
+    file_path: string;
+    mime_type?: string;
+    size_bytes?: number;
+    expiry_date?: string;
+    notes?: string;
+    uploaded_by?: string;
+    created_at?: string;
+}
+
+export interface CreateAssetDocumentRequest {
+    name: string;
+    type: string;
+    file_path: string;
+    mime_type?: string;
+    size_bytes?: number;
+    expiry_date?: string;
+    notes?: string;
+}
+
 export interface CreateAssetRequest extends Omit<Asset, 'id' | 'created_at' | 'updated_at' | 'status'> {
     status?: string;
     vehicle_details?: VehicleDetails;
@@ -79,6 +103,7 @@ export interface AssetSearchParams {
     query?: string;
     category_id?: string;
     location_id?: string;
+    department?: string;
     status?: string;
     is_rental?: boolean;
     is_fuel?: boolean;
@@ -135,6 +160,27 @@ export const assetApi = {
 
     getDashboardStats: async () => {
         const response = await api.get('/dashboard');
+        return response.data;
+    },
+
+    getDocuments: async (id: string) => {
+        const response = await api.get<AssetDocument[]>(`/assets/${id}/documents`);
+        return response.data;
+    },
+
+    addDocument: async (id: string, data: CreateAssetDocumentRequest) => {
+        const response = await api.post<AssetDocument>(`/assets/${id}/documents`, data);
+        return response.data;
+    },
+
+    uploadFile: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post<{ url: string; original_name: string; content_type: string; size: number }>('/upload', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
         return response.data;
     }
 };

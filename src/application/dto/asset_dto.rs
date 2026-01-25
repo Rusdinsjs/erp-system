@@ -116,8 +116,8 @@ pub struct UpdateAssetRequest {
 #[derive(Debug, Deserialize, ToSchema, utoipa::IntoParams)]
 pub struct AssetSearchParams {
     pub query: Option<String>,
-    pub category_id: Option<Uuid>,
-    pub location_id: Option<Uuid>,
+    pub category_id: Option<String>,
+    pub location_id: Option<String>,
     pub department: Option<String>,
     pub status: Option<String>,
     pub is_fuel: Option<bool>,
@@ -137,4 +137,38 @@ pub struct AssetTransferRequest {
 pub struct AssetAssignRequest {
     pub assigned_to: Uuid,
     pub notes: Option<String>,
+}
+
+/// Request to add a document to an asset
+#[derive(Debug, Deserialize, ToSchema, Clone)]
+pub struct CreateAssetDocumentRequest {
+    #[schema(example = "Asset Photo 1")]
+    pub name: String,
+    #[schema(example = "PHOTO")]
+    #[serde(rename = "type")]
+    pub type_: String,
+    #[schema(example = "/api/uploads/2024/01/01/uuid.jpg")]
+    pub file_path: String,
+    pub mime_type: Option<String>,
+    pub size_bytes: Option<i64>,
+    #[schema(value_type = Option<String>)]
+    pub expiry_date: Option<NaiveDate>,
+    pub notes: Option<String>,
+}
+
+/// Asset document response
+#[derive(Debug, Serialize, ToSchema, Clone)]
+pub struct AssetDocumentResponse {
+    pub id: Uuid,
+    pub asset_id: Uuid,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub file_path: String,
+    pub mime_type: Option<String>,
+    pub size_bytes: Option<i64>,
+    pub expiry_date: Option<NaiveDate>,
+    pub notes: Option<String>,
+    pub uploaded_by: Option<Uuid>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }

@@ -75,6 +75,15 @@ pub fn create_router(state: AppState) -> Router {
                         .layer(axum_middleware::from_fn(require_permission("asset.delete"))),
                 ),
         )
+        .route(
+            "/api/assets/:id/documents",
+            get(get_asset_documents
+                .layer(axum_middleware::from_fn(require_permission("asset.read"))))
+            .post(
+                add_document_to_asset
+                    .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+            ),
+        )
         // Maintenance - Merged below
         // Work Orders
         // Work Orders

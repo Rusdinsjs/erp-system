@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText } from 'lucide-react';
 import { assetApi } from '../api/assets';
+import { categoryApi } from '../api/category';
+import { locationApi } from '../api/locations';
+import { departmentApi } from '../api/departments';
 import type { Asset, CreateAssetRequest } from '../api/assets';
 import { api } from '../api/http';
 import { AssetForm } from '../components/Assets/AssetForm';
 import { ImportAssetsModal } from '../components/Assets/ImportAssetsModal';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
     Button,
     Card,
@@ -48,12 +51,16 @@ export function Assets() {
     const navigate = useNavigate();
     const { success, error: showError } = useToast();
 
-    const [searchParams] = useSearchParams();
-    const statusFilter = searchParams.get('status');
+
 
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
+
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+    const [locationFilter, setLocationFilter] = useState<string | null>(null);
+    const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [importModalOpen, setImportModalOpen] = useState(false);
@@ -61,18 +68,42 @@ export function Assets() {
 
     // Fetch Assets
     const { data: assetsData, isLoading: assetsLoading } = useQuery({
-        queryKey: ['assets', page, debouncedSearch, statusFilter],
+        queryKey: ['assets', page, debouncedSearch, statusFilter, categoryFilter, locationFilter, departmentFilter],
         queryFn: () => assetApi.list({
             page,
             per_page: 15,
             query: debouncedSearch,
-            status: statusFilter || undefined
+            status: statusFilter || undefined,
+            category_id: categoryFilter || undefined,
+            location_id: locationFilter || undefined,
+            department: departmentFilter || undefined, // Note: Interface might need update if department is not supported yet
         })
     });
 
-    // Fetch Categories
+    // Fetch Categories for filters (flat list)
+    const { data: filterCategories = [] } = useQuery({
+        queryKey: ['categories-flat-for-filter'],
+        queryFn: categoryApi.list,
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Fetch Locations for filters (flat list)
+    const { data: filterLocations = [] } = useQuery({
+        queryKey: ['locations-for-filter'],
+        queryFn: locationApi.list,
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Fetch Departments for filters (flat list)
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments'],
+        queryFn: departmentApi.list,
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Fetch Categories for forms (tree structure)
     const { data: categories = [] } = useQuery({
-        queryKey: ['categories-flat'],
+        queryKey: ['categories-tree'],
         queryFn: async () => {
             const res = await api.get('/categories/tree');
             // Backend returns { data: [...] }
@@ -82,9 +113,9 @@ export function Assets() {
         staleTime: 5 * 60 * 1000
     });
 
-    // Fetch Locations
+    // Fetch Locations for forms (original fetch)
     const { data: locations = [] } = useQuery({
-        queryKey: ['locations'],
+        queryKey: ['locations-original'],
         queryFn: async () => {
             try {
                 const res = await api.get('/locations');
@@ -127,7 +158,9 @@ export function Assets() {
         mutationFn: assetApi.delete,
         onSuccess: () => {
             success('Asset deleted', 'Success');
+            success('Asset deleted', 'Success');
             queryClient.invalidateQueries({ queryKey: ['assets'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
         },
         onError: (err: any) => {
             showError(err.message || 'Failed to delete asset. It might be in use.', 'Error');
@@ -166,7 +199,7 @@ export function Assets() {
         staleTime: 30000
     });
 
-    const totalPages = assetsData?.total_pages || 1;
+
 
     return (
         <div className="p-8">
@@ -268,7 +301,9 @@ export function Assets() {
                         <div>
                             <p className="text-gray-400 text-sm font-medium">Maintenance</p>
                             <h3 className="text-3xl font-bold text-white mt-1">
-                                {stats?.maintenance?.pending || 0}
+                                {stats?.assets?.by_status?.filter((s: any) =>
+                                    ['under_maintenance', 'under_repair'].includes(s.status)
+                                ).reduce((acc: number, curr: any) => acc + curr.count, 0) || 0}
                             </h3>
                         </div>
                         <div className="p-3 bg-amber-500/20 rounded-xl">
@@ -296,8 +331,8 @@ export function Assets() {
             {/* Main Content Area */}
             <Card className="overflow-hidden p-0">
                 {/* Search & Filters Bar */}
-                <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-900/30">
-                    <div className="relative w-full sm:w-96">
+                <div className="p-4 border-b border-white/5 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-gray-900/30">
+                    <div className="relative w-full xl:w-96">
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                         <input
                             type="text"
@@ -308,36 +343,54 @@ export function Assets() {
                         />
                     </div>
 
-                    <div className="w-full sm:w-auto min-w-[200px]">
-                        <MultiSelect
-                            placeholder="Filter Status..."
-                            options={[
-                                { value: 'active', label: 'Active (All Operational)' },
-                                { value: 'planning', label: 'Planning' },
-                                { value: 'procurement', label: 'Procurement' },
-                                { value: 'received', label: 'Received' },
-                                { value: 'in_inventory', label: 'In Inventory' },
-                                { value: 'deployed', label: 'Deployed' },
-                                { value: 'rented_out', label: 'Rented Out' },
-                                { value: 'under_maintenance', label: 'Under Maintenance' },
-                                { value: 'under_repair', label: 'Under Repair' },
-                                { value: 'under_conversion', label: 'Under Conversion' },
-                                { value: 'retired', label: 'Retired' },
-                                { value: 'disposed', label: 'Disposed' },
-                                { value: 'lost_stolen', label: 'Lost/Stolen' },
-                                { value: 'archived', label: 'Archived' },
-                            ]}
-                            value={statusFilter ? statusFilter.split(',') : []}
-                            onChange={(values) => {
-                                const newParams = new URLSearchParams(searchParams);
-                                if (values.length === 0) {
-                                    newParams.delete('status');
-                                } else {
-                                    newParams.set('status', values.join(','));
-                                }
-                                navigate(`?${newParams.toString()}`);
-                            }}
-                        />
+                    <div className="flex flex-wrap gap-3 w-full xl:w-auto">
+                        <div className="w-full sm:w-auto min-w-[200px]">
+                            <MultiSelect
+                                placeholder="Category"
+                                options={filterCategories.map((c: any) => ({ value: c.id, label: c.name }))}
+                                value={categoryFilter ? categoryFilter.split(',') : []}
+                                onChange={(values) => setCategoryFilter(values.length ? values.join(',') : null)}
+                            />
+                        </div>
+                        <div className="w-full sm:w-auto min-w-[200px]">
+                            <MultiSelect
+                                placeholder="Location"
+                                options={filterLocations.map((l: any) => ({ value: l.id, label: l.name }))}
+                                value={locationFilter ? locationFilter.split(',') : []}
+                                onChange={(values) => setLocationFilter(values.length ? values.join(',') : null)}
+                            />
+                        </div>
+                        <div className="w-full sm:w-auto min-w-[200px]">
+                            <MultiSelect
+                                placeholder="Department"
+                                options={departments.map((d: any) => ({ value: d.name, label: d.name }))}
+                                value={departmentFilter ? departmentFilter.split(',') : []}
+                                onChange={(values) => setDepartmentFilter(values.length ? values.join(',') : null)}
+                            />
+                        </div>
+                        <div className="w-full sm:w-auto min-w-[200px]">
+                            <MultiSelect
+                                placeholder="Filter Status..."
+                                options={[
+                                    { value: 'planning', label: 'Planning' },
+                                    { value: 'procurement', label: 'Procurement' },
+                                    { value: 'received', label: 'Received' },
+                                    { value: 'in_inventory', label: 'In Inventory' },
+                                    { value: 'deployed', label: 'Deployed' },
+                                    { value: 'rented_out', label: 'Rented Out' },
+                                    { value: 'under_maintenance', label: 'Under Maintenance' },
+                                    { value: 'under_repair', label: 'Under Repair' },
+                                    { value: 'under_conversion', label: 'Under Conversion' },
+                                    { value: 'retired', label: 'Retired' },
+                                    { value: 'disposed', label: 'Disposed' },
+                                    { value: 'lost_stolen', label: 'Lost/Stolen' },
+                                    { value: 'archived', label: 'Archived' },
+                                ]}
+                                value={statusFilter ? statusFilter.split(',') : []}
+                                onChange={(values) => setStatusFilter(values.length ? values.join(',') : null)}
+                            />
+                        </div>
+
                     </div>
                 </div>
 
@@ -352,10 +405,11 @@ export function Assets() {
                             <TableHead>
                                 <TableRow className="bg-gray-900/50 border-white/5">
                                     <TableTh>Asset Code</TableTh>
+                                    <TableTh>Category</TableTh>
                                     <TableTh>Name</TableTh>
+                                    <TableTh>Brand/Model</TableTh>
                                     <TableTh>Location</TableTh>
                                     <TableTh>Department</TableTh>
-                                    <TableTh>Brand/Model</TableTh>
                                     <TableTh>Status</TableTh>
                                     <TableTh align="center">Actions</TableTh>
                                 </TableRow>
@@ -368,15 +422,16 @@ export function Assets() {
                                                 {asset.asset_code}
                                             </span>
                                         </TableTd>
+                                        <TableTd>{asset.category_name || '-'}</TableTd>
                                         <TableTd className="font-medium">{asset.name}</TableTd>
-                                        <TableTd>{asset.location_name || '-'}</TableTd>
-                                        <TableTd>{asset.department || '-'}</TableTd>
                                         <TableTd>
                                             <div className="text-sm">
                                                 <span className="text-gray-200">{asset.brand}</span>
                                                 <span className="text-gray-500 ml-1">{asset.model}</span>
                                             </div>
                                         </TableTd>
+                                        <TableTd>{asset.location_name || '-'}</TableTd>
+                                        <TableTd>{asset.department || '-'}</TableTd>
                                         <TableTd>
                                             <StatusBadge status={asset.status || 'active'} />
                                         </TableTd>
@@ -424,14 +479,14 @@ export function Assets() {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
+                {assetsData?.total_pages > 1 && (
                     <div className="flex justify-between items-center p-4 border-t border-white/5 bg-gray-900/20">
                         <p className="text-sm text-gray-500">
                             Showing <span className="text-gray-300">{assetsData?.data?.length || 0}</span> of <span className="text-gray-300">{assetsData?.total || 0}</span> assets
                         </p>
                         <Pagination
                             currentPage={page}
-                            totalPages={totalPages}
+                            totalPages={assetsData?.total_pages}
                             onPageChange={setPage}
                         />
                     </div>
@@ -461,6 +516,7 @@ export function Assets() {
                 onClose={() => setImportModalOpen(false)}
                 onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['assets'] });
+                    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
                     setImportModalOpen(false);
                 }}
                 categories={categories}

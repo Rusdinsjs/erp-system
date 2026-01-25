@@ -50,15 +50,24 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
     const statusVariants: Record<string, BadgeProps['variant']> = {
-        // Asset statuses
+        // Standard Asset Statuses (match Backend AssetState)
+        planning: 'default',
+        procurement: 'info',
+        received: 'info',
+        in_inventory: 'success', // Replaces 'available'
+        deployed: 'success',     // Replaces 'active'
+        rented_out: 'warning',
+        under_maintenance: 'warning',
+        under_repair: 'warning',
+        under_conversion: 'info',
+        retired: 'default',
+        disposed: 'danger',
+        lost_stolen: 'danger',
+        archived: 'outline',
+
+        // Legacy/Alias mappings (for backward compat only, should migrate data)
         active: 'success',
         available: 'success',
-        planning: 'info',
-        maintenance: 'warning',
-        disposed: 'danger',
-        sold: 'danger',
-        lost: 'danger',
-        archived: 'outline',
 
         // Work order statuses
         pending: 'warning',
@@ -73,7 +82,6 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
 
         // Rental statuses
         requested: 'info',
-        rented_out: 'success',
         returned: 'default',
 
         // Loan statuses
@@ -82,7 +90,15 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
     };
 
     const variant = statusVariants[status.toLowerCase()] || 'default';
-    const displayText = status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    // Custom formatted labels
+    let displayText = status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    if (status === 'in_inventory') displayText = 'In Inventory';
+    if (status === 'rented_out') displayText = 'Rented Out';
+    if (status === 'lost_stolen') displayText = 'Lost/Stolen';
+    if (status === 'under_maintenance') displayText = 'Under Maintenance';
+    if (status === 'under_repair') displayText = 'Under Repair';
+    if (status === 'under_conversion') displayText = 'Under Conversion';
 
     return (
         <Badge variant={variant} className={className}>

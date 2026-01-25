@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::domain::entities::analytics::AssetStatusStats;
 use crate::domain::entities::asset_details::VehicleDetails;
-use crate::domain::entities::{Asset, AssetHistory, AssetSummary};
+use crate::domain::entities::{Asset, AssetDocument, AssetHistory, AssetSummary};
 
 /// Asset repository
 #[derive(Clone)]
@@ -221,8 +221,9 @@ impl AssetRepository {
         sqlx::query_as::<_, AssetSummary>(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
+            LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
             WHERE a.status != 'archived'
@@ -273,8 +274,8 @@ impl AssetRepository {
     pub async fn search(
         &self,
         query: &str,
-        category_id: Option<Uuid>,
-        location_id: Option<Uuid>,
+        category_id: Option<&str>,
+        location_id: Option<&str>,
         department: Option<&str>,
         status: Option<&str>,
         is_fuel: Option<bool>,
@@ -284,15 +285,16 @@ impl AssetRepository {
         sqlx::query_as::<_, AssetSummary>(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
             FROM assets a
+            LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
             WHERE 
                 ($1 = '' OR a.name ILIKE '%' || $1 || '%' OR a.asset_code ILIKE '%' || $1 || '%' OR a.serial_number ILIKE '%' || $1 || '%')
-                AND ($2::uuid IS NULL OR a.category_id = $2)
-                AND ($3::uuid IS NULL OR a.location_id = $3)
-                AND ($4::text IS NULL OR a.department = $4 OR d.name = $4)
+                AND ($2::text IS NULL OR a.category_id = ANY(string_to_array($2, ',')::uuid[]))
+                AND ($3::text IS NULL OR a.location_id = ANY(string_to_array($3, ',')::uuid[]))
+                AND ($4::text IS NULL OR a.department = ANY(string_to_array($4, ',')) OR d.name = ANY(string_to_array($4, ',')))
                 AND (
                     ($5::text IS NULL AND a.status != 'archived')
                     OR ($5::text IS NOT NULL AND (
@@ -553,6 +555,47 @@ impl AssetRepository {
             ORDER BY count DESC
             "#,
         )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    /// Create document
+    pub async fn create_document(
+        &self,
+        document: &AssetDocument,
+    ) -> Result<AssetDocument, sqlx::Error> {
+        sqlx::query_as::<_, AssetDocument>(
+            r#"
+            INSERT INTO asset_documents (id, asset_id, name, type, file_path, mime_type, size_bytes, expiry_date, notes, uploaded_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING *
+            "#,
+        )
+        .bind(document.id)
+        .bind(document.asset_id)
+        .bind(&document.name)
+        .bind(&document.type_)
+        .bind(&document.file_path)
+        .bind(&document.mime_type)
+        .bind(document.size_bytes)
+        .bind(document.expiry_date)
+        .bind(&document.notes)
+        .bind(document.uploaded_by)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    /// Find documents by asset ID
+    pub async fn find_documents_by_asset_id(
+        &self,
+        asset_id: Uuid,
+    ) -> Result<Vec<AssetDocument>, sqlx::Error> {
+        sqlx::query_as::<_, AssetDocument>(
+            r#"
+            SELECT * FROM asset_documents WHERE asset_id = $1 ORDER BY created_at DESC
+            "#,
+        )
+        .bind(asset_id)
         .fetch_all(&self.pool)
         .await
     }

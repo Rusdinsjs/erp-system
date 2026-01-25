@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penjelasan Detail Arsitektur Berlapis</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3 { color: #2c3e50; border-bottom: 2px solid #ebedef; padding-bottom: 10px; }
+        h1 { font-size: 2.2em; text-align: center; border-bottom: none; }
+        h2 { margin-top: 40px; }
+        code { background-color: #f8f9fa; padding: 2px 5px; border-radius: 4px; font-family: Consolas, 'Courier New', monospace; color: #e74c3c; }
+        pre { background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f4f6f7; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .layer-box { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-bottom: 20px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .analogy { background-color: #fff8e1; border-left: 5px solid #ffc107; padding: 15px; margin-top: 20px; }
+        @media print {
+            body { max-width: 100%; padding: 0; }
+            .layer-box { break-inside: avoid; }
+            a { text-decoration: none; color: #333; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Penjelasan Detail Arsitektur Berlapis</h1>
+    <p style="text-align: center; color: #7f8c8d;">Dokumentasi Teknis Proyek Management System</p>
+    
+    <p>Arsitektur Berlapis (sering dikaitkan dengan <i>Clean Architecture</i> atau <i>Onion Architecture</i>) adalah pola desain perangkat lunak yang memisahkan kode menjadi beberapa lapisan logis. Tujuannya adalah untuk membuat sistem yang:</p>
+    <ol>
+        <li><b>Mudah Diuji (Testable)</b>: Logika bisnis bisa dites tanpa database atau server web.</li>
+        <li><b>Independen</b>: UI, Database, dan Framework bisa diganti tanpa mengubah aturan bisnis inti.</li>
+        <li><b>Terstruktur</b>: Setiap kode memiliki "rumah" yang jelas sesuai tanggung jawabnya.</li>
+    </ol>
+
+    <p>Dalam proyek ini, arsitektur dibagi menjadi 4 lapisan utama:</p>
+
+    <div class="layer-box">
+        <h2>1. Domain Layer (Inti Bisnis)</h2>
+        <p><b>Lokasi</b>: <code>src/domain</code></p>
+        <p>Ini adalah jantung dari aplikasi. Lapisan ini berisi aturan bisnis murni dan <b>tidak boleh bergantung pada lapisan lain</b>. Ia tidak tahu apa itu database, HTTP, atau JSON.</p>
+        <ul>
+            <li><b>Isi Utama</b>:
+                <ul>
+                    <li><b>Entities</b>: Objek bisnis utama yang memiliki ID dan siklus hidup (contoh: <code>Asset</code>, <code>Employee</code>).</li>
+                    <li><b>Value Objects</b>: Objek tanpa ID yang didefinisikan oleh nilainya.</li>
+                    <li><b>Repository Interfaces</b>: Kontrak/interface yang mendefinisikan <i>apa</i> yang bisa dilakukan.</li>
+                </ul>
+            </li>
+            <li><b>Contoh</b>: <code>src/domain/entities/asset.rs</code> mendefinisikan struktur <code>Asset</code>.</li>
+        </ul>
+    </div>
+
+    <div class="layer-box">
+        <h2>2. Application Layer (Orkestrator)</h2>
+        <p><b>Lokasi</b>: <code>src/application</code></p>
+        <p>Lapisan ini menjembatani dunia luar dengan Domain. Ia berisi "Use Cases" atau alur cerita pengguna.</p>
+        <ul>
+            <li><b>Tanggung Jawab</b>:
+                <ul>
+                    <li>Menerima input dari API (DTO).</li>
+                    <li>Memanggil Repository untuk mengambil data Domain.</li>
+                    <li>Mengeksekusi logika bisnis pada Domain Entity.</li>
+                </ul>
+            </li>
+            <li><b>Isi Utama</b>: Services (<code>AssetService</code>), DTOs.</li>
+        </ul>
+    </div>
+
+    <div class="layer-box">
+        <h2>3. Infrastructure Layer (Teknis & Tools)</h2>
+        <p><b>Lokasi</b>: <code>src/infrastructure</code></p>
+        <p>Lapisan ini berisi detail teknis dan implementasi konkret. Ini adalah "tukang" yang melakukan pekerjaan kotor.</p>
+        <ul>
+            <li><b>Tanggung Jawab</b>: Berbicara dengan Database (SQLx), Email, PDF.</li>
+            <li><b>Isi Utama</b>: Repositories (<code>PostgresAssetRepository</code>), Adapters.</li>
+        </ul>
+    </div>
+
+    <div class="layer-box">
+        <h2>4. API / Interface Layer (Pintu Gerbang)</h2>
+        <p><b>Lokasi</b>: <code>src/api</code></p>
+        <p>Lapisan terluar yang berinteraksi langsung dengan pengguna atau sistem lain.</p>
+        <ul>
+            <li><b>Tanggung Jawab</b>: Menerima request HTTP, Validasi JSON, Mengembalikan Response.</li>
+            <li><b>Isi Utama</b>: Routes, Handlers, Middleware.</li>
+        </ul>
+    </div>
+
+    <h2>Matriks Perbandingan Lapisan</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Fitur</th>
+                <th>Domain Layer</th>
+                <th>Application Layer</th>
+                <th>Infrastructure Layer</th>
+                <th>API Layer</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>Fokus Utama</b></td>
+                <td>Aturan Bisnis Murni</td>
+                <td>Alur Kerja Aplikasi</td>
+                <td>Detail Teknis</td>
+                <td>Interaksi User HTTP</td>
+            </tr>
+            <tr>
+                <td><b>Ketergantungan</b></td>
+                <td>Independen</td>
+                <td>Domain</td>
+                <td>Domain & App</td>
+                <td>App</td>
+            </tr>
+            <tr>
+                <td><b>Analogi</b></td>
+                <td>Hukum Negara</td>
+                <td>Prosedur Birokrasi</td>
+                <td>Jalan & Listrik</td>
+                <td>Loket Pelayanan</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="analogy">
+        <h2>Analogi Dunia Nyata: Restoran Modern 🍽️</h2>
+        
+        <h3>1. API Layer = Pelayan (Waiter) 🤵</h3>
+        <p>Menyambut tamu, mencatat pesanan, mengantar makanan. Mereka <b>tidak memasak</b>, hanya penghubung.</p>
+
+        <h3>2. Application Layer = Head Chef / Manajer Dapur 👨‍🍳</h3>
+        <p>Menerima pesanan, berteriak "Satu Nasi Goreng!", mengatur tim. Mereka mengorkestrasi alur masak.</p>
+
+        <h3>3. Domain Layer = Buku Resep & SOP 📖</h3>
+        <p>Menentukan <b>apa itu Nasi Goreng</b> (harus ada nasi, kecap). Resep ini tetap sama mau dimasak pakai kompor gas atau arang.</p>
+
+        <h3>4. Infrastructure Layer = Kompor & Kulkas 🍳</h3>
+        <p>Alat teknis. Chef bilang "Dinginkan", Kulkas melakukannya. Chef tidak perlu tahu cara kerja freon.</p>
+    </div>
+
+</body>
+</html>
