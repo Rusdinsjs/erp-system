@@ -1,11 +1,13 @@
 //! Fuel Log Entity
 //!
 //! Tracks fuel requests, approvals (coupons), and realizations.
+//!
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::str::FromStr;
 use uuid::Uuid;
 
 /// Fuel Request Type (Volume or Amount)
@@ -14,6 +16,18 @@ use uuid::Uuid;
 pub enum FuelRequestType {
     Volume, // Liters
     Amount, // Rupiah
+}
+
+impl FromStr for FuelRequestType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "volume" => Ok(Self::Volume),
+            "amount" => Ok(Self::Amount),
+            _ => Err(format!("Invalid fuel request type: {}", s)),
+        }
+    }
 }
 
 impl FuelRequestType {
@@ -35,6 +49,20 @@ pub enum FuelStatus {
     Completed,
 }
 
+impl FromStr for FuelStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "requested" => Ok(Self::Requested),
+            "approved" => Ok(Self::Approved),
+            "rejected" => Ok(Self::Rejected),
+            "completed" => Ok(Self::Completed),
+            _ => Err(format!("Invalid fuel status: {}", s)),
+        }
+    }
+}
+
 impl FuelStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -43,6 +71,11 @@ impl FuelStatus {
             Self::Rejected => "rejected",
             Self::Completed => "completed",
         }
+    }
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(s: &str) -> Option<Self> {
+        <Self as FromStr>::from_str(s).ok()
     }
 }
 
@@ -92,8 +125,6 @@ impl FuelLog {
         requested_value: Decimal,
     ) -> Self {
         let now = Utc::now();
-        // Tracking number logic should be in service or here if unique enough
-        // Using timestamp for simple uniqueness in entity constructor, but reliable gen should be in repo/service
         let tracking_number = format!("FL-{}", now.format("%Y%m%d%H%M%S"));
 
         Self {
@@ -101,7 +132,7 @@ impl FuelLog {
             tracking_number,
             asset_id,
             requested_by,
-            driver_id: None, // Can be set later
+            driver_id: None,
             odometer_reading,
             odometer_image_url,
             request_type: request_type.as_str().to_string(),

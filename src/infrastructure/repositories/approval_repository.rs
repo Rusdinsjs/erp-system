@@ -166,6 +166,27 @@ impl ApprovalRepository {
             .await?;
         Ok(())
     }
+
+    pub async fn find_pending_by_resource(
+        &self,
+        resource_type: &str,
+        resource_id: Uuid,
+    ) -> Result<Option<ApprovalRequest>, sqlx::Error> {
+        sqlx::query_as::<_, ApprovalRequest>(
+            r#"
+            SELECT ar.*, u.name as requester_name
+            FROM approval_requests ar
+            LEFT JOIN users u ON ar.requested_by = u.id
+            WHERE ar.resource_type = $1 AND ar.resource_id = $2 AND ar.status = 'PENDING'
+            ORDER BY ar.created_at DESC
+            LIMIT 1
+            "#,
+        )
+        .bind(resource_type)
+        .bind(resource_id)
+        .fetch_optional(&self.pool)
+        .await
+    }
 }
 
 pub mod scan_approval_request {

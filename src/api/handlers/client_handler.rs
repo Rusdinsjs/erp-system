@@ -31,7 +31,7 @@ pub async fn api_list_clients(
         .client_service
         .list_clients(params.per_page(), params.offset())
         .await
-        .map_err(|e| AppError::Domain(e))?;
+        .map_err(AppError::Domain)?;
 
     Ok(Json(PaginatedResponse::new(
         clients,
@@ -59,7 +59,7 @@ pub async fn api_create_client(
         .client_service
         .create_client(client)
         .await
-        .map_err(|e| AppError::Domain(e))?;
+        .map_err(AppError::Domain)?;
 
     Ok(Json(ApiResponse::success(created)))
 }
@@ -72,7 +72,7 @@ pub async fn api_get_client(
         .client_service
         .get_client(id)
         .await
-        .map_err(|e| AppError::Domain(e))?;
+        .map_err(AppError::Domain)?;
 
     Ok(Json(ApiResponse::success(client)))
 }
@@ -87,7 +87,7 @@ pub async fn api_update_client(
         .client_service
         .get_client(id)
         .await
-        .map_err(|e| AppError::Domain(e))?;
+        .map_err(AppError::Domain)?;
 
     // Apply updates from request
     if let Some(name) = request.name {
@@ -125,7 +125,7 @@ pub async fn api_update_client(
         .client_service
         .update_client(id, client)
         .await
-        .map_err(|e| AppError::Domain(e))?;
+        .map_err(AppError::Domain)?;
 
     Ok(Json(ApiResponse::success(updated)))
 }
@@ -139,7 +139,7 @@ pub async fn api_search_clients(
         .client_service
         .search_clients(&params.q, limit)
         .await
-        .map_err(|e| AppError::Domain(e))?;
+        .map_err(AppError::Domain)?;
 
     Ok(Json(ApiResponse::success(clients)))
 }

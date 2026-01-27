@@ -18,6 +18,20 @@ pub enum PeriodType {
     Monthly,
 }
 
+impl std::str::FromStr for PeriodType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "daily" => Ok(Self::Daily),
+            "weekly" => Ok(Self::Weekly),
+            "biweekly" => Ok(Self::Biweekly),
+            "monthly" => Ok(Self::Monthly),
+            _ => Err(()),
+        }
+    }
+}
+
 impl PeriodType {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -28,14 +42,9 @@ impl PeriodType {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "daily" => Some(Self::Daily),
-            "weekly" => Some(Self::Weekly),
-            "biweekly" => Some(Self::Biweekly),
-            "monthly" => Some(Self::Monthly),
-            _ => None,
-        }
+        <Self as std::str::FromStr>::from_str(s).ok()
     }
 }
 
@@ -52,6 +61,23 @@ pub enum BillingStatus {
     Disputed,
 }
 
+impl std::str::FromStr for BillingStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "draft" => Ok(Self::Draft),
+            "calculated" => Ok(Self::Calculated),
+            "pending_approval" => Ok(Self::PendingApproval),
+            "approved" => Ok(Self::Approved),
+            "invoiced" => Ok(Self::Invoiced),
+            "paid" => Ok(Self::Paid),
+            "disputed" => Ok(Self::Disputed),
+            _ => Err(()),
+        }
+    }
+}
+
 impl BillingStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -65,17 +91,9 @@ impl BillingStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "draft" => Some(Self::Draft),
-            "calculated" => Some(Self::Calculated),
-            "pending_approval" => Some(Self::PendingApproval),
-            "approved" => Some(Self::Approved),
-            "invoiced" => Some(Self::Invoiced),
-            "paid" => Some(Self::Paid),
-            "disputed" => Some(Self::Disputed),
-            _ => None,
-        }
+        <Self as std::str::FromStr>::from_str(s).ok()
     }
 }
 
@@ -88,6 +106,19 @@ pub enum RateBasis {
     Monthly,
 }
 
+impl std::str::FromStr for RateBasis {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "hourly" => Ok(Self::Hourly),
+            "daily" => Ok(Self::Daily),
+            "monthly" => Ok(Self::Monthly),
+            _ => Err(()),
+        }
+    }
+}
+
 impl RateBasis {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -97,13 +128,9 @@ impl RateBasis {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "hourly" => Some(Self::Hourly),
-            "daily" => Some(Self::Daily),
-            "monthly" => Some(Self::Monthly),
-            _ => None,
-        }
+        <Self as std::str::FromStr>::from_str(s).ok()
     }
 }
 

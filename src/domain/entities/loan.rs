@@ -1,11 +1,13 @@
 //! Loan Entity
 //!
 //! Asset loan management with complete workflow support.
+//!
 
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::str::FromStr;
 use uuid::Uuid;
 
 /// Loan status
@@ -23,6 +25,25 @@ pub enum LoanStatus {
     Lost,
 }
 
+impl FromStr for LoanStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "requested" => Ok(Self::Requested),
+            "approved" => Ok(Self::Approved),
+            "rejected" => Ok(Self::Rejected),
+            "checked_out" => Ok(Self::CheckedOut),
+            "in_use" => Ok(Self::InUse),
+            "overdue" => Ok(Self::Overdue),
+            "returned" => Ok(Self::Returned),
+            "damaged" => Ok(Self::Damaged),
+            "lost" => Ok(Self::Lost),
+            _ => Err(format!("Invalid loan status: {}", s)),
+        }
+    }
+}
+
 impl LoanStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -38,19 +59,9 @@ impl LoanStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "requested" => Some(Self::Requested),
-            "approved" => Some(Self::Approved),
-            "rejected" => Some(Self::Rejected),
-            "checked_out" => Some(Self::CheckedOut),
-            "in_use" => Some(Self::InUse),
-            "overdue" => Some(Self::Overdue),
-            "returned" => Some(Self::Returned),
-            "damaged" => Some(Self::Damaged),
-            "lost" => Some(Self::Lost),
-            _ => None,
-        }
+        <Self as FromStr>::from_str(s).ok()
     }
 }
 
@@ -156,8 +167,8 @@ impl Loan {
         self.expected_return_date < today
             && self.actual_return_date.is_none()
             && !matches!(
-                LoanStatus::from_str(&self.status),
-                Some(LoanStatus::Returned) | Some(LoanStatus::Lost) | Some(LoanStatus::Rejected)
+                <LoanStatus as FromStr>::from_str(&self.status),
+                Ok(LoanStatus::Returned) | Ok(LoanStatus::Lost) | Ok(LoanStatus::Rejected)
             )
     }
 
@@ -178,8 +189,8 @@ impl Loan {
     /// Can be returned
     pub fn can_return(&self) -> bool {
         matches!(
-            LoanStatus::from_str(&self.status),
-            Some(LoanStatus::CheckedOut) | Some(LoanStatus::InUse) | Some(LoanStatus::Overdue)
+            <LoanStatus as FromStr>::from_str(&self.status),
+            Ok(LoanStatus::CheckedOut) | Ok(LoanStatus::InUse) | Ok(LoanStatus::Overdue)
         )
     }
 }

@@ -110,6 +110,17 @@ pub struct UpdateAssetRequest {
     pub useful_life_months: Option<i32>,
     pub notes: Option<String>,
     pub vehicle_details: Option<VehicleDetailsDto>,
+    pub version: Option<i32>,
+}
+
+/// Bulk update asset request
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct BulkUpdateAssetRequest {
+    pub asset_ids: Vec<Uuid>,
+    pub status: Option<String>,
+    pub location_id: Option<Uuid>,
+    pub department: Option<String>,
+    pub department_id: Option<Uuid>,
 }
 
 /// Asset search parameters
@@ -123,6 +134,9 @@ pub struct AssetSearchParams {
     pub is_fuel: Option<bool>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
+    pub exact_match: Option<bool>,
+    pub sort_by: Option<String>,
+    pub sort_order: Option<String>,
 }
 
 /// Asset transfer request

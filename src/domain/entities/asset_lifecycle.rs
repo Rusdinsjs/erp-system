@@ -4,6 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::str::FromStr;
 
 /// Asset lifecycle states
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -24,6 +25,30 @@ pub enum AssetState {
     Sold,
     LostStolen,
     Archived,
+}
+
+impl std::str::FromStr for AssetState {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "planning" => Ok(Self::Planning),
+            "procurement" => Ok(Self::Procurement),
+            "received" => Ok(Self::Received),
+            "in_inventory" | "available" => Ok(Self::InInventory),
+            "deployed" | "in_use" | "active" => Ok(Self::Deployed),
+            "rented_out" => Ok(Self::RentedOut),
+            "under_maintenance" | "in_maintenance" | "maintenance" => Ok(Self::UnderMaintenance),
+            "under_repair" | "in_repair" => Ok(Self::UnderRepair),
+            "under_conversion" | "in_conversion" => Ok(Self::UnderConversion),
+            "retired" => Ok(Self::Retired),
+            "disposed" => Ok(Self::Disposed),
+            "sold" => Ok(Self::Sold),
+            "lost_stolen" => Ok(Self::LostStolen),
+            "archived" => Ok(Self::Archived),
+            _ => Err(()),
+        }
+    }
 }
 
 impl AssetState {
@@ -47,25 +72,10 @@ impl AssetState {
         }
     }
 
-    /// Parse state from string
+    /// Parse state from string (Legacy support, use FromStr)
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "planning" => Some(Self::Planning),
-            "procurement" => Some(Self::Procurement),
-            "received" => Some(Self::Received),
-            "in_inventory" | "available" => Some(Self::InInventory),
-            "deployed" | "in_use" | "active" => Some(Self::Deployed),
-            "rented_out" => Some(Self::RentedOut),
-            "under_maintenance" | "in_maintenance" | "maintenance" => Some(Self::UnderMaintenance),
-            "under_repair" | "in_repair" => Some(Self::UnderRepair),
-            "under_conversion" | "in_conversion" => Some(Self::UnderConversion),
-            "retired" => Some(Self::Retired),
-            "disposed" => Some(Self::Disposed),
-            "sold" => Some(Self::Sold),
-            "lost_stolen" => Some(Self::LostStolen),
-            "archived" => Some(Self::Archived),
-            _ => None,
-        }
+        <Self as std::str::FromStr>::from_str(s).ok()
     }
 
     /// Check if a transition to the target state is valid
@@ -278,14 +288,23 @@ impl ConversionType {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
+        <Self as std::str::FromStr>::from_str(s).ok()
+    }
+}
+
+impl FromStr for ConversionType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "function_change" => Some(Self::FunctionChange),
-            "upgrade" => Some(Self::Upgrade),
-            "downgrade" => Some(Self::Downgrade),
-            "customization" => Some(Self::Customization),
-            "repurposing" => Some(Self::Repurposing),
-            _ => None,
+            "function_change" => Ok(Self::FunctionChange),
+            "upgrade" => Ok(Self::Upgrade),
+            "downgrade" => Ok(Self::Downgrade),
+            "customization" => Ok(Self::Customization),
+            "repurposing" => Ok(Self::Repurposing),
+            _ => Err(format!("Invalid conversion type: {}", s)),
         }
     }
 }
@@ -314,15 +333,24 @@ impl ConversionStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
+        <Self as std::str::FromStr>::from_str(s).ok()
+    }
+}
+
+impl FromStr for ConversionStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "pending" => Some(Self::Pending),
-            "approved" => Some(Self::Approved),
-            "rejected" => Some(Self::Rejected),
-            "in_progress" => Some(Self::InProgress),
-            "completed" => Some(Self::Completed),
-            "cancelled" => Some(Self::Cancelled),
-            _ => None,
+            "pending" => Ok(Self::Pending),
+            "approved" => Ok(Self::Approved),
+            "rejected" => Ok(Self::Rejected),
+            "in_progress" => Ok(Self::InProgress),
+            "completed" => Ok(Self::Completed),
+            "cancelled" => Ok(Self::Cancelled),
+            _ => Err(format!("Invalid conversion status: {}", s)),
         }
     }
 }

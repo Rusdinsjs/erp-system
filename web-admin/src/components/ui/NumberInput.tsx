@@ -42,7 +42,16 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
 
         const parseValue = (v: string): number | undefined => {
             if (!v) return undefined;
-            const cleaned = v.replace(/[^\d.-]/g, '');
+            // For id-ID locale, dot is thousand separator, comma is decimal
+            // But if thousandSeparator is true, we should be careful.
+            // A simple way to handle id-ID dots as thousand separators:
+            // Remove dots and replace comma with dot for parseFloat
+            let cleaned = v;
+            if (thousandSeparator) {
+                cleaned = v.replace(/\./g, '').replace(/,/g, '.');
+            } else {
+                cleaned = v.replace(/[^\d.-]/g, '');
+            }
             const num = parseFloat(cleaned);
             return isNaN(num) ? undefined : num;
         };

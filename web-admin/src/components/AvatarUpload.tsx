@@ -43,11 +43,7 @@ export function AvatarUpload({ className = '', size = 'md' }: AvatarUploadProps)
             const formData = new FormData();
             formData.append('file', file);
 
-            // POST /api/me/avatar handles upload AND DB update
-            // Returns: ApiResponse<User> { success: true, data: User }
-            const res = await api.post<{ success: boolean; data: any }>('/me/avatar', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await api.post<{ success: boolean; data: any }>('/me/avatar', formData);
 
             // Update local state with the returned user data
             if (res.data.success && res.data.data) {

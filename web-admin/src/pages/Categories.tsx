@@ -1,8 +1,9 @@
 // Categories Page - Pure Tailwind
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, Link2 } from 'lucide-react';
 import { api } from '../api/http';
+import { financeApi } from '../api/finance'; // Import financeApi
 import {
     Button,
     Card,
@@ -32,6 +33,9 @@ interface Category {
     depreciation_period_months: number | null;
     example_assets: string[] | null;
     attributes: string[] | null;
+    asset_account_id?: string | null;
+    expense_account_id?: string | null; // Added
+    accumulated_depreciation_account_id?: string | null; // Added
     full_path?: string;
     children?: Category[];
 }
@@ -49,6 +53,9 @@ interface CategoryRequest {
     depreciation_period_months: number | null;
     example_assets: string[];
     attributes: string[];
+    asset_account_id?: string | null;
+    expense_account_id?: string | null; // Added
+    accumulated_depreciation_account_id?: string | null; // Added
 }
 
 const MAIN_CATEGORIES = [
@@ -79,9 +86,12 @@ export function Categories() {
         depreciation_period_months: '' as string | number, // Allow string for empty input
         example_assets: [] as string[],
         attributes: [] as string[],
+        asset_account_id: '' as string,
+        expense_account_id: '' as string, // Added
+        accumulated_depreciation_account_id: '' as string, // Added
     });
 
-    const { data: treeData, isLoading } = useQuery({
+    const { data: treeData, isLoading: treeLoading } = useQuery({
         queryKey: ['categories-tree'],
         queryFn: async () => {
             const res = await api.get('/categories/tree');
@@ -89,7 +99,17 @@ export function Categories() {
         },
     });
 
-    // Flatten tree for parent selection
+    // Fetch Accounts for Mapping
+    const { data: accounts = [], isLoading: accountsLoading } = useQuery({
+        queryKey: ['chart-of-accounts'],
+        queryFn: financeApi.listAccounts
+    });
+
+    // Filter for Asset Accounts
+    const assetAccounts = useMemo(() => accounts.filter(a => a.account_type === 'asset'), [accounts]);
+
+    const isLoading = treeLoading || accountsLoading;
+
     const flatCategories = useMemo(() => {
         const flatten = (nodes: Category[], depth = 0): { value: string; label: string }[] => {
             return nodes.reduce((acc, node) => {
@@ -152,6 +172,9 @@ export function Categories() {
             depreciation_period_months: '',
             example_assets: [],
             attributes: [],
+            asset_account_id: '',
+            expense_account_id: '',
+            accumulated_depreciation_account_id: '',
         });
     };
 
@@ -171,6 +194,9 @@ export function Categories() {
             depreciation_period_months: category.depreciation_period_months ?? '',
             example_assets: category.example_assets || [],
             attributes: category.attributes || [],
+            asset_account_id: category.asset_account_id || '',
+            expense_account_id: category.expense_account_id || '',
+            accumulated_depreciation_account_id: category.accumulated_depreciation_account_id || '',
         });
     };
 
@@ -201,6 +227,9 @@ export function Categories() {
             ...formData,
             parent_id: formData.parent_id || null,
             depreciation_period_months: formData.depreciation_period_months === '' ? null : Number(formData.depreciation_period_months),
+            asset_account_id: formData.asset_account_id || null,
+            expense_account_id: formData.expense_account_id || null,
+            accumulated_depreciation_account_id: formData.accumulated_depreciation_account_id || null,
         };
 
         if (selectedCategory && isEditing) {
@@ -227,13 +256,24 @@ export function Categories() {
             const hasChildren = node.children && node.children.length > 0;
             const isExpanded = expanded[node.id];
 
+            // Find account name if linked
+            const linkedAccount = node.asset_account_id ? accounts.find(a => a.id === node.asset_account_id) : null;
+
             return (
                 <TreeItem
                     key={node.id}
                     label={
-                        <span className="flex items-center justify-between w-full">
-                            <span>{node.name} <span className="text-slate-500 text-xs">({node.code})</span></span>
-                        </span>
+                        <div className="flex flex-col gap-0.5 w-full">
+                            <span className="flex items-center justify-between">
+                                <span>{node.name} <span className="text-slate-500 text-xs">({node.code})</span></span>
+                            </span>
+                            {linkedAccount && (
+                                <div className="flex items-center gap-1 text-[10px] text-cyan-400">
+                                    <Link2 size={10} />
+                                    <span>CAPEX: {linkedAccount.code} - {linkedAccount.name}</span>
+                                </div>
+                            )}
+                        </div>
                     }
                     hasChildren={hasChildren}
                     isExpanded={isExpanded}
@@ -304,6 +344,7 @@ export function Categories() {
                             <Tabs defaultValue="general">
                                 <TabsList>
                                     <TabsTrigger value="general">General</TabsTrigger>
+                                    <TabsTrigger value="accounting">Accounting</TabsTrigger>
                                     <TabsTrigger value="classification">Classification</TabsTrigger>
                                     <TabsTrigger value="depreciation">Depreciation</TabsTrigger>
                                     <TabsTrigger value="attributes">Attributes</TabsTrigger>
@@ -342,6 +383,87 @@ export function Categories() {
                                         value={formData.description}
                                         onChange={(e) => handleChange('description', e.target.value)}
                                     />
+                                </TabsContent>
+
+                                <TabsContent value="accounting" className="mt-6 space-y-4">
+                                    <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800 mb-4">
+                                        <h3 className="text-sm font-medium text-white mb-1">Financial Accounting</h3>
+                                        <p className="text-xs text-slate-400">
+                                            Map this asset category to the Chart of Accounts for automated journaling.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="p-3 bg-cyan-900/20 rounded-xl border border-cyan-500/20">
+                                            <label className="block text-sm font-medium text-cyan-400 mb-1.5">
+                                                Akun Debit CAPEX (Asset Cost)
+                                            </label>
+                                            <select
+                                                className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500/50 appearance-none"
+                                                value={formData.asset_account_id}
+                                                onChange={(e) => handleChange('asset_account_id', e.target.value)}
+                                            >
+                                                <option value="">Select Asset Account...</option>
+                                                {assetAccounts.map(acc => (
+                                                    <option key={acc.id} value={acc.id}>
+                                                        {acc.code} - {acc.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                Debited when acquiring or upgrading assets (Capitalization).
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-400 mb-1.5">
+                                                    Akun Debit OPEX (Depr. Expense)
+                                                </label>
+                                                <select
+                                                    className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none"
+                                                    value={formData.expense_account_id}
+                                                    onChange={(e) => handleChange('expense_account_id', e.target.value)}
+                                                >
+                                                    <option value="">Select Expense Account...</option>
+                                                    {accounts.filter(a => a.account_type === 'expense').map(acc => (
+                                                        <option key={acc.id} value={acc.id}>
+                                                            {acc.code} - {acc.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Debited during monthly depreciation.
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-400 mb-1.5">
+                                                    Akun Kredit (Accum. Depreciation)
+                                                </label>
+                                                <select
+                                                    className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none"
+                                                    value={formData.accumulated_depreciation_account_id}
+                                                    onChange={(e) => handleChange('accumulated_depreciation_account_id', e.target.value)}
+                                                >
+                                                    <option value="">Select Accum. Account...</option>
+                                                    {/* Ideally filtered for Contra-Asset or similar, but showing all Assets/Liabilities/Equity might be needed depending on COA structure. 
+                                                        Usually it's a Contra-Asset (Asset type with negative balance or specific type). 
+                                                        For simplicity, showing all Asset accounts or specific Contra-Asset if type exists. 
+                                                        Assuming it's an Asset account for now. 
+                                                    */}
+                                                    {accounts.map(acc => (
+                                                        <option key={acc.id} value={acc.id}>
+                                                            {acc.code} - {acc.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Credited during monthly depreciation.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </TabsContent>
 
                                 <TabsContent value="classification" className="mt-6 space-y-4">
@@ -437,6 +559,7 @@ export function Categories() {
                                     )}
                                 </TabsContent>
                             </Tabs>
+
 
                             <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-800">
                                 <Button variant="outline" onClick={handleReset} type="button">

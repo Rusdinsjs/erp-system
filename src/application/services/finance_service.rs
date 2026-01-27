@@ -68,19 +68,15 @@ impl FinanceService {
 
     pub async fn list_tree(&self) -> DomainResult<Vec<AccountTreeNode>> {
         let all_accounts = self.list_all().await?;
-        Ok(self.build_tree(&all_accounts, None))
+        Ok(Self::build_tree(&all_accounts, None))
     }
 
-    fn build_tree(
-        &self,
-        accounts: &[ChartOfAccount],
-        parent_id: Option<Uuid>,
-    ) -> Vec<AccountTreeNode> {
+    fn build_tree(accounts: &[ChartOfAccount], parent_id: Option<Uuid>) -> Vec<AccountTreeNode> {
         let mut nodes = Vec::new();
 
         for acc in accounts {
             if acc.parent_id == parent_id {
-                let children = self.build_tree(accounts, Some(acc.id));
+                let children = Self::build_tree(accounts, Some(acc.id));
                 nodes.push(AccountTreeNode {
                     id: acc.id,
                     code: acc.code.clone(),

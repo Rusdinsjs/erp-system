@@ -20,6 +20,7 @@ import { Card, PageLoading } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../components/ui/Toast';
 import { PendingApprovalsWidget } from '../components/dashboard/PendingApprovalsWidget';
+import { LiveActivityFeed } from '../components/dashboard/LiveActivityFeed';
 
 // Stat Card Component
 interface StatCardProps {
@@ -107,14 +108,6 @@ export function Dashboard() {
         },
     });
 
-    // 2. Fetch Recent Activity
-    const { data: activities, isLoading: activityLoading } = useQuery({
-        queryKey: ['dashboard-activity'],
-        queryFn: async () => {
-            const res = await api.get('/dashboard/activity');
-            return res.data as any[];
-        },
-    });
 
     // 3. Fetch Depreciation/Financials
     const { data: financials, isLoading: financialsLoading } = useQuery({
@@ -174,7 +167,7 @@ export function Dashboard() {
     const { hasRoleLevel } = useAuthStore();
     const showFinancials = hasRoleLevel(3); // Level 3 (Manager) or higher
 
-    const isLoading = statsLoading || activityLoading || financialsLoading || trendsLoading || conditionLoading;
+    const isLoading = statsLoading || financialsLoading || trendsLoading || conditionLoading;
 
     if (isLoading) return <PageLoading />;
 
@@ -328,27 +321,7 @@ export function Dashboard() {
                             </Card>
                         )}
 
-                        <Card padding="lg">
-                            <h2 className="text-lg font-semibold text-white mb-4">Recent Activity</h2>
-                            {activities && activities.length > 0 ? (
-                                <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                                    {activities.slice(0, 5).map((activity: any, idx: number) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center gap-2 p-2 bg-slate-950/30 rounded-lg border border-slate-800"
-                                        >
-                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[13px] text-slate-200 truncate">{activity.action}</p>
-                                                <p className="text-[10px] text-slate-500 uppercase">{activity.entity_type}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-500 text-center py-8">No recent activity</p>
-                            )}
-                        </Card>
+                        <LiveActivityFeed />
                     </div>
                 </div>
 

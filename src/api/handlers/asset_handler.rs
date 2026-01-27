@@ -10,8 +10,9 @@ use uuid::Uuid;
 use crate::api::server::AppState;
 use crate::application::dto::AssetDocumentResponse;
 use crate::application::dto::{
-    ApiResponse, AssetSearchParams, BulkCreateAssetRequest, CreateAssetDocumentRequest,
-    CreateAssetRequest, PaginatedResponse, PaginationParams, UpdateAssetRequest,
+    ApiResponse, AssetSearchParams, BulkCreateAssetRequest, BulkUpdateAssetRequest,
+    CreateAssetDocumentRequest, CreateAssetRequest, PaginatedResponse, PaginationParams,
+    UpdateAssetRequest,
 };
 use crate::application::services::asset_service::AssetOperationResult;
 
@@ -139,6 +140,39 @@ pub async fn create_asset(
         )
             .into_response()),
     }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/assets/bulk-update",
+    request_body = BulkUpdateAssetRequest,
+    responses(
+        (status = 200, description = "Assets updated", body = ApiResponse<u64>),
+        (status = 400, description = "Bad Request")
+    ),
+    tag = "assets"
+)]
+pub async fn bulk_update_assets(
+    State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
+    Json(payload): Json<BulkUpdateAssetRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let user_id = Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
+
+    let affected = state
+        .asset_service
+        .bulk_update(payload, Some(user_id))
+        .await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(ApiResponse::success_with_message(
+            affected,
+            &format!("{} assets updated", affected),
+        )),
+    )
+        .into_response())
 }
 
 pub async fn bulk_create_assets(

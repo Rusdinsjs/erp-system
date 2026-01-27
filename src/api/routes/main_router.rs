@@ -60,6 +60,13 @@ pub fn create_router(state: AppState) -> Router {
             ),
         )
         .route(
+            "/api/assets/bulk-update",
+            post(
+                bulk_update_assets
+                    .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+            ),
+        )
+        .route(
             "/api/assets/search",
             get(search_assets.layer(axum_middleware::from_fn(require_permission("asset.read")))),
         )
@@ -110,6 +117,8 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/api/work-orders/:id/start", post(start_work_order))
         .route("/api/work-orders/:id/complete", post(complete_work_order))
+        .route("/api/work-orders/:id/verify", post(verify_work_order))
+        .route("/api/work-orders/:id/finalize", post(finalize_work_order))
         .route("/api/work-orders/:id/cancel", post(cancel_work_order))
         // Tasks
         .route(
@@ -117,8 +126,37 @@ pub fn create_router(state: AppState) -> Router {
             get(get_work_order_tasks).post(add_work_order_task),
         )
         .route(
+            "/api/work-orders/:id/tasks/:task_id/photos",
+            put(work_order_handler::update_checklist_photos),
+        )
+        .route(
+            "/api/work-orders/:id/tasks/:task_id/complete",
+            put(work_order_handler::complete_checklist_item),
+        )
+        .route(
             "/api/work-orders/:id/tasks/:task_id",
-            delete(remove_work_order_task),
+            put(update_work_order_task).delete(remove_work_order_task),
+        )
+        .route(
+            "/api/work-orders/:id/apply-template/:template_id",
+            post(apply_maintenance_template),
+        )
+        // Maintenance Templates
+        .route(
+            "/api/maintenance-templates",
+            get(list_maintenance_templates).post(create_maintenance_template),
+        )
+        .route(
+            "/api/maintenance-templates/:id",
+            get(get_maintenance_template).delete(delete_maintenance_template),
+        )
+        .route(
+            "/api/maintenance-templates/:id/tasks",
+            post(add_template_task),
+        )
+        .route(
+            "/api/maintenance-templates/:id/tasks/:task_id",
+            delete(delete_template_task),
         )
         // Parts
         .route(
@@ -127,7 +165,7 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route(
             "/api/work-orders/:id/parts/:part_id",
-            delete(remove_work_order_part),
+            put(update_work_order_part).delete(remove_work_order_part),
         )
         // Loans
         .route("/api/loans", get(list_loans).post(create_loan))
@@ -229,87 +267,87 @@ pub fn create_router(state: AppState) -> Router {
             "/api/hrd/attendance/employee/:employee_id",
             get(attendance_handler::get_employee_history),
         )
-        .route("/attendance/scan", post(attendance_handler::scan_face))
-        .route("/attendance/logs", get(attendance_handler::list_logs))
+        .route("/api/attendance/scan", post(attendance_handler::scan_face))
+        .route("/api/attendance/logs", get(attendance_handler::list_logs))
         // Finance Routes
         .route(
-            "/finance/accounts",
+            "/api/finance/accounts",
             get(finance_handler::list_accounts).post(finance_handler::create_account),
         )
         .route(
-            "/finance/accounts/tree",
+            "/api/finance/accounts/tree",
             get(finance_handler::list_accounts_tree),
         )
         .route(
-            "/finance/accounts/:id",
+            "/api/finance/accounts/:id",
             put(finance_handler::update_account),
         )
         // Journal Entries
         .route(
-            "/finance/journals",
+            "/api/finance/journals",
             get(journal_handler::list_journals).post(journal_handler::create_journal),
         )
         .route(
-            "/finance/journals/:id",
+            "/api/finance/journals/:id",
             get(journal_handler::get_journal_details),
         )
         // Finance Reports
         .route(
-            "/finance/reports/ledger/:account_id",
+            "/api/finance/reports/ledger/:account_id",
             get(finance_report_handler::get_general_ledger),
         )
         .route(
-            "/finance/reports/trial-balance",
+            "/api/finance/reports/trial-balance",
             get(finance_report_handler::get_trial_balance),
         )
         .route(
-            "/finance/reports/balance-sheet",
+            "/api/finance/reports/balance-sheet",
             get(finance_report_handler::get_balance_sheet),
         )
         .route(
-            "/finance/reports/income-statement",
+            "/api/finance/reports/income-statement",
             get(finance_report_handler::get_income_statement),
         )
         // Operational Finance
         .route(
-            "/finance/sales/invoices",
+            "/api/finance/sales/invoices",
             get(finance_handler::list_sales_invoices).post(finance_handler::create_sales_invoice),
         )
         .route(
-            "/finance/sales/quotes",
+            "/api/finance/sales/quotes",
             get(finance_handler::list_sales_quotes).post(finance_handler::create_sales_quote),
         )
         .route(
-            "/finance/sales/orders",
+            "/api/finance/sales/orders",
             get(finance_handler::list_sales_orders).post(finance_handler::create_sales_order),
         )
         .route(
-            "/finance/sales/shipments",
+            "/api/finance/sales/shipments",
             get(finance_handler::list_sales_shipments).post(finance_handler::create_sales_shipment),
         )
         .route(
-            "/finance/purchase/quotes",
+            "/api/finance/purchase/quotes",
             get(finance_handler::list_purchase_quotes).post(finance_handler::create_purchase_quote),
         )
         .route(
-            "/finance/purchase/orders",
+            "/api/finance/purchase/orders",
             get(finance_handler::list_purchase_orders).post(finance_handler::create_purchase_order),
         )
         .route(
-            "/finance/purchase/shipments",
+            "/api/finance/purchase/shipments",
             get(finance_handler::list_purchase_shipments)
                 .post(finance_handler::create_purchase_shipment),
         )
         .route(
-            "/finance/purchase/bills",
+            "/api/finance/purchase/bills",
             get(finance_handler::list_purchase_bills).post(finance_handler::create_purchase_bill),
         )
         .route(
-            "/finance/expenses",
+            "/api/finance/expenses",
             get(finance_handler::list_expenses).post(finance_handler::create_expense),
         )
         .route(
-            "/finance/cash-bank",
+            "/api/finance/cash-bank",
             get(finance_handler::list_cash_bank_transactions)
                 .post(finance_handler::create_cash_bank_transaction),
         )
@@ -453,8 +491,17 @@ pub fn create_router(state: AppState) -> Router {
         .merge(crate::api::routes::client_routes::client_routes())
         .merge(crate::api::routes::timesheet_routes::timesheet_routes())
         .merge(crate::api::routes::billing_routes::billing_routes())
+        .merge(crate::api::routes::asset_expense_routes::asset_expense_routes())
         .merge(crate::api::routes::fuel_routes::fuel_routes())
         .merge(crate::api::routes::contract_routes::contract_routes())
+        .nest(
+            "/api/inventory",
+            crate::api::routes::inventory_routes::inventory_routes(),
+        )
+        .nest(
+            "/api/maintenance",
+            crate::api::routes::maintenance_routes::maintenance_routes(),
+        )
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw } from 'lucide-react';
 import { assetApi } from '../api/assets';
 import { categoryApi } from '../api/category';
 import { locationApi } from '../api/locations';
@@ -21,7 +21,12 @@ import {
     useToast,
     TableSkeleton,
     MultiSelect,
+    GlobalSearch,
+    Drawer,
+    Checkbox,
+    Select,
 } from '../components/ui';
+import { BulkActionToolbar } from '../components/Assets/BulkActionToolbar';
 
 // Helper to flatten category tree
 const flattenCategories = (nodes: any[], prefix = ''): any[] => {
@@ -36,15 +41,6 @@ const flattenCategories = (nodes: any[], prefix = ''): any[] => {
     return result;
 };
 
-// Debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(() => {
-        const handler = setTimeout(() => setDebouncedValue(value), delay);
-        return () => clearTimeout(handler);
-    }, [value, delay]);
-    return debouncedValue;
-}
 
 export function Assets() {
     const queryClient = useQueryClient();
@@ -55,28 +51,38 @@ export function Assets() {
 
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
-    const debouncedSearch = useDebounce(search, 500);
 
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
     const [locationFilter, setLocationFilter] = useState<string | null>(null);
     const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
+    const [exactMatch, setExactMatch] = useState(false);
+    const [sortBy, setSortBy] = useState<string | null>(null);
+    const [sortOrder, setSortOrder] = useState<string | null>(null);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+    const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+    const [bulkActionType, setBulkActionType] = useState<'status' | 'location' | 'department' | null>(null);
+    const [bulkModalOpen, setBulkModalOpen] = useState(false);
+    const [bulkValue, setBulkValue] = useState<string>('');
 
     // Fetch Assets
     const { data: assetsData, isLoading: assetsLoading } = useQuery({
-        queryKey: ['assets', page, debouncedSearch, statusFilter, categoryFilter, locationFilter, departmentFilter],
+        queryKey: ['assets', page, search, statusFilter, categoryFilter, locationFilter, departmentFilter, exactMatch, sortBy, sortOrder],
         queryFn: () => assetApi.list({
             page,
             per_page: 15,
-            query: debouncedSearch,
+            query: search,
             status: statusFilter || undefined,
             category_id: categoryFilter || undefined,
             location_id: locationFilter || undefined,
-            department: departmentFilter || undefined, // Note: Interface might need update if department is not supported yet
+            department: departmentFilter || undefined,
+            exact_match: exactMatch,
+            sort_by: sortBy || undefined,
+            sort_order: sortOrder || undefined,
         })
     });
 
@@ -158,7 +164,6 @@ export function Assets() {
         mutationFn: assetApi.delete,
         onSuccess: () => {
             success('Asset deleted', 'Success');
-            success('Asset deleted', 'Success');
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
         },
@@ -200,6 +205,59 @@ export function Assets() {
     });
 
 
+    const toggleSelectAll = () => {
+        if (selectedAssetIds.length === assetsData?.data.length) {
+            setSelectedAssetIds([]);
+        } else {
+            setSelectedAssetIds(assetsData?.data.map((a: Asset) => a.id) || []);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedAssetIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkAction = async () => {
+        if (!bulkActionType || !bulkValue) return;
+
+        try {
+            const payload: any = {
+                asset_ids: selectedAssetIds,
+            };
+
+            if (bulkActionType === 'status') payload.status = bulkValue;
+            if (bulkActionType === 'location') payload.location_id = bulkValue;
+            if (bulkActionType === 'department') {
+                payload.department = bulkValue;
+            }
+
+            await assetApi.bulkUpdate(payload);
+            success(`${selectedAssetIds.length} assets updated successfully`);
+            queryClient.invalidateQueries({ queryKey: ['assets'] });
+            setSelectedAssetIds([]);
+            setBulkModalOpen(false);
+            setBulkValue('');
+        } catch (err: any) {
+            showError(err.response?.data?.error || 'Failed to update assets');
+        }
+    };
+
+    // Sorting handler
+    const handleSort = (field: string) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder('asc');
+        }
+    };
+
+    const SortIcon = ({ field }: { field: string }) => {
+        if (sortBy !== field) return null;
+        return sortOrder === 'asc' ? <ArrowUp size={14} className="ml-1" /> : <ArrowDown size={14} className="ml-1" />;
+    };
 
     return (
         <div className="p-8">
@@ -328,69 +386,54 @@ export function Assets() {
                 </Card>
             </div>
 
+            {/* Active Filters Summary */}
+            {(categoryFilter || locationFilter || departmentFilter || statusFilter || exactMatch) && (
+                <div className="flex items-center gap-2 mb-4 px-1">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Filters:</span>
+                    <div className="flex flex-wrap gap-2">
+                        {categoryFilter && <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">Category: {categoryFilter.split(',').length}</span>}
+                        {locationFilter && <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded-full border border-purple-500/20">Location: {locationFilter.split(',').length}</span>}
+                        {departmentFilter && <span className="px-2 py-0.5 bg-green-500/10 text-green-400 text-xs rounded-full border border-green-500/20">Dept: {departmentFilter.split(',').length}</span>}
+                        {statusFilter && <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs rounded-full border border-amber-500/20">Status: {statusFilter.split(',').length}</span>}
+                        {exactMatch && <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-xs rounded-full border border-cyan-500/20">Exact Match</span>}
+                        <button
+                            onClick={() => {
+                                setCategoryFilter(null);
+                                setLocationFilter(null);
+                                setDepartmentFilter(null);
+                                setStatusFilter(null);
+                                setExactMatch(false);
+                                setSearch('');
+                            }}
+                            className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 ml-2 transition-colors"
+                        >
+                            <RotateCcw size={12} /> Reset All
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content Area */}
             <Card className="overflow-hidden p-0">
                 {/* Search & Filters Bar */}
-                <div className="p-4 border-b border-white/5 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-gray-900/30">
-                    <div className="relative w-full xl:w-96">
-                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                        <input
-                            type="text"
-                            placeholder="Search assets..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/5 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                <div className="p-4 border-b border-white/5 flex justify-between items-center gap-4 bg-gray-900/30">
+                    <div className="flex items-center gap-4 flex-1">
+                        <GlobalSearch
+                            onSearch={setSearch}
+                            initialValue={search}
+                            className="w-full max-w-xl"
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-3 w-full xl:w-auto">
-                        <div className="w-full sm:w-auto min-w-[200px]">
-                            <MultiSelect
-                                placeholder="Category"
-                                options={filterCategories.map((c: any) => ({ value: c.id, label: c.name }))}
-                                value={categoryFilter ? categoryFilter.split(',') : []}
-                                onChange={(values) => setCategoryFilter(values.length ? values.join(',') : null)}
-                            />
-                        </div>
-                        <div className="w-full sm:w-auto min-w-[200px]">
-                            <MultiSelect
-                                placeholder="Location"
-                                options={filterLocations.map((l: any) => ({ value: l.id, label: l.name }))}
-                                value={locationFilter ? locationFilter.split(',') : []}
-                                onChange={(values) => setLocationFilter(values.length ? values.join(',') : null)}
-                            />
-                        </div>
-                        <div className="w-full sm:w-auto min-w-[200px]">
-                            <MultiSelect
-                                placeholder="Department"
-                                options={departments.map((d: any) => ({ value: d.name, label: d.name }))}
-                                value={departmentFilter ? departmentFilter.split(',') : []}
-                                onChange={(values) => setDepartmentFilter(values.length ? values.join(',') : null)}
-                            />
-                        </div>
-                        <div className="w-full sm:w-auto min-w-[200px]">
-                            <MultiSelect
-                                placeholder="Filter Status..."
-                                options={[
-                                    { value: 'planning', label: 'Rent Out' },
-                                    { value: 'procurement', label: 'Procurement' },
-                                    { value: 'received', label: 'Received' },
-                                    { value: 'in_inventory', label: 'In Inventory' },
-                                    { value: 'in_use', label: 'In Use' },
-                                    { value: 'rented_out', label: 'Rented Out' },
-                                    { value: 'under_maintenance', label: 'Under Maintenance' },
-                                    { value: 'under_repair', label: 'Under Repair' },
-                                    { value: 'under_conversion', label: 'Under Conversion' },
-                                    { value: 'retired', label: 'Retired' },
-                                    { value: 'disposed', label: 'Disposed' },
-                                    { value: 'lost_stolen', label: 'Lost/Stolen' },
-                                    { value: 'archived', label: 'Archived' },
-                                ]}
-                                value={statusFilter ? statusFilter.split(',') : []}
-                                onChange={(values) => setStatusFilter(values.length ? values.join(',') : null)}
-                            />
-                        </div>
-
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            leftIcon={<Filter size={18} />}
+                            onClick={() => setFilterDrawerOpen(true)}
+                            className={`rounded-xl border-slate-700/50 ${filterDrawerOpen ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' : ''}`}
+                        >
+                            Filters {(categoryFilter || locationFilter || departmentFilter || statusFilter) ? `(${(categoryFilter?.split(',').length || 0) + (locationFilter?.split(',').length || 0) + (departmentFilter?.split(',').length || 0) + (statusFilter?.split(',').length || 0)})` : ''}
+                        </Button>
                     </div>
                 </div>
 
@@ -404,19 +447,39 @@ export function Assets() {
                         <Table className="border-none rounded-none shadow-none">
                             <TableHead>
                                 <TableRow className="bg-gray-900/50 border-white/5">
-                                    <TableTh>Asset Code</TableTh>
+                                    <TableTh className="w-10">
+                                        <Checkbox
+                                            checked={selectedAssetIds.length > 0 && selectedAssetIds.length === assetsData?.data.length}
+                                            onChange={toggleSelectAll}
+                                        />
+                                    </TableTh>
+                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('asset_code')}>
+                                        <div className="flex items-center">Asset Code <SortIcon field="asset_code" /></div>
+                                    </TableTh>
                                     <TableTh>Category</TableTh>
-                                    <TableTh>Name</TableTh>
-                                    <TableTh>Brand/Model</TableTh>
+                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('name')}>
+                                        <div className="flex items-center">Name <SortIcon field="name" /></div>
+                                    </TableTh>
+                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('brand')}>
+                                        <div className="flex items-center">Brand/Model <SortIcon field="brand" /></div>
+                                    </TableTh>
                                     <TableTh>Location</TableTh>
                                     <TableTh>Department</TableTh>
-                                    <TableTh>Status</TableTh>
+                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('status')}>
+                                        <div className="flex items-center">Status <SortIcon field="status" /></div>
+                                    </TableTh>
                                     <TableTh align="center">Actions</TableTh>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {assetsData?.data?.map((asset: any) => (
-                                    <TableRow key={asset.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
+                                    <TableRow key={asset.id} className={`${selectedAssetIds.includes(asset.id) ? 'bg-blue-500/10' : 'hover:bg-gray-700/30'} border-white/5 group transition-all`}>
+                                        <TableTd>
+                                            <Checkbox
+                                                checked={selectedAssetIds.includes(asset.id)}
+                                                onChange={() => toggleSelect(asset.id)}
+                                            />
+                                        </TableTd>
                                         <TableTd>
                                             <span className="font-mono text-sm text-blue-400 font-medium group-hover:text-blue-300 transition-colors">
                                                 {asset.asset_code}
@@ -511,6 +574,104 @@ export function Assets() {
             </Modal>
 
             {/* Import Modal */}
+            {/* Advanced Filters Drawer */}
+            <Drawer
+                isOpen={filterDrawerOpen}
+                onClose={() => setFilterDrawerOpen(false)}
+                title="Advanced Filters"
+                size="md"
+            >
+                <div className="p-6 space-y-6">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-400">Search Mode</label>
+                        <Checkbox
+                            label="Exact Match Only"
+                            checked={exactMatch}
+                            onChange={(e) => setExactMatch(e.target.checked)}
+                            className="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50"
+                        />
+                        <p className="text-xs text-gray-500 px-1 italic">When enabled, only assets with IDs or Codes exactly matching the query will be returned.</p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-400">Categories</label>
+                        <MultiSelect
+                            placeholder="Select categories..."
+                            options={filterCategories.map((c: any) => ({ value: c.id, label: c.name }))}
+                            value={categoryFilter ? categoryFilter.split(',') : []}
+                            onChange={(values) => setCategoryFilter(values.length ? values.join(',') : null)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-400">Locations</label>
+                        <MultiSelect
+                            placeholder="Select locations..."
+                            options={filterLocations.map((l: any) => ({ value: l.id, label: l.name }))}
+                            value={locationFilter ? locationFilter.split(',') : []}
+                            onChange={(values) => setLocationFilter(values.length ? values.join(',') : null)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-400">Departments</label>
+                        <MultiSelect
+                            placeholder="Select departments..."
+                            options={departments.map((d: any) => ({ value: d.name, label: d.name }))}
+                            value={departmentFilter ? departmentFilter.split(',') : []}
+                            onChange={(values) => setDepartmentFilter(values.length ? values.join(',') : null)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-400">Asset Status</label>
+                        <MultiSelect
+                            placeholder="Select statuses..."
+                            options={[
+                                { value: 'active', label: 'Active (Functional)' },
+                                { value: 'planning', label: 'Planning' },
+                                { value: 'procurement', label: 'Procurement' },
+                                { value: 'received', label: 'Received' },
+                                { value: 'in_inventory', label: 'In Inventory' },
+                                { value: 'in_use', label: 'In Use' },
+                                { value: 'rented_out', label: 'Rented Out' },
+                                { value: 'under_maintenance', label: 'Under Maintenance' },
+                                { value: 'under_repair', label: 'Under Repair' },
+                                { value: 'under_conversion', label: 'Under Conversion' },
+                                { value: 'retired', label: 'Retired' },
+                                { value: 'disposed', label: 'Disposed' },
+                                { value: 'lost_stolen', label: 'Lost/Stolen' },
+                                { value: 'archived', label: 'Archived' },
+                            ]}
+                            value={statusFilter ? statusFilter.split(',') : []}
+                            onChange={(values) => setStatusFilter(values.length ? values.join(',') : null)}
+                        />
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                        <Button
+                            className="flex-1 rounded-xl"
+                            onClick={() => setFilterDrawerOpen(false)}
+                        >
+                            Apply Filters
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="rounded-xl border-slate-700/50"
+                            onClick={() => {
+                                setCategoryFilter(null);
+                                setLocationFilter(null);
+                                setDepartmentFilter(null);
+                                setStatusFilter(null);
+                                setExactMatch(false);
+                            }}
+                        >
+                            Reset
+                        </Button>
+                    </div>
+                </div>
+            </Drawer>
+
             <ImportAssetsModal
                 opened={importModalOpen}
                 onClose={() => setImportModalOpen(false)}
@@ -522,6 +683,88 @@ export function Assets() {
                 categories={categories}
                 locations={locations}
             />
+
+            <BulkActionToolbar
+                selectedCount={selectedAssetIds.length}
+                onClear={() => setSelectedAssetIds([])}
+                onAction={(type) => {
+                    if (type === 'delete') {
+                        if (window.confirm(`Are you sure you want to archive ${selectedAssetIds.length} assets?`)) {
+                            // Implement bulk delete if needed later
+                            success(`${selectedAssetIds.length} assets archived`);
+                            setSelectedAssetIds([]);
+                        }
+                    } else {
+                        setBulkActionType(type);
+                        setBulkModalOpen(true);
+                        setBulkValue('');
+                    }
+                }}
+            />
+
+            <Modal
+                isOpen={bulkModalOpen}
+                onClose={() => setBulkModalOpen(false)}
+                title={`Bulk Update ${bulkActionType?.charAt(0).toUpperCase()}${bulkActionType?.slice(1)}`}
+                size="sm"
+            >
+                <div className="p-6 space-y-4">
+                    <p className="text-sm text-gray-400">
+                        Updating <span className="text-white font-bold">{selectedAssetIds.length}</span> assets.
+                    </p>
+
+                    {bulkActionType === 'status' && (
+                        <Select
+                            label="New Status"
+                            options={[
+                                { value: 'active', label: 'Active' },
+                                { value: 'in_inventory', label: 'In Inventory' },
+                                { value: 'in_use', label: 'In Use' },
+                                { value: 'under_maintenance', label: 'Under Maintenance' },
+                                { value: 'retired', label: 'Retired' },
+                            ]}
+                            value={bulkValue}
+                            onChange={(val) => setBulkValue(val)}
+                        />
+                    )}
+
+                    {bulkActionType === 'location' && (
+                        <Select
+                            label="New Location"
+                            options={filterLocations.map((l: any) => ({ value: l.id, label: l.name }))}
+                            value={bulkValue}
+                            onChange={(val) => setBulkValue(val)}
+                        />
+                    )}
+
+                    {bulkActionType === 'department' && (
+                        <Select
+                            label="New Department"
+                            options={departments.map((d: any) => ({ value: d.name, label: d.name }))}
+                            value={bulkValue}
+                            onChange={(val) => setBulkValue(val)}
+                        />
+                    )}
+
+                    <div className="pt-4 flex gap-3">
+                        <Button
+                            className="flex-1 rounded-xl h-11"
+                            onClick={handleBulkAction}
+                            disabled={!bulkValue}
+                        >
+                            Apply to All
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="rounded-xl border-slate-700/50 h-11"
+                            onClick={() => setBulkModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }
+

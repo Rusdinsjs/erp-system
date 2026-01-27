@@ -57,8 +57,8 @@ impl CategoryRepository {
     pub async fn create(&self, category: &Category) -> Result<Category, sqlx::Error> {
         sqlx::query_as::<_, Category>(
             r#"
-            INSERT INTO categories (id, parent_id, code, name, department, description, attributes, main_category, sub_category_letter, example_assets, function_description, display_order)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            INSERT INTO categories (id, parent_id, code, name, department, description, attributes, main_category, sub_category_letter, example_assets, function_description, display_order, asset_account_id, expense_account_id, accumulated_depreciation_account_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
             "#,
         )
@@ -74,6 +74,9 @@ impl CategoryRepository {
         .bind(&category.example_assets)
         .bind(&category.function_description)
         .bind(category.display_order)
+        .bind(category.asset_account_id)
+        .bind(category.expense_account_id)
+        .bind(category.accumulated_depreciation_account_id)
         .fetch_one(&self.pool)
         .await
     }
@@ -84,7 +87,8 @@ impl CategoryRepository {
             UPDATE categories SET
                 parent_id = $2, code = $3, name = $4, department = $5, description = $6, attributes = $7,
                 main_category = $8, sub_category_letter = $9, example_assets = $10, 
-                function_description = $11, display_order = $12, updated_at = NOW()
+                function_description = $11, display_order = $12, asset_account_id = $13, 
+                expense_account_id = $14, accumulated_depreciation_account_id = $15, updated_at = NOW()
             WHERE id = $1
             RETURNING *
             "#,
@@ -101,6 +105,9 @@ impl CategoryRepository {
         .bind(&category.example_assets)
         .bind(&category.function_description)
         .bind(category.display_order)
+        .bind(category.asset_account_id)
+        .bind(category.expense_account_id)
+        .bind(category.accumulated_depreciation_account_id)
         .fetch_one(&self.pool)
         .await
     }

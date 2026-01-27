@@ -1,0 +1,101 @@
+    Blocking waiting for file lock on build directory
+    Checking management-system v0.1.0 (/home/rus/.gemini/antigravity/scratch/Business_Systems/management-system)
+error: `to_string` applied to a type that implements `Display` in `println!` args
+  --> src/bin/hash_password.rs:11:24
+   |
+11 |     println!("{}", hash.to_string());
+   |                        ^^^^^^^^^^^^ help: remove this
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#to_string_in_format_args
+   = note: `-D clippy::to-string-in-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::to_string_in_format_args)]`
+
+error: could not compile `management-system` (bin "hash_password") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: used `assert_eq!` with a literal bool
+  --> tests/integration/notification_tests.rs:60:5
+   |
+60 |     assert_eq!(notification.is_read, false);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#bool_assert_comparison
+   = note: `-D clippy::bool-assert-comparison` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::bool_assert_comparison)]`
+help: replace it with `assert!(..)`
+   |
+60 -     assert_eq!(notification.is_read, false);
+60 +     assert!(!notification.is_read);
+   |
+
+error: could not compile `management-system` (test "notification_tests") due to 1 previous error
+error: function call inside of `expect`
+  --> src/main.rs:45:10
+   |
+45 |           .expect(&format!(
+   |  __________^
+46 | |             "Failed to connect to database at {}",
+47 | |             config.database_url
+48 | |         ));
+   | |__________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#expect_fun_call
+   = note: `-D clippy::expect-fun-call` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::expect_fun_call)]`
+help: try
+   |
+45 ~         .unwrap_or_else(|_| panic!("Failed to connect to database at {}",
+46 ~             config.database_url));
+   |
+
+error: function call inside of `expect`
+  --> src/main.rs:76:10
+   |
+76 |         .expect(&format!("Invalid server address: {}", addr_str));
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `unwrap_or_else(|_| panic!("Invalid server address: {}", addr_str))`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#expect_fun_call
+
+error: function call inside of `expect`
+  --> src/main.rs:81:10
+   |
+81 |         .expect(&format!("Failed to bind to address: {}", addr));
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `unwrap_or_else(|_| panic!("Failed to bind to address: {}", addr))`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#expect_fun_call
+
+error: could not compile `management-system` (bin "management-system" test) due to 3 previous errors
+error: the borrowed expression implements the required traits
+   --> tests/integration/asset_crud_tests.rs:199:14
+    |
+199 |         .uri(&format!("/api/assets/{}", asset_id))
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `format!("/api/assets/{}", asset_id)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+    = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+
+error: the borrowed expression implements the required traits
+   --> tests/integration/asset_crud_tests.rs:216:14
+    |
+216 |         .uri(&format!("/api/assets/{}", asset_id))
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `format!("/api/assets/{}", asset_id)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+   --> tests/integration/asset_crud_tests.rs:235:14
+    |
+235 |         .uri(&format!("/api/assets/{}", asset_id))
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `format!("/api/assets/{}", asset_id)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+   --> tests/integration/asset_crud_tests.rs:247:14
+    |
+247 |         .uri(&format!("/api/assets/{}", asset_id))
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `format!("/api/assets/{}", asset_id)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: could not compile `management-system` (test "asset_crud_tests") due to 4 previous errors

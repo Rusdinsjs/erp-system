@@ -24,15 +24,15 @@ impl ContractRenewalRepository {
             RETURNING *
             "#,
         )
-        .bind(&renewal.id)
-        .bind(&renewal.original_contract_id)
-        .bind(&renewal.new_contract_id)
+        .bind(renewal.id)
+        .bind(renewal.original_contract_id)
+        .bind(renewal.new_contract_id)
         .bind(&renewal.renewal_type)
-        .bind(&renewal.previous_end_date)
-        .bind(&renewal.new_end_date)
+        .bind(renewal.previous_end_date)
+        .bind(renewal.new_end_date)
         .bind(&renewal.notes)
-        .bind(&renewal.renewed_by)
-        .bind(&renewal.renewed_at)
+        .bind(renewal.renewed_by)
+        .bind(renewal.renewed_at)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;

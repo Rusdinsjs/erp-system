@@ -1,0 +1,86 @@
+    Blocking waiting for file lock on build directory
+   Compiling openssl-sys v0.9.111
+   Compiling openssl v0.10.75
+   Compiling native-tls v0.2.14
+    Checking tokio-native-tls v0.3.1
+    Checking lettre v0.11.19
+    Checking management-system v0.1.0 (/home/rus/.gemini/antigravity/scratch/Business_Systems/management-system)
+error: redundant pattern matching, consider using `is_some()`
+  --> src/application/services/employee_service.rs:27:16
+   |
+27 |         if let Some(_) = self.repository.get_by_nik(&req.nik).await? {
+   |         -------^^^^^^^---------------------------------------------- help: try: `if (self.repository.get_by_nik(&req.nik).await?).is_some()`
+   |
+   = note: this will change drop order of the result, as well as all temporaries
+   = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+   = note: `-D clippy::redundant-pattern-matching` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::redundant_pattern_matching)]`
+
+error: redundant pattern matching, consider using `is_some()`
+   --> src/application/services/employee_service.rs:126:24
+    |
+126 |                 if let Some(_) = self.repository.get_by_nik(&nik).await? {
+    |                 -------^^^^^^^------------------------------------------ help: try: `if (self.repository.get_by_nik(&nik).await?).is_some()`
+    |
+    = note: this will change drop order of the result, as well as all temporaries
+    = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+
+error: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/application/services/sensor_service.rs:255:17
+    |
+255 |                 &sensor_id,
+    |                 ^^^^^^^^^^ help: change this to: `sensor_id`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrow
+    = note: `-D clippy::needless-borrow` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_borrow)]`
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/rental_billing.rs:31:5
+   |
+31 | /     pub fn from_str(s: &str) -> Option<Self> {
+32 | |         match s.to_lowercase().as_str() {
+33 | |             "daily" => Some(Self::Daily),
+34 | |             "weekly" => Some(Self::Weekly),
+...  |
+39 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+   = note: `-D clippy::should-implement-trait` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::should_implement_trait)]`
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/rental_billing.rs:68:5
+   |
+68 | /     pub fn from_str(s: &str) -> Option<Self> {
+69 | |         match s.to_lowercase().as_str() {
+70 | |             "draft" => Some(Self::Draft),
+71 | |             "calculated" => Some(Self::Calculated),
+...  |
+79 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+   --> src/domain/entities/rental_billing.rs:100:5
+    |
+100 | /     pub fn from_str(s: &str) -> Option<Self> {
+101 | |         match s.to_lowercase().as_str() {
+102 | |             "hourly" => Some(Self::Hourly),
+103 | |             "daily" => Some(Self::Daily),
+...   |
+107 | |     }
+    | |_____^
+    |
+    = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: could not compile `management-system` (lib test) due to 6 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `management-system` (lib) due to 6 previous errors

@@ -192,7 +192,7 @@ async fn test_work_order_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/approvals/{}/approve", wo_id))
+                .uri(format!("/api/approvals/{}/approve", wo_id))
                 .header(header::AUTHORIZATION, &auth_header)
                 .header("Content-Type", "application/json")
                 .body(Body::from(json!({}).to_string()))
@@ -209,7 +209,7 @@ async fn test_work_order_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/work-orders/{}/start", wo_id))
+                .uri(format!("/api/work-orders/{}/start", wo_id))
                 .header(header::AUTHORIZATION, &auth_header)
                 .body(Body::empty())
                 .unwrap(),
@@ -231,7 +231,7 @@ async fn test_work_order_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/assets/{}", asset_id))
+                .uri(format!("/api/assets/{}", asset_id))
                 .header(header::AUTHORIZATION, &auth_header)
                 .body(Body::empty())
                 .unwrap(),
@@ -258,7 +258,7 @@ async fn test_work_order_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(&format!("/api/work-orders/{}/complete", wo_id))
+                .uri(format!("/api/work-orders/{}/complete", wo_id))
                 .header(header::AUTHORIZATION, &auth_header)
                 .header("Content-Type", "application/json")
                 .body(Body::from(
@@ -281,7 +281,7 @@ async fn test_work_order_lifecycle() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri(&format!("/api/assets/{}", asset_id))
+                .uri(format!("/api/assets/{}", asset_id))
                 .header(header::AUTHORIZATION, &auth_header)
                 .body(Body::empty())
                 .unwrap(),

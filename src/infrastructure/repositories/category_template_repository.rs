@@ -51,7 +51,7 @@ impl CategoryTemplateRepository {
         req: CreateCategoryAttributeTemplateRequest,
     ) -> Result<CategoryAttributeTemplate> {
         let attributes_json = serde_json::to_value(&req.attributes)
-            .map_err(|e| sqlx::Error::Protocol(format!("Failed to serialize attributes: {}", e).into()))?;
+            .map_err(|e| sqlx::Error::Protocol(format!("Failed to serialize attributes: {}", e)))?;
 
         // This query attempts to insert, and on conflict (category_id) updates the attributes
         let query = r#"

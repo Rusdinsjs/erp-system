@@ -20,11 +20,11 @@ use serde_json::json;
 
 /// Role level constants
 const ROLE_MANAGER: i32 = 2;
-const ROLE_SUPERVISOR: i32 = 3;
+pub const ROLE_SUPERVISOR: i32 = 3;
 const ROLE_OPERATOR: i32 = 4;
 
 /// Check if user has required role level
-fn check_role(claims: &Claims, required_level: i32) -> Result<(), AppError> {
+pub fn check_role(claims: &Claims, required_level: i32) -> Result<(), AppError> {
     if claims.role_level > required_level {
         return Err(AppError::Forbidden(format!(
             "Requires role level {} or higher. Your level: {}",
@@ -196,7 +196,6 @@ pub async fn start_work_order(
 #[derive(Deserialize)]
 pub struct CompleteWorkOrderRequest {
     pub work_performed: String,
-    pub actual_cost: Option<Decimal>,
 }
 
 /// Complete work order (Assigned technician only)
@@ -225,7 +224,7 @@ pub async fn complete_work_order(
     }
     let order = state
         .work_order_service
-        .complete(id, user_id, &payload.work_performed, payload.actual_cost)
+        .complete(id, user_id, &payload.work_performed)
         .await?;
 
     // Broadcast work order completion
@@ -244,6 +243,81 @@ pub async fn complete_work_order(
     Ok(Json(ApiResponse::success_with_message(
         order,
         "Work order completed",
+    )))
+}
+
+#[derive(Deserialize)]
+pub struct VerifyWorkOrderRequest {
+    pub labor_cost: Decimal,
+}
+
+/// Verify work order and input labor cost (Supervisor+)
+pub async fn verify_work_order(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<VerifyWorkOrderRequest>,
+) -> Result<Json<ApiResponse<WorkOrder>>, AppError> {
+    // Check role: Supervisor (3) or higher
+    check_role(&claims, ROLE_SUPERVISOR)?;
+
+    let user_id = get_user_id(&claims)?;
+    let order = state
+        .work_order_service
+        .verify(id, user_id, payload.labor_cost)
+        .await?;
+
+    Ok(Json(ApiResponse::success_with_message(
+        order,
+        "Work order verified",
+    )))
+}
+
+#[derive(Deserialize)]
+pub struct PartClassificationOverride {
+    pub part_id: Uuid,
+    pub expense_type: String,
+}
+
+#[derive(Deserialize)]
+pub struct FinalizeWorkOrderRequest {
+    pub labor_expense_type: String,
+    pub parts: Option<Vec<PartClassificationOverride>>,
+}
+
+/// Finalize work order and create expense (Manager+)
+pub async fn finalize_work_order(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<FinalizeWorkOrderRequest>,
+) -> Result<Json<ApiResponse<WorkOrder>>, AppError> {
+    // Check role: Manager (2) or higher
+    check_role(&claims, ROLE_MANAGER)?;
+
+    let user_id = get_user_id(&claims)?;
+
+    // Validate expense types
+    if payload.labor_expense_type != "OPEX" && payload.labor_expense_type != "CAPEX" {
+        return Err(AppError::BadRequest(
+            "Labor expense type must be OPEX or CAPEX".to_string(),
+        ));
+    }
+
+    let parts_overrides = payload.parts.map(|p| {
+        p.into_iter()
+            .map(|po| (po.part_id, po.expense_type))
+            .collect()
+    });
+
+    let order = state
+        .work_order_service
+        .finalize_completion(id, user_id, payload.labor_expense_type, parts_overrides)
+        .await?;
+
+    Ok(Json(ApiResponse::success_with_message(
+        order,
+        "Work order finalized and expense created",
     )))
 }
 
@@ -272,10 +346,17 @@ pub struct AddTaskRequest {
 }
 
 #[derive(Deserialize)]
+pub struct UpdateTaskRequest {
+    pub description: String,
+}
+
+#[derive(Deserialize)]
 pub struct AddPartRequest {
     pub part_name: String,
     pub quantity: Decimal,
     pub unit_cost: Decimal,
+    pub expense_type: Option<String>,
+    pub inventory_item_id: Option<Uuid>,
 }
 
 // Handlers for Tasks
@@ -319,6 +400,25 @@ pub async fn remove_work_order_task(
     )))
 }
 
+pub async fn update_work_order_task(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path((_id, task_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<UpdateTaskRequest>,
+) -> Result<Json<ApiResponse<bool>>, AppError> {
+    check_role(&claims, ROLE_SUPERVISOR)?;
+
+    let success = state
+        .work_order_service
+        .update_checklist_item(task_id, payload.description)
+        .await?;
+
+    Ok(Json(ApiResponse::success_with_message(
+        success,
+        "Task updated",
+    )))
+}
+
 // Handlers for Parts
 pub async fn get_work_order_parts(
     State(state): State<AppState>,
@@ -338,7 +438,37 @@ pub async fn add_work_order_part(
 
     let part = state
         .work_order_service
-        .add_part(id, payload.part_name, payload.quantity, payload.unit_cost)
+        .add_part(
+            id,
+            payload.part_name,
+            payload.quantity,
+            payload.unit_cost,
+            payload.expense_type,
+            payload.inventory_item_id,
+        )
+        .await?;
+    Ok(Json(part))
+}
+
+pub async fn update_work_order_part(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path((id, part_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<AddPartRequest>,
+) -> Result<Json<crate::domain::entities::WorkOrderPart>, AppError> {
+    check_role(&claims, ROLE_OPERATOR)?;
+
+    let part = state
+        .work_order_service
+        .update_part(
+            id,
+            part_id,
+            payload.part_name,
+            payload.quantity,
+            payload.unit_cost,
+            payload.expense_type,
+            payload.inventory_item_id,
+        )
         .await?;
     Ok(Json(part))
 }
@@ -355,4 +485,70 @@ pub async fn remove_work_order_part(
         true,
         "Part removed",
     )))
+}
+#[derive(Deserialize)]
+pub struct UpdateChecklistPhotosRequest {
+    pub photos: Vec<String>,
+}
+
+pub async fn update_checklist_photos(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path((_wo_id, item_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<UpdateChecklistPhotosRequest>,
+) -> Result<Json<ApiResponse<bool>>, AppError> {
+    // Both technicians and supervisors can upload photos
+    if claims.role_level > ROLE_OPERATOR {
+        check_role(&claims, ROLE_SUPERVISOR)?;
+    }
+
+    tracing::debug!(
+        "Updating checklist photos for item: {}, photos: {:?}",
+        item_id,
+        payload.photos
+    );
+
+    let success = state
+        .work_order_service
+        .update_checklist_photos(item_id, payload.photos)
+        .await?;
+
+    if !success {
+        return Err(AppError::NotFound(format!(
+            "Checklist item {} not found",
+            item_id
+        )));
+    }
+
+    Ok(Json(ApiResponse::success(true)))
+}
+
+#[derive(Deserialize)]
+pub struct CompleteChecklistItemRequest {
+    pub result: Option<String>,
+}
+
+pub async fn complete_checklist_item(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path((_wo_id, task_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<CompleteChecklistItemRequest>,
+) -> Result<Json<ApiResponse<bool>>, AppError> {
+    let success = state
+        .work_order_service
+        .complete_checklist_item(
+            task_id,
+            get_user_id(&claims)?,
+            payload.result.as_deref().unwrap_or("Completed"),
+        )
+        .await?;
+
+    if !success {
+        return Err(AppError::NotFound(format!(
+            "Checklist item {} not found",
+            task_id
+        )));
+    }
+
+    Ok(Json(ApiResponse::success(true)))
 }

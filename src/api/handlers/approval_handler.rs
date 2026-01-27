@@ -223,7 +223,7 @@ pub async fn reject_request(
 
     // Work Orders (Cancel/Reject) - WorkOrder currently doesn't have explicit reject, maybe Cancel?
     // Let's assume cancel for rejection
-    if let Ok(_) = state.work_order_service.get_by_id(id).await {
+    if state.work_order_service.get_by_id(id).await.is_ok() {
         // state.work_order_service.cancel(id).await?; // Need to implement/expose verify
         // For now, return error or implement cancel
         return Err(AppError::BadRequest(

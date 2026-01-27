@@ -25,7 +25,7 @@ impl DataService {
         let mut wtr = WriterBuilder::new().from_writer(vec![]);
 
         // Write header
-        wtr.write_record(&[
+        wtr.write_record([
             "ID",
             "Code",
             "Name",
@@ -56,7 +56,7 @@ impl DataService {
 
             // Write records
             for asset in &assets {
-                wtr.write_record(&[
+                wtr.write_record([
                     asset.id.to_string(),
                     asset.asset_code.clone(),
                     asset.name.clone(),

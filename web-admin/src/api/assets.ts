@@ -63,9 +63,11 @@ export interface Asset {
     assigned_to_name?: string;
     vendor_name?: string;
 
-    // Financial Aggregates
+    // Aggregates
     total_maintenance_cost?: number;
     total_rental_income?: number;
+
+    version: number;
 }
 
 export interface AssetDocument {
@@ -97,7 +99,17 @@ export interface CreateAssetRequest extends Omit<Asset, 'id' | 'created_at' | 'u
     vehicle_details?: VehicleDetails;
 }
 
-export interface UpdateAssetRequest extends Partial<CreateAssetRequest> { }
+export interface UpdateAssetRequest extends Partial<CreateAssetRequest> {
+    version?: number;
+}
+
+export interface BulkUpdateAssetRequest {
+    asset_ids: string[];
+    status?: string;
+    location_id?: string;
+    department?: string;
+    department_id?: string;
+}
 
 export interface AssetSearchParams {
     query?: string;
@@ -110,6 +122,9 @@ export interface AssetSearchParams {
     is_loan?: boolean;
     page: number;
     per_page: number;
+    exact_match?: boolean;
+    sort_by?: string;
+    sort_order?: string;
 }
 
 export interface SellAssetRequest {
@@ -117,6 +132,44 @@ export interface SellAssetRequest {
     sale_date: string;
     sold_to: string;
     notes?: string;
+}
+
+export interface AssetExpenseItem {
+    id: string;
+    description: string;
+    amount: number;
+}
+
+export interface AssetExpense {
+    id: string;
+    asset_id: string;
+    description: string;
+    amount: number;
+    date: string;
+    vendor_name?: string;
+    invoice_number?: string;
+    proof_url?: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    expense_type: 'OPEX' | 'CAPEX';
+    requested_by: string;
+    created_at: string;
+    updated_at: string;
+    items?: AssetExpenseItem[];
+}
+
+export interface CreateAssetExpenseItemRequest {
+    description: string;
+    amount: number;
+}
+
+export interface CreateAssetExpenseRequest {
+    description: string;
+    items: CreateAssetExpenseItemRequest[];
+    date: string;
+    vendor_name?: string;
+    invoice_number?: string;
+    proof_url?: string;
+    expense_type?: 'OPEX' | 'CAPEX';
 }
 
 export interface PaginatedResponse<T> {
@@ -199,6 +252,31 @@ export const assetApi = {
                 }
             }
         });
+        return response.data;
+    },
+
+    bulkUpdate: async (data: BulkUpdateAssetRequest) => {
+        const response = await api.post<number>('/assets/bulk-update', data);
+        return response.data;
+    },
+
+    getExpenses: async (id: string) => {
+        const response = await api.get<AssetExpense[]>(`/assets/${id}/expenses`);
+        return response.data;
+    },
+
+    createExpense: async (id: string, data: CreateAssetExpenseRequest) => {
+        const response = await api.post<AssetExpense>(`/assets/${id}/expenses`, data);
+        return response.data;
+    },
+
+    approveExpense: async (expenseId: string, notes?: string) => {
+        const response = await api.post<AssetExpense>(`/expenses/${expenseId}/approve`, { notes });
+        return response.data;
+    },
+
+    rejectExpense: async (expenseId: string, notes: string) => {
+        const response = await api.post<AssetExpense>(`/expenses/${expenseId}/reject`, { notes });
         return response.data;
     }
 };

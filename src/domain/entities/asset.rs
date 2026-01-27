@@ -77,6 +77,7 @@ pub struct Asset {
     // Timestamps
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub version: i32,
 }
 
 impl Asset {
@@ -118,6 +119,7 @@ impl Asset {
             notes: None,
             created_at: now,
             updated_at: now,
+            version: 1,
         }
     }
 
@@ -179,6 +181,7 @@ pub struct AssetSummary {
     pub department_id: Option<Uuid>,
     pub model: Option<String>,
     pub serial_number: Option<String>,
+    pub version: i32,
 }
 
 /// Asset with joined data for detail view

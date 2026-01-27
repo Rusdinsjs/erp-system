@@ -10,6 +10,7 @@ use crate::api::routes::create_router;
 use crate::application::services::{
     AnalyticsService,
     ApprovalService,
+    AssetExpenseService, // Added
     AssetService,
     AuditService,
     AuthService,
@@ -24,11 +25,13 @@ use crate::application::services::{
     EmployeeService,
     FinanceService,
     FuelService,
+    InventoryService,
     JournalService, // Added
     LifecycleService,
     LoanService,
     LocationService, // Added
     MaintenanceService,
+    MaintenanceTemplateService,
     NotificationService,
     RbacService,
     RentalService,
@@ -42,10 +45,11 @@ use crate::application::services::{
 };
 use crate::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
 use crate::infrastructure::repositories::{
-    ApprovalRepository, AssetRepository, AuditRepository, CategoryRepository,
-    CategoryTemplateRepository, ClientRepository, ContractDocumentRepository, ConversionRepository,
-    EmployeeRepository, FinanceRepository, FuelRepository, JournalRepository, LifecycleRepository,
-    LoanRepository, MaintenanceRepository, NotificationRepository, RbacRepository,
+    ApprovalRepository, AssetExpenseRepository, AssetRepository, AuditRepository,
+    CategoryRepository, CategoryTemplateRepository, ClientRepository, ContractDocumentRepository,
+    ConversionRepository, EmployeeRepository, FinanceRepository, FuelRepository,
+    InventoryRepository, JournalRepository, LifecycleRepository, LoanRepository,
+    MaintenanceRepository, MaintenanceTemplateRepository, NotificationRepository, RbacRepository,
     RentalRepository, SensorRepository, SettingsRepository, TimesheetRepository, UserRepository,
     WorkOrderRepository,
 };
@@ -57,6 +61,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct AppState {
     pub asset_service: AssetService,
+    pub asset_expense_service: AssetExpenseService, // Added
     pub auth_service: AuthService,
     pub approval_service: ApprovalService,
     pub audit_service: AuditService,
@@ -68,8 +73,10 @@ pub struct AppState {
     pub contract_template_service: ContractTemplateService,
     pub conversion_service: ConversionService,
     pub lifecycle_service: LifecycleService,
+    pub inventory_service: InventoryService,
     pub loan_service: LoanService,
     pub maintenance_service: MaintenanceService,
+    pub maintenance_template_service: MaintenanceTemplateService,
     pub work_order_service: WorkOrderService,
     pub notification_service: NotificationService,
     pub rbac_service: RbacService,
@@ -107,11 +114,13 @@ impl AppState {
     ) -> Self {
         // Create repositories
         let asset_repo = AssetRepository::new(pool.clone());
+        let asset_expense_repo = AssetExpenseRepository::new(pool.clone()); // Added
         let user_repo = UserRepository::new(pool.clone());
         let category_repo = CategoryRepository::new(pool.clone());
         let category_template_repo = Arc::new(CategoryTemplateRepository::new(pool.clone()));
         let loan_repo = LoanRepository::new(pool.clone());
         let maintenance_repo = MaintenanceRepository::new(pool.clone());
+        let maintenance_template_repo = MaintenanceTemplateRepository::new(pool.clone());
         let work_order_repo = WorkOrderRepository::new(pool.clone());
         let employee_repo = EmployeeRepository::new(pool.clone());
         let notification_repo = NotificationRepository::new(pool.clone());
@@ -135,11 +144,16 @@ impl AppState {
         );
         let finance_repo = FinanceRepository::new(pool.clone());
         let journal_repo = JournalRepository::new(pool.clone());
+        let inventory_repo = Arc::new(InventoryRepository::new(pool.clone()));
 
         // Create cache
         let redis_config = RedisConfig::from_env();
         let redis_cache = RedisCache::new(&redis_config);
         let cache: Arc<dyn CacheOperations> = Arc::new(redis_cache);
+
+        // WebSocket & Notification Service first
+        let ws_manager = Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new());
+        let notification_service = NotificationService::new(notification_repo, ws_manager.clone());
 
         // Create services
         let approval_service = ApprovalService::new(approval_repo);
@@ -148,7 +162,13 @@ impl AppState {
             journal_repo.clone(),
             cache.clone(),
             approval_service.clone(),
+            notification_service.clone(),
         );
+        let asset_expense_service = AssetExpenseService::new(
+            asset_expense_repo,
+            asset_repo.clone(),
+            approval_service.clone(),
+        ); // Added
         let audit_service = AuditService::new(audit_repo);
         let auth_service = AuthService::new(
             user_repo.clone(),
@@ -158,8 +178,6 @@ impl AppState {
         );
         let category_service = CategoryService::new(category_repo);
         let category_template_service = CategoryTemplateService::new(category_template_repo);
-        let ws_manager = Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new());
-        let notification_service = NotificationService::new(notification_repo, ws_manager.clone());
         let email_service = crate::application::services::EmailService::new(config);
         let approval_workflow_service = crate::application::services::ApprovalWorkflowService::new(
             approval_workflow_repo.clone(),
@@ -180,12 +198,26 @@ impl AppState {
             approval_service.clone(),
             notification_service.clone(),
         );
+        let maintenance_template_service =
+            MaintenanceTemplateService::new(maintenance_template_repo.clone());
+        let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
+        let finance_service = FinanceService::new(finance_repo.clone(), journal_service.clone());
+
+        let inventory_service = InventoryService::new(
+            inventory_repo,
+            journal_service.clone(),
+            notification_service.clone(),
+        );
+
         let work_order_service = WorkOrderService::new(
             work_order_repo,
             lifecycle_repo.clone(),
             asset_repo.clone(),
             cache.clone(),
             notification_service.clone(),
+            asset_expense_service.clone(),
+            maintenance_template_repo.clone(),
+            inventory_service.clone(),
         );
         let rbac_service = RbacService::new(rbac_repo.clone());
         let sensor_service = SensorService::new(
@@ -238,9 +270,6 @@ impl AppState {
         let leave_service =
             crate::application::services::LeaveService::new(leave_repo, employee_repo);
 
-        let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
-        let finance_service = FinanceService::new(finance_repo.clone(), journal_service.clone());
-
         let fuel_repo = FuelRepository::new(pool.clone());
         let fuel_service = FuelService::new(fuel_repo);
 
@@ -252,6 +281,7 @@ impl AppState {
 
         Self {
             asset_service,
+            asset_expense_service, // Added
             audit_service,
             auth_service,
             category_service,
@@ -261,8 +291,10 @@ impl AppState {
             contract_template_service,
             conversion_service,
             lifecycle_service,
+            inventory_service,
             loan_service,
             maintenance_service,
+            maintenance_template_service,
             work_order_service,
             notification_service,
             rbac_service,

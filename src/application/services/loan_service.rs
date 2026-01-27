@@ -66,7 +66,11 @@ impl LoanService {
                     message: e.to_string(),
                 })?;
 
-        // Optional: Notify admins here
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("LOAN_CREATED", serde_json::json!(created_loan))
+            .await;
 
         Ok(created_loan)
     }
@@ -164,6 +168,12 @@ impl LoanService {
                 .await;
         }
 
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("LOAN_APPROVED", serde_json::json!(updated_loan))
+            .await;
+
         Ok(updated_loan)
     }
 
@@ -216,6 +226,12 @@ impl LoanService {
                 .await;
         }
 
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("LOAN_REJECTED", serde_json::json!(updated_loan))
+            .await;
+
         Ok(updated_loan)
     }
 
@@ -246,7 +262,15 @@ impl LoanService {
         // Update asset status
         let _ = self.asset_repo.update_status(loan.asset_id, "in_use").await;
 
-        self.get_by_id(id).await
+        let updated_loan = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("LOAN_CHECKOUT", serde_json::json!(updated_loan))
+            .await;
+
+        Ok(updated_loan)
     }
 
     pub async fn checkin(
@@ -280,7 +304,15 @@ impl LoanService {
             .update_status(loan.asset_id, "in_inventory")
             .await;
 
-        self.get_by_id(id).await
+        let updated_loan = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("LOAN_RETURNED", serde_json::json!(updated_loan))
+            .await;
+
+        Ok(updated_loan)
     }
 
     /// List loans by employee

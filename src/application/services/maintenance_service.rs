@@ -300,4 +300,46 @@ impl MaintenanceService {
             }
         })
     }
+
+    // --- Schedule Methods ---
+
+    pub async fn create_schedule(
+        &self,
+        request: crate::domain::entities::maintenance::CreateMaintenanceScheduleRequest,
+    ) -> DomainResult<crate::domain::entities::maintenance::MaintenanceSchedule> {
+        self.repository.create_schedule(request).await.map_err(|e| {
+            DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            }
+        })
+    }
+
+    pub async fn list_schedules(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::maintenance::MaintenanceSchedule>> {
+        // Note: Repository returns MaintenanceSchedule, but we might want to map to a summary or use the struct directly.
+        // For simplicity reusing the struct or casting.
+        // Actually repo returns MaintenanceSchedule.
+        // Let's adjust return type to MaintenanceSchedule
+        self.repository
+            .list_schedules()
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
+    pub async fn list_schedules_raw(
+        &self,
+    ) -> DomainResult<Vec<crate::domain::entities::maintenance::MaintenanceSchedule>> {
+        self.repository
+            .list_schedules()
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
 }

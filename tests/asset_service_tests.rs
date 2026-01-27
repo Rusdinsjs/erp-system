@@ -1,8 +1,11 @@
+use management_system::api::handlers::notification_ws::WebSocketManager;
 use management_system::application::dto::CreateAssetRequest;
-use management_system::application::services::{ApprovalService, AssetService};
+use management_system::application::services::{
+    ApprovalService, AssetService, NotificationService,
+};
 use management_system::infrastructure::cache::{CacheError, CacheOperations};
 use management_system::infrastructure::repositories::{
-    ApprovalRepository, AssetRepository, JournalRepository,
+    ApprovalRepository, AssetRepository, JournalRepository, NotificationRepository,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -83,8 +86,17 @@ async fn test_create_and_get_asset() {
     let journal_repo = JournalRepository::new(pool.clone());
     let approval_service = ApprovalService::new(approval_repo);
     let cache = Arc::new(MockCache::new());
+    let notif_repo = NotificationRepository::new(pool.clone());
+    let ws_manager = Arc::new(WebSocketManager::new());
+    let notification_service = NotificationService::new(notif_repo, ws_manager);
 
-    let asset_service = AssetService::new(asset_repo, journal_repo, cache, approval_service);
+    let asset_service = AssetService::new(
+        asset_repo,
+        journal_repo,
+        cache,
+        approval_service,
+        notification_service,
+    );
 
     // Test Data
     let unique = Uuid::new_v4();

@@ -1,5 +1,6 @@
 use crate::api::handlers::dashboard_handler::DashboardStats;
 use genpdf::{elements::*, style, Element};
+use std::path::Path;
 
 pub struct SummaryGenerator {
     stats: DashboardStats,
@@ -12,8 +13,23 @@ impl SummaryGenerator {
     }
 
     pub fn generate(self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        // Use LiberationSans from fonts/ directory as it's proven to work in other generators
-        let font_family = genpdf::fonts::from_files("fonts", "LiberationSans", None)?;
+        // Standardize on bits proven to work (Roboto from assets/fonts)
+        let font_dir = "assets/fonts";
+        let font_name = "Roboto";
+
+        // Debug check for font directory
+        if !Path::new(font_dir).exists() {
+            let cwd = std::env::current_dir().unwrap_or_default();
+            return Err(format!("Font directory '{}' not found. CWD: {:?}", font_dir, cwd).into());
+        }
+
+        let font_family = genpdf::fonts::from_files(font_dir, font_name, None).map_err(|e| {
+            format!(
+                "Failed to load font '{}' from '{}': {}",
+                font_name, font_dir, e
+            )
+        })?;
+
         let mut doc = genpdf::Document::new(font_family);
 
         doc.set_title("Dashboard Summary Report");

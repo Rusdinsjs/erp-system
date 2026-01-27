@@ -252,7 +252,7 @@ impl SensorService {
             .notify_sensor_alert(
                 Uuid::nil(), // notify_admins will find actual IDs
                 &asset_name,
-                &sensor_id,
+                sensor_id,
                 value,
                 0.0, // Should be threshold value if available
                 severity,

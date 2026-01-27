@@ -66,9 +66,10 @@ interface TableThProps {
     children: ReactNode;
     className?: string;
     align?: 'left' | 'center' | 'right';
+    onClick?: () => void;
 }
 
-export function TableTh({ children, className = '', align = 'left' }: TableThProps) {
+export function TableTh({ children, className = '', align = 'left', onClick }: TableThProps) {
     const alignClass = {
         left: 'text-left',
         center: 'text-center',
@@ -76,7 +77,10 @@ export function TableTh({ children, className = '', align = 'left' }: TableThPro
     };
 
     return (
-        <th className={`px-4 py-3 font-semibold text-gray-400 uppercase tracking-wider text-xs ${alignClass[align]} ${className}`}>
+        <th
+            className={`px-4 py-3 font-semibold text-gray-400 uppercase tracking-wider text-xs ${alignClass[align]} ${className} ${onClick ? 'cursor-pointer' : ''}`}
+            onClick={onClick}
+        >
             {children}
         </th>
     );

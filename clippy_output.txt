@@ -1,0 +1,513 @@
+    Blocking waiting for file lock on build directory
+   Compiling openssl-sys v0.9.111
+   Compiling openssl v0.10.75
+   Compiling native-tls v0.2.14
+    Checking tokio-native-tls v0.3.1
+    Checking lettre v0.11.19
+    Checking management-system v0.1.0 (/home/rus/.gemini/antigravity/scratch/Business_Systems/management-system)
+error[E0432]: unresolved import `crate::application::services::FuelService`
+  --> src/api/server.rs:26:5
+   |
+26 |     FuelService,
+   |     ^^^^^^^^^^^
+   |     |
+   |     no `FuelService` in `application::services`
+   |     help: a similar name exists in the module: `fuel_service`
+
+error[E0412]: cannot find type `FuelService` in this scope
+  --> src/application/services/fuel_service.rs:21:6
+   |
+21 | impl FuelService {
+   |      ^^^^^^^^^^^ not found in this scope
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:53:9
+    |
+ 53 |         Ok(log) => (StatusCode::OK, Json(ApiResponse::success(log))).into_response(),
+    |         ^^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+  --> src/api/handlers/fuel_handler.rs:54:13
+   |
+54 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+   |             ^ doesn't have a size known at compile-time
+   |
+   = help: the trait `std::marker::Sized` is not implemented for `str`
+   = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:54:9
+    |
+ 54 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:51:10
+    |
+ 51 |         .await
+    |          ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:60:9
+    |
+ 60 |         Ok(logs) => (StatusCode::OK, Json(ApiResponse::success(logs))).into_response(),
+    |         ^^^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+  --> src/api/handlers/fuel_handler.rs:61:13
+   |
+61 |         Err(e) => (
+   |             ^ doesn't have a size known at compile-time
+   |
+   = help: the trait `std::marker::Sized` is not implemented for `str`
+   = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:61:9
+    |
+ 61 |         Err(e) => (
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:59:53
+    |
+ 59 |     match state.fuel_service.get_pending_requests().await {
+    |                                                     ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:83:9
+    |
+ 83 |         Ok(logs) => (StatusCode::OK, Json(ApiResponse::success(logs))).into_response(),
+    |         ^^^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+  --> src/api/handlers/fuel_handler.rs:84:13
+   |
+84 |         Err(e) => (
+   |             ^ doesn't have a size known at compile-time
+   |
+   = help: the trait `std::marker::Sized` is not implemented for `str`
+   = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:84:9
+    |
+ 84 |         Err(e) => (
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:82:57
+    |
+ 82 |     match state.fuel_service.get_history(limit, offset).await {
+    |                                                         ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:102:9
+    |
+102 |         Ok(code) => (StatusCode::OK, Json(ApiResponse::success(code))).into_response(),
+    |         ^^^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:103:13
+    |
+103 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+    |             ^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:103:9
+    |
+103 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:100:10
+    |
+100 |         .await
+    |          ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:118:9
+    |
+118 |         Ok(_) => (
+    |         ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:123:13
+    |
+123 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+    |             ^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:123:9
+    |
+123 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:117:66
+    |
+117 |     match state.fuel_service.reject_request(id, &payload.reason).await {
+    |                                                                  ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:149:9
+    |
+149 |         Ok(_) => (
+    |         ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:154:13
+    |
+154 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+    |             ^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:154:9
+    |
+154 |         Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:147:10
+    |
+147 |         .await
+    |          ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:167:9
+    |
+167 |         Ok(stats) => {
+    |         ^^^^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:187:13
+    |
+187 |         Err(e) => (
+    |             ^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:187:9
+    |
+187 |         Err(e) => (
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:166:52
+    |
+166 |     match state.fuel_service.get_dashboard_stats().await {
+    |                                                    ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:199:9
+    |
+199 |         Ok(logs) => (StatusCode::OK, Json(ApiResponse::success(logs))).into_response(),
+    |         ^^^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:200:13
+    |
+200 |         Err(e) => (
+    |             ^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:200:9
+    |
+200 |         Err(e) => (
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:198:64
+    |
+198 |     match state.fuel_service.get_my_requests(claims.user_id()).await {
+    |                                                                ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:210:9
+    |
+210 |         Ok(data) => (StatusCode::OK, Json(ApiResponse::success(data))).into_response(),
+    |         ^^^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Ok`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Ok`
+...
+554 |     Ok(#[stable(feature = "rust1", since = "1.0.0")] T),
+    |     -- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:211:13
+    |
+211 |         Err(e) => (
+    |             ^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:211:9
+    |
+211 |         Err(e) => (
+    |         ^^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by a bound in `std::prelude::v1::Err`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by this bound in `std::prelude::v1::Err`
+...
+559 |     Err(#[stable(feature = "rust1", since = "1.0.0")] E),
+    |     --- required by a bound in this tuple variant
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> src/api/handlers/fuel_handler.rs:209:46
+    |
+209 |     match state.fuel_service.get_analytics().await {
+    |                                              ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `std::marker::Sized` is not implemented for `str`
+note: required by an implicit `Sized` bound in `std::result::Result`
+   --> /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:550:20
+    |
+550 | pub enum Result<T, E> {
+    |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+
+Some errors have detailed explanations: E0277, E0412, E0432.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `management-system` (lib) due to 38 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `management-system` (lib test) due to 38 previous errors

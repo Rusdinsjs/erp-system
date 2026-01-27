@@ -1,5 +1,3 @@
-//! Work Order Repository
-
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -103,9 +101,10 @@ impl WorkOrderRepository {
                 scheduled_date, due_date, assigned_technician, vendor_id,
                 estimated_hours, estimated_cost, problem_description,
                 safety_requirements, lockout_tagout_required, created_by, location_id,
-                target_category_id, target_specifications, conversion_notes, conversion_type
+                target_category_id, target_specifications, conversion_notes, conversion_type,
+                labor_expense_type, expense_id, opex_expense_id, capex_expense_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
             RETURNING *
             "#,
         )
@@ -130,6 +129,10 @@ impl WorkOrderRepository {
         .bind(&wo.target_specifications)
         .bind(&wo.conversion_notes)
         .bind(&wo.conversion_type)
+        .bind(&wo.labor_expense_type)
+        .bind(wo.expense_id)
+        .bind(wo.opex_expense_id)
+        .bind(wo.capex_expense_id)
         .fetch_one(&self.pool)
         .await
     }
@@ -183,14 +186,11 @@ impl WorkOrderRepository {
         id: Uuid,
         completed_by: Uuid,
         work_performed: &str,
-        actual_cost: Option<rust_decimal::Decimal>,
     ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query(
             r#"
             UPDATE maintenance_work_orders 
-            SET status = 'completed', completed_by = $2, work_performed = $3, 
-                labor_cost = $4,
-                actual_cost = COALESCE(parts_cost, 0) + $4,
+            SET status = 'pending_review', completed_by = $2, work_performed = $3, 
                 actual_end_date = NOW(), updated_at = NOW() 
             WHERE id = $1 AND status = 'in_progress'
             "#,
@@ -198,9 +198,64 @@ impl WorkOrderRepository {
         .bind(id)
         .bind(completed_by)
         .bind(work_performed)
-        .bind(actual_cost.unwrap_or(rust_decimal::Decimal::ZERO))
         .execute(&self.pool)
         .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn verify(
+        &self,
+        id: Uuid,
+        _verified_by: Uuid,
+        labor_cost: rust_decimal::Decimal,
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            r#"
+            UPDATE maintenance_work_orders 
+            SET status = 'verified', 
+                labor_cost = $2,
+                actual_cost = COALESCE(parts_cost, 0) + $2,
+                updated_at = NOW() 
+            WHERE id = $1 AND status = 'pending_review'
+            "#,
+        )
+        .bind(id)
+        .bind(labor_cost)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn set_expense_info(
+        &self,
+        id: Uuid,
+        labor_expense_type: &str,
+        opex_expense_id: Option<Uuid>,
+        capex_expense_id: Option<Uuid>,
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            "UPDATE maintenance_work_orders SET labor_expense_type = $2, opex_expense_id = $3, capex_expense_id = $4, updated_at = NOW() WHERE id = $1"
+        )
+        .bind(id)
+        .bind(labor_expense_type)
+        .bind(opex_expense_id)
+        .bind(capex_expense_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn set_part_expense_type(
+        &self,
+        part_id: Uuid,
+        expense_type: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let result =
+            sqlx::query("UPDATE maintenance_work_order_parts SET expense_type = $2 WHERE id = $1")
+                .bind(part_id)
+                .bind(expense_type)
+                .execute(&self.pool)
+                .await?;
         Ok(result.rows_affected() > 0)
     }
 
@@ -238,6 +293,40 @@ impl WorkOrderRepository {
         .await
     }
 
+    pub async fn update_checklist_item(
+        &self,
+        id: Uuid,
+        description: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let result =
+            sqlx::query("UPDATE maintenance_checklists SET description = $2 WHERE id = $1")
+                .bind(id)
+                .bind(description)
+                .execute(&self.pool)
+                .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn update_checklist_photos(
+        &self,
+        id: Uuid,
+        photos: &[String],
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query("UPDATE maintenance_checklists SET photos = $2 WHERE id = $1")
+            .bind(id)
+            .bind(photos)
+            .execute(&self.pool)
+            .await?;
+
+        let rows = result.rows_affected();
+        tracing::debug!(
+            "Updated checklist photos for ID: {}, rows affected: {}",
+            id,
+            rows
+        );
+        Ok(rows > 0)
+    }
+
     pub async fn complete_checklist_item(
         &self,
         id: Uuid,
@@ -270,7 +359,7 @@ impl WorkOrderRepository {
     // Parts methods
     pub async fn get_parts(&self, work_order_id: Uuid) -> Result<Vec<WorkOrderPart>, sqlx::Error> {
         sqlx::query_as::<_, WorkOrderPart>(
-            "SELECT * FROM maintenance_work_order_parts WHERE work_order_id = $1 ORDER BY added_at",
+            "SELECT * FROM maintenance_work_order_parts WHERE work_order_id = $1 ORDER BY created_at",
         )
         .bind(work_order_id)
         .fetch_all(&self.pool)
@@ -280,10 +369,13 @@ impl WorkOrderRepository {
     pub async fn add_part(&self, part: &WorkOrderPart) -> Result<WorkOrderPart, sqlx::Error> {
         sqlx::query_as::<_, WorkOrderPart>(
             r#"
-            INSERT INTO maintenance_work_order_parts (id, work_order_id, part_name, quantity, unit_cost, total_cost, added_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO maintenance_work_order_parts (
+                id, work_order_id, part_name, quantity, unit_cost, total_cost, 
+                created_at, updated_at, expense_type, inventory_item_id
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
-            "#
+            "#,
         )
         .bind(part.id)
         .bind(part.work_order_id)
@@ -291,7 +383,31 @@ impl WorkOrderRepository {
         .bind(part.quantity)
         .bind(part.unit_cost)
         .bind(part.total_cost)
-        .bind(part.added_at)
+        .bind(part.created_at)
+        .bind(part.updated_at)
+        .bind(&part.expense_type)
+        .bind(part.inventory_item_id)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn update_part(&self, part: &WorkOrderPart) -> Result<WorkOrderPart, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrderPart>(
+            r#"
+            UPDATE maintenance_work_order_parts 
+            SET part_name = $2, quantity = $3, unit_cost = $4, total_cost = $5, 
+                expense_type = $6, inventory_item_id = $7, updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            "#,
+        )
+        .bind(part.id)
+        .bind(&part.part_name)
+        .bind(part.quantity)
+        .bind(part.unit_cost)
+        .bind(part.total_cost)
+        .bind(&part.expense_type)
+        .bind(part.inventory_item_id)
         .fetch_one(&self.pool)
         .await
     }

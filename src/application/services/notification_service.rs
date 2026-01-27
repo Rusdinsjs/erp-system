@@ -3,6 +3,7 @@
 //! Handles in-app notifications and real-time WebSocket broadcasts.
 //! Supports template rendering for smart triggers.
 
+use rust_decimal::Decimal;
 use serde_json::json;
 use std::sync::Arc;
 
@@ -243,6 +244,7 @@ impl NotificationService {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn notify_sensor_alert(
         &self,
         user_id: Uuid,
@@ -316,5 +318,34 @@ impl NotificationService {
         }
 
         Ok(())
+    }
+
+    pub async fn notify_low_stock(
+        &self,
+        item_name: &str,
+        current_quantity: Decimal,
+        min_stock: Decimal,
+    ) -> DomainResult<()> {
+        self.notify_admins(
+            "low_stock_alert",
+            json!({
+                "item_name": item_name,
+                "current_quantity": current_quantity,
+                "min_stock": min_stock
+            }),
+            Some("inventory_item"),
+            None,
+        )
+        .await
+    }
+
+    /// Generic WebSocket broadcast
+    pub async fn broadcast(&self, event_type: &str, payload: serde_json::Value) {
+        self.ws_manager
+            .broadcast(&NotificationMessage {
+                event_type: event_type.to_string(),
+                payload,
+            })
+            .await;
     }
 }

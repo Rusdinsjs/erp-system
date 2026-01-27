@@ -18,12 +18,14 @@ pub mod conversion_repository; // Added this line based on the example
 pub mod employee_repository;
 pub mod finance_repository;
 pub mod fuel_repository;
+pub mod inventory_repository;
 pub mod journal_repository;
 pub mod leave_repository;
 pub mod lifecycle_repository;
 pub mod loan_repository;
 pub mod location_repository;
 pub mod maintenance_repository;
+pub mod maintenance_template_repository;
 pub mod notification_repository;
 pub mod rbac_repository;
 pub mod rental_repository;
@@ -50,12 +52,14 @@ pub use conversion_repository::*;
 pub use employee_repository::*;
 pub use finance_repository::*;
 pub use fuel_repository::*;
+pub use inventory_repository::*;
 pub use journal_repository::*;
 pub use leave_repository::*;
 pub use lifecycle_repository::*;
 pub use loan_repository::*;
 pub use location_repository::*;
 pub use maintenance_repository::*;
+pub use maintenance_template_repository::*;
 pub use notification_repository::*;
 pub use rbac_repository::*;
 pub use rental_repository::*;
@@ -78,3 +82,5 @@ pub trait Repository<T, ID> {
 }
 pub mod rental_billing_repository;
 pub use rental_billing_repository::*;
+pub mod asset_expense_repository;
+pub use asset_expense_repository::*;

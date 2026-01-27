@@ -52,7 +52,7 @@ export function AnalyticsDashboard() {
                                     labelLine={true}
                                     label={({ status, percent }: { status?: string, percent?: number }) => {
                                         if (!status) return 'Unknown';
-                                        let label = status === 'planning' ? 'Rent Out' : status === 'in_use' || status === 'deployed' ? 'In Use' : status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                        const label = status === 'planning' ? 'Rent Out' : status === 'in_use' || status === 'deployed' ? 'In Use' : status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                                         return `${label} ${((percent || 0) * 100).toFixed(0)}%`;
                                     }}
                                     nameKey="status"
@@ -68,7 +68,7 @@ export function AnalyticsDashboard() {
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }}
                                     formatter={(value: any, name?: string) => {
                                         if (!name) return [value, 'Unknown'];
-                                        let formattedName = name === 'planning' ? 'Rent Out' : name === 'in_use' || name === 'deployed' ? 'In Use' : name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                        const formattedName = name === 'planning' ? 'Rent Out' : name === 'in_use' || name === 'deployed' ? 'In Use' : name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                                         return [value, formattedName];
                                     }}
                                 />

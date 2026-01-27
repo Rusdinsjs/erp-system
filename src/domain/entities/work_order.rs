@@ -49,6 +49,8 @@ pub enum WorkOrderStatus {
     Assigned,
     InProgress,
     OnHold,
+    PendingReview,
+    Verified,
     Completed,
     Cancelled,
 }
@@ -61,6 +63,8 @@ impl WorkOrderStatus {
             Self::Assigned => "assigned",
             Self::InProgress => "in_progress",
             Self::OnHold => "on_hold",
+            Self::PendingReview => "pending_review",
+            Self::Verified => "verified",
             Self::Completed => "completed",
             Self::Cancelled => "cancelled",
         }
@@ -128,6 +132,11 @@ pub struct WorkOrder {
     // Joined fields
     #[sqlx(default)]
     pub asset_name: Option<String>,
+
+    pub labor_expense_type: Option<String>,
+    pub expense_id: Option<Uuid>,
+    pub opex_expense_id: Option<Uuid>,
+    pub capex_expense_id: Option<Uuid>,
 }
 
 impl WorkOrder {
@@ -173,6 +182,10 @@ impl WorkOrder {
             target_specifications: None,
             conversion_notes: None,
             conversion_type: None,
+            labor_expense_type: None,
+            expense_id: None,
+            opex_expense_id: None,
+            capex_expense_id: None,
         }
     }
 
@@ -243,7 +256,7 @@ impl ChecklistItem {
 }
 
 /// Spare part used in work order
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct WorkOrderPart {
     pub id: Uuid,
     pub work_order_id: Uuid,
@@ -251,7 +264,10 @@ pub struct WorkOrderPart {
     pub quantity: Decimal,
     pub unit_cost: Decimal,
     pub total_cost: Decimal,
-    pub added_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub expense_type: String, // "OPEX" or "CAPEX" - inherited from WO or overridden
+    pub inventory_item_id: Option<Uuid>, // Link to Inventory Item
 }
 
 impl WorkOrderPart {
@@ -260,6 +276,8 @@ impl WorkOrderPart {
         part_name: &str,
         quantity: Decimal,
         unit_cost: Decimal,
+        expense_type: Option<String>,
+        inventory_item_id: Option<Uuid>,
     ) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -268,7 +286,10 @@ impl WorkOrderPart {
             quantity,
             unit_cost,
             total_cost: quantity * unit_cost,
-            added_at: Utc::now(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            expense_type: expense_type.unwrap_or_else(|| "OPEX".to_string()),
+            inventory_item_id,
         }
     }
 }

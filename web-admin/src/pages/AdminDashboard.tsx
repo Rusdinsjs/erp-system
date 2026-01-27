@@ -61,8 +61,13 @@ const PurchaseQuotesView = lazy(() => import('./Finance/PurchaseQuotes').then(mo
 const PurchaseOrdersView = lazy(() => import('./Finance/PurchaseOrders').then(module => ({ default: module.PurchaseOrders })));
 const PurchaseShipmentsView = lazy(() => import('./Finance/PurchaseShipments').then(module => ({ default: module.PurchaseShipments })));
 const PurchaseBillsView = lazy(() => import('./Finance/PurchaseBills').then(module => ({ default: module.PurchaseBills })));
+const MaintenanceTemplatesView = lazy(() => import('./MaintenanceTemplates').then(m => ({ default: m.MaintenanceTemplates })));
+const MaintenanceSchedulesView = lazy(() => import('./Maintenance/MaintenanceSchedules'));
 const ApprovalWorkflowSettingsView = lazy(() => import('./ApprovalWorkflowSettings'));
 const SettingsView = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
+const InventoryItemsView = lazy(() => import('./Inventory/InventoryItems').then(m => ({ default: m.InventoryItems })));
+const InventoryCategoriesView = lazy(() => import('./Inventory/InventoryCategories').then(m => ({ default: m.InventoryCategories })));
+const StockOpnameView = lazy(() => import('./Inventory/StockOpname')); // Added StockOpname import (default export)
 
 const ExpensesView = lazy(() => import('./Finance/Expenses').then(m => ({ default: m.Expenses })));
 const AnalyticsDashboardView = lazy(() => import('./AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
@@ -72,6 +77,9 @@ type TabId =
     | 'dashboard'
     | 'assets'
     | 'categories'
+    | 'inventory-categories' // New
+    | 'inventory-items'      // New
+    | 'stock-opname'         // New
     | 'locations'
     | 'work-orders'
     | 'rentals'
@@ -114,6 +122,8 @@ type TabId =
     | 'purchase-orders'
     | 'purchase-shipments'
     | 'purchase-bills'
+    | 'maintenance-templates'
+    | 'maintenance-schedules'
     | 'expenses'
     | 'asset-lifecycle'
     | 'settings'
@@ -158,6 +168,8 @@ const navItems: NavEntry[] = [
             { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal', minLevel: 5 },
             { id: 'fuel', icon: Fuel, label: 'Fuel / BBM', minLevel: 5 },
             { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
+            { id: 'maintenance-schedules', icon: CalendarIcon, label: 'Jadwal Servis (PM)', minLevel: 3 },
+            { id: 'maintenance-templates', icon: FileText, label: 'Maintenance Templates', minLevel: 3 },
             { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)', minLevel: 3 },
         ]
     },
@@ -210,7 +222,7 @@ const navItems: NavEntry[] = [
                 id: 'finance_group_continued',
                 label: 'Akuntansi Lanjutan',
                 icon: FolderTree,
-                minLevel: 2, // Admin only
+                minLevel: 3, // Changed to 3 (Manager) to allow COA access
                 children: [
                     { id: 'finance', icon: FolderTree, label: 'Daftar Akun' },
                     { id: 'journal-entries', icon: FileText, label: 'Jurnal Umum' },
@@ -233,6 +245,16 @@ const navItems: NavEntry[] = [
         ]
     },
     {
+        id: 'inventory_group',
+        label: 'Inventory',
+        icon: ShoppingBag,
+        minLevel: 4,
+        children: [
+            { id: 'inventory-items', icon: Package, label: 'Daftar Barang', minLevel: 4 },
+            { id: 'stock-opname', icon: ClipboardCheck, label: 'Stock Opname', minLevel: 3 }, // Added Stock Opname
+        ]
+    },
+    {
         id: 'master_data',
         label: 'Master Data',
         icon: Building2,
@@ -240,7 +262,8 @@ const navItems: NavEntry[] = [
         children: [
             { id: 'clients', icon: Building2, label: 'Klien' },
             { id: 'locations', icon: MapPin, label: 'Lokasi' },
-            { id: 'categories', icon: FolderTree, label: 'Kategori' },
+            { id: 'categories', icon: FolderTree, label: 'Kategori Aset' },
+            { id: 'inventory-categories', icon: FolderTree, label: 'Kategori Inventori' },
             { id: 'departments', icon: Building2, label: 'Departemen' },
         ]
     },
@@ -270,11 +293,9 @@ export default function AdminDashboard() {
         asset_management_group: false,
         hrd_group: false,
         master_data: false,
-        rental_group: false, // Added
-        finance_group: true,
-        sales_group: true, // Added for the new sales group
-        purchases: true, // Added for the new purchases group
-        finance_group_continued: true, // Added for the continued finance group
+        rental_group: false,
+        finance_group: false,
+        inventory_group: true,
         settings_group: false
     });
     const [notifOpen, setNotifOpen] = useState(false);
@@ -562,6 +583,9 @@ export default function AdminDashboard() {
             case 'dashboard': return <DashboardView />;
             case 'assets': return <AssetsView />;
             case 'categories': return <CategoriesView />;
+            case 'inventory-categories': return <InventoryCategoriesView />;
+            case 'inventory-items': return <InventoryItemsView />;
+            case 'stock-opname': return <StockOpnameView />;
             case 'locations': return <LocationsView />;
             case 'work-orders': return <WorkOrdersView />;
             case 'conversions': return <ConversionsView />;
@@ -617,6 +641,8 @@ export default function AdminDashboard() {
                 return <PurchaseShipmentsView />;
             case 'purchase-bills':
                 return <PurchaseBillsView />;
+            case 'maintenance-templates': return <MaintenanceTemplatesView />;
+            case 'maintenance-schedules': return <MaintenanceSchedulesView />;
             case 'purchases': // Fallback or remove if parent doesn't render content
                 return <PurchaseOverviewView />; // Default to overview for the group
             case 'expenses': return <ExpensesView />;

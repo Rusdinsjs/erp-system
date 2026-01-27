@@ -39,19 +39,23 @@ pub async fn request_fuel(
 ) -> impl IntoResponse {
     match state
         .fuel_service
-        .request_fuel(
-            payload.asset_id,
-            claims.user_id(),
-            payload.odometer_reading,
-            payload.odometer_image_url,
-            &payload.request_type,
-            payload.requested_value,
-            payload.driver_id,
-        )
+        .request_fuel(crate::application::services::FuelRequest {
+            asset_id: payload.asset_id,
+            requested_by: claims.user_id(),
+            odometer_reading: payload.odometer_reading,
+            odometer_image_url: payload.odometer_image_url,
+            request_type: payload.request_type,
+            requested_value: payload.requested_value,
+            driver_id: payload.driver_id,
+        })
         .await
     {
         Ok(log) => (StatusCode::OK, Json(ApiResponse::success(log))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::error(&e.to_string())),
+        )
+            .into_response(),
     }
 }
 
@@ -60,7 +64,7 @@ pub async fn list_pending_fuel(State(state): State<AppState>) -> impl IntoRespon
         Ok(logs) => (StatusCode::OK, Json(ApiResponse::success(logs))).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<()>::error(&e)),
+            Json(ApiResponse::<()>::error(&e.to_string())),
         )
             .into_response(),
     }
@@ -83,7 +87,7 @@ pub async fn list_fuel_history(
         Ok(logs) => (StatusCode::OK, Json(ApiResponse::success(logs))).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<()>::error(&e)),
+            Json(ApiResponse::<()>::error(&e.to_string())),
         )
             .into_response(),
     }
@@ -100,7 +104,11 @@ pub async fn approve_fuel(
         .await
     {
         Ok(code) => (StatusCode::OK, Json(ApiResponse::success(code))).into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::error(&e.to_string())),
+        )
+            .into_response(),
     }
 }
 
@@ -120,7 +128,11 @@ pub async fn reject_fuel(
             Json(ApiResponse::success("Request rejected")),
         )
             .into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::error(&e.to_string())),
+        )
+            .into_response(),
     }
 }
 
@@ -151,7 +163,11 @@ pub async fn complete_fuel(
             Json(ApiResponse::success("Fuel transaction completed")),
         )
             .into_response(),
-        Err(e) => (StatusCode::BAD_REQUEST, Json(ApiResponse::<()>::error(&e))).into_response(),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse::<()>::error(&e.to_string())),
+        )
+            .into_response(),
     }
 }
 #[derive(Serialize)]
@@ -186,7 +202,7 @@ pub async fn get_fuel_stats(State(state): State<AppState>) -> impl IntoResponse 
         }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<()>::error(&e)),
+            Json(ApiResponse::<()>::error(&e.to_string())),
         )
             .into_response(),
     }
@@ -199,7 +215,7 @@ pub async fn list_my_fuel(
         Ok(logs) => (StatusCode::OK, Json(ApiResponse::success(logs))).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<()>::error(&e)),
+            Json(ApiResponse::<()>::error(&e.to_string())),
         )
             .into_response(),
     }
@@ -210,7 +226,7 @@ pub async fn get_fuel_analytics(State(state): State<AppState>) -> impl IntoRespo
         Ok(data) => (StatusCode::OK, Json(ApiResponse::success(data))).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<()>::error(&e)),
+            Json(ApiResponse::<()>::error(&e.to_string())),
         )
             .into_response(),
     }

@@ -1,6 +1,7 @@
 //! Contract Document Entity
 //!
 //! Manages contract-related documents with versioning support
+//!
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -24,31 +25,34 @@ pub struct ContractDocument {
     pub uploaded_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateContractDocumentRequest {
+    pub contract_id: Uuid,
+    pub document_type: String,
+    pub file_name: String,
+    pub file_path: String,
+    pub file_size: i64,
+    pub mime_type: String,
+    pub version: i32,
+    pub uploaded_by: Uuid,
+    pub notes: Option<String>,
+}
+
 impl ContractDocument {
     /// Create a new contract document
-    pub fn new(
-        contract_id: Uuid,
-        document_type: String,
-        file_name: String,
-        file_path: String,
-        file_size: i64,
-        mime_type: String,
-        version: i32,
-        uploaded_by: Uuid,
-        notes: Option<String>,
-    ) -> Self {
+    pub fn new(req: CreateContractDocumentRequest) -> Self {
         Self {
             id: Uuid::new_v4(),
-            contract_id,
-            document_type,
-            file_name,
-            file_path,
-            file_size,
-            mime_type,
-            version,
+            contract_id: req.contract_id,
+            document_type: req.document_type,
+            file_name: req.file_name,
+            file_path: req.file_path,
+            file_size: req.file_size,
+            mime_type: req.mime_type,
+            version: req.version,
             is_active: true,
-            notes,
-            uploaded_by,
+            notes: req.notes,
+            uploaded_by: req.uploaded_by,
             uploaded_at: Utc::now(),
         }
     }

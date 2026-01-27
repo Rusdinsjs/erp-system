@@ -42,10 +42,7 @@ async fn main() {
         .idle_timeout(std::time::Duration::from_secs(600))
         .connect(&config.database_url)
         .await
-        .expect(&format!(
-            "Failed to connect to database at {}",
-            config.database_url
-        ));
+        .unwrap_or_else(|_| panic!("Failed to connect to database at {}", config.database_url));
 
     tracing::info!("Database connected successfully");
 
@@ -73,12 +70,12 @@ async fn main() {
     let addr_str = format!("{}:{}", config.server_host, config.server_port);
     let addr: SocketAddr = addr_str
         .parse()
-        .expect(&format!("Invalid server address: {}", addr_str));
+        .unwrap_or_else(|_| panic!("Invalid server address: {}", addr_str));
 
     // Force rebuild for migrations
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect(&format!("Failed to bind to address: {}", addr));
+        .unwrap_or_else(|_| panic!("Failed to bind to address: {}", addr));
 
     axum::serve(
         listener,

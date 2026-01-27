@@ -4,12 +4,15 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
+use crate::application::dto::asset_expense_dto::{
+    CreateAssetExpenseItemRequest, CreateAssetExpenseRequest,
+};
 use crate::domain::entities::{
     AssetState, ChecklistItem, WorkOrder, WorkOrderPart, WorkOrderStatus,
 };
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{
-    AssetRepository, LifecycleRepository, WorkOrderRepository,
+    AssetRepository, LifecycleRepository, MaintenanceTemplateRepository, WorkOrderRepository,
 };
 
 use crate::infrastructure::cache::{CacheKey, CacheOperations};
@@ -33,6 +36,7 @@ pub struct CreateWorkOrderRequest {
     pub target_specifications: Option<serde_json::Value>,
     pub conversion_notes: Option<String>,
     pub conversion_type: Option<String>,
+    pub assigned_technician: Option<Uuid>,
 }
 
 #[derive(Clone)]
@@ -42,6 +46,9 @@ pub struct WorkOrderService {
     asset_repo: AssetRepository,
     cache: Arc<dyn CacheOperations>,
     notification_service: crate::application::services::NotificationService,
+    asset_expense_service: crate::application::services::AssetExpenseService,
+    maintenance_template_repo: MaintenanceTemplateRepository,
+    inventory_service: crate::application::services::InventoryService,
 }
 
 impl WorkOrderService {
@@ -51,6 +58,9 @@ impl WorkOrderService {
         asset_repo: AssetRepository,
         cache: Arc<dyn CacheOperations>,
         notification_service: crate::application::services::NotificationService,
+        asset_expense_service: crate::application::services::AssetExpenseService,
+        maintenance_template_repo: MaintenanceTemplateRepository,
+        inventory_service: crate::application::services::InventoryService,
     ) -> Self {
         Self {
             repository,
@@ -58,6 +68,9 @@ impl WorkOrderService {
             asset_repo,
             cache,
             notification_service,
+            asset_expense_service,
+            maintenance_template_repo,
+            inventory_service,
         }
     }
 
@@ -91,14 +104,28 @@ impl WorkOrderService {
         wo.target_specifications = request.target_specifications;
         wo.conversion_notes = request.conversion_notes;
         wo.conversion_type = request.conversion_type;
+        wo.assigned_technician = request.assigned_technician;
 
-        self.repository
-            .create(&wo)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })
+        if request.assigned_technician.is_some() {
+            wo.status = "assigned".to_string();
+        }
+
+        let created =
+            self.repository
+                .create(&wo)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_CREATED", serde_json::json!(created))
+            .await;
+
+        Ok(created)
     }
 
     pub async fn get_by_id(&self, id: Uuid) -> DomainResult<WorkOrder> {
@@ -179,7 +206,15 @@ impl WorkOrderService {
                 message: e.to_string(),
             })?;
 
-        self.get_by_id(id).await
+        let updated = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_UPDATED", serde_json::json!(updated))
+            .await;
+
+        Ok(updated)
     }
 
     pub async fn assign(&self, id: Uuid, technician_id: Uuid) -> DomainResult<WorkOrder> {
@@ -269,7 +304,15 @@ impl WorkOrderService {
             }
         }
 
-        self.get_by_id(id).await
+        let updated = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_STATUS_CHANGED", serde_json::json!(updated))
+            .await;
+
+        Ok(updated)
     }
 
     /// Complete work order - transitions asset back to deployed
@@ -278,13 +321,12 @@ impl WorkOrderService {
         id: Uuid,
         completed_by: Uuid,
         work_performed: &str,
-        actual_cost: Option<Decimal>,
     ) -> DomainResult<WorkOrder> {
         let wo = self.get_by_id(id).await?;
 
         // Complete WO in database
         self.repository
-            .complete(id, completed_by, work_performed, actual_cost)
+            .complete(id, completed_by, work_performed)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -365,7 +407,206 @@ impl WorkOrderService {
             }
         }
 
-        self.get_by_id(id).await
+        let updated = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_COMPLETED", serde_json::json!(updated))
+            .await;
+
+        Ok(updated)
+    }
+
+    pub async fn verify(
+        &self,
+        id: Uuid,
+        verified_by: Uuid,
+        labor_cost: Decimal,
+    ) -> DomainResult<WorkOrder> {
+        self.repository
+            .verify(id, verified_by, labor_cost)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        let updated = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_VERIFIED", serde_json::json!(updated))
+            .await;
+
+        Ok(updated)
+    }
+
+    pub async fn finalize_completion(
+        &self,
+        id: Uuid,
+        reviewer_id: Uuid,
+        labor_expense_type: String,
+        parts_overrides: Option<Vec<(Uuid, String)>>,
+    ) -> DomainResult<WorkOrder> {
+        let wo = self.get_by_id(id).await?;
+
+        if wo.status != "verified" {
+            return Err(DomainError::business_rule(
+                "work_order_status",
+                "Work Order must be in 'verified' status to finalize",
+            ));
+        }
+
+        // 0. Apply Overrides if any
+        if let Some(overrides) = parts_overrides {
+            for (part_id, exp_type) in overrides {
+                self.repository
+                    .set_part_expense_type(part_id, &exp_type)
+                    .await
+                    .map_err(|e| DomainError::ExternalServiceError {
+                        service: "database".to_string(),
+                        message: e.to_string(),
+                    })?;
+            }
+        }
+
+        // 1. Group items by Expense Type
+        let mut opex_items = Vec::new();
+        let mut capex_items = Vec::new();
+
+        // Parts
+        let parts = self.get_parts(id).await?;
+        for part in parts {
+            let item = CreateAssetExpenseItemRequest {
+                description: format!("Part: {}", part.part_name),
+                amount: part.total_cost,
+            };
+
+            if part.expense_type == "CAPEX" {
+                capex_items.push(item);
+            } else {
+                opex_items.push(item);
+            }
+
+            // AUTO-INVENTORY: Process Usage if linked to Inventory Item
+            if let Some(item_id) = part.inventory_item_id {
+                // Determine target asset account if CAPEX
+                let mut target_account_id = None;
+                if part.expense_type == "CAPEX" {
+                    // Try to fetch the Asset's Control Account
+                    if let Ok(Some(acc_id)) =
+                        self.asset_repo.get_asset_account_id(wo.asset_id).await
+                    {
+                        target_account_id = Some(acc_id);
+                    } else {
+                        println!(
+                            "WARNING: CAPEX part used but no Asset Account mapped for Asset {}",
+                            wo.asset_id
+                        );
+                    }
+                }
+
+                let _ = self
+                    .inventory_service
+                    .process_usage(
+                        item_id,
+                        part.quantity,
+                        wo.id,
+                        wo.wo_number.clone(),
+                        reviewer_id,
+                        Some(part.expense_type.clone()),
+                        target_account_id,
+                    )
+                    .await
+                    .map_err(|e| println!("ERROR processing inventory usage: {:?}", e));
+            }
+        }
+
+        // Labor (assigned to the main expense_type selected by Signer)
+        if let Some(labor) = wo.labor_cost {
+            if labor > rust_decimal::Decimal::ZERO {
+                let item = CreateAssetExpenseItemRequest {
+                    description: "Labor Cost".to_string(),
+                    amount: labor,
+                };
+                if labor_expense_type == "CAPEX" {
+                    capex_items.push(item);
+                } else {
+                    opex_items.push(item);
+                }
+            }
+        }
+
+        // 2. Create Expenses
+        let mut opex_id = None;
+        let mut capex_id = None;
+        let invoice_num = wo.wo_number.clone();
+
+        // Create OPEX Expense if items exist
+        if !opex_items.is_empty() {
+            let expense_req = CreateAssetExpenseRequest {
+                description: format!("WO-{}: {} (OPEX)", wo.wo_number, wo.wo_type),
+                items: opex_items,
+                date: chrono::Utc::now().date_naive(),
+                vendor_name: None,
+                invoice_number: Some(format!("{}-OPEX", invoice_num)),
+                proof_url: None,
+                expense_type: Some("OPEX".to_string()),
+            };
+            let expense = self
+                .asset_expense_service
+                .create(wo.asset_id, expense_req, reviewer_id)
+                .await?;
+            opex_id = Some(expense.id);
+        }
+
+        // Create CAPEX Expense if items exist
+        if !capex_items.is_empty() {
+            let expense_req = CreateAssetExpenseRequest {
+                description: format!("WO-{}: {} (CAPEX)", wo.wo_number, wo.wo_type),
+                items: capex_items,
+                date: chrono::Utc::now().date_naive(),
+                vendor_name: None,
+                invoice_number: Some(format!("{}-CAPEX", invoice_num)),
+                proof_url: None,
+                expense_type: Some("CAPEX".to_string()),
+            };
+            let expense = self
+                .asset_expense_service
+                .create(wo.asset_id, expense_req, reviewer_id)
+                .await?;
+            capex_id = Some(expense.id);
+        }
+
+        // 3. Update Work Order
+        self.repository
+            .set_expense_info(id, &labor_expense_type, opex_id, capex_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        // 4. Update Status to Completed
+        self.repository
+            .update_status(id, "completed")
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        let updated = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_COMPLETED", serde_json::json!(updated))
+            .await;
+
+        Ok(updated)
     }
 
     // Checklist methods
@@ -386,13 +627,79 @@ impl WorkOrderService {
         description: String,
     ) -> DomainResult<ChecklistItem> {
         let item = ChecklistItem::new(work_order_id, task_number, description);
-        self.repository
+        let created = self
+            .repository
             .add_checklist_item(&item)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
-            })
+            })?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("CHECKLIST_ITEM_ADDED", serde_json::json!(created))
+            .await;
+
+        Ok(created)
+    }
+
+    pub async fn update_checklist_item(&self, id: Uuid, description: String) -> DomainResult<bool> {
+        let success = self
+            .repository
+            .update_checklist_item(id, &description)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        if success {
+            // Real-time broadcast
+            let _ = self
+                .notification_service
+                .broadcast(
+                    "CHECKLIST_ITEM_UPDATED",
+                    serde_json::json!({
+                        "id": id,
+                        "description": description,
+                    }),
+                )
+                .await;
+        }
+
+        Ok(success)
+    }
+
+    pub async fn update_checklist_photos(
+        &self,
+        id: Uuid,
+        photos: Vec<String>,
+    ) -> DomainResult<bool> {
+        let success = self
+            .repository
+            .update_checklist_photos(id, &photos)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        if success {
+            let _ = self
+                .notification_service
+                .broadcast(
+                    "CHECKLIST_PHOTOS_UPDATED",
+                    serde_json::json!({
+                        "id": id,
+                        "photos": photos,
+                    }),
+                )
+                .await;
+        }
+
+        Ok(success)
     }
 
     pub async fn complete_checklist_item(
@@ -401,13 +708,32 @@ impl WorkOrderService {
         completed_by: Uuid,
         result: &str,
     ) -> DomainResult<bool> {
-        self.repository
+        let success = self
+            .repository
             .complete_checklist_item(id, completed_by, result)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
-            })
+            })?;
+
+        if success {
+            // Real-time broadcast for progress tracking
+            let _ = self
+                .notification_service
+                .broadcast(
+                    "CHECKLIST_UPDATED",
+                    serde_json::json!({
+                        "checklist_id": id,
+                        "work_order_id": id, // Usually progress is tracked by WO
+                        "completed_by": completed_by,
+                        "status": "completed"
+                    }),
+                )
+                .await;
+        }
+
+        Ok(success)
     }
 
     pub async fn remove_checklist_item(&self, id: Uuid) -> DomainResult<bool> {
@@ -436,8 +762,17 @@ impl WorkOrderService {
         part_name: String,
         quantity: Decimal,
         unit_cost: Decimal,
+        expense_type: Option<String>,
+        inventory_item_id: Option<Uuid>,
     ) -> DomainResult<WorkOrderPart> {
-        let part = WorkOrderPart::new(work_order_id, &part_name, quantity, unit_cost);
+        let part = WorkOrderPart::new(
+            work_order_id,
+            &part_name,
+            quantity,
+            unit_cost,
+            expense_type,
+            inventory_item_id,
+        );
 
         let created = self.repository.add_part(&part).await.map_err(|e| {
             DomainError::ExternalServiceError {
@@ -449,7 +784,46 @@ impl WorkOrderService {
         // Recalculate cost
         let _ = self.repository.update_parts_cost(work_order_id).await;
 
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_PART_ADDED", serde_json::json!(created))
+            .await;
+
         Ok(created)
+    }
+
+    pub async fn update_part(
+        &self,
+        work_order_id: Uuid,
+        part_id: Uuid,
+        part_name: String,
+        quantity: Decimal,
+        unit_cost: Decimal,
+        expense_type: Option<String>,
+        inventory_item_id: Option<Uuid>,
+    ) -> DomainResult<WorkOrderPart> {
+        let mut part = WorkOrderPart::new(
+            work_order_id,
+            &part_name,
+            quantity,
+            unit_cost,
+            expense_type,
+            inventory_item_id,
+        );
+        part.id = part_id; // Keep original ID
+
+        let updated = self.repository.update_part(&part).await.map_err(|e| {
+            DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            }
+        })?;
+
+        // Update WO totals
+        let _ = self.repository.update_parts_cost(work_order_id).await;
+
+        Ok(updated)
     }
 
     pub async fn remove_part(&self, id: Uuid, work_order_id: Uuid) -> DomainResult<bool> {
@@ -462,6 +836,14 @@ impl WorkOrderService {
 
         // Recalculate cost
         let _ = self.repository.update_parts_cost(work_order_id).await;
+
+        let _ = self
+            .notification_service
+            .broadcast(
+                "WORK_ORDER_PART_REMOVED",
+                serde_json::json!({ "id": id, "work_order_id": work_order_id }),
+            )
+            .await;
 
         Ok(result)
     }
@@ -476,5 +858,44 @@ impl WorkOrderService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })
+    }
+
+    pub async fn apply_template(
+        &self,
+        work_order_id: Uuid,
+        template_id: Uuid,
+    ) -> DomainResult<usize> {
+        let tasks = self
+            .maintenance_template_repo
+            .get_tasks(template_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        let mut count = 0;
+        for task in tasks {
+            let item = ChecklistItem::new(work_order_id, task.task_number, task.description);
+            self.repository
+                .add_checklist_item(&item)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+            count += 1;
+        }
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast(
+                "CHECKLIST_UPDATED",
+                serde_json::json!({ "work_order_id": work_order_id }),
+            )
+            .await;
+
+        Ok(count)
     }
 }

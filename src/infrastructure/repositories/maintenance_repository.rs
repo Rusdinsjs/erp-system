@@ -227,4 +227,133 @@ impl MaintenanceRepository {
         .fetch_all(&self.pool)
         .await
     }
+
+    // --- Maintenance Schedule Methods ---
+
+    pub async fn create_schedule(
+        &self,
+        req: crate::domain::entities::maintenance::CreateMaintenanceScheduleRequest,
+    ) -> Result<crate::domain::entities::maintenance::MaintenanceSchedule, sqlx::Error> {
+        // Calculate initial next run date
+        let next_run = if req.interval_type == "time" {
+            let start = req
+                .start_date
+                .unwrap_or(chrono::Utc::now().naive_utc().date());
+            match req.interval_unit.as_str() {
+                "days" => Some(start + chrono::Duration::days(req.interval_value as i64)),
+                "weeks" => Some(start + chrono::Duration::weeks(req.interval_value as i64)),
+                "months" => Some(start + chrono::Duration::days((req.interval_value * 30) as i64)),
+                "years" => Some(start + chrono::Duration::days((req.interval_value * 365) as i64)),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        sqlx::query_as!(
+            crate::domain::entities::maintenance::MaintenanceSchedule,
+            r#"
+            INSERT INTO maintenance_schedules (
+                asset_id, title, description,
+                interval_type, interval_value, interval_unit,
+                next_run_date
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING 
+                id, asset_id, title, description,
+                interval_type, interval_value, interval_unit,
+                is_active, last_run_date, last_run_reading,
+                next_run_date, next_run_reading,
+                created_at, updated_at,
+                (SELECT name FROM assets WHERE id = $1) as asset_name
+            "#,
+            req.asset_id,
+            req.title,
+            req.description,
+            req.interval_type,
+            req.interval_value,
+            req.interval_unit,
+            next_run
+        )
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn list_schedules(
+        &self,
+    ) -> Result<Vec<crate::domain::entities::maintenance::MaintenanceSchedule>, sqlx::Error> {
+        sqlx::query_as!(
+            crate::domain::entities::maintenance::MaintenanceSchedule,
+            r#"
+            SELECT 
+                ms.*,
+                a.name as asset_name
+            FROM maintenance_schedules ms
+            JOIN assets a ON ms.asset_id = a.id
+            ORDER BY ms.created_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn list_due_time_schedules(
+        &self,
+    ) -> Result<Vec<crate::domain::entities::maintenance::MaintenanceSchedule>, sqlx::Error> {
+        let today = chrono::Utc::now().naive_utc().date();
+        sqlx::query_as!(
+            crate::domain::entities::maintenance::MaintenanceSchedule,
+            r#"
+            SELECT 
+                ms.*,
+                a.name as asset_name
+            FROM maintenance_schedules ms
+            JOIN assets a ON ms.asset_id = a.id
+            WHERE ms.is_active = true 
+              AND ms.interval_type = 'time'
+              AND ms.next_run_date <= $1
+            "#,
+            today
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn update_schedule_next_run(
+        &self,
+        id: Uuid,
+        next_date: chrono::NaiveDate,
+        last_run: chrono::NaiveDate,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE maintenance_schedules
+            SET next_run_date = $1,
+                last_run_date = $2,
+                updated_at = NOW()
+            WHERE id = $3
+            "#,
+            next_date,
+            last_run,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn toggle_schedule_active(
+        &self,
+        id: Uuid,
+        is_active: bool,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE maintenance_schedules SET is_active = $1 WHERE id = $2",
+            is_active,
+            id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
 }

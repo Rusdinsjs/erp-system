@@ -1,10 +1,12 @@
 //! Location Entity
 //!
 //! Multi-level location hierarchy: Country → City → Building → Floor → Room → Rack
+//!
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::str::FromStr;
 use uuid::Uuid;
 
 /// Location type enum
@@ -21,6 +23,24 @@ pub enum LocationType {
     Other,
 }
 
+impl FromStr for LocationType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "country" => Ok(Self::Country),
+            "city" => Ok(Self::City),
+            "building" => Ok(Self::Building),
+            "floor" => Ok(Self::Floor),
+            "room" => Ok(Self::Room),
+            "rack" => Ok(Self::Rack),
+            "zone" => Ok(Self::Zone),
+            "other" => Ok(Self::Other),
+            _ => Err(format!("Invalid location type: {}", s)),
+        }
+    }
+}
+
 impl LocationType {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -35,18 +55,9 @@ impl LocationType {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "country" => Some(Self::Country),
-            "city" => Some(Self::City),
-            "building" => Some(Self::Building),
-            "floor" => Some(Self::Floor),
-            "room" => Some(Self::Room),
-            "rack" => Some(Self::Rack),
-            "zone" => Some(Self::Zone),
-            "other" => Some(Self::Other),
-            _ => None,
-        }
+        <Self as FromStr>::from_str(s).ok()
     }
 }
 

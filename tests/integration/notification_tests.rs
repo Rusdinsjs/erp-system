@@ -57,7 +57,7 @@ async fn test_notification_flow() {
 
     assert_eq!(notification.title, title);
     assert_eq!(notification.message, message);
-    assert_eq!(notification.is_read, false);
+    assert!(!notification.is_read);
 
     // 2. Verify Persistence
     let unread = notification_service

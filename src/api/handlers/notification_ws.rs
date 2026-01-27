@@ -30,6 +30,12 @@ pub struct WebSocketManager {
     sessions: Mutex<HashMap<Uuid, mpsc::UnboundedSender<Message>>>,
 }
 
+impl Default for WebSocketManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WebSocketManager {
     pub fn new() -> Self {
         Self {

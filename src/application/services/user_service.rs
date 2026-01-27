@@ -36,14 +36,15 @@ impl UserService {
     /// Create new user
     pub async fn create_user(&self, req: CreateUserRequest) -> DomainResult<User> {
         // Check if email exists
-        if let Some(_) = self
+        if (self
             .repository
             .find_by_email(&req.email)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
-            })?
+            })?)
+        .is_some()
         {
             return Err(DomainError::conflict("Email already registered"));
         }

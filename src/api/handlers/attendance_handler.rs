@@ -68,7 +68,7 @@ pub async fn get_today_status(
 
     let status = AttendanceService::get_today_status(&state.pool, employee_id)
         .await
-        .map_err(|e| internal_error(e))?;
+        .map_err(internal_error)?;
 
     Ok(Json(AttendanceResponse::success(status)))
 }
@@ -135,7 +135,7 @@ pub async fn get_my_history(
     let records =
         AttendanceService::get_history(&state.pool, employee_id, query.limit, query.offset)
             .await
-            .map_err(|e| internal_error(e))?;
+            .map_err(internal_error)?;
 
     Ok(Json(AttendanceResponse::success(records)))
 }
@@ -147,7 +147,7 @@ pub async fn get_all_today(
 {
     let records = AttendanceService::get_all_today(&state.pool)
         .await
-        .map_err(|e| internal_error(e))?;
+        .map_err(internal_error)?;
 
     Ok(Json(AttendanceResponse::success(records)))
 }
@@ -162,7 +162,7 @@ pub async fn get_employee_history(
     let records =
         AttendanceService::get_history(&state.pool, employee_id, query.limit, query.offset)
             .await
-            .map_err(|e| internal_error(e))?;
+            .map_err(internal_error)?;
 
     Ok(Json(AttendanceResponse::success(records)))
 }

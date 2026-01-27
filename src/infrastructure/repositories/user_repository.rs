@@ -143,6 +143,7 @@ impl UserRepository {
             .await?;
         Ok(result.rows_affected() > 0)
     }
+    #[allow(clippy::too_many_arguments)]
     pub async fn update(
         &self,
         id: Uuid,

@@ -37,7 +37,7 @@ impl AssetRepository {
                 residual_value, useful_life_months,
                 qr_code_url, notes,
                 sale_price, sale_date, sold_to,
-                created_at, updated_at
+                created_at, updated_at, version
             FROM assets
             WHERE id = $1
             "#,
@@ -80,7 +80,7 @@ impl AssetRepository {
                 a.residual_value, a.useful_life_months,
                 a.qr_code_url, a.notes,
                 a.sale_price, a.sale_date, a.sold_to,
-                a.created_at, a.updated_at,
+                a.created_at, a.updated_at, a.version,
                 (SELECT row_to_json(vd) FROM vehicle_details vd WHERE vd.asset_id = a.id) as vehicle_details,
                 c.name as category_name,
                 l.name as location_name,
@@ -164,6 +164,7 @@ impl AssetRepository {
                 notes: r.get("notes"),
                 created_at: r.get("created_at"),
                 updated_at: r.get("updated_at"),
+                version: r.get("version"),
             };
 
             // Parse vehicle_details JSONB
@@ -213,7 +214,7 @@ impl AssetRepository {
                 residual_value, useful_life_months,
                 qr_code_url, notes,
                 sale_price, sale_date, sold_to,
-                created_at, updated_at
+                created_at, updated_at, version
             FROM assets
             WHERE asset_code = $1
             "#,
@@ -233,7 +234,7 @@ impl AssetRepository {
         sqlx::query_as::<_, AssetSummary>(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, a.version
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
@@ -264,7 +265,7 @@ impl AssetRepository {
                 residual_value, useful_life_months,
                 qr_code_url, notes,
                 sale_price, sale_date, sold_to,
-                created_at, updated_at
+                created_at, updated_at, version
             FROM assets
             WHERE status != 'archived'
             ORDER BY created_at DESC
@@ -284,6 +285,7 @@ impl AssetRepository {
     }
 
     /// Search assets (excludes archived unless explicitly requested)
+    #[allow(clippy::too_many_arguments)]
     pub async fn search(
         &self,
         query: &str,
@@ -294,17 +296,43 @@ impl AssetRepository {
         is_fuel: Option<bool>,
         limit: i64,
         offset: i64,
+        exact_match: bool,
+        sort_by: Option<&str>,
+        sort_order: Option<&str>,
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
-        sqlx::query_as::<_, AssetSummary>(
+        let order_by = match sort_by.unwrap_or("created_at") {
+            "name" => "a.name",
+            "asset_code" => "a.asset_code",
+            "status" => "a.status",
+            "purchase_price" => "a.purchase_price",
+            "created_at" => "a.created_at",
+            "brand" => "a.brand",
+            "model" => "a.model",
+            "serial_number" => "a.serial_number",
+            _ => "a.created_at",
+        };
+
+        let direction = if sort_order.unwrap_or("desc").to_lowercase() == "asc" {
+            "ASC"
+        } else {
+            "DESC"
+        };
+
+        let sql = format!(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, a.version
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
             WHERE 
-                ($1 = '' OR a.name ILIKE '%' || $1 || '%' OR a.asset_code ILIKE '%' || $1 || '%' OR a.serial_number ILIKE '%' || $1 || '%')
+                (
+                    CASE 
+                        WHEN $9 THEN (a.name = $1 OR a.asset_code = $1 OR a.serial_number = $1 OR a.brand = $1 OR a.model = $1)
+                        ELSE ($1 = '' OR a.name ILIKE '%' || $1 || '%' OR a.asset_code ILIKE '%' || $1 || '%' OR a.serial_number ILIKE '%' || $1 || '%' OR a.brand ILIKE '%' || $1 || '%' OR a.model ILIKE '%' || $1 || '%' OR a.notes ILIKE '%' || $1 || '%')
+                    END
+                )
                 AND ($2::text IS NULL OR a.category_id = ANY(string_to_array($2, ',')::uuid[]))
                 AND ($3::text IS NULL OR a.location_id = ANY(string_to_array($3, ',')::uuid[]))
                 AND ($4::text IS NULL OR a.department = ANY(string_to_array($4, ',')) OR d.name = ANY(string_to_array($4, ',')))
@@ -319,20 +347,24 @@ impl AssetRepository {
                     ))
                 )
                 AND ($8::boolean IS NULL OR a.is_fuel = $8)
-            ORDER BY a.created_at DESC
+            ORDER BY {} {}
             LIMIT $6 OFFSET $7
             "#,
-        )
-        .bind(query)
-        .bind(category_id)
-        .bind(location_id)
-        .bind(department)
-        .bind(status)
-        .bind(limit)
-        .bind(offset)
-        .bind(is_fuel)
-        .fetch_all(&self.pool)
-        .await
+            order_by, direction
+        );
+
+        sqlx::query_as::<_, AssetSummary>(&sql)
+            .bind(query)
+            .bind(category_id)
+            .bind(location_id)
+            .bind(department)
+            .bind(status)
+            .bind(limit)
+            .bind(offset)
+            .bind(is_fuel)
+            .bind(exact_match)
+            .fetch_all(&self.pool)
+            .await
     }
 
     /// Create new asset
@@ -412,8 +444,9 @@ impl AssetRepository {
                 residual_value = $26, useful_life_months = $27,
                 qr_code_url = $28, notes = $29,
                 sale_price = $30, sale_date = $31, sold_to = $32,
-                updated_at = NOW()
-            WHERE id = $1
+                updated_at = NOW(),
+                version = version + 1
+            WHERE id = $1 AND version = $33
             RETURNING *
             "#,
         )
@@ -449,6 +482,7 @@ impl AssetRepository {
         .bind(asset.sale_price)
         .bind(asset.sale_date)
         .bind(&asset.sold_to)
+        .bind(asset.version)
         .fetch_one(&self.pool)
         .await
     }
@@ -569,8 +603,8 @@ impl AssetRepository {
         executor: &mut sqlx::PgConnection,
         details: &VehicleDetails,
     ) -> Result<VehicleDetails, sqlx::Error> {
-        let json = serde_json::to_value(details)
-            .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
+        let json =
+            serde_json::to_value(details).map_err(|e| sqlx::Error::Protocol(e.to_string()))?;
 
         sqlx::query("UPDATE assets SET vehicle_details = $2, updated_at = NOW() WHERE id = $1")
             .bind(details.asset_id)
@@ -666,5 +700,68 @@ impl AssetRepository {
         .bind(asset_id)
         .fetch_all(&self.pool)
         .await
+    }
+
+    /// Bulk update status
+    pub async fn bulk_update_status(&self, ids: &[Uuid], status: &str) -> Result<u64, sqlx::Error> {
+        sqlx::query(
+            "UPDATE assets SET status = $1, version = version + 1, updated_at = NOW() WHERE id = ANY($2)"
+        )
+        .bind(status)
+        .bind(ids)
+        .execute(&self.pool)
+        .await
+        .map(|r| r.rows_affected())
+    }
+
+    /// Bulk update location
+    pub async fn bulk_update_location(
+        &self,
+        ids: &[Uuid],
+        location_id: Uuid,
+    ) -> Result<u64, sqlx::Error> {
+        sqlx::query(
+            "UPDATE assets SET location_id = $1, version = version + 1, updated_at = NOW() WHERE id = ANY($2)"
+        )
+        .bind(location_id)
+        .bind(ids)
+        .execute(&self.pool)
+        .await
+        .map(|r| r.rows_affected())
+    }
+
+    /// Bulk update department
+    pub async fn bulk_update_department(
+        &self,
+        ids: &[Uuid],
+        department_name: &str,
+        department_id: Option<Uuid>,
+    ) -> Result<u64, sqlx::Error> {
+        sqlx::query(
+            "UPDATE assets SET department = $1, department_id = $2, version = version + 1, updated_at = NOW() WHERE id = ANY($3)"
+        )
+        .bind(department_name)
+        .bind(department_id)
+        .bind(ids)
+        .execute(&self.pool)
+        .await
+        .map(|r| r.rows_affected())
+    }
+
+    /// Get Asset Account ID (GL Control Account) via Category
+    pub async fn get_asset_account_id(&self, asset_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
+        let row: Option<(Uuid,)> = sqlx::query_as(
+            r#"
+            SELECT c.asset_account_id
+            FROM assets a
+            JOIN categories c ON a.category_id = c.id
+            WHERE a.id = $1
+            "#,
+        )
+        .bind(asset_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(|r| r.0))
     }
 }

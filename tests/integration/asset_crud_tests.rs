@@ -196,7 +196,7 @@ async fn test_asset_crud_flow() {
 
     // 2. Get Asset (GET /api/assets/:id)
     let mut req = Request::builder()
-        .uri(&format!("/api/assets/{}", asset_id))
+        .uri(format!("/api/assets/{}", asset_id))
         .method("GET")
         .header("Authorization", format!("Bearer {}", token))
         .body(Body::empty())
@@ -213,7 +213,7 @@ async fn test_asset_crud_flow() {
     });
 
     let mut req = Request::builder()
-        .uri(&format!("/api/assets/{}", asset_id))
+        .uri(format!("/api/assets/{}", asset_id))
         .method("PUT")
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", token))
@@ -232,7 +232,7 @@ async fn test_asset_crud_flow() {
 
     // 4. Delete Asset (DELETE /api/assets/:id)
     let mut req = Request::builder()
-        .uri(&format!("/api/assets/{}", asset_id))
+        .uri(format!("/api/assets/{}", asset_id))
         .method("DELETE")
         .header("Authorization", format!("Bearer {}", token))
         .body(Body::empty())
@@ -244,7 +244,7 @@ async fn test_asset_crud_flow() {
 
     // 5. Verify Deletion (GET -> 200 with status 'archived')
     let mut req = Request::builder()
-        .uri(&format!("/api/assets/{}", asset_id))
+        .uri(format!("/api/assets/{}", asset_id))
         .method("GET")
         .header("Authorization", format!("Bearer {}", token))
         .body(Body::empty())

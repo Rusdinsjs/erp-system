@@ -50,8 +50,15 @@ VALUES (gen_random_uuid(), '1-1310', 'Piutang Belum Ditagih', 'asset', 'debit', 
 INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
 VALUES ('00000000-0000-4001-a130-000000000000', '1-1400', 'Persediaan', 'asset', 'debit', '00000000-0000-4001-a100-000000000000');
 
+-- Detailed Inventory Sub-ledgers
 INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
-VALUES (gen_random_uuid(), '1-1410', 'Persediaan Barang Jadi', 'asset', 'debit', '00000000-0000-4001-a130-000000000000');
+VALUES ('00000000-0000-4001-a131-000000000000', '1-1410', 'Persediaan Suku Cadang', 'asset', 'debit', '00000000-0000-4001-a130-000000000000');
+
+INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
+VALUES ('00000000-0000-4001-a132-000000000000', '1-1420', 'Persediaan Pelumas & Kimia', 'asset', 'debit', '00000000-0000-4001-a130-000000000000');
+
+INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
+VALUES ('00000000-0000-4001-a133-000000000000', '1-1430', 'Persediaan Ban (Tires)', 'asset', 'debit', '00000000-0000-4001-a130-000000000000');
 
 -- 1.1.4 Aset Lancar Lainnya
 INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
@@ -166,7 +173,17 @@ INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, par
 VALUES ('00000000-0000-4005-a000-000000000000', '5-0000', 'Harga Pokok Penjualan', 'expense', 'debit', NULL);
 
 INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
-VALUES ('00000000-0000-4005-a110-000000000001', '5-1100', 'Beban Pokok Penjualan (HPP)', 'expense', 'debit', '00000000-0000-4005-a000-000000000000');
+VALUES ('00000000-0000-4005-a100-000000000000', '5-1000', 'Beban Pokok Pendapatan', 'expense', 'debit', '00000000-0000-4005-a000-000000000000');
+
+-- Detailed Maintenance/Inventory Expenses
+INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
+VALUES ('00000000-0000-4005-a111-000000000000', '5-1110', 'Biaya Suku Cadang & Maintenance', 'expense', 'debit', '00000000-0000-4005-a100-000000000000');
+
+INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
+VALUES ('00000000-0000-4005-a112-000000000000', '5-1120', 'Biaya Pelumas & Bahan Kimia', 'expense', 'debit', '00000000-0000-4005-a100-000000000000');
+
+INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
+VALUES ('00000000-0000-4005-a113-000000000000', '5-1130', 'Biaya Penggantian Ban', 'expense', 'debit', '00000000-0000-4005-a100-000000000000');
 
 
 -- =========================================================
@@ -238,6 +255,18 @@ VALUES (gen_random_uuid(), '9-1100', 'Beban Bunga Pinjaman', 'expense', 'debit',
 INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id)
 VALUES (gen_random_uuid(), '9-1200', 'Biaya Admin Bank', 'expense', 'debit', '00000000-0000-4009-a000-000000000000');
 
+
+-- =========================================================
+-- 10. INVENTORY CATEGORIES MAPPING
+-- =========================================================
+INSERT INTO inventory_categories (code, name, description, inventory_account_id, expense_account_id)
+VALUES 
+('CAT-SP', 'Suku Cadang Mesin', 'Peralatan dan suku cadang untuk pemeliharaan mesin', '00000000-0000-4001-a131-000000000000', '00000000-0000-4005-a111-000000000000'),
+('CAT-LB', 'Pelumas & Kimia', 'Berbagai jenis oli dan cairan kimia operasional', '00000000-0000-4001-a132-000000000000', '00000000-0000-4005-a112-000000000000'),
+('CAT-TR', 'Ban (Tires)', 'Persediaan ban untuk armada', '00000000-0000-4001-a133-000000000000', '00000000-0000-4005-a113-000000000000')
+ON CONFLICT (code) DO UPDATE SET
+    inventory_account_id = EXCLUDED.inventory_account_id,
+    expense_account_id = EXCLUDED.expense_account_id;
 
 -- =========================================================
 -- SAMPLE DUMMY TRANSACTIONS (Opening & Jan 2026)

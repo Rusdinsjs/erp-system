@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { assetApi } from '../api/assets';
 
 import { AssetDocuments } from '../components/Assets/AssetDocuments';
+import { AssetExpenses } from '../components/Assets/AssetExpenses';
 import {
     Button,
     Card,
@@ -123,6 +124,8 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
             <Tabs defaultValue="details" className="w-full">
                 <TabsList className="mb-4 w-full justify-start overflow-x-auto global-scrollbar pb-1">
                     <TabsTrigger value="details" className="flex-shrink-0">General Info</TabsTrigger>
+                    <TabsTrigger value="expenses" className="flex-shrink-0">Expenses (OPEX)</TabsTrigger>
+                    <TabsTrigger value="capex" className="flex-shrink-0">Expenses (CAPEX)</TabsTrigger>
                     <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
                     <TabsTrigger value="roi" className="flex-shrink-0">ROI & Profitability</TabsTrigger>
                     <TabsTrigger value="qrcode" className="flex-shrink-0">QR Code Label</TabsTrigger>
@@ -160,6 +163,14 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
 
                 <TabsContent value="documents">
                     <AssetDocuments assetId={id!} />
+                </TabsContent>
+
+                <TabsContent value="expenses">
+                    <AssetExpenses assetId={id!} type="OPEX" />
+                </TabsContent>
+
+                <TabsContent value="capex">
+                    <AssetExpenses assetId={id!} type="CAPEX" />
                 </TabsContent>
 
                 <TabsContent value="roi">

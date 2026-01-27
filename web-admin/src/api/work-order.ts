@@ -24,6 +24,8 @@ export interface WorkOrder {
     created_at: string;
     updated_at: string;
     asset_name?: string;
+    expense_type?: string;
+    expense_id?: string;
 }
 
 export interface ChecklistItem {
@@ -45,6 +47,8 @@ export interface WorkOrderPart {
     unit_cost: number;
     total_cost: number;
     added_at: string;
+    expense_type?: string;
+    inventory_item_id?: string;
 }
 
 export interface AddTaskRequest {
@@ -56,6 +60,30 @@ export interface AddPartRequest {
     part_name: string;
     quantity: number;
     unit_cost: number;
+    expense_type: 'OPEX' | 'CAPEX';
+    inventory_item_id?: string;
+}
+
+export interface MaintenanceTemplate {
+    id: string;
+    name: string;
+    description: string | null;
+    asset_category_id: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface TemplateTask {
+    id: string;
+    template_id: string;
+    task_number: number;
+    description: string;
+    instructions: string | null;
+    expected_result: string | null;
+}
+
+export interface MaintenanceTemplateWithTasks extends MaintenanceTemplate {
+    tasks: TemplateTask[];
 }
 
 // Copied generic ApiResponse from maintenance.ts before deletion
@@ -81,8 +109,45 @@ export const workOrderApi = {
         const response = await api.post(`/work-orders/${id}/tasks`, data);
         return response.data;
     },
+    updateTask: async (id: string, taskId: string, data: { description: string }): Promise<ApiResponse<boolean>> => {
+        const response = await api.put(`/work-orders/${id}/tasks/${taskId}`, data);
+        return response.data;
+    },
     removeTask: async (id: string, taskId: string): Promise<ApiResponse<boolean>> => {
         const response = await api.delete(`/work-orders/${id}/tasks/${taskId}`);
+        return response.data;
+    },
+    updateTaskPhotos: async (id: string, taskId: string, photos: string[]): Promise<ApiResponse<boolean>> => {
+        const response = await api.put(`/work-orders/${id}/tasks/${taskId}/photos`, { photos });
+        return response.data;
+    },
+    applyTemplate: async (id: string, templateId: string): Promise<ApiResponse<number>> => {
+        const response = await api.post(`/work-orders/${id}/apply-template/${templateId}`);
+        return response.data;
+    },
+
+    getTemplates: async (): Promise<MaintenanceTemplate[]> => {
+        const response = await api.get('/maintenance-templates');
+        return response.data;
+    },
+    getTemplate: async (id: string): Promise<MaintenanceTemplateWithTasks> => {
+        const response = await api.get(`/maintenance-templates/${id}`);
+        return response.data;
+    },
+    createTemplate: async (data: Partial<MaintenanceTemplate>): Promise<MaintenanceTemplate> => {
+        const response = await api.post('/maintenance-templates', data);
+        return response.data;
+    },
+    deleteTemplate: async (id: string): Promise<ApiResponse<boolean>> => {
+        const response = await api.delete(`/maintenance-templates/${id}`);
+        return response.data;
+    },
+    addTemplateTask: async (id: string, data: { task_number: number, description: string }): Promise<TemplateTask> => {
+        const response = await api.post(`/maintenance-templates/${id}/tasks`, data);
+        return response.data;
+    },
+    deleteTemplateTask: async (templateId: string, taskId: string): Promise<ApiResponse<boolean>> => {
+        const response = await api.delete(`/maintenance-templates/${templateId}/tasks/${taskId}`);
         return response.data;
     },
 
@@ -93,6 +158,10 @@ export const workOrderApi = {
     },
     addPart: async (id: string, data: AddPartRequest): Promise<WorkOrderPart> => {
         const response = await api.post(`/work-orders/${id}/parts`, data);
+        return response.data;
+    },
+    updatePart: async (id: string, partId: string, data: AddPartRequest): Promise<WorkOrderPart> => {
+        const response = await api.put(`/work-orders/${id}/parts/${partId}`, data);
         return response.data;
     },
     removePart: async (id: string, partId: string): Promise<ApiResponse<boolean>> => {
@@ -139,6 +208,10 @@ export const workOrderApi = {
     },
 
     // Actions
+    approve: async (id: string): Promise<ApiResponse<WorkOrder>> => {
+        const response = await api.post(`/work-orders/${id}/approve`);
+        return response.data;
+    },
     assign: async (id: string, technicianId: string): Promise<ApiResponse<WorkOrder>> => {
         const response = await api.post(`/work-orders/${id}/assign/${technicianId}`);
         return response.data;
@@ -147,8 +220,22 @@ export const workOrderApi = {
         const response = await api.post(`/work-orders/${id}/start`);
         return response.data;
     },
-    complete: async (id: string, data: { work_performed: string, actual_cost?: number }): Promise<ApiResponse<WorkOrder>> => {
+    complete: async (id: string, data: { work_performed: string }): Promise<ApiResponse<WorkOrder>> => {
         const response = await api.post(`/work-orders/${id}/complete`, data);
+        return response.data;
+    },
+    verify: async (id: string, data: { labor_cost: number }): Promise<ApiResponse<WorkOrder>> => {
+        const response = await api.post(`/work-orders/${id}/verify`, data);
+        return response.data;
+    },
+    finalize: async (
+        id: string,
+        data: {
+            labor_expense_type: string;
+            parts?: { part_id: string; expense_type: string }[];
+        }
+    ): Promise<ApiResponse<WorkOrder>> => {
+        const response = await api.post(`/work-orders/${id}/finalize`, data);
         return response.data;
     },
 

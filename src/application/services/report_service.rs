@@ -34,7 +34,7 @@ impl ReportService {
         let mut wtr = csv::Writer::from_writer(vec![]);
 
         // Header
-        wtr.write_record(&[
+        wtr.write_record([
             "ID",
             "Code",
             "Name",
@@ -50,7 +50,7 @@ impl ReportService {
         .map_err(|e| DomainError::internal(e.to_string()))?;
 
         for asset in assets {
-            wtr.write_record(&[
+            wtr.write_record([
                 asset.id.to_string(),
                 asset.asset_code,
                 asset.name,
@@ -98,7 +98,7 @@ impl ReportService {
         let mut wtr = csv::Writer::from_writer(vec![]);
 
         // Header
-        wtr.write_record(&[
+        wtr.write_record([
             "Date",
             "Asset Name",
             "Maintenance Type",
@@ -109,7 +109,7 @@ impl ReportService {
         .map_err(|e| DomainError::internal(e.to_string()))?;
 
         for log in logs {
-            wtr.write_record(&[
+            wtr.write_record([
                 log.scheduled_date
                     .map(|d| d.to_string())
                     .unwrap_or_default(),

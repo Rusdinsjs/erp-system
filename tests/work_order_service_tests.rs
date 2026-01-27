@@ -1,12 +1,14 @@
 use management_system::api::handlers::notification_ws::WebSocketManager;
 use management_system::application::services::{
-    ApprovalService, AssetService, CreateWorkOrderRequest, NotificationService, WorkOrderService,
+    ApprovalService, AssetExpenseService, AssetService, CreateWorkOrderRequest,
+    NotificationService, WorkOrderService,
 };
 use management_system::domain::entities::WorkOrderStatus;
 use management_system::infrastructure::cache::{CacheError, CacheOperations};
 use management_system::infrastructure::repositories::{
-    ApprovalRepository, AssetRepository, JournalRepository, LifecycleRepository,
-    NotificationRepository, WorkOrderRepository,
+    ApprovalRepository, AssetExpenseRepository, AssetRepository, JournalRepository,
+    LifecycleRepository, MaintenanceTemplateRepository, NotificationRepository,
+    WorkOrderRepository,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -94,19 +96,50 @@ async fn test_work_order_lifecycle() {
     let ws_manager = Arc::new(WebSocketManager::new());
     let notif_service = NotificationService::new(notif_repo, ws_manager);
 
+    let approval_repo = ApprovalRepository::new(pool.clone());
+    let approval_service = ApprovalService::new(approval_repo);
+
+    let ae_repo = AssetExpenseRepository::new(pool.clone());
+    let ae_service =
+        AssetExpenseService::new(ae_repo, asset_repo.clone(), approval_service.clone());
+
+    let mt_repo = MaintenanceTemplateRepository::new(pool.clone());
+
+    let finance_repo =
+        management_system::infrastructure::repositories::FinanceRepository::new(pool.clone());
+    let journal_service = management_system::application::services::JournalService::new(
+        journal_repo.clone(),
+        finance_repo.clone(),
+    );
+
+    let inventory_repo = Arc::new(
+        management_system::infrastructure::repositories::InventoryRepository::new(pool.clone()),
+    );
+    let inventory_service = management_system::application::services::InventoryService::new(
+        inventory_repo,
+        journal_service,
+        notif_service.clone(),
+    );
+
     let wo_service = WorkOrderService::new(
         wo_repo,
         lifecycle_repo,
         asset_repo.clone(),
         cache.clone(),
-        notif_service,
+        notif_service.clone(),
+        ae_service,
+        mt_repo,
+        inventory_service,
     );
 
     // Setup: Create an Asset first
-    let approval_repo = ApprovalRepository::new(pool.clone());
-    let approval_service = ApprovalService::new(approval_repo);
-    let asset_service =
-        AssetService::new(asset_repo, journal_repo, cache.clone(), approval_service);
+    let asset_service = AssetService::new(
+        asset_repo,
+        journal_repo,
+        cache.clone(),
+        approval_service,
+        notif_service.clone(),
+    );
 
     let unique = Uuid::new_v4();
     let asset_code = format!("WO-ASSET-{}", unique);
@@ -175,6 +208,7 @@ async fn test_work_order_lifecycle() {
         target_specifications: None,
         conversion_notes: None,
         conversion_type: None,
+        assigned_technician: None,
     };
 
     let user_id = Uuid::new_v4();
@@ -227,10 +261,10 @@ async fn test_work_order_lifecycle() {
 
     // 3. Complete Work
     let completed_wo = wo_service
-        .complete(wo.id, user_id, "Fix done", None)
+        .complete(wo.id, user_id, "Fix done")
         .await
         .expect("Failed to complete WO");
-    assert_eq!(completed_wo.status, WorkOrderStatus::Completed.as_str());
+    assert_eq!(completed_wo.status, WorkOrderStatus::PendingReview.as_str());
 
     // Verify Asset Status back to Deployed (or Inventory if not assigned)
     // Detailed logic: if assigned -> Deployed, else -> InInventory.

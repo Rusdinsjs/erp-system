@@ -25,8 +25,8 @@ use crate::infrastructure::repositories::JournalRepository;
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub enum AssetOperationResult {
-    Success(Asset),
-    PendingApproval(ApprovalRequest),
+    Success(Box<Asset>),
+    PendingApproval(Box<ApprovalRequest>),
 }
 
 /// Asset service for business logic
@@ -39,6 +39,7 @@ pub struct AssetService {
     journal_repo: JournalRepository,
     cache: Arc<dyn CacheOperations>,
     approval_service: ApprovalService,
+    notification_service: crate::application::services::NotificationService,
 }
 
 impl AssetService {
@@ -47,12 +48,14 @@ impl AssetService {
         journal_repo: JournalRepository,
         cache: Arc<dyn CacheOperations>,
         approval_service: ApprovalService,
+        notification_service: crate::application::services::NotificationService,
     ) -> Self {
         Self {
             repository,
             journal_repo,
             cache,
             approval_service,
+            notification_service,
         }
     }
 
@@ -178,6 +181,9 @@ impl AssetService {
                 params.is_fuel,
                 per_page,
                 offset,
+                params.exact_match.unwrap_or(false),
+                params.sort_by.as_deref(),
+                params.sort_order.as_deref(),
             )
             .await
             .map_err(|e| DomainError::ExternalServiceError {
@@ -244,7 +250,9 @@ impl AssetService {
                 )
                 .await?;
 
-            return Ok(AssetOperationResult::PendingApproval(approval_request));
+            return Ok(AssetOperationResult::PendingApproval(Box::new(
+                approval_request,
+            )));
         }
 
         // --- Normal Creation Logic ---
@@ -255,7 +263,7 @@ impl AssetService {
         );
 
         // Check if code already exists
-        if let Some(_) = self
+        if self
             .repository
             .find_by_code(&request.asset_code)
             .await
@@ -263,6 +271,7 @@ impl AssetService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?
+            .is_some()
         {
             tracing::error!("AssetService: Code {} already exists", request.asset_code);
             return Err(DomainError::conflict("Asset code already exists"));
@@ -337,6 +346,14 @@ impl AssetService {
                 })?;
         }
 
+        let created_asset = Box::new(created_asset);
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("ASSET_CREATED", serde_json::json!(created_asset))
+            .await;
+
         Ok(AssetOperationResult::Success(created_asset))
     }
 
@@ -360,7 +377,7 @@ impl AssetService {
         for asset_req in request.assets {
             // Re-use single create logic with transaction
             match self
-                .create_with_executor(&mut *tx, asset_req, user_id, role_level)
+                .create_with_executor(&mut tx, asset_req, user_id, role_level)
                 .await
             {
                 Ok(result) => results.push(result),
@@ -468,11 +485,26 @@ impl AssetService {
         if let Some(n) = request.notes {
             asset.notes = Some(n);
         }
+        if let Some(v) = request.version {
+            if v != asset.version {
+                return Err(DomainError::Conflict {
+                    message: "Asset version mismatch. Data has been updated by another user."
+                        .to_string(),
+                });
+            }
+        }
 
         let result = self.repository.update(&asset).await.map_err(|e| {
-            DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
+            if matches!(e, sqlx::Error::RowNotFound) {
+                DomainError::Conflict {
+                    message: "Asset version mismatch. Data has been updated by another user."
+                        .to_string(),
+                }
+            } else {
+                DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                }
             }
         })?;
 
@@ -509,6 +541,12 @@ impl AssetService {
         // Invalidate cache
         let _ = self.cache.delete(&CacheKey::asset(&id)).await;
 
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("ASSET_UPDATED", serde_json::json!(result))
+            .await;
+
         Ok(result)
     }
 
@@ -543,7 +581,15 @@ impl AssetService {
             AssetHistory::new(id, &format!("state_changed_to_{}", new_state), performed_by);
         let _ = self.repository.add_history(&history).await;
 
-        self.get_by_id(id).await
+        let updated = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast("ASSET_STATUS_CHANGED", serde_json::json!(updated))
+            .await;
+
+        Ok(updated)
     }
 
     /// Sell an asset
@@ -569,7 +615,9 @@ impl AssetService {
                 .create_request("Asset", id, "SELL", user_id, Some(data_json))
                 .await?;
 
-            return Ok(AssetOperationResult::PendingApproval(approval_request));
+            return Ok(AssetOperationResult::PendingApproval(Box::new(
+                approval_request,
+            )));
         }
 
         let mut asset = self.get_by_id(id).await?;
@@ -708,7 +756,7 @@ impl AssetService {
         let cache_key = CacheKey::asset(&id);
         let _ = self.cache.delete(&cache_key).await;
 
-        Ok(AssetOperationResult::Success(updated_asset))
+        Ok(AssetOperationResult::Success(Box::new(updated_asset)))
     }
 
     /// Delete asset
@@ -725,6 +773,12 @@ impl AssetService {
         if result {
             // Invalidate cache
             let _ = self.cache.delete(&CacheKey::asset(&id)).await;
+
+            // Real-time broadcast
+            let _ = self
+                .notification_service
+                .broadcast("ASSET_DELETED", serde_json::json!({ "id": id }))
+                .await;
         }
 
         Ok(result)
@@ -784,5 +838,58 @@ impl AssetService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })
+    }
+    /// Bulk update assets
+    pub async fn bulk_update(
+        &self,
+        req: crate::application::dto::BulkUpdateAssetRequest,
+        _performed_by: Option<Uuid>,
+    ) -> DomainResult<u64> {
+        let mut total_affected = 0;
+
+        if let Some(status) = req.status {
+            total_affected += self
+                .repository
+                .bulk_update_status(&req.asset_ids, &status)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        }
+
+        if let Some(loc_id) = req.location_id {
+            total_affected += self
+                .repository
+                .bulk_update_location(&req.asset_ids, loc_id)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        }
+
+        if let Some(dept_name) = req.department {
+            total_affected += self
+                .repository
+                .bulk_update_department(&req.asset_ids, &dept_name, req.department_id)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        }
+
+        // Real-time broadcast for each updated asset
+        for id in req.asset_ids {
+            if let Ok(updated) = self.get_by_id(id).await {
+                let _ = self
+                    .notification_service
+                    .broadcast("ASSET_UPDATED", serde_json::json!(updated))
+                    .await;
+            }
+        }
+
+        Ok(total_affected)
     }
 }

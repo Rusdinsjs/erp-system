@@ -1,7 +1,18 @@
 //! JWT Utilities
 
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use uuid::Uuid;
+
+/// JWT Claims
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
+    pub sub: Uuid, // user id
+    pub email: String,
+    pub role: String,
+    pub exp: i64, // expiration time
+    pub iat: i64, // issued at
+}
 
 #[derive(Debug, Clone)]
 pub struct JwtConfig {

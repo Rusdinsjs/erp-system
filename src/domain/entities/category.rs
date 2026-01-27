@@ -36,6 +36,11 @@ pub struct Category {
     #[sqlx(default)]
     pub display_order: i32,
 
+    // Accounting Mapping
+    pub asset_account_id: Option<Uuid>, // Debit CAPEX (Asset Cost Control)
+    pub expense_account_id: Option<Uuid>, // Debit OPEX (Depreciation Expense)
+    pub accumulated_depreciation_account_id: Option<Uuid>, // Credit (Accumulated Depreciation)
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -59,6 +64,9 @@ impl Category {
             example_assets: None,
             function_description: None,
             display_order: 0,
+            asset_account_id: None,
+            expense_account_id: None,
+            accumulated_depreciation_account_id: None,
             created_at: now,
             updated_at: now,
         }

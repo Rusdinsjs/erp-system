@@ -70,7 +70,7 @@ impl CategoryService {
 
         let mut tree: Vec<CategoryTreeNode> = Vec::new();
         for root in root_categories {
-            let node = self.build_tree_node(root, &categories, 0);
+            let node = Self::build_tree_node(root, &categories, 0);
             tree.push(node);
         }
 
@@ -252,7 +252,6 @@ impl CategoryService {
 
     /// Build tree node recursively
     fn build_tree_node(
-        &self,
         category: &Category,
         all_categories: &[Category],
         level: u32,
@@ -260,7 +259,7 @@ impl CategoryService {
         let mut children: Vec<CategoryTreeNode> = all_categories
             .iter()
             .filter(|c| c.parent_id == Some(category.id))
-            .map(|c| self.build_tree_node(c, all_categories, level + 1))
+            .map(|c| Self::build_tree_node(c, all_categories, level + 1))
             .collect();
 
         children.sort_by(|a, b| a.display_order.cmp(&b.display_order));

@@ -1,10 +1,15 @@
 // WorkOrderDetails Page - Pure Tailwind
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, UserPlus } from 'lucide-react';
+import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, UserPlus, ClipboardCheck, Edit, FileText, ChevronRight, Camera, Loader2 } from 'lucide-react';
+import { api } from '../api/http';
 import { workOrderApi } from '../api/work-order';
+import { uploadApi } from '../api/upload';
+import { useAuthStore } from '../store/useAuthStore';
 import { TechnicianSelectModal } from '../components/WorkOrders/TechnicianSelectModal';
+import { InventoryItemSelector } from '../components/Inventory/InventoryItemSelector';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import {
     Button,
     Card,
@@ -17,6 +22,7 @@ import {
     Tabs, TabsList, TabsTrigger, TabsContent,
     LoadingOverlay,
     useToast,
+    Progress,
 } from '../components/ui';
 
 interface WorkOrderDetailsProps {
@@ -28,7 +34,32 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
     const id = propId || paramId;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { success } = useToast();
+    const { success, error: showError } = useToast();
+    const { lastMessage } = useWebSocket();
+    const { hasRoleLevel } = useAuthStore();
+
+    // WebSocket real-time updates
+    useEffect(() => {
+        if (!lastMessage || !id) return;
+
+        const { event_type, payload } = lastMessage;
+
+        // Match this work order ID
+        const targetWoId = payload.work_order_id || payload.id;
+        if (targetWoId !== id) return;
+
+        if (
+            event_type === 'CHECKLIST_UPDATED' ||
+            event_type === 'CHECKLIST_ITEM_ADDED' ||
+            event_type === 'WORK_ORDER_STATUS_CHANGED' ||
+            event_type === 'WORK_ORDER_PART_ADDED' ||
+            event_type === 'WORK_ORDER_PART_REMOVED'
+        ) {
+            queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+            queryClient.invalidateQueries({ queryKey: ['work-order-tasks', id] });
+            queryClient.invalidateQueries({ queryKey: ['work-order-parts', id] });
+        }
+    }, [lastMessage, id, queryClient]);
 
 
 
@@ -36,12 +67,29 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
     const [taskModalOpen, setTaskModalOpen] = useState(false);
     const [partModalOpen, setPartModalOpen] = useState(false);
     const [completeModalOpen, setCompleteModalOpen] = useState(false);
+    const [verifyModalOpen, setVerifyModalOpen] = useState(false);
     const [assignModalOpen, setAssignModalOpen] = useState(false);
+    const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
+    const [editPartId, setEditPartId] = useState<string | null>(null);
+    const [finalizeType, setFinalizeType] = useState('OPEX');
+    const [partsClassifications, setPartsClassifications] = useState<Record<string, 'OPEX' | 'CAPEX'>>({});
+    const [editTaskId, setEditTaskId] = useState<string | null>(null);
+    const [applyTemplateModalOpen, setApplyTemplateModalOpen] = useState(false);
+
 
     // Form inputs
+    // ... (existing imports)
+
     const [newTask, setNewTask] = useState({ task_number: 1, description: '' });
-    const [newPart, setNewPart] = useState({ part_name: '', quantity: 1, unit_cost: 0 });
-    const [completeData, setCompleteData] = useState({ work_performed: '', actual_cost: 0 });
+    const [newPart, setNewPart] = useState({
+        part_name: '',
+        quantity: 1,
+        unit_cost: 0,
+        expense_type: 'OPEX' as 'OPEX' | 'CAPEX',
+        inventory_item_id: undefined as string | undefined
+    });
+    const [completeData, setCompleteData] = useState({ work_performed: '' });
+    const [verifyData, setVerifyData] = useState({ labor_cost: 0 });
 
     // Queries
     const { data: wo, isLoading: woLoading } = useQuery({
@@ -62,14 +110,92 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         enabled: !!id,
     });
 
+    const { data: templates } = useQuery({
+        queryKey: ['maintenance-templates'],
+        queryFn: () => workOrderApi.getTemplates(),
+        enabled: applyTemplateModalOpen,
+    });
+
+    useEffect(() => {
+        if (finalizeModalOpen && parts) {
+            const initial: Record<string, 'OPEX' | 'CAPEX'> = {};
+            parts.forEach(p => {
+                initial[p.id] = (p.expense_type as 'OPEX' | 'CAPEX') || 'OPEX';
+            });
+            setPartsClassifications(initial);
+        }
+    }, [finalizeModalOpen, parts]);
+
+
+    const getImageUrl = (path?: string) => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        const baseUrl = api.defaults.baseURL?.replace(/\/api\/?$/, '') || '';
+        if (path.startsWith('/uploads')) {
+            return `${baseUrl}/api${path}`;
+        }
+        return `${baseUrl}${path}`;
+    };
+
+    const [photoModalOpen, setPhotoModalOpen] = useState(false);
+    const [selectedTaskPhotos, setSelectedTaskPhotos] = useState<{ id: string, photos: string[] } | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handlePhotoUpload = async (file: File) => {
+        if (!selectedTaskPhotos) return;
+
+        setIsUploading(true);
+        try {
+            // Use dedicated upload API
+            const data = await uploadApi.upload(file);
+            const newPhotos = [...(selectedTaskPhotos.photos || []), data.url];
+
+            // Update the task immediately
+            const updateRes = await workOrderApi.updateTaskPhotos(id!, selectedTaskPhotos.id, newPhotos);
+            if (!updateRes.success) {
+                throw new Error(updateRes.message || 'Failed to link photo to task');
+            }
+
+            // Update local state
+            setSelectedTaskPhotos({ ...selectedTaskPhotos, photos: newPhotos });
+            queryClient.invalidateQueries({ queryKey: ['work-order-tasks', id] });
+            success('Photo uploaded', 'Success');
+        } catch (err: any) {
+            console.error(err);
+            showError(err.response?.data?.message || 'Failed to upload photo', 'Error');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleRemovePhoto = async (photoUrl: string) => {
+        if (!selectedTaskPhotos) return;
+        const newPhotos = selectedTaskPhotos.photos.filter(p => p !== photoUrl);
+        try {
+            const updateRes = await workOrderApi.updateTaskPhotos(id!, selectedTaskPhotos.id, newPhotos);
+            if (!updateRes.success) throw new Error(updateRes.message || 'Failed to update task');
+            setSelectedTaskPhotos({ ...selectedTaskPhotos, photos: newPhotos });
+            queryClient.invalidateQueries({ queryKey: ['work-order-tasks', id] });
+            success('Photo removed', 'Success');
+        } catch (err) {
+            showError('Failed to remove photo', 'Error');
+        }
+    }
+
     // Mutations
-    const addTaskMutation = useMutation({
-        mutationFn: (data: typeof newTask) => workOrderApi.addTask(id!, data),
+    const addTaskMutation = useMutation<any, any, typeof newTask>({
+        mutationFn: (data: typeof newTask) => {
+            if (editTaskId) {
+                return workOrderApi.updateTask(id!, editTaskId, { description: data.description });
+            }
+            return workOrderApi.addTask(id!, data);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['work-order-tasks', id] });
             setTaskModalOpen(false);
+            setEditTaskId(null);
             setNewTask({ task_number: (tasks?.length || 0) + 2, description: '' });
-            success('Task added', 'Success');
+            success(editTaskId ? 'Task updated' : 'Task added', 'Success');
         },
     });
 
@@ -81,22 +207,40 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         },
     });
 
+    const applyTemplateMutation = useMutation({
+        mutationFn: (templateId: string) => workOrderApi.applyTemplate(id!, templateId),
+        onSuccess: (res) => {
+            queryClient.invalidateQueries({ queryKey: ['work-order-tasks', id] });
+            setApplyTemplateModalOpen(false);
+            success(res.message || 'Template applied successfully', 'Success');
+        },
+    });
+
     const addPartMutation = useMutation({
-        mutationFn: (data: typeof newPart) => workOrderApi.addPart(id!, data),
+        mutationFn: (data: typeof newPart) => {
+            if (editPartId) {
+                return workOrderApi.updatePart(id!, editPartId, data);
+            }
+            return workOrderApi.addPart(id!, data);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['work-order-parts', id] });
             queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+            queryClient.invalidateQueries({ queryKey: ['work-order', id] });
             setPartModalOpen(false);
-            setNewPart({ part_name: '', quantity: 1, unit_cost: 0 });
-            success('Part added', 'Success');
+            setEditPartId(null);
+            setNewPart({
+                part_name: '',
+                quantity: 1,
+                unit_cost: 0,
+                expense_type: 'OPEX',
+                inventory_item_id: undefined
+            });
+            success(editPartId ? 'Part updated' : 'Part added', 'Success');
         },
         onError: (error: any) => {
             console.error('Failed to add part:', error);
-            // Assuming useToast exposes 'error' or we use 'success' with specific styling or generic toast
-            // The existing useToast usage just shows 'success' method.
-            // Let's check imports. 'useToast' is from '../components/ui'.
-            // Usually it has error method.
-            success(error.response?.data?.message || error.message || 'Failed to add part', 'Error');
+            showError(error.response?.data?.message || error.message || 'Failed to add part', 'Error');
         }
     });
 
@@ -106,6 +250,14 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
             queryClient.invalidateQueries({ queryKey: ['work-order-parts', id] });
             queryClient.invalidateQueries({ queryKey: ['work-order', id] });
             success('Part removed', 'Success');
+        },
+    });
+
+    const approveMutation = useMutation({
+        mutationFn: () => workOrderApi.approve(id!),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+            success('Work Order approved', 'Success');
         },
     });
 
@@ -122,7 +274,16 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['work-order', id] });
             setCompleteModalOpen(false);
-            success('Work Order completed', 'Completed');
+            success('Physical work completed, pending supervisor review', 'Success');
+        },
+    });
+
+    const verifyMutation = useMutation({
+        mutationFn: (data: typeof verifyData) => workOrderApi.verify(id!, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+            setVerifyModalOpen(false);
+            success('Work Order verified and costs recorded', 'Success');
         },
     });
 
@@ -135,6 +296,44 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         },
     });
 
+    const finalizeMutation = useMutation({
+        mutationFn: () => workOrderApi.finalize(id!, {
+            labor_expense_type: finalizeType,
+            parts: Object.entries(partsClassifications).map(([part_id, expense_type]) => ({
+                part_id,
+                expense_type
+            }))
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+            queryClient.invalidateQueries({ queryKey: ['work-order-parts', id] });
+            setFinalizeModalOpen(false);
+            success('Work Order finalized and split expenses created', 'Success');
+        },
+    });
+
+    const partsCost = Number(wo?.parts_cost || 0);
+    const laborCost = Number(wo?.labor_cost || 0);
+    const totalCost = partsCost + laborCost;
+
+    const splitSummary = useMemo(() => {
+        let opex = 0;
+        let capex = 0;
+
+        // Labor
+        if (finalizeType === 'CAPEX') capex += laborCost;
+        else opex += laborCost;
+
+        // Parts
+        parts?.forEach(p => {
+            const type = partsClassifications[p.id];
+            if (type === 'CAPEX') capex += Number(p.total_cost);
+            else opex += Number(p.total_cost);
+        });
+
+        return { opex, capex };
+    }, [finalizeType, partsClassifications, parts, laborCost]);
+
     if (woLoading) return <div className="flex justify-center py-12"><LoadingOverlay visible /></div>;
     if (!wo) return <p className="text-slate-400 text-center py-12">Work Order not found</p>;
 
@@ -142,13 +341,13 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         pending: 'default',
         assigned: 'info',
         in_progress: 'warning',
+        pending_review: 'warning',
+        verified: 'info',
         completed: 'success',
         cancelled: 'danger',
     };
 
-    const partsCost = Number(wo.parts_cost || 0);
-    const laborCost = Number(wo.labor_cost || 0);
-    const totalCost = partsCost + laborCost;
+
 
     return (
         <div className="p-8">
@@ -180,8 +379,36 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                     )}
                     <p className="text-gray-400">{wo.wo_type}</p>
                 </div>
+
+                <div className="flex-1 max-w-xs mx-8">
+                    {tasks && tasks.length > 0 && (
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                <span>Checklist Progress</span>
+                                <span>{Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100)}%</span>
+                            </div>
+                            <Progress
+                                value={(tasks.filter(t => t.status === 'completed').length / tasks.length) * 100}
+                                color="emerald"
+                                size="md"
+                            />
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex gap-3">
-                    {(wo.status === 'approved' || wo.status === 'pending') && (
+                    {wo.status === 'pending' && hasRoleLevel(3) && (
+                        <Button
+                            variant="primary"
+                            leftIcon={<Check size={18} />}
+                            onClick={() => approveMutation.mutate()}
+                            loading={approveMutation.isPending}
+                            className="rounded-xl shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500"
+                        >
+                            Approve
+                        </Button>
+                    )}
+                    {(wo.status === 'approved' || wo.status === 'pending') && hasRoleLevel(3) && (
                         <Button
                             variant="outline"
                             leftIcon={<UserPlus size={18} />}
@@ -208,14 +435,73 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             onClick={() => setCompleteModalOpen(true)}
                             className="rounded-xl shadow-lg shadow-emerald-500/20 bg-emerald-600 hover:bg-emerald-500"
                         >
-                            Complete
+                            Finish Work
+                        </Button>
+                    )}
+                    {wo.status === 'pending_review' && hasRoleLevel(3) && (
+                        <Button
+                            variant="primary"
+                            leftIcon={<ClipboardCheck size={18} />}
+                            onClick={() => {
+                                setVerifyData({ labor_cost: 0 });
+                                setVerifyModalOpen(true);
+                            }}
+                            className="rounded-xl shadow-lg shadow-amber-500/20 bg-amber-600 hover:bg-amber-500"
+                        >
+                            Verify & Input Cost
+                        </Button>
+                    )}
+                    {wo.status === 'verified' && hasRoleLevel(2) && (
+                        <Button
+                            variant="primary"
+                            leftIcon={<CheckSquare size={18} />}
+                            onClick={() => setFinalizeModalOpen(true)}
+                            className="rounded-xl shadow-lg shadow-purple-500/20 bg-purple-600 hover:bg-purple-500"
+                        >
+                            Sign Off / Finalize
                         </Button>
                     )}
                 </div>
             </div>
 
+            {/* Maintenance Journey Stepper */}
+            <div className="mb-10 px-4 py-8 bg-white/5 rounded-3xl border border-white/5 shadow-inner">
+                <div className="flex justify-between items-center relative">
+                    <div className="absolute top-5 left-0 right-0 h-0.5 bg-white/5 z-0" />
+                    {[
+                        { label: 'Request', status: 'pending', icon: <Plus size={14} /> },
+                        { label: 'Approved', status: 'approved', icon: <Check size={14} /> },
+                        { label: 'Assigned', status: 'assigned', icon: <UserPlus size={14} /> },
+                        { label: 'Working', status: 'in_progress', icon: <Wrench size={14} /> },
+                        { label: 'Finished', status: 'pending_review', icon: <ClipboardCheck size={14} /> },
+                        { label: 'Verified', status: 'verified', icon: <DollarSign size={14} /> },
+                        { label: 'Finalized', status: 'completed', icon: <CheckSquare size={14} /> },
+                    ].map((step, idx, arr) => {
+                        const statuses = arr.map(s => s.status);
+                        const currentIdx = statuses.indexOf(wo.status);
+                        const isCompleted = currentIdx > idx || wo.status === 'completed';
+                        const isCurrent = wo.status === step.status;
+
+                        return (
+                            <div key={step.status} className="flex flex-col items-center gap-3 relative z-10 flex-1">
+                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 shadow-lg ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/20' :
+                                    isCurrent ? 'bg-blue-600 border-blue-500 text-white animate-pulse shadow-blue-500/30' :
+                                        'bg-gray-900 border-white/5 text-gray-500'
+                                    }`}>
+                                    {isCompleted ? <Check size={18} /> : step.icon}
+                                </div>
+                                <span className={`text-[10px] uppercase font-bold tracking-widest transition-colors duration-500 ${isCurrent ? 'text-blue-400' : isCompleted ? 'text-emerald-400' : 'text-gray-500'
+                                    }`}>
+                                    {step.label}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
             {/* Cost Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <Card className="relative overflow-hidden group p-6">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex items-center gap-4 relative z-10">
@@ -251,6 +537,34 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                         <div>
                             <p className="text-blue-300 text-sm font-medium">Total Cost</p>
                             <p className="text-3xl font-bold text-white mt-1">Rp {totalCost.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <Card className="relative overflow-hidden group p-6 bg-purple-500/5 border-purple-500/20">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="p-3 bg-purple-500/20 rounded-xl">
+                            <div className="w-6 h-6 flex items-center justify-center font-black text-purple-400">O</div>
+                        </div>
+                        <div>
+                            <p className="text-purple-300 text-sm font-bold uppercase tracking-wider">Total OPEX</p>
+                            <p className="text-2xl font-black text-white mt-1">Rp {splitSummary.opex.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="relative overflow-hidden group p-6 bg-cyan-500/5 border-cyan-500/20">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="p-3 bg-cyan-500/20 rounded-xl">
+                            <div className="w-6 h-6 flex items-center justify-center font-black text-cyan-400">C</div>
+                        </div>
+                        <div>
+                            <p className="text-cyan-300 text-sm font-bold uppercase tracking-wider">Total CAPEX</p>
+                            <p className="text-2xl font-black text-white mt-1">Rp {splitSummary.capex.toLocaleString('id-ID')}</p>
                         </div>
                     </div>
                 </Card>
@@ -317,8 +631,27 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                     </TabsContent>
 
                     <TabsContent value="tasks" className="p-0">
-                        <div className="px-6 py-4 border-b border-white/5 bg-gray-900/10 flex justify-end">
-                            <Button variant="outline" size="sm" leftIcon={<Plus size={16} />} onClick={() => setTaskModalOpen(true)} className="rounded-xl border-white/10">
+                        <div className="px-6 py-4 border-b border-white/5 bg-gray-900/10 flex justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                leftIcon={<FileText size={16} />}
+                                onClick={() => setApplyTemplateModalOpen(true)}
+                                className="rounded-xl border-white/10 text-gray-400 hover:text-blue-400"
+                            >
+                                Apply Template
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                leftIcon={<Plus size={16} />}
+                                onClick={() => {
+                                    setEditTaskId(null);
+                                    setNewTask({ task_number: (tasks?.length || 0) + 1, description: '' });
+                                    setTaskModalOpen(true);
+                                }}
+                                className="rounded-xl border-white/10"
+                            >
                                 Add Task
                             </Button>
                         </div>
@@ -330,6 +663,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                         <TableTh className="w-20">#</TableTh>
                                         <TableTh>Description</TableTh>
                                         <TableTh className="w-40">Status</TableTh>
+                                        <TableTh className="w-24 text-center">Photos</TableTh>
                                         <TableTh align="center" className="w-24">Actions</TableTh>
                                     </TableRow>
                                 </TableHead>
@@ -344,13 +678,52 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                                 </Badge>
                                             </TableTd>
                                             <TableTd align="center">
-                                                <ActionIcon variant="danger" onClick={() => removeTaskMutation.mutate(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 text-red-400">
-                                                    <Trash2 size={16} />
-                                                </ActionIcon>
+                                                {task.photos && task.photos.length > 0 && (
+                                                    <div className="flex -space-x-2 justify-center">
+                                                        {task.photos.slice(0, 3).map((p, i) => (
+                                                            <div key={i} className="w-6 h-6 rounded-full border border-gray-800 bg-gray-700 overflow-hidden relative z-0 hover:z-10 transition-all">
+                                                                <img src={getImageUrl(p)} alt="evidence" className="w-full h-full object-cover" />
+                                                            </div>
+                                                        ))}
+                                                        {task.photos.length > 3 && (
+                                                            <div className="w-6 h-6 rounded-full border border-gray-800 bg-gray-700 flex items-center justify-center text-[8px] text-white">
+                                                                +{task.photos.length - 3}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </TableTd>
+                                            <TableTd align="center">
+                                                <div className="flex gap-2 justify-center">
+                                                    <ActionIcon
+                                                        variant="default"
+                                                        onClick={() => {
+                                                            setEditTaskId(task.id);
+                                                            setNewTask({ task_number: task.task_number, description: task.description });
+                                                            setTaskModalOpen(true);
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/20 text-blue-400"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        variant="default"
+                                                        onClick={() => {
+                                                            setSelectedTaskPhotos({ id: task.id, photos: task.photos || [] });
+                                                            setPhotoModalOpen(true);
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-purple-500/20 text-purple-400"
+                                                    >
+                                                        <Camera size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon variant="danger" onClick={() => removeTaskMutation.mutate(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 text-red-400">
+                                                        <Trash2 size={16} />
+                                                    </ActionIcon>
+                                                </div>
                                             </TableTd>
                                         </TableRow>
                                     )) : (
-                                        <TableEmpty colSpan={4} message="No tasks defined" />
+                                        <TableEmpty colSpan={5} message="No tasks defined" />
                                     )}
                                 </TableBody>
                             </Table>
@@ -359,7 +732,23 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
 
                     <TabsContent value="parts" className="p-0">
                         <div className="px-6 py-4 border-b border-white/5 bg-gray-900/10 flex justify-end">
-                            <Button variant="outline" size="sm" leftIcon={<Plus size={16} />} onClick={() => setPartModalOpen(true)} className="rounded-xl border-white/10">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                leftIcon={<Plus size={16} />}
+                                onClick={() => {
+                                    setEditPartId(null);
+                                    setNewPart({
+                                        part_name: '',
+                                        quantity: 1,
+                                        unit_cost: 0,
+                                        expense_type: 'OPEX',
+                                        inventory_item_id: undefined
+                                    });
+                                    setPartModalOpen(true);
+                                }}
+                                className="rounded-xl border-white/10"
+                            >
                                 Add Part
                             </Button>
                         </div>
@@ -372,6 +761,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                         <TableTh className="w-24">Qty</TableTh>
                                         <TableTh>Unit Cost</TableTh>
                                         <TableTh>Total</TableTh>
+                                        <TableTh className="w-24 text-center">Class</TableTh>
                                         <TableTh align="center" className="w-24">Actions</TableTh>
                                     </TableRow>
                                 </TableHead>
@@ -383,13 +773,40 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                             <TableTd className="text-gray-400">Rp {Number(part.unit_cost).toLocaleString('id-ID')}</TableTd>
                                             <TableTd className="font-bold text-gray-200">Rp {Number(part.total_cost).toLocaleString('id-ID')}</TableTd>
                                             <TableTd align="center">
-                                                <ActionIcon variant="danger" onClick={() => removePartMutation.mutate(part.id)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 text-red-400">
-                                                    <Trash2 size={16} />
-                                                </ActionIcon>
+                                                <Badge
+                                                    variant={part.expense_type === 'CAPEX' ? 'info' : 'default'}
+                                                    className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${part.expense_type === 'CAPEX' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-purple-500/10 text-purple-400 border-purple-500/20'}`}
+                                                >
+                                                    {part.expense_type || 'OPEX'}
+                                                </Badge>
+                                            </TableTd>
+                                            <TableTd align="center">
+                                                <div className="flex gap-2 justify-center">
+                                                    <ActionIcon
+                                                        variant="default"
+                                                        onClick={() => {
+                                                            setEditPartId(part.id);
+                                                            setNewPart({
+                                                                part_name: part.part_name,
+                                                                quantity: part.quantity,
+                                                                unit_cost: part.unit_cost,
+                                                                expense_type: (part as any).expense_type || 'OPEX',
+                                                                inventory_item_id: (part as any).inventory_item_id
+                                                            });
+                                                            setPartModalOpen(true);
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/20 text-blue-400"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon variant="danger" onClick={() => removePartMutation.mutate(part.id)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 text-red-400">
+                                                        <Trash2 size={16} />
+                                                    </ActionIcon>
+                                                </div>
                                             </TableTd>
                                         </TableRow>
                                     )) : (
-                                        <TableEmpty colSpan={5} message="No parts used" />
+                                        <TableEmpty colSpan={6} message="No parts used" />
                                     )}
                                 </TableBody>
                             </Table>
@@ -398,7 +815,93 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                 </Tabs>
             </Card>
 
-            <Modal isOpen={taskModalOpen} onClose={() => setTaskModalOpen(false)} title="Add Work Task" size="xl">
+            <Modal isOpen={applyTemplateModalOpen} onClose={() => setApplyTemplateModalOpen(false)} title="Apply Maintenance Template" size="lg">
+                <div className="space-y-4 p-6">
+                    <p className="text-gray-400 text-sm mb-4">Select a template to automatically populate the work checklist. This will add all tasks defined in the template to this work order.</p>
+                    <div className="grid grid-cols-1 gap-3">
+                        {templates?.map((t) => (
+                            <div
+                                key={t.id}
+                                onClick={() => applyTemplateMutation.mutate(t.id)}
+                                className="p-4 bg-black/20 border border-white/5 rounded-xl hover:bg-blue-600/10 hover:border-blue-500/50 cursor-pointer transition-all group"
+                            >
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h4 className="font-bold text-white group-hover:text-blue-400 transition-colors">{t.name}</h4>
+                                        <p className="text-xs text-gray-500">{t.description || 'No description provided'}</p>
+                                    </div>
+                                    <ChevronRight size={18} className="text-gray-600 group-hover:text-blue-500 transition-colors" />
+                                </div>
+                            </div>
+                        ))}
+                        {(!templates || templates.length === 0) && (
+                            <div className="text-center py-8 text-gray-500 italic bg-black/10 rounded-xl border border-dashed border-white/5">
+                                No maintenance templates available.
+                                <br />
+                                <span className="text-xs">Go to "Maintenance Templates" to create one.</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                {applyTemplateMutation.isPending && (
+                    <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center rounded-2xl z-50">
+                        <LoadingOverlay visible />
+                    </div>
+                )}
+            </Modal>
+
+            <Modal isOpen={photoModalOpen} onClose={() => setPhotoModalOpen(false)} title="Evidence Media" size="lg">
+                <div className="p-6">
+                    <p className="text-gray-400 text-sm mb-6">Upload before/after photos for this checklist task.</p>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+                        {selectedTaskPhotos?.photos?.map((photo, index) => (
+                            <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-white/10 bg-black/20">
+                                <img
+                                    src={getImageUrl(photo)}
+                                    alt={`Common Evidence ${index}`}
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button
+                                        onClick={() => handleRemovePhoto(photo)}
+                                        className="p-2 bg-red-500/80 hover:bg-red-500 rounded-full text-white transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        <label className="aspect-square rounded-xl border-2 border-dashed border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 flex flex-col items-center justify-center cursor-pointer transition-all group">
+                            {isUploading ? (
+                                <Loader2 className="animate-spin text-blue-400" size={24} />
+                            ) : (
+                                <>
+                                    <div className="p-3 rounded-full bg-white/5 group-hover:bg-blue-500/20 text-gray-400 group-hover:text-blue-400 transition-colors mb-2">
+                                        <Camera size={20} />
+                                    </div>
+                                    <span className="text-xs text-gray-500 group-hover:text-blue-400 font-medium">Add Photo</span>
+                                </>
+                            )}
+                            <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]);
+                                }}
+                                disabled={isUploading}
+                            />
+                        </label>
+                    </div>
+
+                    <div className="flex justify-end">
+                        <Button variant="ghost" onClick={() => setPhotoModalOpen(false)}>Done</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={taskModalOpen} onClose={() => { setTaskModalOpen(false); setEditTaskId(null); }} title={editTaskId ? "Edit Work Task" : "Add Work Task"} size="xl">
                 <div className="space-y-6 p-6">
                     <div className="relative">
                         <NumberInput
@@ -421,11 +924,12 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             Cancel
                         </Button>
                         <Button
+                            variant="primary"
                             onClick={() => addTaskMutation.mutate(newTask)}
                             loading={addTaskMutation.isPending}
-                            className="bg-blue-600 hover:bg-blue-500 rounded-xl px-8 shadow-lg shadow-blue-500/20"
+                            className="bg-indigo-600 hover:bg-indigo-500 rounded-xl px-8 shadow-lg shadow-indigo-500/20 font-bold"
                         >
-                            Add Task
+                            {editTaskId ? "Save Changes" : "Add Task"}
                         </Button>
                     </div>
                 </div>
@@ -433,16 +937,53 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
 
             <Modal isOpen={partModalOpen} onClose={() => setPartModalOpen(false)} title="Add Spare Part" size="xl">
                 <div className="space-y-6 p-6">
+                    <div className="flex gap-4 mb-4">
+                        <button
+                            onClick={() => setNewPart({ ...newPart, inventory_item_id: undefined, part_name: '', unit_cost: 0 })}
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold border transition-colors ${!newPart.inventory_item_id ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-black/20 border-white/5 text-gray-400'}`}
+                        >
+                            Manual Entry
+                        </button>
+                        <button
+                            onClick={() => setNewPart({ ...newPart, inventory_item_id: 'temp', part_name: '', unit_cost: 0 })} // Set temp ID to switch mode, will be replaced by actual ID
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold border transition-colors ${newPart.inventory_item_id ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-black/20 border-white/5 text-gray-400'}`}
+                        >
+                            From Inventory
+                        </button>
+                    </div>
+
                     <div className="relative">
-                        <Input
-                            label="Part Name / Specification"
-                            placeholder="e.g. Filter Oli Hino, Pad Rem Depan..."
-                            value={newPart.part_name}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPart({ ...newPart, part_name: e.target.value })}
-                            className="bg-black/20 border-white/5 rounded-xl"
-                        />
+                        {newPart.inventory_item_id !== undefined ? (
+                            <InventoryItemSelector
+                                value={newPart.inventory_item_id === 'temp' ? null : newPart.inventory_item_id}
+                                onChange={(item: any) => {
+                                    if (item) {
+                                        setNewPart({
+                                            ...newPart,
+                                            inventory_item_id: item.id,
+                                            part_name: item.name,
+                                            unit_cost: parseFloat(item.average_cost),
+                                            quantity: 1
+                                        });
+                                    } else {
+                                        setNewPart({ ...newPart, inventory_item_id: 'temp', part_name: '', unit_cost: 0 });
+                                    }
+                                }}
+                                label="Search Inventory"
+                                required
+                            />
+                        ) : (
+                            <Input
+                                label="Part Name / Specification"
+                                placeholder="e.g. Filter Oli Hino, Pad Rem Depan..."
+                                value={newPart.part_name}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPart({ ...newPart, part_name: e.target.value })}
+                                className="bg-black/20 border-white/5 rounded-xl"
+                            />
+                        )}
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-[50px] pointer-events-none" />
                     </div>
+
                     <div className="grid grid-cols-2 gap-6">
                         <NumberInput
                             label="Quantity"
@@ -457,14 +998,37 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             onChange={(v: number | undefined) => setNewPart({ ...newPart, unit_cost: v || 0 })}
                             thousandSeparator
                             className="bg-black/20 border-white/5 text-emerald-400 font-medium rounded-xl"
+                            disabled={!!newPart.inventory_item_id} // Disable manual cost edit if inventory item
                         />
+                    </div>
+                    <div>
+                        <label className="text-sm text-gray-400 font-medium mb-1.5 block">Expense Classification</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => setNewPart({ ...newPart, expense_type: 'OPEX' })}
+                                className={`p-3 rounded-xl border text-sm font-bold transition-all ${newPart.expense_type === 'OPEX' ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:bg-white/5'}`}
+                            >
+                                OPEX
+                            </button>
+                            <button
+                                onClick={() => setNewPart({ ...newPart, expense_type: 'CAPEX' })}
+                                className={`p-3 rounded-xl border text-sm font-bold transition-all ${newPart.expense_type === 'CAPEX' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-black/20 border-white/5 text-gray-500 hover:bg-white/5'}`}
+                            >
+                                CAPEX
+                            </button>
+                        </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                         <Button variant="ghost" onClick={() => setPartModalOpen(false)} className="rounded-xl">
                             Cancel
                         </Button>
                         <Button
-                            onClick={() => addPartMutation.mutate(newPart)}
+                            onClick={() => {
+                                // Clean up temp ID before submitting
+                                const payload = { ...newPart };
+                                if (payload.inventory_item_id === 'temp') payload.inventory_item_id = undefined;
+                                addPartMutation.mutate(payload);
+                            }}
                             loading={addPartMutation.isPending}
                             className="bg-amber-600 hover:bg-amber-500 rounded-xl px-8 shadow-lg shadow-amber-500/20"
                         >
@@ -486,21 +1050,12 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                         />
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none" />
                     </div>
-                    <NumberInput
-                        label="Total Labor Cost"
-                        prefix="Rp "
-                        value={completeData.actual_cost}
-                        onChange={(v: number | undefined) => setCompleteData({ ...completeData, actual_cost: v || 0 })}
-                        thousandSeparator
-                        className="bg-black/20 border-white/5 text-emerald-400 font-bold rounded-xl"
-                        hint={`Parts cost: Rp ${partsCost.toLocaleString('id-ID')}`}
-                    />
-                    <div className="flex items-start gap-4 p-5 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
-                        <div className="p-2 bg-blue-500/10 rounded-lg">
-                            <Info size={20} className="text-blue-400" />
+                    <div className="flex items-start gap-4 p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
+                        <div className="p-2 bg-emerald-500/10 rounded-lg">
+                            <Info size={20} className="text-emerald-400" />
                         </div>
                         <p className="text-sm text-gray-400 leading-relaxed">
-                            Completing this work order will finalize all costs and update the asset status back to <span className="text-blue-400 font-bold uppercase tracking-wider">Active</span>.
+                            Finishing this work order reflects that physical maintenance is complete. It will now move to <span className="text-blue-400 font-bold uppercase tracking-wider">Supervisor Review</span> for cost verification.
                         </p>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
@@ -513,7 +1068,49 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             loading={completeMutation.isPending}
                             className="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-10 h-12 shadow-lg shadow-emerald-500/20 font-bold"
                         >
-                            Confirm Completion
+                            Finish Work
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={verifyModalOpen} onClose={() => setVerifyModalOpen(false)} title="Verify Work Order & Cost" size="xl">
+                <div className="space-y-6 p-6">
+                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                        <p className="text-sm text-blue-200 font-medium">Work Performed by Technician:</p>
+                        <p className="text-gray-300 mt-2 italic">"{wo.work_performed || 'No report provided'}"</p>
+                    </div>
+
+                    <NumberInput
+                        label="Verified Labor Cost"
+                        prefix="Rp "
+                        value={verifyData.labor_cost}
+                        onChange={(v: number | undefined) => setVerifyData({ labor_cost: v || 0 })}
+                        thousandSeparator
+                        className="bg-black/20 border-white/5 text-amber-400 font-bold rounded-xl"
+                        hint={`Parts cost recorded: Rp ${partsCost.toLocaleString('id-ID')}`}
+                    />
+
+                    <div className="flex items-start gap-4 p-5 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
+                        <div className="p-2 bg-blue-500/10 rounded-lg">
+                            <ClipboardCheck size={20} className="text-blue-400" />
+                        </div>
+                        <p className="text-sm text-gray-400 leading-relaxed">
+                            Verification confirms the labor cost and moves this work order to the <span className="text-purple-400 font-bold uppercase tracking-wider">Finalization</span> queue for manager sign-off.
+                        </p>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                        <Button variant="ghost" onClick={() => setVerifyModalOpen(false)} className="rounded-xl">
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => verifyMutation.mutate(verifyData)}
+                            loading={verifyMutation.isPending}
+                            className="bg-amber-600 hover:bg-amber-500 rounded-xl px-10 h-12 shadow-lg shadow-amber-500/20 font-bold"
+                        >
+                            Verify & Submit
                         </Button>
                     </div>
                 </div>
@@ -526,6 +1123,104 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                 onSelect={(techId) => assignMutation.mutate(techId)}
                 loading={assignMutation.isPending}
             />
-        </div>
+            <Modal isOpen={finalizeModalOpen} onClose={() => setFinalizeModalOpen(false)} title="Finalize Work Order" size="xl">
+                <div className="space-y-6 p-6">
+                    <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Info size={20} className="text-purple-400" />
+                            <h3 className="text-lg font-bold text-white">Expense Classification</h3>
+                        </div>
+                        <p className="text-sm text-gray-400">
+                            Please classify each cost item. This determines how it is recorded in the financial system.
+                        </p>
+                    </div>
+
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                        {/* Labor Item */}
+                        <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-500/20 rounded-xl">
+                                    <DollarSign size={20} className="text-blue-400" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-white">Labor Cost</div>
+                                    <div className="text-sm text-emerald-400 font-medium">Rp {laborCost.toLocaleString('id-ID')}</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5">
+                                <button
+                                    onClick={() => setFinalizeType('OPEX')}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${finalizeType === 'OPEX' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    OPEX
+                                </button>
+                                <button
+                                    onClick={() => setFinalizeType('CAPEX')}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${finalizeType === 'CAPEX' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    CAPEX
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Parts Items */}
+                        {parts?.map(part => (
+                            <div key={part.id} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-amber-500/20 rounded-xl">
+                                        <Wrench size={20} className="text-amber-400" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-white line-clamp-1">{part.part_name}</div>
+                                        <div className="text-sm text-emerald-400 font-medium">
+                                            {Number(part.quantity).toLocaleString()} x Rp {Number(part.unit_cost).toLocaleString('id-ID')} = Rp {Number(part.total_cost).toLocaleString('id-ID')}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5">
+                                    <button
+                                        onClick={() => setPartsClassifications(prev => ({ ...prev, [part.id]: 'OPEX' }))}
+                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${partsClassifications[part.id] === 'OPEX' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        OPEX
+                                    </button>
+                                    <button
+                                        onClick={() => setPartsClassifications(prev => ({ ...prev, [part.id]: 'CAPEX' }))}
+                                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${partsClassifications[part.id] === 'CAPEX' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        CAPEX
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-purple-500/20 border border-purple-500/20 rounded-xl">
+                            <div className="text-xs text-purple-400 uppercase font-bold tracking-wider mb-1">Total OPEX</div>
+                            <div className="text-xl font-black text-white">Rp {splitSummary.opex.toLocaleString('id-ID')}</div>
+                        </div>
+                        <div className="p-4 bg-cyan-500/20 border border-cyan-500/20 rounded-xl">
+                            <div className="text-xs text-cyan-400 uppercase font-bold tracking-wider mb-1">Total CAPEX</div>
+                            <div className="text-xl font-black text-white">Rp {splitSummary.capex.toLocaleString('id-ID')}</div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                        <Button variant="ghost" onClick={() => setFinalizeModalOpen(false)} className="rounded-xl">
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={() => finalizeMutation.mutate()}
+                            loading={finalizeMutation.isPending}
+                            className="bg-indigo-600 hover:bg-indigo-500 rounded-xl px-8 shadow-lg shadow-indigo-500/20 font-bold"
+                        >
+                            Confirm Finalization
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+        </div >
     );
 }

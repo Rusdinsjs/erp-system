@@ -1,0 +1,7 @@
+    Blocking waiting for file lock on build directory
+   Compiling openssl-sys v0.9.111
+   Compiling openssl v0.10.75
+   Compiling native-tls v0.2.14
+   Compiling tokio-native-tls v0.3.1
+   Compiling lettre v0.11.19
+   Compiling management-system v0.1.0 (/home/rus/.gemini/antigravity/scratch/Business_Systems/management-system)

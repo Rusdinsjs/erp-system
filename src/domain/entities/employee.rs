@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -10,6 +11,20 @@ pub enum EmploymentStatus {
     Pkwtt,
     Magang,
     Lainnya,
+}
+
+impl FromStr for EmploymentStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "pkwt" => Ok(Self::Pkwt),
+            "pkwtt" => Ok(Self::Pkwtt),
+            "magang" => Ok(Self::Magang),
+            "lainnya" => Ok(Self::Lainnya),
+            _ => Err(format!("Invalid employment status: {}", s)),
+        }
+    }
 }
 
 impl EmploymentStatus {
@@ -22,14 +37,9 @@ impl EmploymentStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "pkwt" => Some(Self::Pkwt),
-            "pkwtt" => Some(Self::Pkwtt),
-            "magang" => Some(Self::Magang),
-            "lainnya" => Some(Self::Lainnya),
-            _ => None,
-        }
+        <Self as FromStr>::from_str(s).ok()
     }
 }
 

@@ -19,6 +19,7 @@ pub async fn upload_file(
     State(_state): State<AppState>, // Not currently used, but good for future expansion
     mut multipart: Multipart,
 ) -> AppResult<impl IntoResponse> {
+    tracing::info!(">>> [API] Incoming file upload request...");
     let mut uploaded_file = None;
 
     while let Some(field) = multipart
@@ -72,10 +73,10 @@ pub async fn upload_file(
                             let mut cursor = std::io::Cursor::new(&mut comp_bytes);
                             match resized.write_to(&mut cursor, image::ImageOutputFormat::WebP) {
                                 Ok(_) => (comp_bytes.into(), "webp".to_string()),
-                                Err(_) => (data_clone.into(), ext_clone), // Fallback to original
+                                Err(_) => (data_clone, ext_clone), // Fallback to original
                             }
                         }
-                        Err(_) => (data_clone.into(), ext_clone), // Fallback if load fails
+                        Err(_) => (data_clone, ext_clone), // Fallback if load fails
                     }
                 })
                 .await

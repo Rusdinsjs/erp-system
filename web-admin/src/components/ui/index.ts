@@ -25,4 +25,6 @@ export { TreeItem } from './Tree';
 export { TagsInput } from './TagsInput';
 export { Logo } from './Logo';
 export { MultiSelect } from './MultiSelect';
+export { Progress } from './Progress';
+export { GlobalSearch } from './GlobalSearch';
 

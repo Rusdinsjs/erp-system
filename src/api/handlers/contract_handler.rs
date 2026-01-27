@@ -170,17 +170,17 @@ pub async fn upload_document(
     }
 
     // Create document record
-    let document = ContractDocument::new(
+    let document = ContractDocument::new(crate::domain::entities::CreateContractDocumentRequest {
         contract_id,
         document_type,
         file_name,
         file_path,
-        file_data.len() as i64,
+        file_size: file_data.len() as i64,
         mime_type,
         version,
-        claims.user_id(),
+        uploaded_by: claims.user_id(),
         notes,
-    );
+    });
 
     match state.contract_document_repo.create(&document).await {
         Ok(doc) => {

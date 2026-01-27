@@ -210,7 +210,7 @@ impl AnalyticsService {
             work_order_count: maintenance.wo_count.unwrap_or(0),
             net_profit,
             roi_percentage,
-            utilization_days: revenue.utilization_days.map(|d| d as i64).unwrap_or(0),
+            utilization_days: revenue.utilization_days.unwrap_or(0),
         })
     }
 }

@@ -1,6 +1,7 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -9,6 +10,19 @@ pub enum LeaveStatus {
     Pending,
     Approved,
     Rejected,
+}
+
+impl FromStr for LeaveStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "approved" => Ok(Self::Approved),
+            "rejected" => Ok(Self::Rejected),
+            "pending" => Ok(Self::Pending),
+            _ => Err(format!("Invalid leave status: {}", s)),
+        }
+    }
 }
 
 impl LeaveStatus {
@@ -20,12 +34,9 @@ impl LeaveStatus {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "approved" => Self::Approved,
-            "rejected" => Self::Rejected,
-            _ => Self::Pending,
-        }
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(s: &str) -> Option<Self> {
+        <Self as FromStr>::from_str(s).ok()
     }
 }
 
@@ -54,6 +65,6 @@ pub struct LeaveRequest {
 
 impl LeaveRequest {
     pub fn status_enum(&self) -> LeaveStatus {
-        LeaveStatus::from_str(&self.status)
+        <LeaveStatus as FromStr>::from_str(&self.status).unwrap_or(LeaveStatus::Pending)
     }
 }

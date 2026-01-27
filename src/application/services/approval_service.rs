@@ -128,7 +128,9 @@ impl ApprovalService {
                     service: "database".to_string(),
                     message: e.to_string(),
                 })?
-                .ok_or_else(|| DomainError::not_found("Approval request", request_id.to_string()))?;
+                .ok_or_else(|| {
+                    DomainError::not_found("Approval request", request_id.to_string())
+                })?;
 
             Ok(updated)
         } else if request.current_approval_level == 2 {
@@ -174,6 +176,20 @@ impl ApprovalService {
                 Some(approver_id),
                 Some(notes),
             )
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
+    pub async fn find_active_request(
+        &self,
+        resource_type: &str,
+        resource_id: Uuid,
+    ) -> DomainResult<Option<ApprovalRequest>> {
+        self.repository
+            .find_pending_by_resource(resource_type, resource_id)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),

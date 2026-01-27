@@ -1,0 +1,716 @@
+    Checking management-system v0.1.0 (/home/rus/.gemini/antigravity/scratch/Business_Systems/management-system)
+error: redundant pattern matching, consider using `is_ok()`
+   --> src/api/handlers/approval_handler.rs:226:12
+    |
+226 |     if let Ok(_) = state.work_order_service.get_by_id(id).await {
+    |     -------^^^^^----------------------------------------------- help: try: `if (state.work_order_service.get_by_id(id).await).is_ok()`
+    |
+    = note: this will change drop order of the result, as well as all temporaries
+    = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+    = note: `-D clippy::redundant-pattern-matching` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_pattern_matching)]`
+
+error: redundant closure
+  --> src/api/handlers/client_handler.rs:34:18
+   |
+34 |         .map_err(|e| AppError::Domain(e))?;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the tuple variant itself: `AppError::Domain`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+   = note: `-D clippy::redundant-closure` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::redundant_closure)]`
+
+error: redundant closure
+  --> src/api/handlers/client_handler.rs:62:18
+   |
+62 |         .map_err(|e| AppError::Domain(e))?;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the tuple variant itself: `AppError::Domain`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: redundant closure
+  --> src/api/handlers/client_handler.rs:75:18
+   |
+75 |         .map_err(|e| AppError::Domain(e))?;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the tuple variant itself: `AppError::Domain`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: redundant closure
+  --> src/api/handlers/client_handler.rs:90:18
+   |
+90 |         .map_err(|e| AppError::Domain(e))?;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the tuple variant itself: `AppError::Domain`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/api/handlers/client_handler.rs:128:18
+    |
+128 |         .map_err(|e| AppError::Domain(e))?;
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the tuple variant itself: `AppError::Domain`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/api/handlers/client_handler.rs:142:18
+    |
+142 |         .map_err(|e| AppError::Domain(e))?;
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the tuple variant itself: `AppError::Domain`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: you should consider adding a `Default` implementation for `WebSocketManager`
+  --> src/api/handlers/notification_ws.rs:34:5
+   |
+34 | /     pub fn new() -> Self {
+35 | |         Self {
+36 | |             sessions: Mutex::new(HashMap::new()),
+37 | |         }
+38 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#new_without_default
+   = note: `-D clippy::new-without-default` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::new_without_default)]`
+help: try adding this
+   |
+33 + impl Default for WebSocketManager {
+34 +     fn default() -> Self {
+35 +         Self::new()
+36 +     }
+37 + }
+   |
+
+error: useless conversion to the same type: `axum::body::Bytes`
+  --> src/api/handlers/upload_handler.rs:75:44
+   |
+75 | ...                   Err(_) => (data_clone.into(), ext_clone), // Fallback to original
+   |                                  ^^^^^^^^^^^^^^^^^ help: consider removing `.into()`: `data_clone`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#useless_conversion
+   = note: `-D clippy::useless-conversion` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::useless_conversion)]`
+
+error: useless conversion to the same type: `axum::body::Bytes`
+  --> src/api/handlers/upload_handler.rs:78:36
+   |
+78 |                         Err(_) => (data_clone.into(), ext_clone), // Fallback if load fails
+   |                                    ^^^^^^^^^^^^^^^^^ help: consider removing `.into()`: `data_clone`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#useless_conversion
+
+error: redundant closure
+  --> src/api/handlers/attendance_handler.rs:71:18
+   |
+71 |         .map_err(|e| internal_error(e))?;
+   |                  ^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `internal_error`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/api/handlers/attendance_handler.rs:138:22
+    |
+138 |             .map_err(|e| internal_error(e))?;
+    |                      ^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `internal_error`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/api/handlers/attendance_handler.rs:150:18
+    |
+150 |         .map_err(|e| internal_error(e))?;
+    |                  ^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `internal_error`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: redundant closure
+   --> src/api/handlers/attendance_handler.rs:165:22
+    |
+165 |             .map_err(|e| internal_error(e))?;
+    |                      ^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `internal_error`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_closure
+
+error: this expression creates a reference which is immediately dereferenced by the compiler
+  --> src/api/middleware/auth.rs:32:51
+   |
+32 |     let _claims: UserClaims = decode_token(token, &config).map_err(|e| {
+   |                                                   ^^^^^^^ help: change this to: `config`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrow
+   = note: `-D clippy::needless-borrow` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_borrow)]`
+
+error: module has the same name as its containing module
+  --> src/api/routes/mod.rs:10:1
+   |
+10 | pub mod routes;
+   | ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#module_inception
+   = note: `-D clippy::module-inception` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::module_inception)]`
+
+error: casting to the same type is unnecessary (`i64` -> `i64`)
+   --> src/application/services/analytics_service.rs:213:64
+    |
+213 |             utilization_days: revenue.utilization_days.map(|d| d as i64).unwrap_or(0),
+    |                                                                ^^^^^^^^ help: try: `d`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#unnecessary_cast
+    = note: `-D clippy::unnecessary-cast` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_cast)]`
+
+error: large size difference between variants
+  --> src/application/services/asset_service.rs:27:1
+   |
+27 | / pub enum AssetOperationResult {
+28 | |     Success(Asset),
+   | |     -------------- the largest variant contains at least 544 bytes
+29 | |     PendingApproval(ApprovalRequest),
+   | |     -------------------------------- the second-largest variant contains at least 312 bytes
+30 | | }
+   | |_^ the entire enum is at least 544 bytes
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#large_enum_variant
+   = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+   |
+28 -     Success(Asset),
+28 +     Success(Box<Asset>),
+   |
+
+error: redundant pattern matching, consider using `is_some()`
+   --> src/application/services/asset_service.rs:258:16
+    |
+258 |         if let Some(_) = self
+    |                ^^^^^^^
+    |
+    = note: this will change drop order of the result, as well as all temporaries
+    = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+help: try
+    |
+258 ~         if (self
+259 +             .repository
+260 +             .find_by_code(&request.asset_code)
+261 +             .await
+262 +             .map_err(|e| DomainError::ExternalServiceError {
+263 +                 service: "database".to_string(),
+264 +                 message: e.to_string(),
+265 +             })?).is_some()
+    |
+
+error: deref which would be done by auto-deref
+   --> src/application/services/asset_service.rs:363:39
+    |
+363 |                 .create_with_executor(&mut *tx, asset_req, user_id, role_level)
+    |                                       ^^^^^^^^ help: try: `&mut tx`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#explicit_auto_deref
+    = note: `-D clippy::explicit-auto-deref` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::explicit_auto_deref)]`
+
+error: redundant pattern matching, consider using `is_some()`
+   --> src/application/services/auth_service.rs:119:16
+    |
+119 |         if let Some(_) = self.repository.find_by_email(email).await.map_err(|e| {
+    |                ^^^^^^^
+    |
+    = note: this will change drop order of the result, as well as all temporaries
+    = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+help: try
+    |
+119 ~         if (self.repository.find_by_email(email).await.map_err(|e| {
+120 +             DomainError::ExternalServiceError {
+121 +                 service: "database".to_string(),
+122 +                 message: e.to_string(),
+123 +             }
+124 ~         })?).is_some() {
+    |
+
+error: parameter is only used in recursion
+   --> src/application/services/category_service.rs:255:10
+    |
+255 |         &self,
+    |          ^^^^
+    |
+note: parameter used here
+   --> src/application/services/category_service.rs:263:22
+    |
+263 |             .map(|c| self.build_tree_node(c, all_categories, level + 1))
+    |                      ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#only_used_in_recursion
+    = note: `-D clippy::only-used-in-recursion` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::only_used_in_recursion)]`
+
+error: redundant pattern matching, consider using `is_some()`
+  --> src/application/services/employee_service.rs:27:16
+   |
+27 |         if let Some(_) = self.repository.get_by_nik(&req.nik).await? {
+   |         -------^^^^^^^---------------------------------------------- help: try: `if (self.repository.get_by_nik(&req.nik).await?).is_some()`
+   |
+   = note: this will change drop order of the result, as well as all temporaries
+   = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+
+error: redundant pattern matching, consider using `is_some()`
+   --> src/application/services/employee_service.rs:126:24
+    |
+126 |                 if let Some(_) = self.repository.get_by_nik(&nik).await? {
+    |                 -------^^^^^^^------------------------------------------ help: try: `if (self.repository.get_by_nik(&nik).await?).is_some()`
+    |
+    = note: this will change drop order of the result, as well as all temporaries
+    = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+
+error: this function has too many arguments (8/7)
+   --> src/application/services/notification_service.rs:246:5
+    |
+246 | /     pub async fn notify_sensor_alert(
+247 | |         &self,
+248 | |         user_id: Uuid,
+249 | |         asset_name: &str,
+...   |
+254 | |         asset_id: Uuid,
+255 | |     ) -> DomainResult<Notification> {
+    | |___________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#too_many_arguments
+    = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: this expression creates a reference which is immediately dereferenced by the compiler
+   --> src/application/services/sensor_service.rs:255:17
+    |
+255 |                 &sensor_id,
+    |                 ^^^^^^^^^^ help: change this to: `sensor_id`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrow
+
+error: the borrowed expression implements the required traits
+  --> src/application/services/data_service.rs:28:26
+   |
+28 |           wtr.write_record(&[
+   |  __________________________^
+29 | |             "ID",
+30 | |             "Code",
+31 | |             "Name",
+...  |
+36 | |             "Purchase Price",
+37 | |         ])
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+   = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+help: change this to
+   |
+28 ~         wtr.write_record([
+29 +             "ID",
+30 +             "Code",
+31 +             "Name",
+32 +             "Status",
+33 +             "Brand",
+34 +             "Model",
+35 +             "Serial Number",
+36 +             "Purchase Price",
+37 ~         ])
+   |
+
+error: redundant pattern matching, consider using `is_some()`
+  --> src/application/services/user_service.rs:39:16
+   |
+39 |         if let Some(_) = self
+   |                ^^^^^^^
+   |
+   = note: this will change drop order of the result, as well as all temporaries
+   = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#redundant_pattern_matching
+help: try
+   |
+39 ~         if (self
+40 +             .repository
+41 +             .find_by_email(&req.email)
+42 +             .await
+43 +             .map_err(|e| DomainError::ExternalServiceError {
+44 +                 service: "database".to_string(),
+45 +                 message: e.to_string(),
+46 +             })?).is_some()
+   |
+
+error: the borrowed expression implements the required traits
+  --> src/application/services/report_service.rs:37:26
+   |
+37 |           wtr.write_record(&[
+   |  __________________________^
+38 | |             "ID",
+39 | |             "Code",
+40 | |             "Name",
+...  |
+48 | |             "Condition",
+49 | |         ])
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+help: change this to
+   |
+37 ~         wtr.write_record([
+38 +             "ID",
+39 +             "Code",
+40 +             "Name",
+41 +             "Status",
+42 +             "Class",
+43 +             "Brand",
+44 +             "Model",
+45 +             "Serial Number",
+46 +             "Purchase Date",
+47 +             "Purchase Price",
+48 +             "Condition",
+49 ~         ])
+   |
+
+error: the borrowed expression implements the required traits
+   --> src/application/services/report_service.rs:101:26
+    |
+101 |           wtr.write_record(&[
+    |  __________________________^
+102 | |             "Date",
+103 | |             "Asset Name",
+104 | |             "Maintenance Type",
+...   |
+107 | |             "Actual Date",
+108 | |         ])
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+help: change this to
+    |
+101 ~         wtr.write_record([
+102 +             "Date",
+103 +             "Asset Name",
+104 +             "Maintenance Type",
+105 +             "Status",
+106 +             "Cost",
+107 +             "Actual Date",
+108 ~         ])
+    |
+
+error: parameter is only used in recursion
+  --> src/application/services/finance_service.rs:75:10
+   |
+75 |         &self,
+   |          ^^^^
+   |
+note: parameter used here
+  --> src/application/services/finance_service.rs:83:32
+   |
+83 |                 let children = self.build_tree(accounts, Some(acc.id));
+   |                                ^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#only_used_in_recursion
+
+error: this function has too many arguments (8/7)
+  --> src/application/services/fuel_service.rs:21:5
+   |
+21 | /     pub async fn request_fuel(
+22 | |         &self,
+23 | |         asset_id: Uuid,
+24 | |         requested_by: Uuid,
+...  |
+29 | |         driver_id: Option<Uuid>,
+30 | |     ) -> Result<FuelLog, String> {
+   | |________________________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#too_many_arguments
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/asset_lifecycle.rs:51:5
+   |
+51 | /     pub fn from_str(s: &str) -> Option<Self> {
+52 | |         match s.to_lowercase().as_str() {
+53 | |             "planning" => Some(Self::Planning),
+54 | |             "procurement" => Some(Self::Procurement),
+...  |
+69 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+   = note: `-D clippy::should-implement-trait` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::should_implement_trait)]`
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+   --> src/domain/entities/asset_lifecycle.rs:281:5
+    |
+281 | /     pub fn from_str(s: &str) -> Option<Self> {
+282 | |         match s {
+283 | |             "function_change" => Some(Self::FunctionChange),
+284 | |             "upgrade" => Some(Self::Upgrade),
+...   |
+290 | |     }
+    | |_____^
+    |
+    = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+   --> src/domain/entities/asset_lifecycle.rs:317:5
+    |
+317 | /     pub fn from_str(s: &str) -> Option<Self> {
+318 | |         match s {
+319 | |             "pending" => Some(Self::Pending),
+320 | |             "approved" => Some(Self::Approved),
+...   |
+327 | |     }
+    | |_____^
+    |
+    = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/attendance.rs:28:5
+   |
+28 | /     pub fn from_str(s: &str) -> Option<Self> {
+29 | |         match s.to_lowercase().as_str() {
+30 | |             "on_time" | "ontime" => Some(Self::OnTime),
+31 | |             "late" => Some(Self::Late),
+...  |
+35 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: this function has too many arguments (9/7)
+  --> src/domain/entities/contract_document.rs:29:5
+   |
+29 | /     pub fn new(
+30 | |         contract_id: Uuid,
+31 | |         document_type: String,
+32 | |         file_name: String,
+...  |
+38 | |         notes: Option<String>,
+39 | |     ) -> Self {
+   | |_____________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#too_many_arguments
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/employee.rs:25:5
+   |
+25 | /     pub fn from_str(s: &str) -> Option<Self> {
+26 | |         match s.to_lowercase().as_str() {
+27 | |             "pkwt" => Some(Self::Pkwt),
+28 | |             "pkwtt" => Some(Self::Pkwtt),
+...  |
+33 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/leave.rs:23:5
+   |
+23 | /     pub fn from_str(s: &str) -> Self {
+24 | |         match s.to_lowercase().as_str() {
+25 | |             "approved" => Self::Approved,
+26 | |             "rejected" => Self::Rejected,
+...  |
+29 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/loan.rs:41:5
+   |
+41 | /     pub fn from_str(s: &str) -> Option<Self> {
+42 | |         match s {
+43 | |             "requested" => Some(Self::Requested),
+44 | |             "approved" => Some(Self::Approved),
+...  |
+54 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/location.rs:38:5
+   |
+38 | /     pub fn from_str(s: &str) -> Option<Self> {
+39 | |         match s.to_lowercase().as_str() {
+40 | |             "country" => Some(Self::Country),
+41 | |             "city" => Some(Self::City),
+...  |
+50 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/rental.rs:38:5
+   |
+38 | /     pub fn from_str(s: &str) -> Option<Self> {
+39 | |         match s.to_lowercase().as_str() {
+40 | |             "requested" => Some(Self::Requested),
+41 | |             "approved" => Some(Self::Approved),
+...  |
+49 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/rental_billing.rs:31:5
+   |
+31 | /     pub fn from_str(s: &str) -> Option<Self> {
+32 | |         match s.to_lowercase().as_str() {
+33 | |             "daily" => Some(Self::Daily),
+34 | |             "weekly" => Some(Self::Weekly),
+...  |
+39 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+  --> src/domain/entities/rental_billing.rs:68:5
+   |
+68 | /     pub fn from_str(s: &str) -> Option<Self> {
+69 | |         match s.to_lowercase().as_str() {
+70 | |             "draft" => Some(Self::Draft),
+71 | |             "calculated" => Some(Self::Calculated),
+...  |
+79 | |     }
+   | |_____^
+   |
+   = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`
+   --> src/domain/entities/rental_billing.rs:100:5
+    |
+100 | /     pub fn from_str(s: &str) -> Option<Self> {
+101 | |         match s.to_lowercase().as_str() {
+102 | |             "hourly" => Some(Self::Hourly),
+103 | |             "daily" => Some(Self::Daily),
+...   |
+107 | |     }
+    | |_____^
+    |
+    = help: consider implementing the trait `std::str::FromStr` or choosing a less ambiguous method name
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#should_implement_trait
+
+error: this function has too many arguments (9/7)
+   --> src/infrastructure/repositories/asset_repository.rs:287:5
+    |
+287 | /     pub async fn search(
+288 | |         &self,
+289 | |         query: &str,
+290 | |         category_id: Option<&str>,
+...   |
+296 | |         offset: i64,
+297 | |     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
+    | |_______________________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#too_many_arguments
+
+error: useless conversion to the same type: `std::string::String`
+   --> src/infrastructure/repositories/asset_repository.rs:573:48
+    |
+573 |             .map_err(|e| sqlx::Error::Protocol(e.to_string().into()))?;
+    |                                                ^^^^^^^^^^^^^^^^^^^^ help: consider removing `.into()`: `e.to_string()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#useless_conversion
+
+error: useless conversion to the same type: `std::string::String`
+  --> src/infrastructure/repositories/category_template_repository.rs:54:48
+   |
+54 |             .map_err(|e| sqlx::Error::Protocol(format!("Failed to serialize attributes: {}", e).into()))?;
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider removing `.into()`: `format!("Failed to serialize attributes: {}", e)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#useless_conversion
+
+error: the borrowed expression implements the required traits
+  --> src/infrastructure/repositories/contract_renewal_repository.rs:27:15
+   |
+27 |         .bind(&renewal.id)
+   |               ^^^^^^^^^^^ help: change this to: `renewal.id`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+  --> src/infrastructure/repositories/contract_renewal_repository.rs:28:15
+   |
+28 |         .bind(&renewal.original_contract_id)
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `renewal.original_contract_id`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+  --> src/infrastructure/repositories/contract_renewal_repository.rs:29:15
+   |
+29 |         .bind(&renewal.new_contract_id)
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `renewal.new_contract_id`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+  --> src/infrastructure/repositories/contract_renewal_repository.rs:31:15
+   |
+31 |         .bind(&renewal.previous_end_date)
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `renewal.previous_end_date`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+  --> src/infrastructure/repositories/contract_renewal_repository.rs:32:15
+   |
+32 |         .bind(&renewal.new_end_date)
+   |               ^^^^^^^^^^^^^^^^^^^^^ help: change this to: `renewal.new_end_date`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+  --> src/infrastructure/repositories/contract_renewal_repository.rs:34:15
+   |
+34 |         .bind(&renewal.renewed_by)
+   |               ^^^^^^^^^^^^^^^^^^^ help: change this to: `renewal.renewed_by`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: the borrowed expression implements the required traits
+  --> src/infrastructure/repositories/contract_renewal_repository.rs:35:15
+   |
+35 |         .bind(&renewal.renewed_at)
+   |               ^^^^^^^^^^^^^^^^^^^ help: change this to: `renewal.renewed_at`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#needless_borrows_for_generic_args
+
+error: this function has too many arguments (9/7)
+   --> src/infrastructure/repositories/user_repository.rs:146:5
+    |
+146 | /     pub async fn update(
+147 | |         &self,
+148 | |         id: Uuid,
+149 | |         name: Option<String>,
+...   |
+155 | |         is_active: Option<bool>,
+156 | |     ) -> Result<User, sqlx::Error> {
+    | |__________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#too_many_arguments
+
+error: could not compile `management-system` (lib) due to 56 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `management-system` (lib test) due to 56 previous errors

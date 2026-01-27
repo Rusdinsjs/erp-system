@@ -1,0 +1,34 @@
+    Blocking waiting for file lock on build directory
+   Compiling openssl-sys v0.9.111
+   Compiling openssl v0.10.75
+   Compiling native-tls v0.2.14
+    Checking tokio-native-tls v0.3.1
+    Checking lettre v0.11.19
+    Checking management-system v0.1.0 (/home/rus/.gemini/antigravity/scratch/Business_Systems/management-system)
+error: this `if` statement can be collapsed
+   --> src/application/services/employee_service.rs:125:13
+    |
+125 | /             if nik != employee.nik {
+126 | |                 if (self.repository.get_by_nik(&nik).await?).is_some() {
+127 | |                     return Err(AppError::Domain(
+128 | |                         crate::domain::errors::DomainError::bad_request(&format!(
+...   |
+134 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.91.0/index.html#collapsible_if
+    = note: `-D clippy::collapsible-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+125 ~             if nik != employee.nik
+126 ~                 && (self.repository.get_by_nik(&nik).await?).is_some() {
+127 |                     return Err(AppError::Domain(
+...
+132 |                     ));
+133 ~                 }
+    |
+
+error: could not compile `management-system` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `management-system` (lib test) due to 1 previous error

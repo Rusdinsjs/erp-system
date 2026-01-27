@@ -29,7 +29,7 @@ pub async fn auth_middleware(
 
     let config = &state.jwt_config;
 
-    let _claims: UserClaims = decode_token(token, &config).map_err(|e| {
+    let _claims: UserClaims = decode_token(token, config).map_err(|e| {
         tracing::error!("Auth Middleware Decode Error: {:?}", e);
         StatusCode::UNAUTHORIZED
     })?;

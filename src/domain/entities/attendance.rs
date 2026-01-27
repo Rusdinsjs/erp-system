@@ -1,10 +1,12 @@
 //! Attendance Entity
 //!
 //! Attendance record for employee check-in/check-out tracking.
+//!
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::str::FromStr;
 use uuid::Uuid;
 
 /// Check-in/out status
@@ -16,6 +18,19 @@ pub enum AttendanceStatus {
     Early,
 }
 
+impl FromStr for AttendanceStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "on_time" | "ontime" => Ok(Self::OnTime),
+            "late" => Ok(Self::Late),
+            "early" => Ok(Self::Early),
+            _ => Err(format!("Invalid attendance status: {}", s)),
+        }
+    }
+}
+
 impl AttendanceStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -25,13 +40,9 @@ impl AttendanceStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "on_time" | "ontime" => Some(Self::OnTime),
-            "late" => Some(Self::Late),
-            "early" => Some(Self::Early),
-            _ => None,
-        }
+        <Self as FromStr>::from_str(s).ok()
     }
 }
 

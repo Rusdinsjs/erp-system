@@ -75,11 +75,7 @@ export const contractApi = {
             formData.append('notes', request.notes);
         }
 
-        const { data } = await api.post(`/contracts/${contractId}/documents`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+        const { data } = await api.post(`/contracts/${contractId}/documents`, formData);
         return data.data;
     },
 

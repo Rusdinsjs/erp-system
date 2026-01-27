@@ -2,11 +2,13 @@
 //!
 //! Core entity for Rented-Out (external asset rental) operations.
 //! Supports Multi-Asset Rentals (1 Rental Agreement -> Many Rental Items).
+//!
 
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::str::FromStr;
 use uuid::Uuid;
 
 /// Rental status enum
@@ -22,6 +24,23 @@ pub enum RentalStatus {
     Cancelled,
 }
 
+impl FromStr for RentalStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "requested" => Ok(Self::Requested),
+            "approved" => Ok(Self::Approved),
+            "rejected" => Ok(Self::Rejected),
+            "rented_out" => Ok(Self::RentedOut),
+            "returned" => Ok(Self::Returned),
+            "overdue" => Ok(Self::Overdue),
+            "cancelled" => Ok(Self::Cancelled),
+            _ => Err(format!("Invalid rental status: {}", s)),
+        }
+    }
+}
+
 impl RentalStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -35,17 +54,9 @@ impl RentalStatus {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "requested" => Some(Self::Requested),
-            "approved" => Some(Self::Approved),
-            "rejected" => Some(Self::Rejected),
-            "rented_out" => Some(Self::RentedOut),
-            "returned" => Some(Self::Returned),
-            "overdue" => Some(Self::Overdue),
-            "cancelled" => Some(Self::Cancelled),
-            _ => None,
-        }
+        <Self as FromStr>::from_str(s).ok()
     }
 
     pub fn display_name(&self) -> &'static str {
@@ -197,7 +208,7 @@ impl Rental {
 
     /// Get current status as enum
     pub fn get_status(&self) -> Option<RentalStatus> {
-        RentalStatus::from_str(&self.status)
+        <RentalStatus as FromStr>::from_str(&self.status).ok()
     }
 
     /// Check if rental is overdue (Header level check - based on contract dates)
