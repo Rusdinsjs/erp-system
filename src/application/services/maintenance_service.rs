@@ -342,4 +342,82 @@ impl MaintenanceService {
                 message: e.to_string(),
             })
     }
+
+    pub async fn run_schedule_now(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+    ) -> DomainResult<MaintenanceRecord> {
+        // 1. Fetch Schedule
+        let schedule = self
+            .repository
+            .find_schedule_by_id(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("MaintenanceSchedule", id))?;
+
+        // 2. Create Maintenance Record (Work Order)
+        let record = MaintenanceRecord {
+            id: Uuid::new_v4(),
+            asset_id: schedule.asset_id,
+            maintenance_type_id: None, // Optional, or derive from schedule if we add type to schedule
+            scheduled_date: Some(chrono::Utc::now().naive_utc().date()),
+            actual_date: None,
+            description: Some(format!("Manual Run: {}", schedule.title)),
+            findings: None,
+            actions_taken: None,
+            cost: None,
+            currency_id: None,
+            performed_by: None,
+            vendor_id: None,
+            assigned_to: None,
+            status: "pending".to_string(),
+            approval_status: "approved".to_string(), // Auto-approved for manual run? Or pending? Let's say pending assignment
+            cost_threshold_exceeded: false,
+            next_service_date: None,
+            odometer_reading: None,
+            created_by: Some(user_id),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            asset_name: None,
+            type_name: None,
+        };
+
+        let created_record = self.repository.create(&record).await.map_err(|e| {
+            DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            }
+        })?;
+
+        // 3. Update Schedule next run date
+        let today = chrono::Utc::now().naive_utc().date();
+        let next_run = if schedule.interval_type == "time" {
+            match schedule.interval_unit.as_str() {
+                "days" => Some(today + chrono::Duration::days(schedule.interval_value as i64)),
+                "weeks" => Some(today + chrono::Duration::weeks(schedule.interval_value as i64)),
+                "months" => {
+                    Some(today + chrono::Duration::days((schedule.interval_value * 30) as i64))
+                }
+                "years" => {
+                    Some(today + chrono::Duration::days((schedule.interval_value * 365) as i64))
+                }
+                _ => None,
+            }
+        } else {
+            None // Usage based handled separately
+        };
+
+        if let Some(next_date) = next_run {
+            let _ = self
+                .repository
+                .update_schedule_next_run(schedule.id, next_date, today)
+                .await;
+        }
+
+        Ok(created_record)
+    }
 }

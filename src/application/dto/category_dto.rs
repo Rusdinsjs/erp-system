@@ -19,6 +19,9 @@ pub struct CreateCategoryRequest {
     pub example_assets: Option<Vec<String>>,
     pub attributes: Option<Vec<String>>,
     pub display_order: Option<i32>,
+    pub asset_account_id: Option<Uuid>,
+    pub expense_account_id: Option<Uuid>,
+    pub accumulated_depreciation_account_id: Option<Uuid>,
 }
 
 /// Request to update a category
@@ -35,6 +38,9 @@ pub struct UpdateCategoryRequest {
     pub example_assets: Option<Vec<String>>,
     pub attributes: Option<Vec<String>>,
     pub display_order: Option<i32>,
+    pub asset_account_id: Option<Uuid>,
+    pub expense_account_id: Option<Uuid>,
+    pub accumulated_depreciation_account_id: Option<Uuid>,
 }
 
 /// Category response with all fields
@@ -52,6 +58,9 @@ pub struct CategoryResponse {
     pub example_assets: Option<Vec<String>>,
     pub attributes: Option<Vec<String>>,
     pub display_order: i32,
+    pub asset_account_id: Option<Uuid>,
+    pub expense_account_id: Option<Uuid>,
+    pub accumulated_depreciation_account_id: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }

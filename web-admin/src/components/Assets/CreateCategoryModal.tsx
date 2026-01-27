@@ -27,6 +27,9 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
         main_category: '', // Optional/Auto-inferred?
         description: '',
         attributes: [] as string[],
+        asset_account_id: '',
+        expense_account_id: '',
+        accumulated_depreciation_account_id: '',
     });
 
     // We need parent categories for the dropdown
@@ -40,6 +43,24 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
         staleTime: 5 * 60 * 1000,
         enabled: isOpen // Only fetch when open
     });
+
+    // Fetch accounts for mapping
+    const { data: accountsData } = useQuery({
+        queryKey: ['finance-accounts'],
+        queryFn: async () => {
+            const res = await api.get('/finance/accounts');
+            return res.data.data as any[];
+        },
+        staleTime: 5 * 60 * 1000,
+        enabled: isOpen
+    });
+
+    const accountOptions = useMemo(() => {
+        return (accountsData || []).map(acc => ({
+            value: acc.id,
+            label: `${acc.code} - ${acc.name}`
+        }));
+    }, [accountsData]);
 
     // Helper to flatten
     const flatCategories = useMemo(() => {
@@ -89,6 +110,9 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
             depreciation_period_months: null,
             example_assets: [],
             // attributes is already in formData
+            asset_account_id: formData.asset_account_id || null,
+            expense_account_id: formData.expense_account_id || null,
+            accumulated_depreciation_account_id: formData.accumulated_depreciation_account_id || null,
         });
     };
 
@@ -100,6 +124,9 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
             main_category: '',
             description: '',
             attributes: [],
+            asset_account_id: '',
+            expense_account_id: '',
+            accumulated_depreciation_account_id: '',
         });
         setActiveTab('general');
         onClose();
@@ -120,6 +147,7 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <TabsList className="mb-4">
                         <TabsTrigger value="general">General</TabsTrigger>
+                        <TabsTrigger value="accounting">Accounting</TabsTrigger>
                         <TabsTrigger value="attributes">Attributes</TabsTrigger>
                     </TabsList>
 
@@ -162,6 +190,39 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
                             value={formData.description}
                             onChange={(e) => updateField('description', e.target.value)}
                             rows={2}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="accounting" className="space-y-4">
+                        <div className="bg-blue-900/20 p-4 rounded-lg border border-blue-800/50 mb-4">
+                            <h3 className="text-sm font-medium text-blue-400 mb-1">GL Account Mapping</h3>
+                            <p className="text-xs text-slate-400">
+                                Link this category to the General Ledger for automated journal entries (CAPEX/OPEX).
+                            </p>
+                        </div>
+
+                        <Select
+                            label="Asset Control Account (CAPEX)"
+                            options={accountOptions}
+                            value={formData.asset_account_id}
+                            onChange={(val) => updateField('asset_account_id', val)}
+                            placeholder="Select asset account (e.g. 12101)"
+                        />
+
+                        <Select
+                            label="Depreciation Expense Account (OPEX)"
+                            options={accountOptions}
+                            value={formData.expense_account_id}
+                            onChange={(val) => updateField('expense_account_id', val)}
+                            placeholder="Select expense account"
+                        />
+
+                        <Select
+                            label="Accumulated Depreciation Account"
+                            options={accountOptions}
+                            value={formData.accumulated_depreciation_account_id}
+                            onChange={(val) => updateField('accumulated_depreciation_account_id', val)}
+                            placeholder="Select accumulated account"
                         />
                     </TabsContent>
 

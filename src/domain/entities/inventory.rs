@@ -34,17 +34,16 @@ pub struct InventoryItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "inventory_movement_type")]
+#[sqlx(
+    type_name = "inventory_movement_type",
+    rename_all = "SCREAMING_SNAKE_CASE"
+)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum InventoryMovementType {
-    #[serde(rename = "IN_PURCHASE")]
     InPurchase,
-    #[serde(rename = "IN_ADJUSTMENT")]
     InAdjustment,
-    #[serde(rename = "OUT_USAGE")]
     OutUsage,
-    #[serde(rename = "OUT_ADJUSTMENT")]
     OutAdjustment,
-    #[serde(rename = "OUT_TRANSFER")]
     OutTransfer,
 }
 

@@ -149,11 +149,11 @@ impl JournalRepository {
     // Format: JE-YYYYMM-XXXX
     pub async fn get_next_sequence_number(&self, date: chrono::NaiveDate) -> DomainResult<String> {
         let prefix = format!("JE-{}", date.format("%Y%m"));
-        // This is not perfectly race-condition safe without table lock or sequence, but usually fine for low volume
+        // Get the highest sequence number for this prefix
         let last_entry = sqlx::query!(
             r#"
             SELECT transaction_number FROM journal_entries 
-            WHERE transaction_number LIKE $1 || '%'
+            WHERE transaction_number LIKE $1 || '-%'
             ORDER BY transaction_number DESC 
             LIMIT 1
             "#,
@@ -165,9 +165,14 @@ impl JournalRepository {
 
         let next_seq = if let Some(rec) = last_entry {
             let parts: Vec<&str> = rec.transaction_number.split('-').collect();
-            if parts.len() == 3 {
-                if let Ok(num) = parts[2].parse::<i32>() {
-                    num + 1
+            if parts.len() >= 3 {
+                // Try to parse the last part as a number
+                if let Some(last_part) = parts.last() {
+                    if let Ok(num) = last_part.parse::<i32>() {
+                        num + 1
+                    } else {
+                        1
+                    }
                 } else {
                     1
                 }

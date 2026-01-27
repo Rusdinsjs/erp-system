@@ -61,6 +61,7 @@ pub use health_handler::*;
 pub use inventory_handler::*;
 pub use loan_handler::*;
 pub use lookup_handler::*;
+pub use maintenance_handler::*;
 pub use maintenance_template_handler::*;
 
 pub use finance_handler::*;

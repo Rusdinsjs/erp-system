@@ -297,6 +297,27 @@ impl MaintenanceRepository {
         .await
     }
 
+    pub async fn find_schedule_by_id(
+        &self,
+        id: Uuid,
+    ) -> Result<Option<crate::domain::entities::maintenance::MaintenanceSchedule>, sqlx::Error>
+    {
+        sqlx::query_as!(
+            crate::domain::entities::maintenance::MaintenanceSchedule,
+            r#"
+            SELECT 
+                ms.*,
+                a.name as asset_name
+            FROM maintenance_schedules ms
+            JOIN assets a ON ms.asset_id = a.id
+            WHERE ms.id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     pub async fn list_due_time_schedules(
         &self,
     ) -> Result<Vec<crate::domain::entities::maintenance::MaintenanceSchedule>, sqlx::Error> {

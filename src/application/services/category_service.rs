@@ -153,6 +153,9 @@ impl CategoryService {
         category.sub_category_letter = request.sub_category_letter;
         category.function_description = request.function_description;
         category.display_order = request.display_order.unwrap_or(0);
+        category.asset_account_id = request.asset_account_id;
+        category.expense_account_id = request.expense_account_id;
+        category.accumulated_depreciation_account_id = request.accumulated_depreciation_account_id;
 
         if let Some(assets) = request.example_assets {
             category.example_assets = Some(serde_json::to_value(assets).unwrap_or_default());
@@ -221,6 +224,15 @@ impl CategoryService {
         }
         if let Some(display_order) = request.display_order {
             category.display_order = display_order;
+        }
+        if let Some(acc) = request.asset_account_id {
+            category.asset_account_id = Some(acc);
+        }
+        if let Some(acc) = request.expense_account_id {
+            category.expense_account_id = Some(acc);
+        }
+        if let Some(acc) = request.accumulated_depreciation_account_id {
+            category.accumulated_depreciation_account_id = Some(acc);
         }
         if let Some(assets) = request.example_assets {
             category.example_assets = Some(serde_json::to_value(assets).unwrap_or_default());
@@ -312,6 +324,9 @@ impl CategoryService {
                 .as_ref()
                 .and_then(|v| serde_json::from_value(v.clone()).ok()),
             display_order: category.display_order,
+            asset_account_id: category.asset_account_id,
+            expense_account_id: category.expense_account_id,
+            accumulated_depreciation_account_id: category.accumulated_depreciation_account_id,
             created_at: category.created_at,
             updated_at: category.updated_at,
         }

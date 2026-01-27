@@ -750,11 +750,11 @@ impl AssetRepository {
 
     /// Get Asset Account ID (GL Control Account) via Category
     pub async fn get_asset_account_id(&self, asset_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
-        let row: Option<(Uuid,)> = sqlx::query_as(
+        let row: Option<(Option<Uuid>,)> = sqlx::query_as(
             r#"
             SELECT c.asset_account_id
             FROM assets a
-            JOIN categories c ON a.category_id = c.id
+            LEFT JOIN categories c ON a.category_id = c.id
             WHERE a.id = $1
             "#,
         )
@@ -762,6 +762,6 @@ impl AssetRepository {
         .fetch_optional(&self.pool)
         .await?;
 
-        Ok(row.map(|r| r.0))
+        Ok(row.and_then(|r| r.0))
     }
 }

@@ -41,5 +41,10 @@ export const maintenanceApi = {
     toggleSchedule: async (id: string, is_active: boolean) => {
         const response = await api.put(`/maintenance/schedules/${id}/toggle`, { is_active });
         return response.data.data;
+    },
+
+    runSchedule: async (id: string) => {
+        const response = await api.post(`/maintenance/schedules/${id}/run`, {});
+        return response.data.data;
     }
 };

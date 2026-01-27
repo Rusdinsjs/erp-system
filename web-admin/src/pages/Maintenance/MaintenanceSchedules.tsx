@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { maintenanceApi, type MaintenanceSchedule, type CreateMaintenanceScheduleRequest } from '../../api/maintenance';
 import { assetApi } from '../../api/assets';
-import { Plus, Calendar, Gauge, Wrench, Clock, CheckCircle } from 'lucide-react';
+import { Plus, Calendar, Gauge, Wrench, Clock, CheckCircle, Play } from 'lucide-react';
 import {
     Card,
     Button,
@@ -59,6 +59,23 @@ const MaintenanceSchedules: React.FC = () => {
             showToast(err.message || 'Failed to create schedule', 'error');
         }
     });
+
+    const runMutation = useMutation({
+        mutationFn: maintenanceApi.runSchedule,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['maintenance-schedules'] });
+            showToast('Maintenance schedule triggered successfully', 'success');
+        },
+        onError: (err: any) => {
+            showToast(err.message || 'Failed to trigger schedule', 'error');
+        }
+    });
+
+    const handleRunSchedule = (id: string, title: string) => {
+        if (confirm(`Run schedule "${title}" now? This will create a new maintenance task.`)) {
+            runMutation.mutate(id);
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -189,9 +206,19 @@ const MaintenanceSchedules: React.FC = () => {
                                             <StatusBadge status={schedule.is_active ? 'active' : 'inactive'} />
                                         </TableTd>
                                         <TableTd align="center">
-                                            <ActionIcon variant="default" title="Edit">
-                                                <Wrench size={16} />
-                                            </ActionIcon>
+                                            <div className="flex justify-center gap-2">
+                                                <ActionIcon
+                                                    variant="success"
+                                                    title="Run Now"
+                                                    onClick={() => handleRunSchedule(schedule.id, schedule.title)}
+                                                    disabled={runMutation.isPending}
+                                                >
+                                                    <Play size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon variant="default" title="Edit">
+                                                    <Wrench size={16} />
+                                                </ActionIcon>
+                                            </div>
                                         </TableTd>
                                     </TableRow>
                                 ))}
