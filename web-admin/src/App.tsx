@@ -6,6 +6,8 @@ import { lazy, Suspense } from 'react';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { PageLoading } from './components/ui';
 
+import { ThemeProvider } from './contexts/ThemeContext';
+
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
@@ -26,25 +28,27 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <WebSocketProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoading />}>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <WebSocketProvider>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoading />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* Main Dashboard with Tab Navigation - handles all internal routes */}
-              <Route
-                path="/*"
-                element={
-                  <PrivateRoute>
-                    <AdminDashboard />
-                  </PrivateRoute>
-                }
-              />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </WebSocketProvider>
+                {/* Main Dashboard with Tab Navigation - handles all internal routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <PrivateRoute>
+                      <AdminDashboard />
+                    </PrivateRoute>
+                  }
+                />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </WebSocketProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

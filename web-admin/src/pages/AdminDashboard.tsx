@@ -485,7 +485,7 @@ export default function AdminDashboard() {
                 }}
                 className={`w-full flex items-center gap-3 px-4 ${isChild ? 'py-2' : 'py-3'} rounded-lg transition-all duration-200 ${activeTab === item.id
                     ? 'bg-blue-600/20 text-blue-400 shadow-sm shadow-blue-500/10'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                     } ${isChild ? 'text-sm' : ''}`}
             >
                 <item.icon size={isChild ? 16 : 20} />
@@ -540,7 +540,7 @@ export default function AdminDashboard() {
             <div key={group.id}>
                 <button
                     onClick={() => toggleGroup(group.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isChildActive ? 'bg-blue-600/20 text-blue-400' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isChildActive ? 'bg-blue-600/20 text-blue-400' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                         }`}
                 >
                     <group.icon size={20} />
@@ -553,7 +553,7 @@ export default function AdminDashboard() {
                 </button>
 
                 {sidebarOpen && isOpen && (
-                    <div className="mt-1 border-l border-gray-800 space-y-1 ml-4">
+                    <div className="mt-1 border-l border-border space-y-1 ml-4">
                         {group.children.map(child =>
                             isNavGroup(child)
                                 ? renderNavGroup(child)
@@ -655,11 +655,11 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="flex h-screen bg-gray-900 text-gray-100 font-sans overflow-hidden">
+        <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
             {/* Mobile Backdrop */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+                    className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
@@ -668,20 +668,20 @@ export default function AdminDashboard() {
             <aside
                 className={`
             fixed lg:static inset-y-0 left-0 z-50
-            bg-gray-900 border-r border-gray-800 text-white 
+            bg-card border-r border-border text-card-foreground 
             transition-all duration-300 ease-in-out flex flex-col
             ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}
         `}
             >
                 {/* Logo */}
-                <div className="h-16 flex items-center px-4 border-b border-gray-800 gap-3">
+                <div className="h-16 flex items-center px-4 border-b border-border gap-3">
                     <Logo collapsed={!sidebarOpen} />
 
 
                     {/* Desktop Toggle Button */}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white hidden lg:block ml-auto transition-colors"
+                        className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground hidden lg:block ml-auto transition-colors"
                     >
                         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
                     </button>
@@ -703,16 +703,16 @@ export default function AdminDashboard() {
                 </nav>
 
                 {/* User & Logout */}
-                <div className="p-4 border-t border-gray-800">
+                <div className="p-4 border-t border-border">
                     {sidebarOpen && (
                         <div className="mb-3 px-2">
-                            <p className="text-sm font-medium text-gray-200">{user?.name}</p>
-                            <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                            <p className="text-sm font-medium text-foreground">{user?.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
                         </div>
                     )}
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-red-900/20 hover:text-red-400 rounded-lg transition-all duration-200"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-lg transition-all duration-200"
                     >
                         <LogOut size={20} />
                         {sidebarOpen && <span className="font-medium">Logout</span>}
@@ -723,12 +723,12 @@ export default function AdminDashboard() {
             {/* Main Content with Header */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
                 {/* Header */}
-                <header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6 gap-4">
+                <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 gap-4">
 
                     {/* Mobile Toggle Button */}
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 -ml-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white lg:hidden transition-colors"
+                        className="p-2 -ml-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground lg:hidden transition-colors"
                     >
                         <Menu size={24} />
                     </button>
@@ -741,19 +741,18 @@ export default function AdminDashboard() {
                     <div className="relative">
                         <button
                             onClick={() => setNotifOpen(!notifOpen)}
-                            className="p-2 hover:bg-gray-800 rounded-full relative transition-colors text-gray-400 hover:text-white"
+                            className="p-2 hover:bg-muted rounded-full relative transition-colors text-muted-foreground hover:text-foreground"
                         >
                             <Bell size={22} />
                         </button>
 
-                        {/* Notification Dropdown */}
                         {notifOpen && (
-                            <div className="absolute right-0 mt-2 w-80 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 z-50">
-                                <div className="p-4 border-b border-gray-800">
-                                    <h3 className="font-semibold text-white">Notifikasi</h3>
+                            <div className="absolute right-0 mt-2 w-80 bg-card rounded-xl shadow-2xl border border-border z-50">
+                                <div className="p-4 border-b border-border">
+                                    <h3 className="font-semibold text-card-foreground">Notifikasi</h3>
                                 </div>
                                 <div className="p-4">
-                                    <p className="text-sm text-gray-500 text-center">
+                                    <p className="text-sm text-muted-foreground text-center">
                                         Tidak ada notifikasi baru
                                     </p>
                                 </div>
@@ -764,7 +763,7 @@ export default function AdminDashboard() {
                     {/* User Profile */}
                     <button
                         onClick={() => setActiveTab('profile')}
-                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-gray-700"
+                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded-lg transition-colors border border-transparent hover:border-border"
                     >
                         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
                             {user?.name?.charAt(0) || 'U'}
@@ -779,7 +778,7 @@ export default function AdminDashboard() {
                 </header>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-y-auto bg-gray-900 p-6 global-scrollbar">
+                <main className="flex-1 overflow-y-auto bg-background p-6 global-scrollbar">
                     <Suspense fallback={<PageLoading />}>
                         {renderContent()}
                     </Suspense>
@@ -790,13 +789,13 @@ export default function AdminDashboard() {
             {logoutModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     {/* Using Card for Modal consistency */}
-                    <div className="bg-gray-900/50 backdrop-blur-xl border border-white/5 p-6 rounded-2xl max-w-sm w-full shadow-2xl ring-1 ring-white/10">
-                        <h3 className="text-xl font-bold text-white mb-2">Konfirmasi Logout</h3>
-                        <p className="text-gray-400 mb-6">Apakah Anda yakin ingin keluar dari sistem?</p>
+                    <div className="bg-popover/50 backdrop-blur-xl border border-border p-6 rounded-2xl max-w-sm w-full shadow-2xl ring-1 ring-white/10">
+                        <h3 className="text-xl font-bold text-foreground mb-2">Konfirmasi Logout</h3>
+                        <p className="text-muted-foreground mb-6">Apakah Anda yakin ingin keluar dari sistem?</p>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setLogoutModalOpen(false)}
-                                className="flex-1 px-4 py-2 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition-colors border border-gray-700"
+                                className="flex-1 px-4 py-2 bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-colors border border-border"
                             >
                                 Batal
                             </button>

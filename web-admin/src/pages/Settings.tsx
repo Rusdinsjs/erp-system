@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Globe, Palette, DollarSign, Upload, Image as ImageIcon } from 'lucide-react';
+import { Save, Globe, Palette, DollarSign, Upload, Image as ImageIcon, Moon, Sun, Monitor } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import { settingsApi } from '../api/settings';
 import {
     Button,
@@ -18,6 +19,7 @@ export function Settings() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
     const [activeTab, setActiveTab] = useState('general');
+    const { theme, setTheme } = useTheme();
 
     // Fetch all settings
     const { data: settings = [], isLoading } = useQuery({
@@ -79,8 +81,8 @@ export function Settings() {
         <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
             <div className="flex justify-between items-end mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">System Settings</h1>
-                    <p className="text-gray-400 mt-2">Configure global application parameters</p>
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight">System Settings</h1>
+                    <p className="text-muted-foreground mt-2">Configure global application parameters</p>
                 </div>
                 <Button
                     leftIcon={<Save size={18} />}
@@ -96,7 +98,7 @@ export function Settings() {
                 <LoadingOverlay visible={isLoading} />
 
                 <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="flex flex-col md:flex-row">
-                    <div className="w-full md:w-64 bg-gray-950/30 border-r border-white/5 p-4 md:min-h-[600px]">
+                    <div className="w-full md:w-64 bg-muted/30 border-r border-border p-4 md:min-h-[600px]">
                         <TabsList className="flex flex-col h-auto bg-transparent gap-2 w-full">
                             <TabsTrigger
                                 value="general"
@@ -122,11 +124,11 @@ export function Settings() {
                         </TabsList>
                     </div>
 
-                    <div className="flex-1 p-8 bg-gray-900/20">
+                    <div className="flex-1 p-8 bg-card">
                         <TabsContent value="general" className="mt-0 space-y-6">
                             <div>
-                                <h3 className="text-lg font-bold text-white mb-1">General Information</h3>
-                                <p className="text-sm text-gray-400 mb-6">Basic identification details for the system.</p>
+                                <h3 className="text-lg font-bold text-foreground mb-1">General Information</h3>
+                                <p className="text-sm text-muted-foreground mb-6">Basic identification details for the system.</p>
 
                                 <div className="space-y-4 max-w-xl">
                                     <Input
@@ -142,12 +144,52 @@ export function Settings() {
 
                         <TabsContent value="appearance" className="mt-0 space-y-6">
                             <div>
-                                <h3 className="text-lg font-bold text-white mb-1">Branding</h3>
-                                <p className="text-sm text-gray-400 mb-6">Customize the look and feel.</p>
+                                <h3 className="text-lg font-bold text-foreground mb-1">Branding</h3>
+                                <p className="text-sm text-muted-foreground mb-6">Customize the look and feel.</p>
 
                                 <div className="space-y-4 max-w-xl">
+                                    {/* Theme Selector */}
+                                    <div className="mb-6">
+                                        <label className="text-sm font-medium text-foreground block mb-3">Color Theme</label>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <button
+                                                onClick={() => setTheme('dark')}
+                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${theme === 'dark'
+                                                    ? 'border-blue-500 bg-gray-800'
+                                                    : 'border-gray-700 bg-gray-900 hover:border-gray-600'
+                                                    }`}
+                                            >
+                                                <Moon size={24} className={theme === 'dark' ? 'text-blue-400' : 'text-gray-400'} />
+                                                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-400'}`}>Dark</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => setTheme('light')}
+                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${theme === 'light'
+                                                    ? 'border-blue-500 bg-white'
+                                                    : 'border-gray-700 bg-gray-900 hover:border-gray-600'
+                                                    }`}
+                                            >
+                                                <Sun size={24} className={theme === 'light' ? 'text-blue-500' : 'text-gray-400'} />
+                                                <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-400'}`}>Light</span>
+                                            </button>
+
+                                            <button
+                                                onClick={() => setTheme('blue')}
+                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${theme === 'blue'
+                                                    ? 'border-blue-500 bg-blue-50'
+                                                    : 'border-gray-700 bg-gray-900 hover:border-gray-600'
+                                                    }`}
+                                            >
+                                                <Monitor size={24} className={theme === 'blue' ? 'text-blue-600' : 'text-gray-400'} />
+                                                <span className={`text-sm font-medium ${theme === 'blue' ? 'text-blue-900' : 'text-gray-400'}`}>Blue</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-border my-6"></div>
                                     <div className="flex gap-4 items-start">
-                                        <div className="w-24 h-24 rounded-xl bg-gray-800 border border-white/10 flex items-center justify-center overflow-hidden relative group">
+                                        <div className="w-24 h-24 rounded-xl bg-muted border border-border flex items-center justify-center overflow-hidden relative group">
                                             {formData['company_logo'] ? (
                                                 <img
                                                     src={formData['company_logo']}
@@ -211,8 +253,8 @@ export function Settings() {
 
                         <TabsContent value="finance" className="mt-0 space-y-6">
                             <div>
-                                <h3 className="text-lg font-bold text-white mb-1">Financial Parameters</h3>
-                                <p className="text-sm text-gray-400 mb-6">Default values for financial calculations.</p>
+                                <h3 className="text-lg font-bold text-foreground mb-1">Financial Parameters</h3>
+                                <p className="text-sm text-muted-foreground mb-6">Default values for financial calculations.</p>
 
                                 <div className="space-y-4 max-w-xl">
                                     <Input

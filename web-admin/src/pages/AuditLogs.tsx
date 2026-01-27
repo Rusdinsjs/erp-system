@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { auditApi, AuditLogQuery } from '../api/audit';
-import { Search, Filter, History, User, Database, ArrowRight } from 'lucide-react';
+import { auditApi } from '../api/audit';
+import type { AuditLogQuery } from '../api/audit';
+import { History, User, Database } from 'lucide-react';
 import {
     Card,
     Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty,
@@ -9,7 +10,6 @@ import {
     TableSkeleton,
     Badge
 } from '../components/ui';
-import clsx from 'clsx'; // Assuming clsx is installed or available, otherwise use template literals
 
 // Helper for highlighting JSON diffs
 const JsonDiffViewer = ({ data }: { data: any }) => {
@@ -51,19 +51,19 @@ export function AuditLogs() {
         <div className="p-8 space-y-6">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-3">
                         <History className="text-blue-500" />
                         System Audit Logs
                     </h1>
-                    <p className="text-gray-400 mt-2">Track all system activities and data changes</p>
+                    <p className="text-muted-foreground mt-2">Track all system activities and data changes</p>
                 </div>
             </div>
 
             {/* Filters */}
-            <Card className="p-4 bg-gray-900/50 border-white/5">
+            <Card className="p-4 bg-muted/50 border-border">
                 <div className="flex gap-4 items-end">
                     <div className="w-64">
-                        <label className="text-xs text-gray-500 mb-1 block">Entity Type</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">Entity Type</label>
                         <div className="relative">
                             <Database size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                             <input
@@ -71,16 +71,16 @@ export function AuditLogs() {
                                 placeholder="e.g. assets, users..."
                                 value={entityType}
                                 onChange={(e) => setEntityType(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 bg-black/20 border border-white/10 rounded-lg text-sm text-white focus:border-blue-500 outline-none"
+                                className="w-full pl-9 pr-3 py-2 bg-background/50 border border-input rounded-lg text-sm text-foreground focus:border-ring outline-none"
                             />
                         </div>
                     </div>
                     <div className="w-48">
-                        <label className="text-xs text-gray-500 mb-1 block">Action</label>
+                        <label className="text-xs text-muted-foreground mb-1 block">Action</label>
                         <select
                             value={actionFilter}
                             onChange={(e) => setActionFilter(e.target.value)}
-                            className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-lg text-sm text-white focus:border-blue-500 outline-none"
+                            className="w-full px-3 py-2 bg-background/50 border border-input rounded-lg text-sm text-foreground focus:border-ring outline-none"
                         >
                             <option value="">All Actions</option>
                             <option value="CREATE">Create</option>
@@ -110,23 +110,23 @@ export function AuditLogs() {
                             </TableHead>
                             <TableBody>
                                 {data?.data.map((log) => (
-                                    <TableRow key={log.id} className="hover:bg-gray-800/50">
+                                    <TableRow key={log.id} className="hover:bg-muted/50">
                                         <TableTd>
                                             <div className="flex flex-col">
-                                                <span className="text-white font-medium">
+                                                <span className="text-foreground font-medium">
                                                     {new Date(log.timestamp).toLocaleDateString()}
                                                 </span>
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-xs text-muted-foreground">
                                                     {new Date(log.timestamp).toLocaleTimeString()}
                                                 </span>
                                             </div>
                                         </TableTd>
                                         <TableTd>
                                             <div className="flex items-center gap-2">
-                                                <div className="p-1.5 bg-gray-800 rounded-full">
-                                                    <User size={14} className="text-gray-400" />
+                                                <div className="p-1.5 bg-muted rounded-full">
+                                                    <User size={14} className="text-muted-foreground" />
                                                 </div>
-                                                <span className="text-sm text-gray-300">{log.user_name || 'System'}</span>
+                                                <span className="text-sm text-foreground">{log.user_name || 'System'}</span>
                                             </div>
                                         </TableTd>
                                         <TableTd>
@@ -136,8 +136,8 @@ export function AuditLogs() {
                                         </TableTd>
                                         <TableTd>
                                             <div className="flex flex-col text-sm">
-                                                <span className="text-gray-300 font-mono">{log.entity_type}</span>
-                                                <span className="text-xs text-gray-500 font-mono">{log.entity_id.slice(0, 8)}...</span>
+                                                <span className="text-foreground font-mono">{log.entity_type}</span>
+                                                <span className="text-xs text-muted-foreground font-mono">{log.entity_id.slice(0, 8)}...</span>
                                             </div>
                                         </TableTd>
                                         <TableTd className="w-1/3">
@@ -154,7 +154,7 @@ export function AuditLogs() {
                 </div>
 
                 {data && data.total_pages > 1 && (
-                    <div className="p-4 border-t border-white/5 bg-gray-900/30 flex justify-end">
+                    <div className="p-4 border-t border-border bg-card flex justify-end">
                         <Pagination
                             currentPage={page}
                             totalPages={data.total_pages}

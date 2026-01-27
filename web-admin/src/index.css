@@ -1,14 +1,175 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
 /* Custom theme tokens */
-:root {
-  --primary: #0F172A;
-  --primary-light: #1E293B;
-  --accent: #06B6D4;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
+@layer base {
+  :root {
+    /* Default (Dark) Theme Variables */
+    --background: #020617;
+    /* slate-950 */
+    --foreground: #e2e8f0;
+    /* slate-200 */
+
+    --card: #0f172a;
+    /* slate-900 */
+    --card-foreground: #e2e8f0;
+    /* slate-200 */
+
+    --popover: #0f172a;
+    /* slate-900 */
+    --popover-foreground: #e2e8f0;
+    /* slate-200 */
+
+    --primary: #0f172a;
+    /* slate-900 - kept for compatibility, but consider changing */
+    --primary-foreground: #f8fafc;
+    /* slate-50 */
+
+    --secondary: #1e293b;
+    /* slate-800 */
+    --secondary-foreground: #f8fafc;
+    /* slate-50 */
+
+    --muted: #1e293b;
+    /* slate-800 */
+    --muted-foreground: #94a3b8;
+    /* slate-400 */
+
+    --accent: #1e293b;
+    /* slate-800 */
+    --accent-foreground: #f8fafc;
+    /* slate-50 */
+
+    --destructive: #7f1d1d;
+    /* red-900 */
+    --destructive-foreground: #f8fafc;
+    /* slate-50 */
+
+    --border: #1e293b;
+    /* slate-800 */
+    --input: #1e293b;
+    /* slate-800 */
+    --ring: #cbd5e1;
+    /* slate-300 */
+
+    /* Custom brand colors to keep */
+    --brand-primary: #0F172A;
+    --brand-accent: #06B6D4;
+    --brand-success: #10B981;
+    --brand-warning: #F59E0B;
+    --brand-error: #EF4444;
+  }
+
+  /* Light Theme */
+  [data-theme='light'] {
+    --background: #ffffff;
+    --foreground: #0f172a;
+    /* slate-950 */
+
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+
+    --primary: #0f172a;
+    --primary-foreground: #f8fafc;
+
+    --secondary: #f1f5f9;
+    /* slate-100 */
+    --secondary-foreground: #0f172a;
+
+    --muted: #f1f5f9;
+    /* slate-100 */
+    --muted-foreground: #64748b;
+    /* slate-500 */
+
+    --accent: #f1f5f9;
+    /* slate-100 */
+    --accent-foreground: #0f172a;
+
+    --destructive: #ef4444;
+    /* red-500 */
+    --destructive-foreground: #f8fafc;
+
+    --border: #e2e8f0;
+    /* slate-200 */
+    --input: #e2e8f0;
+    /* slate-200 */
+    --ring: #0f172a;
+    /* slate-950 */
+  }
+
+  /* Blue Theme */
+  [data-theme='blue'] {
+    --background: #f0f9ff;
+    /* sky-50 - Very light blue background */
+    --foreground: #0c4a6e;
+    /* sky-900 */
+
+    --card: #ffffff;
+    --card-foreground: #0c4a6e;
+
+    --popover: #ffffff;
+    --popover-foreground: #0c4a6e;
+
+    --primary: #005eff;
+    /* Requested Blue */
+    --primary-foreground: #ffffff;
+
+    --secondary: #e0f2fe;
+    /* sky-100 */
+    --secondary-foreground: #0369a1;
+    /* sky-700 */
+
+    --muted: #e0f2fe;
+    /* sky-100 */
+    --muted-foreground: #0ea5e9;
+    /* sky-500 */
+
+    --accent: #e0f2fe;
+    /* sky-100 */
+    --accent-foreground: #0c4a6e;
+
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+
+    --border: #bae6fd;
+    /* sky-200 */
+    --input: #bae6fd;
+    /* sky-200 */
+    --ring: #005eff;
+  }
 }
 
 html,
@@ -18,7 +179,7 @@ body {
 }
 
 body {
-  @apply bg-slate-950 text-slate-200 antialiased;
+  @apply bg-background text-foreground antialiased;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
@@ -29,7 +190,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-slate-900;
+  @apply bg-muted;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -37,7 +198,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-600;
+  @apply bg-muted-foreground;
 }
 
 /* Global scrollbar class */
