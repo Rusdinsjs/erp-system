@@ -253,6 +253,46 @@ impl CategoryService {
 
     /// Delete a category
     pub async fn delete(&self, id: Uuid) -> DomainResult<bool> {
+        // 1. Check for references
+        let (asset_count, child_count, template_count) =
+            self.repository.check_references(id).await.map_err(|e| {
+                DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                }
+            })?;
+
+        if asset_count > 0 {
+            return Err(DomainError::BusinessRuleViolation {
+                rule: "Category In Use".to_string(),
+                message: format!(
+                    "Cannot delete category because it is used by {} assets.",
+                    asset_count
+                ),
+            });
+        }
+
+        if child_count > 0 {
+            return Err(DomainError::BusinessRuleViolation {
+                rule: "Category Has Children".to_string(),
+                message: format!(
+                    "Cannot delete category because it has {} sub-categories.",
+                    child_count
+                ),
+            });
+        }
+
+        if template_count > 0 {
+            return Err(DomainError::BusinessRuleViolation {
+                rule: "Category In Template".to_string(),
+                message: format!(
+                    "Cannot delete category because it is used by {} maintenance templates.",
+                    template_count
+                ),
+            });
+        }
+
+        // 2. Perform deletion
         self.repository
             .delete(id)
             .await

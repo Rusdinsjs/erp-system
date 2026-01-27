@@ -154,6 +154,9 @@ export function Categories() {
                 handleReset();
             }
         },
+        onError: (error: any) => {
+            showError(error.response?.data?.error || 'Failed to delete category', 'Error');
+        },
     });
 
     const handleReset = () => {

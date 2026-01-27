@@ -23,6 +23,12 @@ const ROLE_MANAGER: i32 = 2;
 pub const ROLE_SUPERVISOR: i32 = 3;
 const ROLE_OPERATOR: i32 = 4;
 
+#[derive(Deserialize)]
+pub struct WorkOrderSignoffRequest {
+    pub role: String,
+    pub signature_url: String,
+}
+
 /// Check if user has required role level
 pub fn check_role(claims: &Claims, required_level: i32) -> Result<(), AppError> {
     if claims.role_level > required_level {
@@ -551,4 +557,19 @@ pub async fn complete_checklist_item(
     }
 
     Ok(Json(ApiResponse::success(true)))
+}
+
+/// Submit digital signoff for Work Order
+pub async fn submit_signoff(
+    State(state): State<AppState>,
+    Extension(_claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<WorkOrderSignoffRequest>,
+) -> Result<Json<ApiResponse<WorkOrder>>, AppError> {
+    let order = state
+        .work_order_service
+        .submit_signoff(id, payload.role, payload.signature_url)
+        .await?;
+
+    Ok(Json(ApiResponse::success(order)))
 }

@@ -3,6 +3,8 @@ import { Modal, Button } from '../../components/ui';
 import { type FuelLog } from '../../api/fuel';
 import { Download, Maximize2, Hash, Calendar, CircleDollarSign, Fuel, Printer } from 'lucide-react';
 
+import { getImageUrl } from '../../utils/image';
+
 interface FuelReceiptModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -12,7 +14,7 @@ interface FuelReceiptModalProps {
 export const FuelReceiptModal: React.FC<FuelReceiptModalProps> = ({ isOpen, onClose, log }) => {
     if (!log.receipt_image_url) return null;
 
-    const receiptUrl = `${import.meta.env.VITE_API_URL || ''}${log.receipt_image_url}`;
+    const receiptUrl = getImageUrl(log.receipt_image_url);
 
     return (
         <Modal

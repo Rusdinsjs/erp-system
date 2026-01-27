@@ -3,13 +3,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, UserPlus, ClipboardCheck, Edit, FileText, ChevronRight, Camera, Loader2 } from 'lucide-react';
-import { api } from '../api/http';
 import { workOrderApi } from '../api/work-order';
 import { uploadApi } from '../api/upload';
 import { useAuthStore } from '../store/useAuthStore';
 import { TechnicianSelectModal } from '../components/WorkOrders/TechnicianSelectModal';
 import { InventoryItemSelector } from '../components/Inventory/InventoryItemSelector';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import { SignaturePad } from '../components/WorkOrders/SignaturePad';
 import {
     Button,
     Card,
@@ -24,6 +24,7 @@ import {
     useToast,
     Progress,
 } from '../components/ui';
+import { getImageUrl } from '../utils/image';
 
 interface WorkOrderDetailsProps {
     workOrderId?: string | null;
@@ -75,11 +76,10 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
     const [partsClassifications, setPartsClassifications] = useState<Record<string, 'OPEX' | 'CAPEX'>>({});
     const [editTaskId, setEditTaskId] = useState<string | null>(null);
     const [applyTemplateModalOpen, setApplyTemplateModalOpen] = useState(false);
+    const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
 
     // Form inputs
-    // ... (existing imports)
-
     const [newTask, setNewTask] = useState({ task_number: 1, description: '' });
     const [newPart, setNewPart] = useState({
         part_name: '',
@@ -126,18 +126,6 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         }
     }, [finalizeModalOpen, parts]);
 
-
-    const getImageUrl = (path?: string) => {
-        if (!path) return '';
-        if (path.startsWith('http')) return path;
-        const baseUrl = api.defaults.baseURL?.replace(/\/api\/?$/, '') || '';
-        if (path.startsWith('/uploads')) {
-            return `${baseUrl}/api${path}`;
-        }
-        return `${baseUrl}${path}`;
-    };
-
-    const [photoModalOpen, setPhotoModalOpen] = useState(false);
     const [selectedTaskPhotos, setSelectedTaskPhotos] = useState<{ id: string, photos: string[] } | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -177,7 +165,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
             setSelectedTaskPhotos({ ...selectedTaskPhotos, photos: newPhotos });
             queryClient.invalidateQueries({ queryKey: ['work-order-tasks', id] });
             success('Photo removed', 'Success');
-        } catch (err) {
+        } catch {
             showError('Failed to remove photo', 'Error');
         }
     }
@@ -312,6 +300,14 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         },
     });
 
+    const signoffMutation = useMutation({
+        mutationFn: (data: { role: string; signature_url: string }) => workOrderApi.submitSignoff(id!, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['work-order', id] });
+            success('Signature saved', 'Success');
+        },
+    });
+
     const partsCost = Number(wo?.parts_cost || 0);
     const laborCost = Number(wo?.labor_cost || 0);
     const totalCost = partsCost + laborCost;
@@ -321,18 +317,19 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
         let capex = 0;
 
         // Labor
-        if (finalizeType === 'CAPEX') capex += laborCost;
+        const lType = finalizeModalOpen ? finalizeType : (wo?.labor_expense_type || 'OPEX');
+        if (lType === 'CAPEX') capex += laborCost;
         else opex += laborCost;
 
         // Parts
         parts?.forEach(p => {
-            const type = partsClassifications[p.id];
+            const type = partsClassifications[p.id] || p.expense_type || 'OPEX';
             if (type === 'CAPEX') capex += Number(p.total_cost);
             else opex += Number(p.total_cost);
         });
 
         return { opex, capex };
-    }, [finalizeType, partsClassifications, parts, laborCost]);
+    }, [finalizeType, partsClassifications, parts, laborCost, wo?.labor_expense_type, finalizeModalOpen]);
 
     if (woLoading) return <div className="flex justify-center py-12"><LoadingOverlay visible /></div>;
     if (!wo) return <p className="text-slate-400 text-center py-12">Work Order not found</p>;
@@ -617,13 +614,66 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                     <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-3">Work Performed</p>
                                     <p className="text-gray-300 leading-relaxed">{wo.work_performed || 'Work pending completion'}</p>
                                 </div>
+
                                 <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
-                                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Assigned Personnel</p>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20">
-                                            {wo.assigned_technician ? wo.assigned_technician.charAt(0) : '?'}
+                                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Digital Signatures</p>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] text-gray-500 uppercase font-bold text-center">Technician</p>
+                                            {wo.technician_signoff ? (
+                                                <div className="h-24 bg-white/5 rounded-lg overflow-hidden border border-white/10 p-2">
+                                                    <img src={getImageUrl(wo.technician_signoff)} alt="Tech" className="w-full h-full object-contain opacity-90" />
+                                                </div>
+                                            ) : (
+                                                <div className="h-24 bg-black/20 rounded-lg flex items-center justify-center border border-dashed border-white/10">
+                                                    <span className="text-[10px] text-gray-600 italic">Not signed</span>
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-gray-200 font-medium">{wo.assigned_technician || 'Unassigned'}</p>
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] text-gray-500 uppercase font-bold text-center">Supervisor</p>
+                                            {wo.supervisor_signoff ? (
+                                                <div className="h-24 bg-white/5 rounded-lg overflow-hidden border border-white/10 p-2">
+                                                    <img src={getImageUrl(wo.supervisor_signoff)} alt="Sup" className="w-full h-full object-contain opacity-90" />
+                                                </div>
+                                            ) : (
+                                                <div className="h-24 bg-black/20 rounded-lg flex items-center justify-center border border-dashed border-white/10">
+                                                    <span className="text-[10px] text-gray-600 italic">Not signed</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2 col-span-2">
+                                            <p className="text-[10px] text-gray-500 uppercase font-bold text-center">Operator / Customer (Handover)</p>
+                                            {wo.customer_signoff ? (
+                                                <div className="h-28 bg-white/5 rounded-lg overflow-hidden border border-white/10 p-2">
+                                                    <img src={getImageUrl(wo.customer_signoff)} alt="Customer" className="w-full h-full object-contain opacity-90" />
+                                                </div>
+                                            ) : (
+                                                <div className="bg-black/20 rounded-xl border border-dashed border-white/10 p-4">
+                                                    {wo.status === 'completed' ? (
+                                                        <SignaturePad
+                                                            label="Operator Signature"
+                                                            onSave={async (dataUrl) => {
+                                                                try {
+                                                                    const res = await fetch(dataUrl);
+                                                                    const blob = await res.blob();
+                                                                    const file = new File([blob], `sig_cust_${id}.png`, { type: 'image/png' });
+                                                                    const uploadRes = await uploadApi.upload(file);
+                                                                    await signoffMutation.mutateAsync({ role: 'customer', signature_url: uploadRes.url });
+                                                                } catch {
+                                                                    showError('Failed to save signature', 'Error');
+                                                                }
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center py-4 text-gray-600">
+                                                            <span className="text-xs italic">Pending Handover</span>
+                                                            <p className="text-[10px] mt-1 text-center">Available after work is completed</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1058,6 +1108,30 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             Finishing this work order reflects that physical maintenance is complete. It will now move to <span className="text-blue-400 font-bold uppercase tracking-wider">Supervisor Review</span> for cost verification.
                         </p>
                     </div>
+
+                    <div className="pt-4 border-t border-white/5">
+                        <SignaturePad
+                            label="Technician Signature"
+                            onSave={async (dataUrl) => {
+                                try {
+                                    // Convert base64 to File
+                                    const res = await fetch(dataUrl);
+                                    const blob = await res.blob();
+                                    const file = new File([blob], `signature_tech_${id}.png`, { type: 'image/png' });
+
+                                    // Upload
+                                    const uploadRes = await uploadApi.upload(file);
+                                    const signatureUrl = uploadRes.url;
+
+                                    // Save signoff
+                                    await signoffMutation.mutateAsync({ role: 'technician', signature_url: signatureUrl });
+                                } catch {
+                                    showError('Failed to save signature', 'Error');
+                                }
+                            }}
+                        />
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                         <Button variant="ghost" onClick={() => setCompleteModalOpen(false)} className="rounded-xl">
                             Cancel
@@ -1206,6 +1280,23 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                         </div>
                     </div>
 
+                    <div className="pt-4 border-t border-white/5">
+                        <SignaturePad
+                            label="Supervisor / Manager Approval Signature"
+                            onSave={async (dataUrl) => {
+                                try {
+                                    const res = await fetch(dataUrl);
+                                    const blob = await res.blob();
+                                    const file = new File([blob], `signature_sup_${id}.png`, { type: 'image/png' });
+                                    const uploadRes = await uploadApi.upload(file);
+                                    await signoffMutation.mutateAsync({ role: 'supervisor', signature_url: uploadRes.url });
+                                } catch {
+                                    showError('Failed to save signature', 'Error');
+                                }
+                            }}
+                        />
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                         <Button variant="ghost" onClick={() => setFinalizeModalOpen(false)} className="rounded-xl">
                             Cancel
@@ -1216,11 +1307,11 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             loading={finalizeMutation.isPending}
                             className="bg-indigo-600 hover:bg-indigo-500 rounded-xl px-8 shadow-lg shadow-indigo-500/20 font-bold"
                         >
-                            Confirm Finalization
+                            Confirm Finalization & Sign Off
                         </Button>
                     </div>
                 </div>
             </Modal>
-        </div >
+        </div>
     );
 }

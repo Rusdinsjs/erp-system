@@ -34,12 +34,14 @@ pub struct AssetRoiResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonthlyTrend {
     pub month: String,
+    #[serde(rename = "maintenance_cost")]
     pub total_cost: Decimal,
     pub count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConditionDistribution {
+    #[serde(rename = "status")]
     pub condition: String,
     pub count: i64,
     pub total_value: Decimal,

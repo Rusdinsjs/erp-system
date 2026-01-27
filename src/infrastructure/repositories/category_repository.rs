@@ -119,4 +119,20 @@ impl CategoryRepository {
             .await?;
         Ok(result.rows_affected() > 0)
     }
+
+    pub async fn check_references(&self, id: Uuid) -> Result<(i64, i64, i64), sqlx::Error> {
+        let row: (i64, i64, i64) = sqlx::query_as(
+            r#"
+            SELECT 
+                (SELECT COUNT(*) FROM assets WHERE category_id = $1) as asset_count,
+                (SELECT COUNT(*) FROM categories WHERE parent_id = $1) as child_count,
+                (SELECT COUNT(*) FROM maintenance_templates WHERE asset_category_id = $1) as template_count
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(row)
+    }
 }

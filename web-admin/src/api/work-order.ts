@@ -25,7 +25,13 @@ export interface WorkOrder {
     updated_at: string;
     asset_name?: string;
     expense_type?: string;
+    labor_expense_type?: string;
     expense_id?: string;
+    opex_expense_id?: string;
+    capex_expense_id?: string;
+    customer_signoff?: string;
+    technician_signoff?: string;
+    supervisor_signoff?: string;
 }
 
 export interface ChecklistItem {
@@ -236,6 +242,13 @@ export const workOrderApi = {
         }
     ): Promise<ApiResponse<WorkOrder>> => {
         const response = await api.post(`/work-orders/${id}/finalize`, data);
+        return response.data;
+    },
+    submitSignoff: async (
+        id: string,
+        data: { role: string; signature_url: string }
+    ): Promise<ApiResponse<WorkOrder>> => {
+        const response = await api.post(`/work-orders/${id}/signoff`, data);
         return response.data;
     },
 

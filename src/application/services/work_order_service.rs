@@ -609,6 +609,38 @@ impl WorkOrderService {
         Ok(updated)
     }
 
+    pub async fn submit_signoff(
+        &self,
+        id: Uuid,
+        role: String,
+        signature_url: String,
+    ) -> DomainResult<WorkOrder> {
+        self.repository
+            .update_signoff(id, &role, &signature_url)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        let updated = self.get_by_id(id).await?;
+
+        // Real-time broadcast
+        let _ = self
+            .notification_service
+            .broadcast(
+                "WORK_ORDER_SIGNED",
+                serde_json::json!({
+                    "id": id,
+                    "role": role,
+                    "signature_url": signature_url,
+                }),
+            )
+            .await;
+
+        Ok(updated)
+    }
+
     // Checklist methods
     pub async fn get_checklist(&self, work_order_id: Uuid) -> DomainResult<Vec<ChecklistItem>> {
         self.repository

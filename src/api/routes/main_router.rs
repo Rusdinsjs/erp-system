@@ -120,6 +120,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/work-orders/:id/verify", post(verify_work_order))
         .route("/api/work-orders/:id/finalize", post(finalize_work_order))
         .route("/api/work-orders/:id/cancel", post(cancel_work_order))
+        .route(
+            "/api/work-orders/:id/signoff",
+            post(work_order_handler::submit_signoff),
+        )
         // Tasks
         .route(
             "/api/work-orders/:id/tasks",
@@ -414,6 +418,14 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route(
             "/api/analytics/condition-distribution",
+            get(analytics_handler::get_asset_condition_distribution),
+        )
+        .route(
+            "/api/analytics/costs",
+            get(analytics_handler::get_monthly_maintenance_trends),
+        )
+        .route(
+            "/api/analytics/status",
             get(analytics_handler::get_asset_condition_distribution),
         )
         // Settings

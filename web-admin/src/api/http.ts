@@ -17,10 +17,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        const message = error.response?.data?.message || 'Something went wrong';
+        const message = error.response?.data?.error || error.response?.data?.message || 'Something went wrong';
 
         // Ignore 401s as they are handled by auth store redirection (usually)
-        // But we still show a toast if it's not a silent refresh failure
         if (error.response?.status === 401) {
             useAuthStore.getState().logout();
             showToast('Session expired. Please login again.', 'error', 'Authentication Error');

@@ -443,6 +443,31 @@ impl WorkOrderRepository {
         Ok(total)
     }
 
+    pub async fn update_signoff(
+        &self,
+        id: Uuid,
+        role: &str,
+        signature_url: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let sql = match role {
+            "technician" => {
+                "UPDATE maintenance_work_orders SET technician_signoff = $2, updated_at = NOW() WHERE id = $1"
+            }
+            "supervisor" => {
+                "UPDATE maintenance_work_orders SET supervisor_signoff = $2, updated_at = NOW() WHERE id = $1"
+            }
+            _ => "UPDATE maintenance_work_orders SET customer_signoff = $2, updated_at = NOW() WHERE id = $1",
+        };
+
+        let res = sqlx::query(sql)
+            .bind(id)
+            .bind(signature_url)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(res.rows_affected() > 0)
+    }
+
     pub async fn get_analytics(&self) -> Result<WorkOrderAnalyticsData, sqlx::Error> {
         // 1. Status Counts
         let status_counts = sqlx::query_as::<_, StatusCount>(

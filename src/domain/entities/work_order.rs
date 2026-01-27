@@ -114,6 +114,7 @@ pub struct WorkOrder {
     pub completion_notes: Option<String>,
     pub customer_signoff: Option<String>,
     pub technician_signoff: Option<String>,
+    pub supervisor_signoff: Option<String>,
 
     // System
     pub created_by: Option<Uuid>,
@@ -172,6 +173,7 @@ impl WorkOrder {
             completion_notes: None,
             customer_signoff: None,
             technician_signoff: None,
+            supervisor_signoff: None,
             created_by: None,
             approved_by: None,
             completed_by: None,
