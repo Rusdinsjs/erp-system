@@ -149,8 +149,8 @@ export default function RenewalModal({
                                                 type="button"
                                                 onClick={() => setRenewalType(type.id as any)}
                                                 className={`relative flex flex-col items-center p-3 rounded-xl border-2 transition-all ${renewalType === type.id
-                                                        ? 'border-blue-600 bg-blue-50/50'
-                                                        : 'border-gray-100 bg-white hover:border-gray-200'
+                                                    ? 'border-blue-600 bg-blue-50/50'
+                                                    : 'border-gray-100 bg-white hover:border-gray-200'
                                                     }`}
                                             >
                                                 <type.icon className={`h-5 w-5 mb-1 ${renewalType === type.id ? 'text-blue-600' : 'text-gray-400'

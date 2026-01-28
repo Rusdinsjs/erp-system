@@ -363,11 +363,11 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
             <div className="flex justify-between items-start mb-8">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-3xl font-bold text-white tracking-tight">{wo.wo_number}</h1>
+                        <h1 className="text-3xl font-bold text-foreground tracking-tight">{wo.wo_number}</h1>
                         <Badge variant={statusBadge[wo.status]} className="px-3 py-1 rounded-lg uppercase tracking-wider text-[10px] font-bold">
                             {wo.status.replace('_', ' ')}
                         </Badge>
-                        <Badge variant="default" className="px-3 py-1 rounded-lg uppercase tracking-wider text-[10px] font-bold bg-white/5 border-white/10 text-gray-400">
+                        <Badge variant="default" className="px-3 py-1 rounded-lg uppercase tracking-wider text-[10px] font-bold bg-muted border-border text-muted-foreground">
                             {wo.priority}
                         </Badge>
                     </div>
@@ -462,9 +462,9 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
             </div>
 
             {/* Maintenance Journey Stepper */}
-            <div className="mb-10 px-4 py-8 bg-white/5 rounded-3xl border border-white/5 shadow-inner">
+            <div className="mb-10 px-4 py-8 bg-card rounded-3xl border border-border shadow-inner">
                 <div className="flex justify-between items-center relative">
-                    <div className="absolute top-5 left-0 right-0 h-0.5 bg-white/5 z-0" />
+                    <div className="absolute top-5 left-0 right-0 h-0.5 bg-border z-0" />
                     {[
                         { label: 'Request', status: 'pending', icon: <Plus size={14} /> },
                         { label: 'Approved', status: 'approved', icon: <Check size={14} /> },
@@ -483,7 +483,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             <div key={step.status} className="flex flex-col items-center gap-3 relative z-10 flex-1">
                                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 shadow-lg ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/20' :
                                     isCurrent ? 'bg-blue-600 border-blue-500 text-white animate-pulse shadow-blue-500/30' :
-                                        'bg-gray-900 border-white/5 text-gray-500'
+                                        'bg-card border-border text-muted-foreground'
                                     }`}>
                                     {isCompleted ? <Check size={18} /> : step.icon}
                                 </div>
@@ -519,8 +519,8 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             <DollarSign className="text-amber-400" size={24} />
                         </div>
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Labor Cost</p>
-                            <p className="text-2xl font-bold text-white mt-1">Rp {laborCost.toLocaleString('id-ID')}</p>
+                            <p className="text-muted-foreground text-sm font-medium">Labor Cost</p>
+                            <p className="text-2xl font-bold text-card-foreground mt-1">Rp {laborCost.toLocaleString('id-ID')}</p>
                         </div>
                     </div>
                 </Card>
@@ -568,10 +568,10 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
             </div>
 
             {/* Tabs */}
-            <Card className="overflow-hidden p-0">
+            <Card className="overflow-hidden p-0 border border-border">
                 <Tabs defaultValue="overview">
-                    <div className="px-6 py-4 border-b border-white/5 bg-gray-900/30">
-                        <TabsList className="bg-white/5">
+                    <div className="px-6 py-4 border-b border-border bg-muted/30">
+                        <TabsList className="bg-muted">
                             <TabsTrigger value="overview" icon={<Info size={16} />} className="px-6">Overview</TabsTrigger>
                             <TabsTrigger value="tasks" icon={<CheckSquare size={16} />} className="px-6">Tasks ({tasks?.length || 0})</TabsTrigger>
                             <TabsTrigger value="parts" icon={<Wrench size={16} />} className="px-6">Parts ({parts?.length || 0})</TabsTrigger>
@@ -584,26 +584,26 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                 <div className="p-6 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                                     <p className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-3">Problem Description</p>
-                                    <p className="text-gray-300 leading-relaxed">{wo.problem_description || 'No description provided'}</p>
+                                    <p className="text-foreground leading-relaxed">{wo.problem_description || 'No description provided'}</p>
                                 </div>
-                                <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
-                                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Safety Requirements</p>
-                                    <p className="text-gray-300">{Array.isArray(wo.safety_requirements) ? wo.safety_requirements.join(', ') : 'None'}</p>
+                                <div className="p-6 bg-card rounded-2xl border border-border">
+                                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-3">Safety Requirements</p>
+                                    <p className="text-foreground">{Array.isArray(wo.safety_requirements) ? wo.safety_requirements.join(', ') : 'None'}</p>
                                 </div>
-                                <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
-                                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Timestamps</p>
+                                <div className="p-6 bg-card rounded-2xl border border-border">
+                                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">Timestamps</p>
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-500">Scheduled Date</span>
-                                            <span className="text-gray-300 font-medium">{wo.scheduled_date || '-'}</span>
+                                            <span className="text-muted-foreground">Scheduled Date</span>
+                                            <span className="text-foreground font-medium">{wo.scheduled_date || '-'}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-500">Actual Start</span>
-                                            <span className="text-gray-300 font-medium">{wo.actual_start_date ? new Date(wo.actual_start_date).toLocaleString() : '-'}</span>
+                                            <span className="text-muted-foreground">Actual Start</span>
+                                            <span className="text-foreground font-medium">{wo.actual_start_date ? new Date(wo.actual_start_date).toLocaleString() : '-'}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-500">Completed At</span>
-                                            <span className="text-gray-300 font-medium">{wo.actual_end_date ? new Date(wo.actual_end_date).toLocaleString() : '-'}</span>
+                                            <span className="text-muted-foreground">Completed At</span>
+                                            <span className="text-foreground font-medium">{wo.actual_end_date ? new Date(wo.actual_end_date).toLocaleString() : '-'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -681,7 +681,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                     </TabsContent>
 
                     <TabsContent value="tasks" className="p-0">
-                        <div className="px-6 py-4 border-b border-white/5 bg-gray-900/10 flex justify-end gap-3">
+                        <div className="px-6 py-4 border-b border-border bg-muted/10 flex justify-end gap-3">
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -719,9 +719,9 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                 </TableHead>
                                 <TableBody>
                                     {tasks?.length ? tasks.map(task => (
-                                        <TableRow key={task.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
-                                            <TableTd className="font-mono text-gray-500">{task.task_number}</TableTd>
-                                            <TableTd className="text-gray-300">{task.description}</TableTd>
+                                        <TableRow key={task.id} className="hover:bg-muted/30 border-border group transition-all">
+                                            <TableTd className="font-mono text-muted-foreground">{task.task_number}</TableTd>
+                                            <TableTd className="text-foreground">{task.description}</TableTd>
                                             <TableTd>
                                                 <Badge variant={task.status === 'completed' ? 'success' : 'default'} className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">
                                                     {task.status}
@@ -806,7 +806,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             <LoadingOverlay visible={partsLoading} />
                             <Table className="border-none rounded-none shadow-none">
                                 <TableHead>
-                                    <TableRow className="bg-gray-900/30 border-white/5">
+                                    <TableRow className="bg-muted/30 border-border">
                                         <TableTh>Part Name</TableTh>
                                         <TableTh className="w-24">Qty</TableTh>
                                         <TableTh>Unit Cost</TableTh>
@@ -817,11 +817,11 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                 </TableHead>
                                 <TableBody>
                                     {parts?.length ? parts.map(part => (
-                                        <TableRow key={part.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
-                                            <TableTd className="text-gray-300 font-medium">{part.part_name}</TableTd>
+                                        <TableRow key={part.id} className="hover:bg-muted/30 border-border group transition-all">
+                                            <TableTd className="text-foreground font-medium">{part.part_name}</TableTd>
                                             <TableTd className="font-mono">{Number(part.quantity)}</TableTd>
-                                            <TableTd className="text-gray-400">Rp {Number(part.unit_cost).toLocaleString('id-ID')}</TableTd>
-                                            <TableTd className="font-bold text-gray-200">Rp {Number(part.total_cost).toLocaleString('id-ID')}</TableTd>
+                                            <TableTd className="text-muted-foreground">Rp {Number(part.unit_cost).toLocaleString('id-ID')}</TableTd>
+                                            <TableTd className="font-bold text-card-foreground">Rp {Number(part.total_cost).toLocaleString('id-ID')}</TableTd>
                                             <TableTd align="center">
                                                 <Badge
                                                     variant={part.expense_type === 'CAPEX' ? 'info' : 'default'}
@@ -867,18 +867,18 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
 
             <Modal isOpen={applyTemplateModalOpen} onClose={() => setApplyTemplateModalOpen(false)} title="Apply Maintenance Template" size="lg">
                 <div className="space-y-4 p-6">
-                    <p className="text-gray-400 text-sm mb-4">Select a template to automatically populate the work checklist. This will add all tasks defined in the template to this work order.</p>
+                    <p className="text-muted-foreground text-sm mb-4">Select a template to automatically populate the work checklist. This will add all tasks defined in the template to this work order.</p>
                     <div className="grid grid-cols-1 gap-3">
                         {templates?.map((t) => (
                             <div
                                 key={t.id}
                                 onClick={() => applyTemplateMutation.mutate(t.id)}
-                                className="p-4 bg-black/20 border border-white/5 rounded-xl hover:bg-blue-600/10 hover:border-blue-500/50 cursor-pointer transition-all group"
+                                className="p-4 bg-background/50 border border-border rounded-xl hover:bg-primary/10 hover:border-primary/50 cursor-pointer transition-all group"
                             >
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <h4 className="font-bold text-white group-hover:text-blue-400 transition-colors">{t.name}</h4>
-                                        <p className="text-xs text-gray-500">{t.description || 'No description provided'}</p>
+                                        <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">{t.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{t.description || 'No description provided'}</p>
                                     </div>
                                     <ChevronRight size={18} className="text-gray-600 group-hover:text-blue-500 transition-colors" />
                                 </div>
@@ -902,11 +902,11 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
 
             <Modal isOpen={photoModalOpen} onClose={() => setPhotoModalOpen(false)} title="Evidence Media" size="lg">
                 <div className="p-6">
-                    <p className="text-gray-400 text-sm mb-6">Upload before/after photos for this checklist task.</p>
+                    <p className="text-muted-foreground text-sm mb-6">Upload before/after photos for this checklist task.</p>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
                         {selectedTaskPhotos?.photos?.map((photo, index) => (
-                            <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-white/10 bg-black/20">
+                            <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-background">
                                 <img
                                     src={getImageUrl(photo)}
                                     alt={`Common Evidence ${index}`}
@@ -922,15 +922,15 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                 </div>
                             </div>
                         ))}
-                        <label className="aspect-square rounded-xl border-2 border-dashed border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 flex flex-col items-center justify-center cursor-pointer transition-all group">
+                        <label className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 flex flex-col items-center justify-center cursor-pointer transition-all group">
                             {isUploading ? (
-                                <Loader2 className="animate-spin text-blue-400" size={24} />
+                                <Loader2 className="animate-spin text-primary" size={24} />
                             ) : (
                                 <>
-                                    <div className="p-3 rounded-full bg-white/5 group-hover:bg-blue-500/20 text-gray-400 group-hover:text-blue-400 transition-colors mb-2">
+                                    <div className="p-3 rounded-full bg-secondary group-hover:bg-primary/20 text-muted-foreground group-hover:text-primary transition-colors mb-2">
                                         <Camera size={20} />
                                     </div>
-                                    <span className="text-xs text-gray-500 group-hover:text-blue-400 font-medium">Add Photo</span>
+                                    <span className="text-xs text-muted-foreground group-hover:text-primary font-medium">Add Photo</span>
                                 </>
                             )}
                             <input
@@ -958,7 +958,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             label="Sequence #"
                             value={newTask.task_number}
                             onChange={(v: number | undefined) => setNewTask({ ...newTask, task_number: v || 1 })}
-                            className="bg-black/20 border-white/5 rounded-xl"
+                            className="bg-background border-border rounded-xl"
                         />
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
                     </div>
@@ -967,7 +967,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                         placeholder="e.g. Change oil filter, Inspect brake pads..."
                         value={newTask.description}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTask({ ...newTask, description: e.target.value })}
-                        className="bg-black/20 border-white/5 rounded-xl"
+                        className="bg-background border-border rounded-xl"
                     />
                     <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                         <Button variant="ghost" onClick={() => setTaskModalOpen(false)} className="rounded-xl">
@@ -990,13 +990,13 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                     <div className="flex gap-4 mb-4">
                         <button
                             onClick={() => setNewPart({ ...newPart, inventory_item_id: undefined, part_name: '', unit_cost: 0 })}
-                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold border transition-colors ${!newPart.inventory_item_id ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-black/20 border-white/5 text-gray-400'}`}
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold border transition-colors ${!newPart.inventory_item_id ? 'bg-primary/20 border-primary text-primary' : 'bg-background border-border text-muted-foreground'}`}
                         >
                             Manual Entry
                         </button>
                         <button
                             onClick={() => setNewPart({ ...newPart, inventory_item_id: 'temp', part_name: '', unit_cost: 0 })} // Set temp ID to switch mode, will be replaced by actual ID
-                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold border transition-colors ${newPart.inventory_item_id ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-black/20 border-white/5 text-gray-400'}`}
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold border transition-colors ${newPart.inventory_item_id ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-background border-border text-muted-foreground'}`}
                         >
                             From Inventory
                         </button>
@@ -1028,7 +1028,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                                 placeholder="e.g. Filter Oli Hino, Pad Rem Depan..."
                                 value={newPart.part_name}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPart({ ...newPart, part_name: e.target.value })}
-                                className="bg-black/20 border-white/5 rounded-xl"
+                                className="bg-background border-border rounded-xl"
                             />
                         )}
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-[50px] pointer-events-none" />
@@ -1039,7 +1039,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             label="Quantity"
                             value={newPart.quantity}
                             onChange={(v: number | undefined) => setNewPart({ ...newPart, quantity: v || 1 })}
-                            className="bg-black/20 border-white/5 rounded-xl"
+                            className="bg-background border-border rounded-xl"
                         />
                         <NumberInput
                             label="Unit Cost"
@@ -1047,7 +1047,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             value={newPart.unit_cost}
                             onChange={(v: number | undefined) => setNewPart({ ...newPart, unit_cost: v || 0 })}
                             thousandSeparator
-                            className="bg-black/20 border-white/5 text-emerald-400 font-medium rounded-xl"
+                            className="bg-background border-border text-emerald-400 font-medium rounded-xl"
                             disabled={!!newPart.inventory_item_id} // Disable manual cost edit if inventory item
                         />
                     </div>
@@ -1056,13 +1056,13 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => setNewPart({ ...newPart, expense_type: 'OPEX' })}
-                                className={`p-3 rounded-xl border text-sm font-bold transition-all ${newPart.expense_type === 'OPEX' ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'bg-black/20 border-white/5 text-gray-500 hover:bg-white/5'}`}
+                                className={`p-3 rounded-xl border text-sm font-bold transition-all ${newPart.expense_type === 'OPEX' ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'bg-background border-border text-muted-foreground hover:bg-secondary'}`}
                             >
                                 OPEX
                             </button>
                             <button
                                 onClick={() => setNewPart({ ...newPart, expense_type: 'CAPEX' })}
-                                className={`p-3 rounded-xl border text-sm font-bold transition-all ${newPart.expense_type === 'CAPEX' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-black/20 border-white/5 text-gray-500 hover:bg-white/5'}`}
+                                className={`p-3 rounded-xl border text-sm font-bold transition-all ${newPart.expense_type === 'CAPEX' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-background border-border text-muted-foreground hover:bg-secondary'}`}
                             >
                                 CAPEX
                             </button>
@@ -1096,7 +1096,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                             placeholder="Summary of actions taken..."
                             value={completeData.work_performed}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompleteData({ ...completeData, work_performed: e.target.value })}
-                            className="bg-black/20 border-white/5 rounded-xl"
+                            className="bg-background border-border rounded-xl"
                         />
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px] pointer-events-none" />
                     </div>
@@ -1161,7 +1161,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                         value={verifyData.labor_cost}
                         onChange={(v: number | undefined) => setVerifyData({ labor_cost: v || 0 })}
                         thousandSeparator
-                        className="bg-black/20 border-white/5 text-amber-400 font-bold rounded-xl"
+                        className="bg-background border-border text-amber-400 font-bold rounded-xl"
                         hint={`Parts cost recorded: Rp ${partsCost.toLocaleString('id-ID')}`}
                     />
 
@@ -1211,20 +1211,20 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
 
                     <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                         {/* Labor Item */}
-                        <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+                        <div className="flex items-center justify-between p-4 bg-background border border-border rounded-xl hover:bg-secondary/50 transition-colors">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-blue-500/20 rounded-xl">
                                     <DollarSign size={20} className="text-blue-400" />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-white">Labor Cost</div>
+                                    <div className="font-bold text-foreground">Labor Cost</div>
                                     <div className="text-sm text-emerald-400 font-medium">Rp {laborCost.toLocaleString('id-ID')}</div>
                                 </div>
                             </div>
-                            <div className="flex gap-2 p-1 bg-black/40 rounded-xl border border-white/5">
+                            <div className="flex gap-2 p-1 bg-background border border-border rounded-xl">
                                 <button
                                     onClick={() => setFinalizeType('OPEX')}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${finalizeType === 'OPEX' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-gray-400 hover:text-white'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${finalizeType === 'OPEX' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-muted-foreground hover:text-foreground'}`}
                                 >
                                     OPEX
                                 </button>
@@ -1239,7 +1239,7 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
 
                         {/* Parts Items */}
                         {parts?.map(part => (
-                            <div key={part.id} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+                            <div key={part.id} className="flex items-center justify-between p-4 bg-background border border-border rounded-xl hover:bg-secondary/50 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-amber-500/20 rounded-xl">
                                         <Wrench size={20} className="text-amber-400" />
@@ -1272,11 +1272,11 @@ export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps)
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-purple-500/20 border border-purple-500/20 rounded-xl">
                             <div className="text-xs text-purple-400 uppercase font-bold tracking-wider mb-1">Total OPEX</div>
-                            <div className="text-xl font-black text-white">Rp {splitSummary.opex.toLocaleString('id-ID')}</div>
+                            <div className="text-xl font-black text-card-foreground">Rp {splitSummary.opex.toLocaleString('id-ID')}</div>
                         </div>
                         <div className="p-4 bg-cyan-500/20 border border-cyan-500/20 rounded-xl">
                             <div className="text-xs text-cyan-400 uppercase font-bold tracking-wider mb-1">Total CAPEX</div>
-                            <div className="text-xl font-black text-white">Rp {splitSummary.capex.toLocaleString('id-ID')}</div>
+                            <div className="text-xl font-black text-card-foreground">Rp {splitSummary.capex.toLocaleString('id-ID')}</div>
                         </div>
                     </div>
 

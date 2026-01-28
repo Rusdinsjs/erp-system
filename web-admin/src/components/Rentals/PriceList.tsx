@@ -124,13 +124,13 @@ export function PriceList() {
 
     return (
         <div className="flex flex-col h-full">
-            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-gray-900/10">
-                <h4 className="text-lg font-bold text-white">Standard Price Templates</h4>
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-muted/10">
+                <h4 className="text-lg font-bold text-foreground">Standard Price Templates</h4>
                 <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => {
                     setEditingRate(null);
                     setForm(initialFormState);
                     setOpened(true);
-                }} className="rounded-xl shadow-lg shadow-blue-500/20">
+                }} className="rounded-xl shadow-lg shadow-primary/20">
                     Add template
                 </Button>
             </div>
@@ -139,7 +139,7 @@ export function PriceList() {
                 <LoadingOverlay visible={isLoading} />
                 <Table className="border-none rounded-none shadow-none">
                     <TableHead>
-                        <TableRow className="bg-gray-900/50 border-white/5">
+                        <TableRow className="bg-muted/50 border-border">
                             <TableTh>Template Name</TableTh>
                             <TableTh>Basis</TableTh>
                             <TableTh>Rate (IDR)</TableTh>
@@ -151,24 +151,24 @@ export function PriceList() {
                     </TableHead>
                     <TableBody>
                         {rates?.map((rate: RentalRate) => (
-                            <TableRow key={rate.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
-                                <TableTd className="font-medium text-gray-200">{rate.name}</TableTd>
+                            <TableRow key={rate.id} className="hover:bg-muted/30 border-border group transition-all">
+                                <TableTd className="font-medium text-foreground">{rate.name}</TableTd>
                                 <TableTd>
-                                    <Badge variant="default" className="bg-white/5 border-white/10 text-gray-400 capitalize">
+                                    <Badge variant="default" className="bg-muted/20 border-border text-muted-foreground capitalize">
                                         {rate.rate_basis}
                                     </Badge>
                                 </TableTd>
-                                <TableTd className="font-bold text-emerald-400">Rp {Number(rate.rate_amount).toLocaleString('id-ID')}</TableTd>
-                                <TableTd className="text-gray-400">{rate.minimum_hours}h / mo</TableTd>
-                                <TableTd className="text-gray-400">{((rate.overtime_multiplier || 1) * 100).toFixed(0)}%</TableTd>
-                                <TableTd className="text-gray-400">{((rate.standby_multiplier || 0) * 100).toFixed(0)}%</TableTd>
+                                <TableTd className="font-bold text-emerald-500">Rp {Number(rate.rate_amount).toLocaleString('id-ID')}</TableTd>
+                                <TableTd className="text-muted-foreground">{rate.minimum_hours}h / mo</TableTd>
+                                <TableTd className="text-muted-foreground">{((rate.overtime_multiplier || 1) * 100).toFixed(0)}%</TableTd>
+                                <TableTd className="text-muted-foreground">{((rate.standby_multiplier || 0) * 100).toFixed(0)}%</TableTd>
                                 <TableTd align="center">
                                     <div className="flex gap-2 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <ActionIcon className="hover:bg-blue-500/20 text-blue-400" onClick={() => handleEdit(rate)}>
+                                        <ActionIcon className="hover:bg-primary/20 text-primary" onClick={() => handleEdit(rate)}>
                                             <Edit size={16} />
                                         </ActionIcon>
                                         <ActionIcon
-                                            className="hover:bg-red-500/20 text-red-400"
+                                            className="hover:bg-destructive/20 text-destructive"
                                             onClick={() => handleDelete(rate.id)}
                                         >
                                             <Trash size={16} />
@@ -180,7 +180,7 @@ export function PriceList() {
                     </TableBody>
                 </Table>
                 {!rates?.length && !isLoading && (
-                    <div className="h-64 flex flex-col items-center justify-center text-gray-500">
+                    <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
                         <Plus size={48} className="mb-4 opacity-20" />
                         <p>No price templates defined</p>
                     </div>
@@ -225,10 +225,10 @@ export function PriceList() {
 
                     <div className="relative py-2">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-700"></div>
+                            <div className="w-full border-t border-border"></div>
                         </div>
                         <div className="relative flex justify-center text-xs">
-                            <span className="px-2 bg-slate-900 text-slate-500">Contract Rules (Billing Automation)</span>
+                            <span className="px-2 bg-muted text-muted-foreground">Contract Rules (Billing Automation)</span>
                         </div>
                     </div>
 
@@ -284,7 +284,7 @@ export function PriceList() {
                         />
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
+                    <div className="flex justify-end gap-2 pt-4 border-t border-border">
                         <Button variant="ghost" onClick={() => setOpened(false)}>Cancel</Button>
                         <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>
                             {editingRate ? "Update Template" : "Save Template"}

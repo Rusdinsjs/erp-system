@@ -160,7 +160,7 @@ impl LoanRepository {
                 condition_before, condition_after, damage_description, damage_photos,
                 terms_accepted, agreement_document,
                 deposit_amount, deposit_returned, penalty_amount, penalty_paid,
-                checked_out_by, checked_in_by, handover_photo, return_photo
+                checked_out_by, checked_in_by, check_out_photos, return_photos
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
             RETURNING *
@@ -188,8 +188,8 @@ impl LoanRepository {
         .bind(loan.penalty_paid)
         .bind(loan.checked_out_by)
         .bind(loan.checked_in_by)
-        .bind(&loan.handover_photo)
-        .bind(&loan.return_photo)
+        .bind(&loan.check_out_photos)
+        .bind(&loan.return_photos)
         .fetch_one(&self.pool)
         .await
     }
@@ -239,20 +239,20 @@ impl LoanRepository {
         id: Uuid,
         checked_out_by: Uuid,
         condition_before: &str,
-        handover_photo: Option<&str>,
+        check_out_photos: Option<Vec<String>>,
     ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query(
             r#"
             UPDATE asset_loans 
             SET status = 'checked_out', checked_out_by = $2, condition_before = $3, 
-                handover_photo = $4, terms_accepted = true, updated_at = NOW() 
+                check_out_photos = $4, terms_accepted = true, updated_at = NOW() 
             WHERE id = $1 AND status = 'approved'
             "#,
         )
         .bind(id)
         .bind(checked_out_by)
         .bind(condition_before)
-        .bind(handover_photo)
+        .bind(check_out_photos)
         .execute(&self.pool)
         .await?;
         Ok(result.rows_affected() > 0)
@@ -263,21 +263,21 @@ impl LoanRepository {
         id: Uuid,
         checked_in_by: Uuid,
         condition_after: &str,
-        return_photo: Option<&str>,
+        return_photos: Option<Vec<String>>,
         return_date: NaiveDate,
     ) -> Result<bool, sqlx::Error> {
         let result = sqlx::query(
             r#"
             UPDATE asset_loans 
             SET status = 'returned', checked_in_by = $2, condition_after = $3, 
-                return_photo = $4, actual_return_date = $5, updated_at = NOW() 
+                return_photos = $4, actual_return_date = $5, updated_at = NOW() 
             WHERE id = $1 AND status IN ('checked_out', 'in_use', 'overdue')
             "#,
         )
         .bind(id)
         .bind(checked_in_by)
         .bind(condition_after)
-        .bind(return_photo)
+        .bind(return_photos)
         .bind(return_date)
         .execute(&self.pool)
         .await?;

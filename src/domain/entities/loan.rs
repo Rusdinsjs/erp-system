@@ -88,8 +88,8 @@ pub struct Loan {
     pub condition_after: Option<String>,
     pub damage_description: Option<String>,
     pub damage_photos: Option<Vec<String>>,
-    pub handover_photo: Option<String>,
-    pub return_photo: Option<String>,
+    pub check_out_photos: Option<Vec<String>>,
+    pub return_photos: Option<Vec<String>>,
 
     // Agreement
     pub terms_accepted: bool,
@@ -151,8 +151,8 @@ impl Loan {
             penalty_paid: false,
             checked_out_by: None,
             checked_in_by: None,
-            handover_photo: None,
-            return_photo: None,
+            check_out_photos: None,
+            return_photos: None,
             created_at: now,
             updated_at: now,
             borrower_name: None,
@@ -208,8 +208,8 @@ pub struct LoanSummary {
     pub status: String,
     pub is_overdue: bool,
     pub employee_id: Option<Uuid>,
-    pub handover_photo: Option<String>,
-    pub return_photo: Option<String>,
+    pub check_out_photos: Option<Vec<String>>,
+    pub return_photos: Option<Vec<String>>,
 }
 
 /// Loan request for creating new loans

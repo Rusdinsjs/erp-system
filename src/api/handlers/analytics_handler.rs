@@ -25,3 +25,13 @@ pub async fn get_asset_condition_distribution(
         .await?;
     Ok(Json(stats))
 }
+
+pub async fn get_asset_status_distribution(
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, AppError> {
+    let stats = state
+        .analytics_service
+        .get_asset_status_distribution()
+        .await?;
+    Ok(Json(stats))
+}

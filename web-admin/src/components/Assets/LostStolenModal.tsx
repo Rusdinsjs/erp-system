@@ -80,11 +80,11 @@ export function LostStolenModal({ opened, onClose, assetId, onSuccess }: LostSto
     return (
         <Modal isOpen={opened} onClose={onClose} title="Lapor Kehilangan / Pencurian" size="lg">
             <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-                    <AlertTriangle size={24} className="text-red-400" />
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                    <AlertTriangle size={24} className="text-destructive" />
                     <div>
-                        <p className="text-red-400 font-medium">Laporan Insiden</p>
-                        <p className="text-sm text-slate-400">Harap lengkapi informasi dengan akurat. Laporan ini membutuhkan persetujuan Manager.</p>
+                        <p className="text-destructive font-medium">Laporan Insiden</p>
+                        <p className="text-sm text-muted-foreground">Harap lengkapi informasi dengan akurat. Laporan ini membutuhkan persetujuan Manager.</p>
                     </div>
                 </div>
 

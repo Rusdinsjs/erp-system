@@ -29,7 +29,41 @@ dayjs.extend(relativeTime);
 
 dayjs.extend(relativeTime);
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const STATUS_COLORS: Record<string, string> = {
+    planning: '#94a3b8',
+    procurement: '#3b82f6',
+    received: '#06b6d4',
+    in_inventory: '#10b981',
+    available: '#10b981',
+    deployed: '#059669',
+    in_use: '#059669',
+    rented_out: '#f59e0b',
+    under_maintenance: '#eab308',
+    under_repair: '#d97706',
+    under_conversion: '#8b5cf6',
+    retired: '#475569',
+    disposed: '#737373',
+    sold: '#84cc16',
+    lost_stolen: '#ef4444',
+};
+
+const formatStatusLabel = (status: string) => {
+    if (!status) return 'Unknown';
+    const mapping: Record<string, string> = {
+        planning: 'Rent Out',
+        in_inventory: 'In Inventory',
+        available: 'In Inventory',
+        deployed: 'In Use',
+        in_use: 'In Use',
+        under_maintenance: 'Under Maintenance',
+        under_repair: 'Under Repair',
+        under_conversion: 'Under Conversion',
+        lost_stolen: 'Lost/Stolen',
+    };
+
+    if (mapping[status]) return mapping[status];
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
 
 const PremiumStatCard = ({ title, value, subtext, trend, icon: Icon, gradient }: any) => (
     <div className={`
@@ -273,15 +307,26 @@ const OverviewTab: React.FC = () => {
                                     dataKey="count"
                                     nameKey="status"
                                 >
-                                    {statusData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    {statusData.map((entry: any, index: number) => (
+                                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status] || '#64748b'} />
                                     ))}
                                 </Pie>
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px' }}
                                     itemStyle={{ color: '#fff' }}
+                                    formatter={(value: any, name?: string) => {
+                                        if (!name) return [value, 'Unknown'];
+                                        return [value, formatStatusLabel(name)];
+                                    }}
                                 />
-                                <Legend verticalAlign="bottom" height={36} />
+                                <Legend
+                                    verticalAlign="bottom"
+                                    height={36}
+                                    formatter={(value?: string) => {
+                                        if (!value) return 'Unknown';
+                                        return formatStatusLabel(value);
+                                    }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>

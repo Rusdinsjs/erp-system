@@ -93,7 +93,7 @@ pub async fn get_loan_analytics(
 #[derive(serde::Deserialize)]
 pub struct CheckoutRequest {
     pub condition: String,
-    pub photo: Option<String>,
+    pub photos: Option<Vec<String>>,
 }
 
 #[derive(serde::Deserialize)]
@@ -110,12 +110,7 @@ pub async fn checkout_loan(
     let checked_out_by = claims.user_id();
     let loan = state
         .loan_service
-        .checkout(
-            id,
-            checked_out_by,
-            &payload.condition,
-            payload.photo.as_deref(),
-        )
+        .checkout(id, checked_out_by, &payload.condition, payload.photos)
         .await?;
     Ok(Json(ApiResponse::success_with_message(
         loan,
@@ -132,12 +127,7 @@ pub async fn checkin_loan(
     let checked_in_by = claims.user_id();
     let loan = state
         .loan_service
-        .checkin(
-            id,
-            checked_in_by,
-            &payload.condition,
-            payload.photo.as_deref(),
-        )
+        .checkin(id, checked_in_by, &payload.condition, payload.photos)
         .await?;
     Ok(Json(ApiResponse::success_with_message(
         loan,

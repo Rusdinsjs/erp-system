@@ -82,10 +82,10 @@ export function SoldModal({ opened, onClose, assetId, purchasePrice, onSuccess }
         <Modal isOpen={opened} onClose={onClose} title="Sell Asset" size="md">
             <div className="space-y-4">
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                    <DollarSign size={24} className="text-emerald-400" />
+                    <DollarSign size={24} className="text-emerald-500" />
                     <div>
-                        <p className="text-emerald-400 font-medium">Asset Sale</p>
-                        <p className="text-sm text-slate-400">
+                        <p className="text-emerald-500 font-medium">Asset Sale</p>
+                        <p className="text-sm text-muted-foreground">
                             This will mark the asset as Sold and generate a generic Financial Journal Entry for the sale.
                         </p>
                     </div>
@@ -98,7 +98,7 @@ export function SoldModal({ opened, onClose, assetId, purchasePrice, onSuccess }
                         placeholder="0"
                         value={formData.sale_price}
                         onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
-                        leftIcon={<span className="text-slate-500 text-xs">Rp</span>}
+                        leftIcon={<span className="text-muted-foreground text-xs">Rp</span>}
                     />
                     <Input
                         label="Sale Date *"
@@ -116,21 +116,21 @@ export function SoldModal({ opened, onClose, assetId, purchasePrice, onSuccess }
                 />
 
                 {/* Financial Preview */}
-                <div className="p-3 bg-slate-800 rounded-lg flex items-center justify-between border border-slate-700">
+                <div className="p-3 bg-muted rounded-lg flex items-center justify-between border border-border">
                     <div className="flex items-center gap-2">
-                        <Calculator size={16} className="text-slate-400" />
-                        <span className="text-sm text-slate-300">Est. Gain/Loss (vs Purchase)</span>
+                        <Calculator size={16} className="text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Est. Gain/Loss (vs Purchase)</span>
                     </div>
                     {gainLoss !== null ? (
-                        <span className={`font-mono font-medium ${gainLoss >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <span className={`font-mono font-medium ${gainLoss >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
                             {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)}
                         </span>
                     ) : (
-                        <span className="text-slate-500 text-sm">-</span>
+                        <span className="text-muted-foreground text-sm">-</span>
                     )}
                 </div>
                 {gainLoss !== null && (
-                    <p className="text-[10px] text-slate-500 italic text-right">
+                    <p className="text-[10px] text-muted-foreground italic text-right">
                         * Final profit calculation will use Net Book Value (Purchase - Depreciation) on server.
                     </p>
                 )}

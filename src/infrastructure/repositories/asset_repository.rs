@@ -234,11 +234,13 @@ impl AssetRepository {
         sqlx::query_as::<_, AssetSummary>(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, a.version
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, 
+                   a.assigned_to, u.name as assigned_to_name, a.version
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN users u ON a.assigned_to = u.id
             WHERE a.status != 'archived'
               AND ($3::text IS NULL OR a.department = $3 OR d.name = $3)
             ORDER BY a.created_at DESC
@@ -321,11 +323,13 @@ impl AssetRepository {
         let sql = format!(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, a.version
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, 
+                   a.assigned_to, u.name as assigned_to_name, a.version
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN users u ON a.assigned_to = u.id
             WHERE 
                 (
                     CASE 

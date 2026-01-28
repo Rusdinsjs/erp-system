@@ -92,8 +92,8 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                 </CardHeader>
 
                 {isUploading && (
-                    <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-800 mb-6 space-y-4">
-                        <h3 className="font-semibold text-white">Upload New Document</h3>
+                    <div className="p-4 bg-muted/50 rounded-lg border border-border mb-6 space-y-4">
+                        <h3 className="font-semibold text-foreground">Upload New Document</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
                                 label="File"
@@ -125,13 +125,13 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                         {/* Progress Bar Area */}
                         {(uploadMutation.isPending || uploadProgress > 0) && (
                             <div className="space-y-2">
-                                <div className="flex justify-between text-xs text-slate-400">
+                                <div className="flex justify-between text-xs text-muted-foreground">
                                     <span>{uploadProgress < 100 ? 'Uploading...' : 'Processing...'}</span>
                                     <span>{uploadProgress}%</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-cyan-500 transition-all duration-300"
+                                        className="h-full bg-primary transition-all duration-300"
                                         style={{ width: `${uploadProgress}%` }}
                                     />
                                 </div>
@@ -154,9 +154,9 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {documents?.map((doc: AssetDocument) => (
-                        <div key={doc.id} className="group relative bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-cyan-500/50 transition-colors">
+                        <div key={doc.id} className="group relative bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors">
                             <div className="flex items-start justify-between mb-3">
-                                <div className="p-2 bg-slate-800 rounded-lg text-cyan-400">
+                                <div className="p-2 bg-muted rounded-lg text-primary">
                                     {doc.mime_type?.startsWith('image/') ? (
                                         <img src={`http://localhost:8080${doc.file_path}`} alt={doc.name} className="w-10 h-10 object-cover rounded" />
                                     ) : (
@@ -166,17 +166,17 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                                 <Badge variant="outline" className="text-xs">{doc.type}</Badge>
                             </div>
 
-                            <h4 className="font-medium text-white truncate mb-1" title={doc.name}>{doc.name}</h4>
-                            <p className="text-xs text-slate-500 mb-4 truncate">{doc.notes || "No notes"}</p>
+                            <h4 className="font-medium text-foreground truncate mb-1" title={doc.name}>{doc.name}</h4>
+                            <p className="text-xs text-muted-foreground mb-4 truncate">{doc.notes || "No notes"}</p>
 
-                            <div className="flex justify-between items-center text-xs text-slate-500 mt-auto pt-3 border-t border-slate-800">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground mt-auto pt-3 border-t border-border">
                                 <span>{(doc.size_bytes ? (doc.size_bytes / 1024).toFixed(1) : 0)} KB</span>
                                 <div className="flex gap-2">
                                     <a
                                         href={`http://localhost:8080${doc.file_path}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="p-1.5 hover:bg-slate-800 rounded text-cyan-400"
+                                        className="p-1.5 hover:bg-muted rounded text-primary"
                                         title="View"
                                     >
                                         <ExternalLink size={14} />
@@ -187,7 +187,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                     ))}
 
                     {(!documents || documents.length === 0) && (
-                        <div className="col-span-full py-12 text-center text-slate-500 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
+                        <div className="col-span-full py-12 text-center text-muted-foreground bg-muted/30 rounded-xl border border-dashed border-border">
                             <FileText className="mx-auto mb-3 opacity-50" size={32} />
                             <p>No documents found</p>
                         </div>

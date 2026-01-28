@@ -67,7 +67,7 @@ export function Modal({
                     bg-gray-800 rounded-2xl shadow-2xl border border-white/5 overflow-hidden
                     transform transition-all duration-300 ease-out
                     animate-in fade-in zoom-in-95 slide-in-from-bottom-4
-                    group
+                    group flex flex-col max-h-[90vh]
                 `}
             >
                 {/* Subtle Visual Flourish */}
@@ -75,7 +75,7 @@ export function Modal({
 
                 {/* Header */}
                 {(title || showCloseButton) && (
-                    <div className="relative flex items-center justify-between p-6 border-b border-white/5 bg-white/[0.02]">
+                    <div className="relative flex-none flex items-center justify-between p-6 border-b border-white/5 bg-white/[0.02]">
                         {title && (
                             <h3 className="text-xl font-bold text-white tracking-tight">
                                 {title}
@@ -93,7 +93,7 @@ export function Modal({
                 )}
 
                 {/* Body */}
-                <div className="relative p-6 max-h-[85vh] overflow-y-auto global-scrollbar">
+                <div className="relative p-6 max-h-[70vh] overflow-y-auto global-scrollbar">
                     {children}
                 </div>
             </div>

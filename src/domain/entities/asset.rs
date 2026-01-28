@@ -181,6 +181,8 @@ pub struct AssetSummary {
     pub department_id: Option<Uuid>,
     pub model: Option<String>,
     pub serial_number: Option<String>,
+    pub assigned_to: Option<Uuid>,
+    pub assigned_to_name: Option<String>,
     pub version: i32,
 }
 

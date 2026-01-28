@@ -194,9 +194,9 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
                     </TabsContent>
 
                     <TabsContent value="accounting" className="space-y-4">
-                        <div className="bg-blue-900/20 p-4 rounded-lg border border-blue-800/50 mb-4">
-                            <h3 className="text-sm font-medium text-blue-400 mb-1">GL Account Mapping</h3>
-                            <p className="text-xs text-slate-400">
+                        <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 mb-4">
+                            <h3 className="text-sm font-medium text-primary mb-1">GL Account Mapping</h3>
+                            <p className="text-xs text-muted-foreground">
                                 Link this category to the General Ledger for automated journal entries (CAPEX/OPEX).
                             </p>
                         </div>
@@ -227,9 +227,9 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
                     </TabsContent>
 
                     <TabsContent value="attributes" className="space-y-4">
-                        <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800 mb-4">
-                            <h3 className="text-sm font-medium text-white mb-1">Custom Attribute Template</h3>
-                            <p className="text-xs text-slate-400">
+                        <div className="bg-muted/50 p-4 rounded-lg border border-border mb-4">
+                            <h3 className="text-sm font-medium text-foreground mb-1">Custom Attribute Template</h3>
+                            <p className="text-xs text-muted-foreground">
                                 Define specific technical specs to track for assets in this category.
                             </p>
                         </div>
@@ -243,7 +243,7 @@ export function CreateCategoryModal({ isOpen, onClose, onSuccess }: CreateCatego
                     </TabsContent>
                 </Tabs>
 
-                <div className="flex justify-end gap-2 pt-4 border-t border-slate-700 mt-6">
+                <div className="flex justify-end gap-2 pt-4 border-t border-border mt-6">
                     <Button variant="ghost" type="button" onClick={handleClose}>
                         Cancel
                     </Button>

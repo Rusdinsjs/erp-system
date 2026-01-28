@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2 } from 'lucide-react';
 import type { Asset, CreateAssetRequest } from '../../api/assets';
 import { departmentApi } from '../../api/departments';
+import { usersApi } from '../../api/users';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
     Button,
@@ -48,6 +49,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         category_id: initialValues?.category_id || '',
         location_id: initialValues?.location_id || '',
         department_id: initialValues?.department_id || '',
+        assigned_to: initialValues?.assigned_to || '',
         status: initialValues?.status || 'planning',
         serial_number: initialValues?.serial_number || '',
         brand: initialValues?.brand || '',
@@ -92,6 +94,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 category_id: initialValues.category_id || '',
                 location_id: initialValues.location_id || '',
                 department_id: initialValues.department_id || '',
+                assigned_to: initialValues.assigned_to || '',
                 status: initialValues.status || 'planning',
                 serial_number: initialValues.serial_number || '',
                 brand: initialValues.brand || '',
@@ -145,6 +148,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 category_id: '',
                 location_id: '',
                 department_id: '',
+                assigned_to: '',
                 status: 'planning',
                 serial_number: '',
                 brand: '',
@@ -210,6 +214,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         staleTime: 1000 * 60 * 5 // 5 mins
     });
 
+    const { data: userData } = useQuery({
+        queryKey: ['users-list-for-assign'],
+        queryFn: async () => {
+            const res = await usersApi.list(1, 100);
+            return res.data || [];
+        },
+        staleTime: 1000 * 60 * 5
+    });
+
     const categoryOptions = useMemo(() => {
         return categories.map(c => ({
             value: c.id,
@@ -230,6 +243,13 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             label: d.name,
         })) || [];
     }, [departmentData]);
+
+    const userOptions = useMemo(() => {
+        return (Array.isArray(userData) ? userData : []).map(u => ({
+            value: u.id,
+            label: u.name,
+        }));
+    }, [userData]);
 
     const selectedCategory = categories.find(c => c.id === formData.category_id);
 
@@ -299,6 +319,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             category_id: formData.category_id,
             location_id: formData.location_id || undefined,
             department_id: formData.department_id || undefined,
+            assigned_to: formData.assigned_to || undefined,
             status: formData.status,
             serial_number: formData.serial_number || undefined,
             brand: formData.brand || undefined,
@@ -364,11 +385,11 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         <form onSubmit={handleSubmit} className="space-y-8">
             <Tabs defaultValue="general">
                 <div className="flex items-center justify-between mb-8">
-                    <TabsList className="bg-white/5 p-1 rounded-2xl backdrop-blur-md border border-white/5">
+                    <TabsList className="bg-muted p-1 rounded-2xl backdrop-blur-md border border-border">
                         <TabsTrigger
                             value="general"
                             icon={<Info size={18} />}
-                            className="px-6 py-2.5 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-300"
+                            className="px-6 py-2.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_20px_rgba(var(--primary),0.5)] transition-all duration-300"
                         >
                             General
                         </TabsTrigger>
@@ -401,10 +422,10 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Primary Info Card */}
                         <div className="lg:col-span-2 space-y-6">
-                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-cyan-500/10 transition-colors duration-500" />
-                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                                    <div className="w-1.5 h-6 bg-cyan-500 rounded-full" />
+                            <div className="bg-card backdrop-blur-md border border-border rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors duration-500" />
+                                <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-primary rounded-full" />
                                     Identity & Category
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -415,7 +436,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         onChange={(e) => updateField('asset_code', e.target.value)}
                                         error={errors.asset_code}
                                         required
-                                        className="bg-black/20 border-white/5 focus:border-cyan-500/50 transition-all"
+                                        className="bg-muted/30 border-border focus:border-primary/50 transition-all"
                                     />
                                     <Select
                                         label="Status"
@@ -439,7 +460,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                             onChange={(e) => updateField('name', e.target.value)}
                                             error={errors.name}
                                             required
-                                            className="bg-black/20 border-white/5 focus:border-cyan-500/50 transition-all"
+                                            className="bg-muted/30 border-border focus:border-primary/50 transition-all"
                                         />
                                     </div>
                                     <Select
@@ -460,11 +481,18 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         placeholder="Select location..."
                                         onCreate={() => window.open('/locations', '_blank')}
                                     />
+                                    <Select
+                                        label="Penanggung Jawab (PIC)"
+                                        value={formData.assigned_to}
+                                        onChange={(val) => updateField('assigned_to', val)}
+                                        options={userOptions}
+                                        placeholder="Select person in charge..."
+                                    />
                                 </div>
                             </div>
 
-                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
-                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <div className="bg-card backdrop-blur-md border border-border rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
+                                <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
                                     <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
                                     Manufacturing & Brand
                                 </h3>
@@ -473,19 +501,19 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         label="Brand"
                                         value={formData.brand}
                                         onChange={(e) => updateField('brand', e.target.value)}
-                                        className="bg-black/20 border-white/5"
+                                        className="bg-muted/30 border-border"
                                     />
                                     <Input
                                         label="Model"
                                         value={formData.model}
                                         onChange={(e) => updateField('model', e.target.value)}
-                                        className="bg-black/20 border-white/5"
+                                        className="bg-muted/30 border-border"
                                     />
                                     <NumberInput
                                         label="Year"
                                         value={formData.year_manufacture}
                                         onChange={(val) => updateField('year_manufacture', val)}
-                                        className="bg-black/20 border-white/5"
+                                        className="bg-muted/30 border-border"
                                     />
                                     <div className="md:col-span-2">
                                         <Input
@@ -510,49 +538,49 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
 
                         {/* Right Panel - Settings & Notes */}
                         <div className="space-y-6">
-                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl h-fit">
-                                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <div className="bg-card backdrop-blur-md border border-border rounded-[2.5rem] p-8 shadow-xl h-fit">
+                                <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
                                     <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
                                     Operations
                                 </h3>
                                 <div className="space-y-4">
-                                    <div className="group flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-3xl border border-white/5 transition-all duration-300 cursor-pointer"
+                                    <div className="group flex items-center gap-4 p-4 bg-muted/30 hover:bg-muted/50 rounded-3xl border border-border transition-all duration-300 cursor-pointer"
                                         onClick={() => updateField('is_rental', !formData.is_rental)}>
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_rental ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_rental ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground group-hover:border-foreground'}`}>
                                             {formData.is_rental && <Plus size={14} className="text-white rotate-45" />}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-white text-sm">Rentable Asset</p>
-                                            <p className="text-xs text-slate-500">Allow this asset to be rented</p>
+                                            <p className="font-semibold text-foreground text-sm">Rentable Asset</p>
+                                            <p className="text-xs text-muted-foreground">Allow this asset to be rented</p>
                                         </div>
                                     </div>
 
-                                    <div className="group flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-3xl border border-white/5 transition-all duration-300 cursor-pointer"
+                                    <div className="group flex items-center gap-4 p-4 bg-muted/30 hover:bg-muted/50 rounded-3xl border border-border transition-all duration-300 cursor-pointer"
                                         onClick={() => updateField('is_fuel', !formData.is_fuel)}>
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_fuel ? 'bg-cyan-500 border-cyan-500' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_fuel ? 'bg-cyan-500 border-cyan-500' : 'border-muted-foreground group-hover:border-foreground'}`}>
                                             {formData.is_fuel && <Plus size={14} className="text-white rotate-45" />}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-white text-sm">Fuel Consumption</p>
-                                            <p className="text-xs text-slate-500">Asset requires fuel monitoring</p>
+                                            <p className="font-semibold text-foreground text-sm">Fuel Consumption</p>
+                                            <p className="text-xs text-muted-foreground">Asset requires fuel monitoring</p>
                                         </div>
                                     </div>
 
-                                    <div className="group flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-3xl border border-white/5 transition-all duration-300 cursor-pointer"
+                                    <div className="group flex items-center gap-4 p-4 bg-muted/30 hover:bg-muted/50 rounded-3xl border border-border transition-all duration-300 cursor-pointer"
                                         onClick={() => updateField('is_loan', !formData.is_loan)}>
-                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_loan ? 'bg-purple-500 border-purple-500' : 'border-slate-600 group-hover:border-slate-400'}`}>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.is_loan ? 'bg-purple-500 border-purple-500' : 'border-muted-foreground group-hover:border-foreground'}`}>
                                             {formData.is_loan && <Plus size={14} className="text-white rotate-45" />}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-white text-sm">Loanable Asset</p>
-                                            <p className="text-xs text-slate-500">Allow internal employee loans</p>
+                                            <p className="font-semibold text-foreground text-sm">Loanable Asset</p>
+                                            <p className="text-xs text-muted-foreground">Allow internal employee loans</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-8 shadow-xl flex-1">
-                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <div className="bg-card backdrop-blur-md border border-border rounded-[2.5rem] p-8 shadow-xl flex-1">
+                                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                                     <div className="w-1.5 h-6 bg-slate-500 rounded-full" />
                                     Additional Notes
                                 </h3>
@@ -561,7 +589,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                     value={formData.notes}
                                     onChange={(e) => updateField('notes', e.target.value)}
                                     rows={8}
-                                    className="bg-black/20 border-white/5 focus:border-white/20 resize-none rounded-2xl"
+                                    className="bg-muted/30 border-border focus:border-white/20 resize-none rounded-2xl"
                                 />
                             </div>
                         </div>
@@ -570,7 +598,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
 
                 {/* Details Tab */}
                 <TabsContent value="details" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[3rem] p-10 shadow-xl relative overflow-hidden min-h-[400px]">
+                    <div className="bg-card backdrop-blur-md border border-border rounded-[3rem] p-10 shadow-xl relative overflow-hidden min-h-[400px]">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
 
                         {isVehicle ? (
@@ -580,8 +608,8 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         <Car size={32} />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-bold text-white">Vehicle Specifications</h3>
-                                        <p className="text-slate-400">Manage technical details for this vehicle/heavy equipment</p>
+                                        <h3 className="text-2xl font-bold text-foreground">Vehicle Specifications</h3>
+                                        <p className="text-muted-foreground">Manage technical details for this vehicle/heavy equipment</p>
                                     </div>
                                 </div>
 
@@ -661,8 +689,8 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         <Building2 size={32} />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-bold text-white">Property Details</h3>
-                                        <p className="text-slate-400">Land, buildings, and infrastructure information</p>
+                                        <h3 className="text-2xl font-bold text-foreground">Property Details</h3>
+                                        <p className="text-muted-foreground">Land, buildings, and infrastructure information</p>
                                     </div>
                                 </div>
 
@@ -710,12 +738,12 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                             <div className="space-y-8 relative">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 bg-slate-500/20 rounded-3xl flex items-center justify-center text-slate-400 shadow-[0_0_30px_rgba(100,116,139,0.2)]">
+                                        <div className="w-16 h-16 bg-muted/20 rounded-3xl flex items-center justify-center text-muted-foreground shadow-[0_0_30px_rgba(100,116,139,0.2)]">
                                             <FileText size={32} />
                                         </div>
                                         <div>
-                                            <h3 className="text-2xl font-bold text-white">Custom Specifications</h3>
-                                            <p className="text-slate-400">Define unique attributes for this asset</p>
+                                            <h3 className="text-2xl font-bold text-foreground">Custom Specifications</h3>
+                                            <p className="text-muted-foreground">Define unique attributes for this asset</p>
                                         </div>
                                     </div>
                                     <Button
@@ -724,15 +752,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         type="button"
                                         onClick={addSpec}
                                         leftIcon={<Plus size={18} />}
-                                        className="rounded-2xl border-white/10"
+                                        className="rounded-2xl border-border"
                                     >
                                         Add Attribute
                                     </Button>
                                 </div>
 
                                 {customSpecs.length === 0 && (
-                                    <div className="flex flex-col items-center justify-center py-20 text-slate-500 bg-black/20 rounded-[2rem] border border-dashed border-white/10">
-                                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground bg-muted/30 rounded-[2rem] border border-dashed border-border">
+                                        <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mb-4">
                                             <Plus size={32} className="opacity-20" />
                                         </div>
                                         <p className="text-lg font-medium">No custom attributes yet</p>
@@ -742,19 +770,19 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {customSpecs.map((spec, index) => (
-                                        <div key={index} className="flex gap-4 items-start p-4 bg-white/5 rounded-[1.5rem] border border-white/5 group transition-all duration-300 hover:bg-white/[0.08]">
+                                        <div key={index} className="flex gap-4 items-start p-4 bg-muted/30 rounded-[1.5rem] border border-border group transition-all duration-300 hover:bg-muted/50">
                                             <div className="flex-1 space-y-3">
                                                 <Input
                                                     placeholder="Attribute Name"
                                                     value={spec.key}
                                                     onChange={(e) => updateSpec(index, 'key', e.target.value)}
-                                                    className="bg-black/30 border-transparent focus:border-white/10"
+                                                    className="bg-background/20 border-transparent focus:border-border"
                                                 />
                                                 <Input
                                                     placeholder="Value"
                                                     value={spec.value}
                                                     onChange={(e) => updateSpec(index, 'value', e.target.value)}
-                                                    className="bg-black/30 border-transparent focus:border-white/10"
+                                                    className="bg-background/20 border-transparent focus:border-border"
                                                 />
                                             </div>
                                             <ActionIcon
@@ -775,7 +803,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
 
                 {/* Financial Tab */}
                 <TabsContent value="financial" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-[3rem] p-10 shadow-xl relative overflow-hidden">
+                    <div className="bg-card backdrop-blur-md border border-border rounded-[3rem] p-10 shadow-xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
 
                         <div className="flex items-center gap-4 mb-10">
@@ -783,8 +811,8 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                 <DollarSign size={32} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-bold text-white">Financial Details</h3>
-                                <p className="text-slate-400">Track purchase history, valuation, and depreciation</p>
+                                <h3 className="text-2xl font-bold text-foreground">Financial Details</h3>
+                                <p className="text-muted-foreground">Track purchase history, valuation, and depreciation</p>
                             </div>
                         </div>
 

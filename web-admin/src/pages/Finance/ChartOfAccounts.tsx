@@ -54,22 +54,22 @@ export function ChartOfAccounts() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Chart of Accounts</h1>
-                    <p className="text-slate-400">Manage financial accounts hierarchy</p>
+                    <h1 className="text-2xl font-bold text-foreground">Chart of Accounts</h1>
+                    <p className="text-muted-foreground">Manage financial accounts hierarchy</p>
                 </div>
-                <Button onClick={handleCreate} className="gap-2 bg-cyan-600 hover:bg-cyan-500">
+                <Button onClick={handleCreate} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
                     <Plus size={18} />
                     Add Account
                 </Button>
             </div>
 
-            <Card className="border-slate-800 bg-slate-900/50">
+            <Card className="border-border bg-card">
                 {isLoading ? (
-                    <div className="p-8 text-center text-slate-400">Loading chart of accounts...</div>
+                    <div className="p-8 text-center text-muted-foreground">Loading chart of accounts...</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
-                            <thead className="border-b border-slate-800 text-slate-400">
+                            <thead className="border-b border-border text-muted-foreground">
                                 <tr>
                                     <th className="p-4 font-medium">Account Code</th>
                                     <th className="p-4 font-medium">Account Name</th>
@@ -93,7 +93,7 @@ export function ChartOfAccounts() {
                             </tbody>
                         </table>
                         {accountsTree?.length === 0 && (
-                            <div className="p-8 text-center text-slate-500">
+                            <div className="p-8 text-center text-muted-foreground">
                                 No accounts found. Create your first account.
                             </div>
                         )}
@@ -130,11 +130,11 @@ function AccountRow({
 
     return (
         <>
-            <tr className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                <td className="p-4 text-white font-mono">
+            <tr className="border-b border-border hover:bg-muted/50 transition-colors">
+                <td className="p-4 text-primary font-mono">
                     <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 24}px` }}>
                         {hasChildren ? (
-                            <button onClick={() => onToggle(node.id)} className="text-slate-400 hover:text-white">
+                            <button onClick={() => onToggle(node.id)} className="text-muted-foreground hover:text-foreground">
                                 {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                             </button>
                         ) : (
@@ -145,8 +145,8 @@ function AccountRow({
                 </td>
                 <td className="p-4">
                     <div className="flex items-center gap-2">
-                        {hasChildren ? <FolderPlus size={14} className="text-blue-400" /> : <FileText size={14} className="text-slate-500" />}
-                        <span className={hasChildren ? 'font-medium text-white' : 'text-slate-300'}>
+                        {hasChildren ? <FolderPlus size={14} className="text-primary" /> : <FileText size={14} className="text-muted-foreground" />}
+                        <span className={hasChildren ? 'font-medium text-foreground' : 'text-muted-foreground'}>
                             {node.name}
                         </span>
                         {!node.is_active && <Badge variant="warning" size="sm">Inactive</Badge>}
@@ -155,10 +155,10 @@ function AccountRow({
                 <td className="p-4">
                     <AccountTypeBadge type={node.account_type} />
                 </td>
-                <td className="p-4 text-slate-400">
+                <td className="p-4 text-muted-foreground">
                     <Badge variant="outline" size="sm" className="uppercase text-[10px]">{node.normal_balance}</Badge>
                 </td>
-                <td className="p-4 text-slate-400">
+                <td className="p-4 text-muted-foreground">
                     {node.currency}
                 </td>
                 <td className="p-4 text-right">
@@ -191,7 +191,7 @@ function AccountTypeBadge({ type }: { type: AccountType }) {
     };
 
     return (
-        <span className={`px-2 py-1 rounded text-xs border ${styles[type] || 'text-slate-400'}`}>
+        <span className={`px-2 py-1 rounded text-xs border ${styles[type] || 'text-muted-foreground'}`}>
             {type.charAt(0).toUpperCase() + type.slice(1)}
         </span>
     );
@@ -366,7 +366,7 @@ function AccountModal({
                     <Button variant="ghost" type="button" onClick={onClose}>
                         Cancel
                     </Button>
-                    <Button type="submit" loading={loading} className="bg-cyan-600 hover:bg-cyan-500">
+                    <Button type="submit" loading={loading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                         {isEdit ? 'Save Changes' : 'Create Account'}
                     </Button>
                 </div>

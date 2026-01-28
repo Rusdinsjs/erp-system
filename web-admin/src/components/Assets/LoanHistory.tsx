@@ -115,8 +115,8 @@ export const LoanHistory: React.FC<LoanHistoryProps> = ({ assetId }) => {
                                 <TableTd>{loan.loan_number}</TableTd>
                                 <TableTd>
                                     <div className="flex flex-col">
-                                        <span className="text-white font-medium">{loan.employee_name || loan.borrower_name || '-'}</span>
-                                        {loan.approver_id && <span className="text-xs text-slate-500">Approved by ID: {loan.approver_id.substring(0, 8)}</span>}
+                                        <span className="text-foreground font-medium">{loan.employee_name || loan.borrower_name || '-'}</span>
+                                        {loan.approver_id && <span className="text-xs text-muted-foreground">Approved by ID: {loan.approver_id.substring(0, 8)}</span>}
                                     </div>
                                 </TableTd>
                                 <TableTd>{new Date(loan.loan_date).toLocaleDateString()}</TableTd>
@@ -187,7 +187,7 @@ export const LoanHistory: React.FC<LoanHistoryProps> = ({ assetId }) => {
                         />
                     )}
                     {actionType === 'approve' && (
-                        <p className="text-slate-300">Are you sure you want to approve this loan request?</p>
+                        <p className="text-muted-foreground">Are you sure you want to approve this loan request?</p>
                     )}
 
                     <div className="flex justify-end gap-2 pt-4">

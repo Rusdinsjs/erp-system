@@ -95,8 +95,8 @@ export function WorkOrders() {
             {/* Header Section */}
             <div className="flex justify-between items-end mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Work Orders</h1>
-                    <p className="text-gray-400 mt-2">Manage maintenance, repairs, and service schedules</p>
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight">Work Orders</h1>
+                    <p className="text-muted-foreground mt-2">Manage maintenance, repairs, and service schedules</p>
                 </div>
                 <div className="flex gap-3">
                     <PermissionGate requiredLevel={3}>
@@ -117,8 +117,8 @@ export function WorkOrders() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Active & Planned</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">Active & Planned</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {records.filter(r => r.status !== 'completed').length}
                             </h3>
                         </div>
@@ -132,8 +132,8 @@ export function WorkOrders() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Overdue</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">Overdue</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {records.filter(r => r.status === 'overdue').length || (activeTab === 'overdue' ? records.length : 0)}
                             </h3>
                         </div>
@@ -147,8 +147,8 @@ export function WorkOrders() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">In Progress</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">In Progress</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {records.filter(r => r.status === 'in_progress').length}
                             </h3>
                         </div>
@@ -162,8 +162,8 @@ export function WorkOrders() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Completed</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">Completed</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {records.filter(r => r.status === 'completed').length}
                             </h3>
                         </div>
@@ -175,11 +175,11 @@ export function WorkOrders() {
             </div>
 
             {/* Main Content Area */}
-            <Card className="overflow-hidden p-0">
+            <Card className="overflow-hidden p-0 border border-border">
                 {/* Tabs Bar */}
-                <div className="px-6 py-4 border-b border-white/5 bg-gray-900/30 flex justify-between items-center">
+                <div className="px-6 py-4 border-b border-border bg-muted/30 flex justify-between items-center">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-0">
-                        <TabsList className="bg-white/5">
+                        <TabsList className="bg-muted">
                             <TabsTrigger value="active" className="px-6">Active & Planned</TabsTrigger>
                             <TabsTrigger value="overdue" icon={<AlertTriangle size={14} className="text-red-400" />} className="px-6">
                                 Overdue
@@ -193,7 +193,7 @@ export function WorkOrders() {
                 <div className="relative">
                     <Table className="border-none rounded-none shadow-none">
                         <TableHead>
-                            <TableRow className="bg-gray-900/50 border-white/5">
+                            <TableRow className="bg-muted/50 border-border">
                                 <TableTh>Asset</TableTh>
                                 <TableTh>Type</TableTh>
                                 <TableTh>Status</TableTh>
@@ -207,8 +207,8 @@ export function WorkOrders() {
                                 <TableRow>
                                     <TableTd colSpan={6} align="center">
                                         <div className="py-12 flex flex-col items-center gap-3">
-                                            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                                            <p className="text-gray-500 text-sm font-medium tracking-wide">Loading work orders...</p>
+                                            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                            <p className="text-muted-foreground text-sm font-medium tracking-wide">Loading work orders...</p>
                                         </div>
                                     </TableTd>
                                 </TableRow>
@@ -219,10 +219,10 @@ export function WorkOrders() {
                                     <TableRow
                                         key={record.id}
                                         onClick={() => navigate(`/work-orders/${record.id}`)}
-                                        className="hover:bg-gray-700/30 border-white/5 group transition-all cursor-pointer"
+                                        className="hover:bg-muted/50 border-border group transition-all cursor-pointer"
                                     >
                                         <TableTd>
-                                            <span className="font-medium text-white group-hover:text-blue-400 transition-colors">
+                                            <span className="font-medium text-foreground group-hover:text-primary transition-colors">
                                                 {record.asset_name || record.asset?.name || record.asset_id}
                                             </span>
                                         </TableTd>
@@ -230,8 +230,8 @@ export function WorkOrders() {
                                         <TableTd>
                                             <StatusBadge status={record.status} />
                                         </TableTd>
-                                        <TableTd className="text-gray-400">{record.scheduled_date}</TableTd>
-                                        <TableTd className="font-medium text-gray-200">
+                                        <TableTd className="text-muted-foreground">{record.scheduled_date}</TableTd>
+                                        <TableTd className="font-medium text-foreground">
                                             {record.status === 'completed' && record.actual_cost
                                                 ? `Rp ${Number(record.actual_cost).toLocaleString('id-ID')}`
                                                 : record.estimated_cost
@@ -270,7 +270,7 @@ export function WorkOrders() {
 
                 {/* Pagination */}
                 {activeTab !== 'overdue' && totalPages > 1 && (
-                    <div className="flex justify-center p-4 border-t border-white/5 bg-gray-900/20">
+                    <div className="flex justify-center p-4 border-t border-border bg-muted/20">
                         <Pagination
                             currentPage={page}
                             totalPages={totalPages}

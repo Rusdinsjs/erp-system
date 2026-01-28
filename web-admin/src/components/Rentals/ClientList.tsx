@@ -15,9 +15,9 @@ export function ClientList() {
 
     return (
         <div className="flex flex-col h-full">
-            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-gray-900/10">
-                <h2 className="text-lg font-bold text-white">Clients</h2>
-                <Button variant="primary" leftIcon={<Plus size={18} />} className="rounded-xl shadow-lg shadow-blue-500/20">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-muted/10">
+                <h2 className="text-lg font-bold text-foreground">Clients</h2>
+                <Button variant="primary" leftIcon={<Plus size={18} />} className="rounded-xl shadow-lg shadow-primary/20">
                     Add Client
                 </Button>
             </div>
@@ -26,7 +26,7 @@ export function ClientList() {
                 <LoadingOverlay visible={isLoading} />
                 <Table className="border-none rounded-none shadow-none">
                     <TableHead>
-                        <TableRow className="bg-gray-900/50 border-white/5">
+                        <TableRow className="bg-muted/50 border-border">
                             <TableTh>Name</TableTh>
                             <TableTh>Code</TableTh>
                             <TableTh>Email</TableTh>
@@ -36,11 +36,11 @@ export function ClientList() {
                     <TableBody>
                         {clients && clients.length > 0 ? (
                             clients.map((client) => (
-                                <TableRow key={client.id} className="hover:bg-gray-700/30 border-white/5 group transition-all">
-                                    <td className="px-4 py-3 text-gray-300 font-medium">{client.name}</td>
-                                    <td className="px-4 py-3 font-mono text-gray-400">{client.code}</td>
-                                    <td className="px-4 py-3 text-gray-400">{client.email || '-'}</td>
-                                    <td className="px-4 py-3 text-gray-400">{client.phone || '-'}</td>
+                                <TableRow key={client.id} className="hover:bg-muted/30 border-border group transition-all">
+                                    <td className="px-4 py-3 text-foreground font-medium">{client.name}</td>
+                                    <td className="px-4 py-3 font-mono text-muted-foreground">{client.code}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{client.email || '-'}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{client.phone || '-'}</td>
                                 </TableRow>
                             ))
                         ) : (

@@ -9,6 +9,7 @@ import {
     Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
     Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, Fuel, Shield, Layers
 } from 'lucide-react';
+import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
 
 // Import all views
@@ -148,140 +149,177 @@ interface NavGroup {
     showBadge?: boolean;
 }
 
-type NavEntry = NavItem | NavGroup;
+interface NavHeader {
+    type: 'header';
+    label: string;
+    minLevel?: number;
+}
+
+type NavEntry = NavItem | NavGroup | NavHeader;
 
 const isNavGroup = (entry: NavEntry): entry is NavGroup => {
     return 'children' in entry;
 };
 
+const isNavHeader = (entry: NavEntry): entry is NavHeader => {
+    return 'type' in entry && entry.type === 'header';
+};
+
 // Navigation structure
 const navItems: NavEntry[] = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', minLevel: 5 },
-    { id: 'analytics', icon: TrendingUp, label: 'Analytics', minLevel: 3 },
+    { type: 'header', label: 'INSIGHTS & REPORTING', minLevel: 5 },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview', minLevel: 5 },
+    { id: 'analytics', icon: TrendingUp, label: 'Performance Analytics', minLevel: 3 },
+    { id: 'reports', icon: FileText, label: 'Management Reports', minLevel: 3 },
+
+    { type: 'header', label: 'OPERATIONS & ASSETS', minLevel: 5 },
     {
-        id: 'asset_management_group',
-        label: 'Asset Management',
+        id: 'asset_operations',
+        label: 'Asset Operations',
         icon: Package,
         minLevel: 5,
         children: [
-            { id: 'assets', icon: Package, label: 'Daftar Aset', minLevel: 5 },
-            { id: 'loans', icon: HandMetal, label: 'Peminjaman Internal', minLevel: 5 },
-            { id: 'fuel', icon: Fuel, label: 'Fuel / BBM', minLevel: 5 },
-            { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
-            { id: 'maintenance-schedules', icon: CalendarIcon, label: 'Jadwal Servis (PM)', minLevel: 3 },
-            { id: 'maintenance-templates', icon: FileText, label: 'Maintenance Templates', minLevel: 3 },
-            { id: 'asset-lifecycle', icon: History, label: 'Lifecycle (Audit)', minLevel: 3 },
+            { id: 'assets', icon: Package, label: 'Asset Registry', minLevel: 5 },
+            { id: 'loans', icon: HandMetal, label: 'Internal Asset Loans', minLevel: 5 },
+            { id: 'fuel', icon: Fuel, label: 'Fuel Usage (BBM)', minLevel: 5 },
+            {
+                id: 'maintenance_subgroup',
+                label: 'Service & Maintenance',
+                icon: Wrench,
+                children: [
+                    { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
+                    { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
+                    { id: 'maintenance-templates', icon: ClipboardCheck, label: 'SOP Templates', minLevel: 3 },
+                    { id: 'asset-lifecycle', icon: History, label: 'Life Cycle Log', minLevel: 3 },
+                ]
+            },
         ]
     },
+
+    { type: 'header', label: 'COMMERCIAL & REVENUE', minLevel: 4 },
     {
-        id: 'rental_group',
-        label: 'Rental Management',
+        id: 'commercial_group',
+        label: 'Commercial & Rental',
         icon: Truck,
         minLevel: 4,
         children: [
-            { id: 'rentals', icon: Truck, label: 'Daftar Rental', minLevel: 4 },
-            { id: 'contracts', icon: FileText, label: 'Kontrak', minLevel: 4 },
-            { id: 'contract-templates', icon: Settings, label: 'Template Kontrak', minLevel: 3 },
-        ]
-    },
-    {
-        id: 'finance_group',
-        label: 'Akuntansi',
-        icon: FolderTree,
-        minLevel: 3, // Managers/Admins only
-        children: [
-            { id: 'cash-bank', icon: Wallet, label: 'Kas & Bank', minLevel: 3 },
+            { id: 'rentals', icon: Truck, label: 'Rental Operations', minLevel: 4 },
+            { id: 'contracts', icon: FileText, label: 'Service Contracts', minLevel: 4 },
+            { id: 'contract-templates', icon: Settings, label: 'Contract Templates', minLevel: 3 },
             {
-                id: 'sales_group',
-                label: 'Penjualan',
+                id: 'sales_subgroup',
+                label: 'Sales Management',
                 icon: ShoppingCart,
                 minLevel: 3,
                 children: [
-                    { id: 'sales-overview', icon: TrendingUp, label: 'Overview', minLevel: 3 },
-                    { id: 'sales-invoices', icon: FileText, label: 'Tagihan Penjualan', minLevel: 3 },
-                    { id: 'sales-shipments', icon: Truck, label: 'Pengiriman Penjualan', minLevel: 3 },
-                    { id: 'sales-orders', icon: ShoppingCart, label: 'Pesanan Penjualan', minLevel: 3 },
-                    { id: 'sales-quotes', icon: Calculator, label: 'Penawaran Penjualan', minLevel: 3 },
-                ]
-            },
-            {
-                id: 'purchases',
-                label: 'Pembelian',
-                icon: ShoppingBag,
-                minLevel: 3,
-                children: [
-                    { id: 'purchase-overview', icon: TrendingUp, label: 'Overview' },
-                    { id: 'purchase-bills', icon: FileText, label: 'Tagihan Pembelian' },
-                    { id: 'purchase-shipments', icon: Truck, label: 'Pengiriman Pembelian' },
-                    { id: 'purchase-orders', icon: ShoppingBag, label: 'Pesanan Pembelian' },
-                    { id: 'purchase-quotes', icon: Calculator, label: 'Penawaran Pembelian' },
-                ]
-            },
-            { id: 'expenses', icon: Receipt, label: 'Biaya', minLevel: 3 },
-            {
-                id: 'finance_group_continued',
-                label: 'Akuntansi Lanjutan',
-                icon: FolderTree,
-                minLevel: 3, // Changed to 3 (Manager) to allow COA access
-                children: [
-                    { id: 'finance', icon: FolderTree, label: 'Daftar Akun' },
-                    { id: 'journal-entries', icon: FileText, label: 'Jurnal Umum' },
-                    { id: 'general-ledger', icon: ArrowLeftRight, label: 'Buku Besar' },
-                    { id: 'trial-balance', icon: Scale, label: 'Neraca Saldo' },
-                    { id: 'financial-reports', icon: TrendingUp, label: 'Laporan Keuangan' },
+                    { id: 'sales-overview', icon: TrendingUp, label: 'Sales Performance' },
+                    { id: 'sales-quotes', icon: Calculator, label: 'Sales Quotations' },
+                    { id: 'sales-orders', icon: ShoppingCart, label: 'Sales Orders' },
+                    { id: 'sales-shipments', icon: Truck, label: 'Delivery Slips' },
+                    { id: 'sales-invoices', icon: FileText, label: 'Invoice Collection' },
                 ]
             }
         ]
     },
+
+    { type: 'header', label: 'PROCUREMENT & SUPPLY', minLevel: 3 },
     {
-        id: 'hrd_group',
-        label: 'HR Management',
+        id: 'supply_chain_group',
+        label: 'Procurement & Supply',
+        icon: ShoppingBag,
+        minLevel: 3,
+        children: [
+            {
+                id: 'purchase_subgroup',
+                label: 'Purchasing',
+                icon: ShoppingBag,
+                minLevel: 3,
+                children: [
+                    { id: 'purchase-overview', icon: TrendingUp, label: 'Procurement Stats' },
+                    { id: 'purchase-quotes', icon: Calculator, label: 'Purchase Requests' },
+                    { id: 'purchase-orders', icon: ShoppingBag, label: 'Purchase Orders' },
+                    { id: 'purchase-shipments', icon: Truck, label: 'Incoming Goods' },
+                    { id: 'purchase-bills', icon: FileText, label: 'Vendor Bills' },
+                ]
+            },
+            {
+                id: 'inventory_subgroup',
+                label: 'Inventory Control',
+                icon: Layers,
+                minLevel: 3,
+                children: [
+                    { id: 'inventory-items', icon: Package, label: 'Stock Items' },
+                    { id: 'stock-opname', icon: ClipboardCheck, label: 'Stock Take' },
+                    { id: 'inventory-categories', icon: FolderTree, label: 'Stock Categories' },
+                ]
+            }
+        ]
+    },
+
+    { type: 'header', label: 'FINANCE & HR', minLevel: 3 },
+    {
+        id: 'finance_group',
+        label: 'Finance & Accounting',
+        icon: FolderTree,
+        minLevel: 3,
+        children: [
+            { id: 'cash-bank', icon: Wallet, label: 'Cash & Bank', minLevel: 3 },
+            { id: 'expenses', icon: Receipt, label: 'Expenditures', minLevel: 3 },
+            {
+                id: 'accounting_subgroup',
+                label: 'General Ledger',
+                icon: History,
+                minLevel: 3,
+                children: [
+                    { id: 'finance', icon: FolderTree, label: 'Chart of Accounts' },
+                    { id: 'journal-entries', icon: FileText, label: 'Journal Entries' },
+                    { id: 'general-ledger', icon: ArrowLeftRight, label: 'Account Ledger' },
+                    { id: 'trial-balance', icon: Scale, label: 'Trial Balance' },
+                    { id: 'financial-reports', icon: TrendingUp, label: 'Financial Statements' },
+                ]
+            }
+        ]
+    },
+
+    {
+        id: 'hr_group',
+        label: 'Human Resources',
         icon: Users,
         minLevel: 3,
         children: [
-            { id: 'employees', icon: Users, label: 'Karyawan' },
-            { id: 'attendance', icon: Clock, label: 'Absensi' },
-            { id: 'leaves', icon: CalendarIcon, label: 'Cuti / Izin' },
+            { id: 'employees', icon: Users, label: 'Employee Directory' },
+            { id: 'attendance', icon: Clock, label: 'Work Attendance' },
+            { id: 'leaves', icon: CalendarIcon, label: 'Leave Requests' },
         ]
     },
-    {
-        id: 'inventory_group',
-        label: 'Inventory',
-        icon: ShoppingBag,
-        minLevel: 4,
-        children: [
-            { id: 'inventory-items', icon: Package, label: 'Daftar Barang', minLevel: 4 },
-            { id: 'stock-opname', icon: ClipboardCheck, label: 'Stock Opname', minLevel: 3 }, // Added Stock Opname
-        ]
-    },
+
+    { type: 'header', label: 'ADMINISTRATION', minLevel: 3 },
+    { id: 'approvals', icon: ClipboardCheck, label: 'Approval Center', minLevel: 3, showBadge: true },
     {
         id: 'master_data',
         label: 'Master Data',
         icon: Building2,
         minLevel: 3,
         children: [
-            { id: 'clients', icon: Building2, label: 'Klien' },
-            { id: 'locations', icon: MapPin, label: 'Lokasi' },
-            { id: 'categories', icon: FolderTree, label: 'Kategori Aset' },
-            { id: 'inventory-categories', icon: FolderTree, label: 'Kategori Inventori' },
-            { id: 'departments', icon: Building2, label: 'Departemen' },
+            { id: 'clients', icon: Building2, label: 'Business Partners' },
+            { id: 'locations', icon: MapPin, label: 'Operational Areas' },
+            { id: 'categories', icon: FolderTree, label: 'Asset Categories' },
+            { id: 'departments', icon: Building2, label: 'Departments' },
         ]
     },
-    { id: 'approvals', icon: ClipboardCheck, label: 'Approval Center', minLevel: 3, showBadge: true },
-    { id: 'reports', icon: FileText, label: 'Laporan', minLevel: 3 },
     {
         id: 'settings_group',
-        label: 'Pengaturan',
+        label: 'System Settings',
         icon: Settings,
-        minLevel: 5, // Profile is here, so group must be visible
+        minLevel: 5,
         children: [
-            { id: 'users', icon: Users, label: 'User Management', minLevel: 2 },
-            { id: 'roles', icon: Shield, label: 'Role & Permissions', minLevel: 2 },
-            { id: 'approval-workflow-settings', icon: Layers, label: 'Approval Workflows', minLevel: 2 },
-            { id: 'audit', icon: Scan, label: 'Audit Mode', minLevel: 2 },
-            { id: 'system-audit', icon: History, label: 'System Logs', minLevel: 2 },
-            { id: 'settings', icon: Settings, label: 'General Settings', minLevel: 2 },
-            { id: 'profile', icon: UserCircle, label: 'Profil', minLevel: 5 },
+            { id: 'users', icon: Users, label: 'User Control', minLevel: 2 },
+            { id: 'roles', icon: Shield, label: 'RBAC Permissions', minLevel: 2 },
+            { id: 'approval-workflow-settings', icon: Layers, label: 'Workflow Engines', minLevel: 2 },
+            { id: 'audit', icon: Scan, label: 'Audit Compliance', minLevel: 2 },
+            { id: 'system-audit', icon: History, label: 'System Event Logs', minLevel: 2 },
+            { id: 'settings', icon: Settings, label: 'App Configuration', minLevel: 2 },
+            { id: 'profile', icon: UserCircle, label: 'My Profile', minLevel: 5 },
         ]
     },
 ];
@@ -290,7 +328,7 @@ export default function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<TabId>('dashboard');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-        asset_management_group: false,
+        asset_operations: false,
         hrd_group: false,
         master_data: false,
         rental_group: false,
@@ -323,7 +361,7 @@ export default function AdminDashboard() {
             setSelectedAssetId(lifecycleMatch.params.id);
             setAssetViewMode('lifecycle');
             setSelectedWorkOrderId(null);
-            setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
+            setOpenGroups(prev => ({ ...prev, asset_operations: true }));
             return;
         }
 
@@ -333,7 +371,7 @@ export default function AdminDashboard() {
             setSelectedAssetId(assetDetailMatch.params.id);
             setAssetViewMode('details');
             setSelectedWorkOrderId(null);
-            setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
+            setOpenGroups(prev => ({ ...prev, asset_operations: true }));
             return;
         }
 
@@ -358,7 +396,7 @@ export default function AdminDashboard() {
             setActiveTab('work-orders');
             setSelectedWorkOrderId(woMatch.params.id);
             setSelectedAssetId(null);
-            setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
+            setOpenGroups(prev => ({ ...prev, asset_operations: true }));
             return;
         }
 
@@ -399,18 +437,19 @@ export default function AdminDashboard() {
             // Recursive finder for nested groups
             const findParentGroup = (items: NavEntry[], targetId: TabId): NavGroup | undefined => {
                 if (targetId === 'work-orders') {
-                    return items.find(i => i.id === 'asset_management_group') as NavGroup;
+                    return items.find(i => !isNavHeader(i) && i.id === 'asset_operations') as NavGroup;
                 }
 
                 for (const item of items) {
+                    if (isNavHeader(item)) continue;
                     if (isNavGroup(item)) {
-                        // Check immediate children
-                        if (item.children.some(child => child.id === targetId)) {
+                        if (item.children.some(child => !isNavHeader(child) && child.id === targetId)) {
                             return item;
                         }
-                        // Check nested children (recursion)
                         const foundInChild = findParentGroup(item.children, targetId);
-                        if (foundInChild) return item; // Return this group as it is a parent (or ancestor)
+                        if (foundInChild) return item;
+                    } else if (item.id === targetId) {
+                        return undefined; // At root
                     }
                 }
                 return undefined;
@@ -425,7 +464,7 @@ export default function AdminDashboard() {
                     setOpenGroups(prev => ({ ...prev, [foundGroup.id]: true }));
                 } else if (foundTab === 'work-orders') {
                     // Explicit fallback for work-orders to ensure group opens
-                    setOpenGroups(prev => ({ ...prev, asset_management_group: true }));
+                    setOpenGroups(prev => ({ ...prev, asset_operations: true }));
                 }
 
                 // Only set active tab if it's not a UUID and seems to be a valid tab
@@ -463,6 +502,21 @@ export default function AdminDashboard() {
     // Check if user is admin
     const isAdmin = (user?.role_level ?? 5) <= 2;
 
+    // Render Section Header
+    const renderNavHeader = (header: NavHeader) => {
+        const userLevel = user?.role_level ?? 5;
+        const requiredLevel = header.minLevel ?? 5;
+        if (userLevel > requiredLevel) return null;
+
+        if (!sidebarOpen) return <div className="h-px bg-border/10 my-4 mx-4" />;
+
+        return (
+            <div className="px-4 py-2 mt-4 text-[10px] font-bold text-muted-foreground/50 tracking-widest uppercase flex items-center gap-2 select-none">
+                <span className="whitespace-nowrap">{header.label}</span>
+                <div className="h-[1px] flex-1 bg-border/10" />
+            </div>
+        );
+    };
     // Render Navigation Item
     const renderNavItem = (item: NavItem, isChild = false) => {
         // Permissions Check
@@ -508,9 +562,9 @@ export default function AdminDashboard() {
         // Check if any child (deep check) is active
         const isChildActiveRecursive = (items: NavEntry[]): boolean => {
             return items.some(item => {
-                if (item.id === activeTab) return true;
+                if (isNavHeader(item)) return false;
                 if (isNavGroup(item)) return isChildActiveRecursive(item.children);
-                return false;
+                return (item as NavItem).id === activeTab;
             });
         };
 
@@ -525,11 +579,13 @@ export default function AdminDashboard() {
 
         // Also ensure at least one child is visible
         const visibleChildren = group.children.filter(child => {
-            const childReqLevel = child.minLevel ?? 5;
+            if (isNavHeader(child)) return true; // Headers don't block visibility
+
+            const childReqLevel = (child as NavItem | NavGroup).minLevel ?? 5;
             if (userLevel > childReqLevel) return false;
 
             // Type guard for adminOnly check
-            if (!isNavGroup(child) && child.adminOnly && !isAdmin) return false;
+            if (!isNavGroup(child) && !isNavHeader(child) && (child as NavItem).adminOnly && !isAdmin) return false;
 
             return true;
         });
@@ -554,11 +610,11 @@ export default function AdminDashboard() {
 
                 {sidebarOpen && isOpen && (
                     <div className="mt-1 border-l border-border space-y-1 ml-4">
-                        {group.children.map(child =>
-                            isNavGroup(child)
-                                ? renderNavGroup(child)
-                                : renderNavItem(child as NavItem, true)
-                        )}
+                        {group.children.map((child) => {
+                            if (isNavHeader(child)) return renderNavHeader(child);
+                            if (isNavGroup(child)) return renderNavGroup(child);
+                            return renderNavItem(child as NavItem, true);
+                        })}
                     </div>
                 )}
             </div>
@@ -696,26 +752,43 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto global-scrollbar">
-                    {navItems.map((entry) =>
-                        isNavGroup(entry) ? renderNavGroup(entry) : renderNavItem(entry)
-                    )}
+                <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 global-scrollbar">
+                    {navItems.map((entry) => {
+                        if (isNavHeader(entry)) return renderNavHeader(entry);
+                        return isNavGroup(entry) ? renderNavGroup(entry) : renderNavItem(entry as NavItem);
+                    })}
                 </nav>
 
                 {/* User & Logout */}
                 <div className="p-4 border-t border-border">
                     {sidebarOpen && (
-                        <div className="mb-3 px-2">
-                            <p className="text-sm font-medium text-foreground">{user?.name}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+                        <div className="mb-4 px-2 flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden border border-border/50 shrink-0">
+                                {user?.avatar_url ? (
+                                    <img
+                                        src={getImageUrl(user.avatar_url)}
+                                        alt={user.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'A')}&background=0D8ABC&color=fff`;
+                                        }}
+                                    />
+                                ) : (
+                                    user?.name?.charAt(0) || 'U'
+                                )}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{user?.role}</p>
+                            </div>
                         </div>
                     )}
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-lg transition-all duration-200"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-lg transition-all duration-200"
                     >
-                        <LogOut size={20} />
-                        {sidebarOpen && <span className="font-medium">Logout</span>}
+                        <LogOut size={18} />
+                        {sidebarOpen && <span className="font-medium text-sm">Logout</span>}
                     </button>
                 </div>
             </aside>
@@ -765,8 +838,19 @@ export default function AdminDashboard() {
                         onClick={() => setActiveTab('profile')}
                         className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded-lg transition-colors border border-transparent hover:border-border"
                     >
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                            {user?.name?.charAt(0) || 'U'}
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden border border-border/50">
+                            {user?.avatar_url ? (
+                                <img
+                                    src={getImageUrl(user.avatar_url)}
+                                    alt={user.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'A')}&background=0D8ABC&color=fff`;
+                                    }}
+                                />
+                            ) : (
+                                user?.name?.charAt(0) || 'U'
+                            )}
                         </div>
                         <div className="hidden sm:block text-left">
                             <p className="text-sm font-medium text-white leading-none mb-1">{user?.name}</p>

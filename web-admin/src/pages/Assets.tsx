@@ -264,8 +264,8 @@ export function Assets() {
             {/* Header Section */}
             <div className="flex justify-between items-end mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Asset Management</h1>
-                    <p className="text-gray-400 mt-2">Manage company assets, vehicles, and equipment</p>
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight">Asset Management</h1>
+                    <p className="text-muted-foreground mt-2">Manage company assets, vehicles, and equipment</p>
                 </div>
                 <div className="flex gap-3">
                     <Button
@@ -324,8 +324,8 @@ export function Assets() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Total Assets</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">Total Assets</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {stats?.assets?.total || 0}
                             </h3>
                         </div>
@@ -339,8 +339,8 @@ export function Assets() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">In Use</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">In Use</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {/* Sum of in_use/deployed statuses */}
                                 {stats?.assets?.by_status?.filter((s: any) =>
                                     ['in_use', 'deployed', 'active'].includes(s.status)
@@ -357,8 +357,8 @@ export function Assets() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Maintenance</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">Maintenance</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {stats?.assets?.by_status?.filter((s: any) =>
                                     ['under_maintenance', 'under_repair'].includes(s.status)
                                 ).reduce((acc: number, curr: any) => acc + curr.count, 0) || 0}
@@ -374,8 +374,8 @@ export function Assets() {
                     <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
                     <div className="flex justify-between items-start relative z-10">
                         <div>
-                            <p className="text-gray-400 text-sm font-medium">Rent Out</p>
-                            <h3 className="text-3xl font-bold text-white mt-1">
+                            <p className="text-muted-foreground text-sm font-medium">Rent Out</p>
+                            <h3 className="text-3xl font-bold text-card-foreground mt-1">
                                 {stats?.assets?.by_status?.find((s: any) => s.status === 'rented_out')?.count || 0}
                             </h3>
                         </div>
@@ -389,7 +389,7 @@ export function Assets() {
             {/* Active Filters Summary */}
             {(categoryFilter || locationFilter || departmentFilter || statusFilter || exactMatch) && (
                 <div className="flex items-center gap-2 mb-4 px-1">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Filters:</span>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Filters:</span>
                     <div className="flex flex-wrap gap-2">
                         {categoryFilter && <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">Category: {categoryFilter.split(',').length}</span>}
                         {locationFilter && <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded-full border border-purple-500/20">Location: {locationFilter.split(',').length}</span>}
@@ -414,9 +414,9 @@ export function Assets() {
             )}
 
             {/* Main Content Area */}
-            <Card className="overflow-hidden p-0">
+            <Card className="overflow-hidden p-0 border border-border">
                 {/* Search & Filters Bar */}
-                <div className="p-4 border-b border-white/5 flex justify-between items-center gap-4 bg-gray-900/30">
+                <div className="p-4 border-b border-border flex justify-between items-center gap-4 bg-muted/30">
                     <div className="flex items-center gap-4 flex-1">
                         <GlobalSearch
                             onSearch={setSearch}
@@ -430,7 +430,7 @@ export function Assets() {
                             variant="outline"
                             leftIcon={<Filter size={18} />}
                             onClick={() => setFilterDrawerOpen(true)}
-                            className={`rounded-xl border-slate-700/50 ${filterDrawerOpen ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' : ''}`}
+                            className={`rounded-xl border-border/50 ${filterDrawerOpen ? 'bg-primary/10 border-primary/50 text-blue-400' : ''}`}
                         >
                             Filters {(categoryFilter || locationFilter || departmentFilter || statusFilter) ? `(${(categoryFilter?.split(',').length || 0) + (locationFilter?.split(',').length || 0) + (departmentFilter?.split(',').length || 0) + (statusFilter?.split(',').length || 0)})` : ''}
                         </Button>
@@ -446,26 +446,27 @@ export function Assets() {
                     ) : (
                         <Table className="border-none rounded-none shadow-none">
                             <TableHead>
-                                <TableRow className="bg-gray-900/50 border-white/5">
+                                <TableRow className="bg-muted/50 border-border">
                                     <TableTh className="w-10">
                                         <Checkbox
                                             checked={selectedAssetIds.length > 0 && selectedAssetIds.length === assetsData?.data.length}
                                             onChange={toggleSelectAll}
                                         />
                                     </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('asset_code')}>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('asset_code')}>
                                         <div className="flex items-center">Asset Code <SortIcon field="asset_code" /></div>
                                     </TableTh>
                                     <TableTh>Category</TableTh>
-                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('name')}>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('name')}>
                                         <div className="flex items-center">Name <SortIcon field="name" /></div>
                                     </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('brand')}>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('brand')}>
                                         <div className="flex items-center">Brand/Model <SortIcon field="brand" /></div>
                                     </TableTh>
                                     <TableTh>Location</TableTh>
                                     <TableTh>Department</TableTh>
-                                    <TableTh className="cursor-pointer hover:text-white" onClick={() => handleSort('status')}>
+                                    <TableTh>Penanggung Jawab</TableTh>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('status')}>
                                         <div className="flex items-center">Status <SortIcon field="status" /></div>
                                     </TableTh>
                                     <TableTh align="center">Actions</TableTh>
@@ -473,7 +474,7 @@ export function Assets() {
                             </TableHead>
                             <TableBody>
                                 {assetsData?.data?.map((asset: any) => (
-                                    <TableRow key={asset.id} className={`${selectedAssetIds.includes(asset.id) ? 'bg-blue-500/10' : 'hover:bg-gray-700/30'} border-white/5 group transition-all`}>
+                                    <TableRow key={asset.id} className={`${selectedAssetIds.includes(asset.id) ? 'bg-primary/10' : 'hover:bg-muted/50'} border-border group transition-all`}>
                                         <TableTd>
                                             <Checkbox
                                                 checked={selectedAssetIds.includes(asset.id)}
@@ -489,12 +490,20 @@ export function Assets() {
                                         <TableTd className="font-medium">{asset.name}</TableTd>
                                         <TableTd>
                                             <div className="text-sm">
-                                                <span className="text-gray-200">{asset.brand}</span>
-                                                <span className="text-gray-500 ml-1">{asset.model}</span>
+                                                <span className="text-foreground">{asset.brand}</span>
+                                                <span className="text-muted-foreground ml-1">{asset.model}</span>
                                             </div>
                                         </TableTd>
                                         <TableTd>{asset.location_name || '-'}</TableTd>
                                         <TableTd>{asset.department || '-'}</TableTd>
+                                        <TableTd>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold border border-blue-500/30">
+                                                    {asset.assigned_to_name?.charAt(0) || '?'}
+                                                </div>
+                                                <span className="text-sm">{asset.assigned_to_name || '-'}</span>
+                                            </div>
+                                        </TableTd>
                                         <TableTd>
                                             <StatusBadge status={asset.status || 'active'} />
                                         </TableTd>
@@ -543,9 +552,9 @@ export function Assets() {
 
                 {/* Pagination */}
                 {assetsData?.total_pages > 1 && (
-                    <div className="flex justify-between items-center p-4 border-t border-white/5 bg-gray-900/20">
-                        <p className="text-sm text-gray-500">
-                            Showing <span className="text-gray-300">{assetsData?.data?.length || 0}</span> of <span className="text-gray-300">{assetsData?.total || 0}</span> assets
+                    <div className="flex justify-between items-center p-4 border-t border-border bg-muted/20">
+                        <p className="text-sm text-muted-foreground">
+                            Showing <span className="text-foreground">{assetsData?.data?.length || 0}</span> of <span className="text-foreground">{assetsData?.total || 0}</span> assets
                         </p>
                         <Pagination
                             currentPage={page}
@@ -583,18 +592,18 @@ export function Assets() {
             >
                 <div className="p-6 space-y-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Search Mode</label>
+                        <label className="text-sm font-medium text-muted-foreground">Search Mode</label>
                         <Checkbox
                             label="Exact Match Only"
                             checked={exactMatch}
                             onChange={(e) => setExactMatch(e.target.checked)}
-                            className="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50"
+                            className="bg-muted/50 p-3 rounded-xl border border-border/50"
                         />
-                        <p className="text-xs text-gray-500 px-1 italic">When enabled, only assets with IDs or Codes exactly matching the query will be returned.</p>
+                        <p className="text-xs text-muted-foreground px-1 italic">When enabled, only assets with IDs or Codes exactly matching the query will be returned.</p>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Categories</label>
+                        <label className="text-sm font-medium text-muted-foreground">Categories</label>
                         <MultiSelect
                             placeholder="Select categories..."
                             options={filterCategories.map((c: any) => ({ value: c.id, label: c.name }))}
@@ -604,7 +613,7 @@ export function Assets() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Locations</label>
+                        <label className="text-sm font-medium text-muted-foreground">Locations</label>
                         <MultiSelect
                             placeholder="Select locations..."
                             options={filterLocations.map((l: any) => ({ value: l.id, label: l.name }))}
@@ -614,7 +623,7 @@ export function Assets() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Departments</label>
+                        <label className="text-sm font-medium text-muted-foreground">Departments</label>
                         <MultiSelect
                             placeholder="Select departments..."
                             options={departments.map((d: any) => ({ value: d.name, label: d.name }))}
@@ -624,7 +633,7 @@ export function Assets() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Asset Status</label>
+                        <label className="text-sm font-medium text-muted-foreground">Asset Status</label>
                         <MultiSelect
                             placeholder="Select statuses..."
                             options={[
@@ -657,7 +666,7 @@ export function Assets() {
                         </Button>
                         <Button
                             variant="outline"
-                            className="rounded-xl border-slate-700/50"
+                            className="rounded-xl border-border/50"
                             onClick={() => {
                                 setCategoryFilter(null);
                                 setLocationFilter(null);
@@ -709,8 +718,8 @@ export function Assets() {
                 size="sm"
             >
                 <div className="p-6 space-y-4">
-                    <p className="text-sm text-gray-400">
-                        Updating <span className="text-white font-bold">{selectedAssetIds.length}</span> assets.
+                    <p className="text-sm text-muted-foreground">
+                        Updating <span className="text-foreground font-bold">{selectedAssetIds.length}</span> assets.
                     </p>
 
                     {bulkActionType === 'status' && (
@@ -756,7 +765,7 @@ export function Assets() {
                         </Button>
                         <Button
                             variant="outline"
-                            className="rounded-xl border-slate-700/50 h-11"
+                            className="rounded-xl border-border/50 h-11"
                             onClick={() => setBulkModalOpen(false)}
                         >
                             Cancel

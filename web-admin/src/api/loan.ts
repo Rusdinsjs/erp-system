@@ -14,11 +14,11 @@ export interface Loan {
 
     status: 'requested' | 'approved' | 'rejected' | 'checked_out' | 'in_use' | 'overdue' | 'returned' | 'damaged' | 'lost';
 
-    condition_on_out?: string;
-    condition_on_return?: string;
+    condition_before?: string;
+    condition_after?: string;
     damage_description?: string;
-    handover_photo?: string;
-    return_photo?: string;
+    check_out_photos?: string[];
+    return_photos?: string[];
 
     borrower_name?: string; // Joined
     employee_name?: string; // Joined
@@ -75,14 +75,14 @@ export const loanApi = {
         return response.data;
     },
 
-    checkout: async (id: string, condition: string, photo?: string) => {
-        const response = await api.post(`/loans/${id}/checkout`, { condition, photo });
+    checkout: async (id: string, condition: string, photos?: string[]) => {
+        const response = await api.post(`/loans/${id}/checkout`, { condition, photos });
         return response.data;
     },
 
-    returnLoan: async (id: string, condition: string, photo?: string) => {
+    returnLoan: async (id: string, condition: string, photos?: string[]) => {
         // "return" matches backend path checkin_loan, usually mapped to /loans/:id/return
-        const response = await api.post(`/loans/${id}/return`, { condition, photo });
+        const response = await api.post(`/loans/${id}/return`, { condition, photos });
         return response.data;
     },
 

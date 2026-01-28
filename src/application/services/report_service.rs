@@ -1,3 +1,4 @@
+use crate::domain::entities::AssetState;
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{AssetRepository, MaintenanceRepository};
 use chrono::NaiveDate;
@@ -245,9 +246,13 @@ impl ReportService {
                 elements::Paragraph::new(asset.id.to_string().chars().take(8).collect::<String>())
                     .padded(2),
             ); // Shorten ID for display
+            let status_display = AssetState::from_str(&asset.status)
+                .map(|s| s.display_name().to_string())
+                .unwrap_or(asset.status);
+
             row.push_element(elements::Paragraph::new(asset.asset_code).padded(2));
             row.push_element(elements::Paragraph::new(asset.name).padded(2));
-            row.push_element(elements::Paragraph::new(asset.status).padded(2));
+            row.push_element(elements::Paragraph::new(status_display).padded(2));
             row.push_element(
                 elements::Paragraph::new(asset.asset_class.unwrap_or_default()).padded(2),
             );

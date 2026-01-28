@@ -41,16 +41,16 @@ function StatCard({ label, value, icon: Icon, color, description }: StatCardProp
     };
 
     return (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors">
+        <div className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-colors shadow-sm">
             <div className="flex items-start justify-between mb-3">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${colors[color]} shadow-lg`}>
                     <Icon size={22} className="text-white" />
                 </div>
             </div>
-            <p className="text-2xl font-bold text-white mb-1">{value}</p>
-            <p className="text-sm text-slate-400">{label}</p>
+            <p className="text-2xl font-bold text-card-foreground mb-1">{value}</p>
+            <p className="text-sm text-muted-foreground">{label}</p>
             {description && (
-                <p className="text-xs text-slate-500 mt-2">{description}</p>
+                <p className="text-xs text-muted-foreground/80 mt-2">{description}</p>
             )}
         </div>
     );
@@ -72,7 +72,7 @@ function RingProgress({ percentage }: { percentage: number }) {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="16"
-                    className="text-slate-800"
+                    className="text-muted/20"
                 />
                 {/* Progress circle */}
                 <circle
@@ -89,8 +89,8 @@ function RingProgress({ percentage }: { percentage: number }) {
                 />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-white">{percentage}%</span>
-                <span className="text-sm text-slate-400">Available</span>
+                <span className="text-3xl font-bold text-foreground">{percentage}%</span>
+                <span className="text-sm text-muted-foreground">Available</span>
             </div>
         </div>
     );
@@ -128,10 +128,10 @@ export function Dashboard() {
     });
 
     // 5. Fetch Condition Distribution
-    const { data: conditionDist, isLoading: conditionLoading } = useQuery({
-        queryKey: ['analytics-condition'],
+    const { data: statusDist, isLoading: statusLoading } = useQuery({
+        queryKey: ['analytics-status'],
         queryFn: async () => {
-            const res = await api.get('/analytics/condition-distribution');
+            const res = await api.get('/analytics/status');
             return res.data;
         },
     });
@@ -167,7 +167,7 @@ export function Dashboard() {
     const { hasRoleLevel } = useAuthStore();
     const showFinancials = hasRoleLevel(3); // Level 3 (Manager) or higher
 
-    const isLoading = statsLoading || financialsLoading || trendsLoading || conditionLoading;
+    const isLoading = statsLoading || financialsLoading || trendsLoading || statusLoading;
 
     if (isLoading) return <PageLoading />;
 
@@ -217,16 +217,16 @@ export function Dashboard() {
         },
     ];
 
-    const COLORS = ['#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
+                <h1 className="text-2xl font-bold text-foreground">Dashboard Overview</h1>
                 <button
                     onClick={handleExportPDF}
                     disabled={isExporting}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white rounded-lg transition-colors border border-slate-700"
+                    className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-secondary-foreground rounded-lg transition-colors border border-border"
                 >
                     <DollarSign size={16} />
                     {isExporting ? 'Generating PDF...' : 'Export Summary (PDF)'}
@@ -247,7 +247,7 @@ export function Dashboard() {
                 <div className="lg:col-span-2 space-y-6">
                     {/* Maintenance Trend Chart */}
                     <Card padding="lg">
-                        <div className="flex items-center gap-2 mb-6 text-white font-semibold">
+                        <div className="flex items-center gap-2 mb-6 text-foreground font-semibold">
                             <TrendingUp size={20} className="text-cyan-400" />
                             <h2>Maintenance Cost Trends</h2>
                         </div>
@@ -260,7 +260,7 @@ export function Dashboard() {
                                             <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                                     <XAxis
                                         dataKey="month"
                                         stroke="#64748b"
@@ -275,14 +275,10 @@ export function Dashboard() {
                                         }}
                                     />
                                     <YAxis
-                                        stroke="#64748b"
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
                                         tickFormatter={(val) => `Rp ${val / 1000000}M`}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-foreground)' }}
                                         formatter={(val: number | undefined) => [formatCurrency(val ?? 0), 'Total Cost']}
                                     />
                                     <Area type="monotone" dataKey="total_cost" stroke="#06b6d4" fillOpacity={1} fill="url(#colorCost)" />
@@ -295,24 +291,24 @@ export function Dashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {showFinancials && (
                             <Card padding="lg">
-                                <h2 className="text-lg font-semibold text-white mb-4">Financial Snapshot</h2>
+                                <h2 className="text-lg font-semibold text-foreground mb-4">Financial Snapshot</h2>
                                 <div className="space-y-6">
                                     <div>
-                                        <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Book Value</p>
+                                        <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Book Value</p>
                                         <p className="text-2xl font-bold text-cyan-400">
                                             {formatCurrency(financials?.total_book_value || 0)}
                                         </p>
                                     </div>
-                                    <div className="pt-4 border-t border-slate-800 grid grid-cols-2 gap-4">
+                                    <div className="pt-4 border-t border-border grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Orig. Cost</p>
-                                            <p className="text-sm font-bold text-slate-300">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-1">Orig. Cost</p>
+                                            <p className="text-sm font-bold text-foreground">
                                                 {formatCurrency(financials?.total_original_cost || 0)}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Deprec.</p>
-                                            <p className="text-sm font-bold text-red-400">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-1">Deprec.</p>
+                                            <p className="text-sm font-bold text-red-500">
                                                 -{formatCurrency(financials?.total_accumulated_depreciation || 0)}
                                             </p>
                                         </div>
@@ -330,7 +326,7 @@ export function Dashboard() {
                     {/* Asset Availability & Condition Distribution */}
                     <Card padding="lg">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-lg font-semibold text-white">Asset Condition</h2>
+                            <h2 className="text-lg font-semibold text-foreground">Asset Status Distribution</h2>
                             <PieChartIcon size={18} className="text-cyan-400" />
                         </div>
 
@@ -338,23 +334,50 @@ export function Dashboard() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        data={conditionDist}
+                                        data={statusDist}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius={60}
                                         outerRadius={80}
                                         paddingAngle={5}
                                         dataKey="count"
-                                        nameKey="condition"
+                                        nameKey="status"
                                     >
-                                        {conditionDist?.map((_: any, index: number) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
+                                        {statusDist?.map((entry: any, index: number) => {
+                                            const colors: Record<string, string> = {
+                                                planning: '#94a3b8',
+                                                procurement: '#3b82f6',
+                                                received: '#06b6d4',
+                                                in_inventory: '#10b981',
+                                                available: '#10b981',
+                                                deployed: '#059669',
+                                                in_use: '#059669',
+                                                rented_out: '#f59e0b',
+                                                under_maintenance: '#eab308',
+                                                under_repair: '#d97706',
+                                                under_conversion: '#8b5cf6',
+                                                retired: '#475569',
+                                                disposed: '#737373',
+                                                sold: '#84cc16',
+                                                lost_stolen: '#ef4444',
+                                            };
+                                            return (
+                                                <Cell key={`cell-${index}`} fill={colors[entry.status] || '#64748b'} />
+                                            );
+                                        })}
                                     </Pie>
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
+                                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-foreground)' }}
+                                        formatter={(value: any, name: any) => {
+                                            const formattedName = name === 'planning' ? 'Rent Out' : name.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                                            return [value, formattedName];
+                                        }}
                                     />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
+                                    <Legend
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
+                                        formatter={(value) => value === 'planning' ? 'Rent Out' : value.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -362,7 +385,7 @@ export function Dashboard() {
 
                     {/* Asset Availability Ring */}
                     <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-white mb-6">Availability Rate</h2>
+                        <h2 className="text-lg font-semibold text-foreground mb-6">Availability Rate</h2>
                         <div className="flex justify-center">
                             <RingProgress percentage={availablePercentage} />
                         </div>
@@ -370,28 +393,28 @@ export function Dashboard() {
 
                     {/* Operational Stats */}
                     <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-white mb-4">Operational Status</h2>
+                        <h2 className="text-lg font-semibold text-foreground mb-4">Operational Status</h2>
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-500/20 rounded-lg">
+                                <div className="p-2 bg-purple-500/10 rounded-lg">
                                     <ClipboardCheck size={18} className="text-purple-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-slate-300">Pending Loans</span>
-                                <span className="font-bold text-white">{stats?.loans?.pending_approval || 0}</span>
+                                <span className="flex-1 text-sm text-muted-foreground">Pending Loans</span>
+                                <span className="font-bold text-foreground">{stats?.loans?.pending_approval || 0}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-amber-500/20 rounded-lg">
+                                <div className="p-2 bg-amber-500/10 rounded-lg">
                                     <Clock size={18} className="text-amber-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-slate-300">Overdue Loans</span>
-                                <span className="font-bold text-amber-400">{stats?.loans?.overdue || 0}</span>
+                                <span className="flex-1 text-sm text-muted-foreground">Overdue Loans</span>
+                                <span className="font-bold text-amber-500">{stats?.loans?.overdue || 0}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-red-500/20 rounded-lg">
+                                <div className="p-2 bg-red-500/10 rounded-lg">
                                     <Wrench size={18} className="text-red-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-slate-300">Repair Needs</span>
-                                <span className="font-bold text-red-400">{stats?.maintenance?.overdue || 0}</span>
+                                <span className="flex-1 text-sm text-muted-foreground">Repair Needs</span>
+                                <span className="font-bold text-red-500">{stats?.maintenance?.overdue || 0}</span>
                             </div>
                         </div>
                     </Card>

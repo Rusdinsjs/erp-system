@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { assetApi, type AssetExpense, type AssetExpenseItem } from '../../api/assets';
+import { assetApi, type AssetExpense } from '../../api/assets';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
     Button,
@@ -172,13 +172,13 @@ export function AssetExpenses({ assetId, type }: AssetExpensesProps) {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-white">{title}</h3>
+                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
                 <Button onClick={() => setOpened(true)} leftIcon={<Plus size={16} />}>
                     Add {type}
                 </Button>
             </div>
 
-            <div className="rounded-md border border-slate-800 bg-slate-900/50 overflow-hidden">
+            <div className="rounded-md border border-border bg-muted/50 overflow-hidden">
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -195,7 +195,7 @@ export function AssetExpenses({ assetId, type }: AssetExpensesProps) {
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableTd colSpan={8} className="text-center py-8 text-slate-400">Loading...</TableTd>
+                                <TableTd colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableTd>
                             </TableRow>
                         ) : filteredExpenses?.length === 0 ? (
                             <TableEmpty colSpan={8} message={`No ${type} records found.`} />
@@ -204,15 +204,15 @@ export function AssetExpenses({ assetId, type }: AssetExpensesProps) {
                                 <TableRow key={expense.id}>
                                     <TableTd>{expense.date}</TableTd>
                                     <TableTd>
-                                        <div className="font-medium text-white">{expense.description}</div>
-                                        <div className="text-xs text-slate-500">{expense.invoice_number}</div>
+                                        <div className="font-medium text-foreground">{expense.description}</div>
+                                        <div className="text-xs text-muted-foreground">{expense.invoice_number}</div>
                                     </TableTd>
                                     <TableTd>{expense.vendor_name || '-'}</TableTd>
-                                    <TableTd className="font-bold text-white">
+                                    <TableTd className="font-bold text-foreground">
                                         Rp {expense.amount.toLocaleString('id-ID')}
                                     </TableTd>
                                     <TableTd>
-                                        <div className="text-xs text-slate-400">
+                                        <div className="text-xs text-muted-foreground">
                                             {expense.items?.length || 0} items
                                         </div>
                                     </TableTd>
@@ -301,7 +301,7 @@ export function AssetExpenses({ assetId, type }: AssetExpensesProps) {
                     {/* Items Section */}
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-medium text-slate-300">Expense Items</label>
+                            <label className="text-sm font-medium text-muted-foreground">Expense Items</label>
                             <Button size="sm" variant="ghost" type="button" onClick={addItem} leftIcon={<Plus size={14} />}>
                                 Add Item
                             </Button>
@@ -341,10 +341,10 @@ export function AssetExpenses({ assetId, type }: AssetExpensesProps) {
                             ))}
                         </div>
 
-                        <div className="flex justify-end pt-2 border-t border-slate-800">
+                        <div className="flex justify-end pt-2 border-t border-border">
                             <div className="text-right">
-                                <span className="text-sm text-slate-400 mr-2">Total Amount:</span>
-                                <span className="text-xl font-bold text-white">
+                                <span className="text-sm text-muted-foreground mr-2">Total Amount:</span>
+                                <span className="text-xl font-bold text-foreground">
                                     Rp {totalAmount.toLocaleString('id-ID')}
                                 </span>
                             </div>
@@ -354,10 +354,10 @@ export function AssetExpenses({ assetId, type }: AssetExpensesProps) {
 
                     {/* Proof Upload */}
                     <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-300">Receipt/Proof</label>
+                        <label className="text-sm font-medium text-muted-foreground">Receipt/Proof</label>
                         <div className="flex items-center gap-2">
                             <label className="flex-1 cursor-pointer">
-                                <div className="flex items-center justify-center w-full px-4 py-2 border border-slate-700 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors text-slate-400 hover:text-white">
+                                <div className="flex items-center justify-center w-full px-4 py-2 border border-border rounded-lg bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                                     <Upload size={16} className="mr-2" />
                                     <span className="text-sm truncate">
                                         {formData.file ? formData.file.name : 'Choose File...'}

@@ -121,12 +121,12 @@ export function JournalEntryForm() {
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate('/finance/journals')}
-                    className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                    className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <ArrowLeft size={20} />
                 </button>
                 <div>
-                    <h2 className="text-2xl font-bold text-white">New Journal Entry</h2>
+                    <h2 className="text-2xl font-bold text-foreground">New Journal Entry</h2>
                 </div>
             </div>
 
@@ -134,48 +134,48 @@ export function JournalEntryForm() {
                 {/* Header Section */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-400">Date</label>
+                        <label className="block text-sm font-medium text-muted-foreground">Date</label>
                         <input
                             type="date"
                             required
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            className="w-full bg-background border border-input rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-400">Reference</label>
+                        <label className="block text-sm font-medium text-muted-foreground">Reference</label>
                         <input
                             type="text"
                             value={reference}
                             onChange={(e) => setReference(e.target.value)}
                             placeholder="e.g. INV-001"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            className="w-full bg-background border border-input rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                         />
                     </div>
                     <div className="space-y-2 md:col-span-3">
-                        <label className="block text-sm font-medium text-slate-400">Description</label>
+                        <label className="block text-sm font-medium text-muted-foreground">Description</label>
                         <textarea
                             required
                             rows={2}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Transaction description"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                            className="w-full bg-background border border-input rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
                         />
                     </div>
                 </div>
 
                 {/* Lines Section */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                        <h3 className="font-semibold text-white">Journal Lines</h3>
+                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+                    <div className="p-4 border-b border-border flex justify-between items-center">
+                        <h3 className="font-semibold text-foreground">Journal Lines</h3>
                     </div>
 
                     <div className="p-4">
                         <table className="w-full">
                             <thead>
-                                <tr className="text-left text-xs uppercase text-slate-500 font-medium tracking-wider">
+                                <tr className="text-left text-xs uppercase text-muted-foreground font-medium tracking-wider">
                                     <th className="pb-3 w-[35%]">Account</th>
                                     <th className="pb-3">Line Description</th>
                                     <th className="pb-3 w-[15%]">Debit</th>
@@ -190,7 +190,7 @@ export function JournalEntryForm() {
                                             <select
                                                 value={line.account_id}
                                                 onChange={(e) => updateLine(index, 'account_id', e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                                                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-foreground text-sm focus:ring-1 focus:ring-primary outline-none"
                                             >
                                                 <option value="">Select Account</option>
                                                 {accounts.map(acc => (
@@ -206,7 +206,7 @@ export function JournalEntryForm() {
                                                 value={line.description}
                                                 onChange={(e) => updateLine(index, 'description', e.target.value)}
                                                 placeholder="Optional description"
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                                                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-foreground text-sm focus:ring-1 focus:ring-primary outline-none"
                                             />
                                         </td>
                                         <td className="pr-3 py-1">
@@ -216,7 +216,7 @@ export function JournalEntryForm() {
                                                 step="0.01"
                                                 value={line.debit}
                                                 onChange={(e) => updateLine(index, 'debit', e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right placeholder-slate-600"
+                                                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-foreground text-sm focus:ring-1 focus:ring-primary outline-none text-right placeholder-muted-foreground"
                                                 placeholder="0.00"
                                             />
                                         </td>
@@ -227,7 +227,7 @@ export function JournalEntryForm() {
                                                 step="0.01"
                                                 value={line.credit}
                                                 onChange={(e) => updateLine(index, 'credit', e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right placeholder-slate-600"
+                                                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-foreground text-sm focus:ring-1 focus:ring-primary outline-none text-right placeholder-muted-foreground"
                                                 placeholder="0.00"
                                             />
                                         </td>
@@ -236,7 +236,7 @@ export function JournalEntryForm() {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeLine(index)}
-                                                    className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                                                    className="text-muted-foreground hover:text-destructive transition-colors p-1"
                                                 >
                                                     <Trash size={16} />
                                                 </button>
@@ -250,32 +250,32 @@ export function JournalEntryForm() {
                         <button
                             type="button"
                             onClick={addLine}
-                            className="mt-4 flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                            className="mt-4 flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
                         >
                             <Plus size={16} /> Add Line
                         </button>
                     </div>
 
                     {/* Totals Footer */}
-                    <div className={`px-6 py-4 border-t border-slate-800 ${isBalanced ? 'bg-slate-900' : 'bg-red-900/10'}`}>
+                    <div className={`px-6 py-4 border-t border-border ${isBalanced ? 'bg-card' : 'bg-destructive/10'}`}>
                         <div className="flex justify-between items-center max-w-2xl ml-auto mr-12">
                             <div className="text-right">
-                                <p className="text-xs text-slate-400 uppercase font-medium">Total Debit</p>
-                                <p className="text-lg font-bold text-white font-mono">{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                <p className="text-xs text-muted-foreground uppercase font-medium">Total Debit</p>
+                                <p className="text-lg font-bold text-foreground font-mono">{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs text-slate-400 uppercase font-medium">Total Credit</p>
-                                <p className="text-lg font-bold text-white font-mono">{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                <p className="text-xs text-muted-foreground uppercase font-medium">Total Credit</p>
+                                <p className="text-lg font-bold text-foreground font-mono">{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs text-slate-400 uppercase font-medium">Difference</p>
-                                <p className={`text-lg font-bold font-mono ${isBalanced ? 'text-green-400' : 'text-red-400'}`}>
+                                <p className="text-xs text-muted-foreground uppercase font-medium">Difference</p>
+                                <p className={`text-lg font-bold font-mono ${isBalanced ? 'text-green-500' : 'text-destructive'}`}>
                                     {Math.abs(difference).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </p>
                             </div>
                         </div>
                         {!isBalanced && (
-                            <div className="flex justify-end mt-2 mr-12 text-red-400 text-sm items-center gap-2">
+                            <div className="flex justify-end mt-2 mr-12 text-destructive text-sm items-center gap-2">
                                 <AlertCircle size={14} />
                                 Entry must be balanced to save
                             </div>
@@ -284,20 +284,20 @@ export function JournalEntryForm() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <div className="flex justify-end gap-3 pt-4 border-t border-border">
                     <button
                         type="button"
                         onClick={() => navigate('/finance/journals')}
-                        className="px-6 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors font-medium"
+                        className="px-6 py-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={!isBalanced || submitting || totalDebit === 0}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-white font-medium transition-all ${!isBalanced || submitting || totalDebit === 0
-                            ? 'bg-slate-700 cursor-not-allowed opacity-50'
-                            : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20'
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-primary-foreground font-medium transition-all ${!isBalanced || submitting || totalDebit === 0
+                            ? 'bg-muted cursor-not-allowed opacity-50'
+                            : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20'
                             }`}
                     >
                         <Save size={18} />

@@ -133,21 +133,21 @@ export function CashBank() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Kas & Bank</h1>
-                    <p className="text-slate-400">Kelola saldo kas dan mutasi bank Anda</p>
+                    <h1 className="text-2xl font-bold text-foreground">Kas & Bank</h1>
+                    <p className="text-muted-foreground">Kelola saldo kas dan mutasi bank Anda</p>
                 </div>
                 <div className="flex gap-3">
                     <Button
                         variant="outline"
                         onClick={() => setIsTransferModalOpen(true)}
-                        className="gap-2 border-slate-700 text-slate-300"
+                        className="gap-2 border-border text-muted-foreground"
                     >
                         Transfer Kas
                     </Button>
                     <Button
                         variant="outline"
                         onClick={() => setIsReceiveModalOpen(true)}
-                        className="gap-2 border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                        className="gap-2 border-emerald-500/20 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
                     >
                         <ArrowDownLeft size={16} />
                         Terima Dana
@@ -155,14 +155,14 @@ export function CashBank() {
                     <Button
                         variant="outline"
                         onClick={() => setIsSendModalOpen(true)}
-                        className="gap-2 border-rose-500/20 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20"
+                        className="gap-2 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
                     >
                         <ArrowUpRight size={16} />
                         Kirim Dana
                     </Button>
                     <Button
                         onClick={() => setIsAddAccountModalOpen(true)}
-                        className="gap-2 bg-cyan-600 hover:bg-cyan-500"
+                        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                         <Plus size={18} />
                         Tambah Kas & Bank
@@ -174,28 +174,28 @@ export function CashBank() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {accountsLoading ? (
                     [1, 2, 3].map(i => (
-                        <div key={i} className="h-48 bg-slate-900/50 animate-pulse rounded-2xl border border-slate-800" />
+                        <div key={i} className="h-48 bg-card animate-pulse rounded-2xl border border-border" />
                     ))
                 ) : (
                     cashAccounts.map(account => (
-                        <Card key={account.id} className="bg-slate-900/80 border-slate-800 hover:border-cyan-500/50 transition-all group">
+                        <Card key={account.id} className="bg-card border-border hover:border-primary/50 transition-all group">
                             <div className="p-6">
                                 <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-cyan-500/10 rounded-xl">
-                                        <Wallet className="text-cyan-400" size={24} />
+                                    <div className="p-3 bg-primary/10 rounded-xl">
+                                        <Wallet className="text-primary" size={24} />
                                     </div>
-                                    <button className="text-slate-500 hover:text-white transition-colors">
+                                    <button className="text-muted-foreground hover:text-foreground transition-colors">
                                         <MoreVertical size={20} />
                                     </button>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors">
+                                    <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
                                         {account.name}
                                     </h3>
-                                    <p className="text-slate-500 text-sm mb-4">{account.code}</p>
-                                    <div className="pt-4 border-t border-slate-800">
-                                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Saldo Saat Ini</p>
-                                        <p className="text-2xl font-bold text-white">
+                                    <p className="text-muted-foreground text-sm mb-4">{account.code}</p>
+                                    <div className="pt-4 border-t border-border">
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Saldo Saat Ini</p>
+                                        <p className="text-2xl font-bold text-foreground">
                                             {formatCurrency(0)} {/* Balance needs aggregation logic */}
                                         </p>
                                     </div>
@@ -204,7 +204,7 @@ export function CashBank() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="w-full text-xs gap-1 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400"
+                                        className="w-full text-xs gap-1 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-500"
                                         onClick={() => {
                                             setSelectedAccount(account);
                                             setIsReceiveModalOpen(true);
@@ -215,7 +215,7 @@ export function CashBank() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="w-full text-xs gap-1 bg-rose-500/5 hover:bg-rose-500/10 text-rose-400"
+                                        className="w-full text-xs gap-1 bg-destructive/5 hover:bg-destructive/10 text-destructive"
                                         onClick={() => {
                                             setSelectedAccount(account);
                                             setIsSendModalOpen(true);
@@ -231,20 +231,20 @@ export function CashBank() {
             </div>
 
             {/* Recent Transactions Table */}
-            <Card className="bg-slate-900/50 border-slate-800">
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-white">Transaksi Terakhir</h2>
+            <Card className="bg-card border-border">
+                <div className="p-6 border-b border-border flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-foreground">Transaksi Terakhir</h2>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                         <input
                             placeholder="Cari transaksi..."
-                            className="bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-300 focus:outline-none focus:border-cyan-500/50 transition-all w-64"
+                            className="bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all w-64"
                         />
                     </div>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-slate-950/50 text-slate-500 uppercase text-xs font-semibold">
+                    <table className="w-full text-left text-sm text-muted-foreground">
+                        <thead className="bg-muted/50 text-muted-foreground uppercase text-xs font-semibold">
                             <tr>
                                 <th className="px-6 py-4">Tanggal</th>
                                 <th className="px-6 py-4">Nomor</th>
@@ -253,32 +253,32 @@ export function CashBank() {
                                 <th className="px-6 py-4 text-right">Jumlah</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800 text-slate-300">
+                        <tbody className="divide-y divide-border text-foreground">
                             {txLoading ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
                                 </tr>
                             ) : transactions && transactions.length > 0 ? (
                                 transactions.map((t: any) => (
-                                    <tr key={t.id} className="hover:bg-slate-800/50 transition-colors">
+                                    <tr key={t.id} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-6 py-4 font-mono">{t.date}</td>
-                                        <td className="px-6 py-4 text-cyan-400 font-medium">{t.transaction_number}</td>
+                                        <td className="px-6 py-4 text-primary font-medium">{t.transaction_number}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <span>{t.description || '-'}</span>
-                                                <span className="text-xs text-slate-500">{t.contact_name}</span>
+                                                <span className="text-xs text-muted-foreground">{t.contact_name}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold ${t.transaction_type === 'receive' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                t.transaction_type === 'send' ? 'bg-rose-500/10 text-rose-400' :
-                                                    'bg-blue-500/10 text-blue-400'
+                                            <span className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold ${t.transaction_type === 'receive' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                t.transaction_type === 'send' ? 'bg-destructive/10 text-destructive' :
+                                                    'bg-primary/10 text-primary'
                                                 }`}>
                                                 {t.transaction_type === 'receive' ? 'Terima' :
                                                     t.transaction_type === 'send' ? 'Kirim' : 'Transfer'}
                                             </span>
                                         </td>
-                                        <td className={`px-6 py-4 text-right font-semibold ${t.transaction_type === 'receive' ? 'text-emerald-400' : 'text-rose-400'
+                                        <td className={`px-6 py-4 text-right font-semibold ${t.transaction_type === 'receive' ? 'text-emerald-500' : 'text-destructive'
                                             }`}>
                                             {formatCurrency(t.amount)}
                                         </td>
@@ -286,7 +286,7 @@ export function CashBank() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground italic">
                                         Belum ada transaksi di periode ini
                                     </td>
                                 </tr>
@@ -297,40 +297,40 @@ export function CashBank() {
             </Card>
             {/* Modal Tambah Akun */}
             {isAddAccountModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-2xl">
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-white">Tambah Akun Kas/Bank</h2>
-                            <button onClick={() => setIsAddAccountModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-md bg-card border-border shadow-2xl">
+                        <div className="p-6 border-b border-border flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-foreground">Tambah Akun Kas/Bank</h2>
+                            <button onClick={() => setIsAddAccountModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
                         <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Kode Akun</label>
+                                <label className="text-sm font-medium text-muted-foreground">Kode Akun</label>
                                 <input
                                     name="code"
                                     placeholder="1-11xxx"
                                     required
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
-                                <p className="text-xs text-slate-500">Gunakan prefix 1-11 untuk Kas & Bank</p>
+                                <p className="text-xs text-muted-foreground">Gunakan prefix 1-11 untuk Kas & Bank</p>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Nama Akun</label>
+                                <label className="text-sm font-medium text-muted-foreground">Nama Akun</label>
                                 <input
                                     name="name"
                                     placeholder="Contoh: Kas Kecil, BCA IDR"
                                     required
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Deskripsi</label>
+                                <label className="text-sm font-medium text-muted-foreground">Deskripsi</label>
                                 <textarea
                                     name="description"
                                     rows={2}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
                             </div>
                             <div className="flex gap-3 pt-4">
@@ -338,14 +338,14 @@ export function CashBank() {
                                     type="button"
                                     variant="outline"
                                     onClick={() => setIsAddAccountModalOpen(false)}
-                                    className="flex-1 border-slate-800 text-slate-400"
+                                    className="flex-1 border-border text-muted-foreground"
                                 >
                                     Batal
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={createAccountMutation.isPending}
-                                    className="flex-1 bg-cyan-600 hover:bg-cyan-500"
+                                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                                 >
                                     {createAccountMutation.isPending ? 'Menyimpan...' : 'Simpan Akun'}
                                 </Button>
@@ -357,22 +357,22 @@ export function CashBank() {
 
             {/* Modal Transfer */}
             {isTransferModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 shadow-2xl">
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-white">Transfer Kas / Bank</h2>
-                            <button onClick={() => setIsTransferModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg bg-card border-border shadow-2xl">
+                        <div className="p-6 border-b border-border flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-foreground">Transfer Kas / Bank</h2>
+                            <button onClick={() => setIsTransferModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
                         <form onSubmit={handleTransfer} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Dari Akun</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Dari Akun</label>
                                     <select
                                         name="from_account_id"
                                         required
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     >
                                         <option value="">Pilih Sumber</option>
                                         {cashAccounts.map(acc => (
@@ -381,11 +381,11 @@ export function CashBank() {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Ke Akun</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Ke Akun</label>
                                     <select
                                         name="to_account_id"
                                         required
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     >
                                         <option value="">Pilih Tujuan</option>
                                         {cashAccounts.map(acc => (
@@ -396,32 +396,32 @@ export function CashBank() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Tanggal</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Tanggal</label>
                                     <input
                                         name="date"
                                         type="date"
                                         required
                                         defaultValue={new Date().toISOString().split('T')[0]}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Jumlah Transfer</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Jumlah Transfer</label>
                                     <input
                                         name="amount"
                                         type="number"
                                         placeholder="0"
                                         required
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Keterangan</label>
+                                <label className="text-sm font-medium text-muted-foreground">Keterangan</label>
                                 <textarea
                                     name="description"
                                     rows={2}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
                             </div>
                             <div className="flex gap-3 pt-4">
@@ -429,14 +429,14 @@ export function CashBank() {
                                     type="button"
                                     variant="outline"
                                     onClick={() => setIsTransferModalOpen(false)}
-                                    className="flex-1 border-slate-800 text-slate-400"
+                                    className="flex-1 border-border text-muted-foreground"
                                 >
                                     Batal
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={createTransferMutation.isPending}
-                                    className="flex-1 bg-cyan-600 hover:bg-cyan-500"
+                                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                                 >
                                     {createTransferMutation.isPending ? 'Memproses...' : 'Transfer Sekarang'}
                                 </Button>
@@ -448,22 +448,22 @@ export function CashBank() {
 
             {/* Modal Terima Dana */}
             {isReceiveModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 shadow-2xl">
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-emerald-400">Terima Dana</h2>
-                            <button onClick={() => setIsReceiveModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg bg-card border-border shadow-2xl">
+                        <div className="p-6 border-b border-border flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-emerald-500">Terima Dana</h2>
+                            <button onClick={() => setIsReceiveModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
                         <form onSubmit={handleReceive} className="p-6 space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Simpan ke Akun</label>
+                                <label className="text-sm font-medium text-muted-foreground">Simpan ke Akun</label>
                                 <select
                                     name="account_id"
                                     required
                                     defaultValue={selectedAccount?.id || ''}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 >
                                     <option value="">Pilih Akun</option>
                                     {cashAccounts.map(acc => (
@@ -473,40 +473,40 @@ export function CashBank() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Tanggal</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Tanggal</label>
                                     <input
                                         name="date"
                                         type="date"
                                         required
                                         defaultValue={new Date().toISOString().split('T')[0]}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Jumlah Terima</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Jumlah Terima</label>
                                     <input
                                         name="amount"
                                         type="number"
                                         placeholder="0"
                                         required
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-emerald-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-emerald-500 outline-none transition-all"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Diterima Dari</label>
+                                <label className="text-sm font-medium text-muted-foreground">Diterima Dari</label>
                                 <input
                                     name="contact_name"
                                     placeholder="Nama pengirim / pelanggan / sumber dana"
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Keterangan</label>
+                                <label className="text-sm font-medium text-muted-foreground">Keterangan</label>
                                 <textarea
                                     name="description"
                                     rows={2}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
                             </div>
                             <div className="flex gap-3 pt-4">
@@ -514,7 +514,7 @@ export function CashBank() {
                                     type="button"
                                     variant="outline"
                                     onClick={() => setIsReceiveModalOpen(false)}
-                                    className="flex-1 border-slate-800 text-slate-400"
+                                    className="flex-1 border-border text-muted-foreground"
                                 >
                                     Batal
                                 </Button>
@@ -533,22 +533,22 @@ export function CashBank() {
 
             {/* Modal Kirim Dana */}
             {isSendModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 shadow-2xl">
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-rose-400">Kirim Dana</h2>
-                            <button onClick={() => setIsSendModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg bg-card border-border shadow-2xl">
+                        <div className="p-6 border-b border-border flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-destructive">Kirim Dana</h2>
+                            <button onClick={() => setIsSendModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                                 <X size={24} />
                             </button>
                         </div>
                         <form onSubmit={handleSend} className="p-6 space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Ambil dari Akun</label>
+                                <label className="text-sm font-medium text-muted-foreground">Ambil dari Akun</label>
                                 <select
                                     name="account_id"
                                     required
                                     defaultValue={selectedAccount?.id || ''}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 >
                                     <option value="">Pilih Akun</option>
                                     {cashAccounts.map(acc => (
@@ -558,40 +558,40 @@ export function CashBank() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Tanggal</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Tanggal</label>
                                     <input
                                         name="date"
                                         type="date"
                                         required
                                         defaultValue={new Date().toISOString().split('T')[0]}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-400">Jumlah Kirim</label>
+                                    <label className="text-sm font-medium text-muted-foreground">Jumlah Kirim</label>
                                     <input
                                         name="amount"
                                         type="number"
                                         placeholder="0"
                                         required
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-rose-500 outline-none transition-all"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-destructive outline-none transition-all"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Dikirim Kepada</label>
+                                <label className="text-sm font-medium text-muted-foreground">Dikirim Kepada</label>
                                 <input
                                     name="contact_name"
                                     placeholder="Nama penerima / vendor / karyawan"
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-400">Keterangan</label>
+                                <label className="text-sm font-medium text-muted-foreground">Keterangan</label>
                                 <textarea
                                     name="description"
                                     rows={2}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                 />
                             </div>
                             <div className="flex gap-3 pt-4">
@@ -599,14 +599,14 @@ export function CashBank() {
                                     type="button"
                                     variant="outline"
                                     onClick={() => setIsSendModalOpen(false)}
-                                    className="flex-1 border-slate-800 text-slate-400"
+                                    className="flex-1 border-border text-muted-foreground"
                                 >
                                     Batal
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={createTransactionMutation.isPending}
-                                    className="flex-1 bg-rose-600 hover:bg-rose-500 text-white"
+                                    className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                                 >
                                     {createTransactionMutation.isPending ? 'Memproses...' : 'Kirim Dana'}
                                 </Button>

@@ -21,23 +21,23 @@ export function Rentals() {
             {/* Header Section */}
             <div className="relative">
                 {/* Decorative background element */}
-                <div className="absolute -top-10 -left-10 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
+                <div className="absolute -top-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
 
                 <div className="relative z-10">
-                    <h1 className="text-4xl font-black text-white tracking-tight uppercase">
-                        Rental <span className="text-blue-500">Management</span>
+                    <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">
+                        Rental <span className="text-primary">Management</span>
                     </h1>
-                    <p className="text-gray-400 mt-2 flex items-center gap-2 font-medium">
-                        <span className="w-8 h-[1px] bg-blue-500/50"></span>
+                    <p className="text-muted-foreground mt-2 flex items-center gap-2 font-medium">
+                        <span className="w-8 h-[1px] bg-primary/50"></span>
                         Orchestrate assets, schedules, and revenue streams
                     </p>
                 </div>
             </div>
 
             {/* Main Content Card */}
-            <Card className="overflow-hidden border border-white/5 rounded-2xl bg-gray-900/20 backdrop-blur-xl p-0 shadow-2xl">
+            <Card className="overflow-hidden border border-border rounded-2xl bg-card/60 backdrop-blur-xl p-0 shadow-2xl">
                 <Tabs defaultValue="active" className="flex flex-col">
-                    <div className="px-6 py-2 border-b border-white/5 bg-gray-950/20 backdrop-blur-md sticky top-0 z-50">
+                    <div className="px-6 py-2 border-b border-border bg-background/20 backdrop-blur-md sticky top-0 z-50">
                         <TabsList className="bg-transparent gap-2 h-14">
                             {[
                                 { value: 'active', label: 'Active Rentals', icon: <Truck size={16} /> },
@@ -52,7 +52,7 @@ export function Rentals() {
                                     key={tab.value}
                                     value={tab.value}
                                     icon={tab.icon}
-                                    className="px-6 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-xl transition-all duration-300 font-bold uppercase tracking-widest text-[10px]"
+                                    className="px-6 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-xl transition-all duration-300 font-bold uppercase tracking-widest text-[10px]"
                                 >
                                     {tab.label}
                                 </TabsTrigger>

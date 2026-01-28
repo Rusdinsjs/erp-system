@@ -39,79 +39,79 @@ const getEventConfig = (type: TimelineEvent['type']) => {
         case 'created':
             return {
                 icon: FileText,
-                color: 'text-gray-700',
-                bgColor: 'bg-gray-100',
-                borderColor: 'border-gray-300',
+                color: 'text-muted-foreground',
+                bgColor: 'bg-muted',
+                borderColor: 'border-border',
             };
         case 'submitted':
             return {
                 icon: Clock,
-                color: 'text-blue-700',
-                bgColor: 'bg-blue-100',
-                borderColor: 'border-blue-300',
+                color: 'text-primary',
+                bgColor: 'bg-primary/10',
+                borderColor: 'border-primary/30',
             };
         case 'approved':
             return {
                 icon: CheckCircle,
-                color: 'text-green-700',
-                bgColor: 'bg-green-100',
-                borderColor: 'border-green-300',
+                color: 'text-success',
+                bgColor: 'bg-success/10',
+                borderColor: 'border-success/30',
             };
         case 'rejected':
             return {
                 icon: XCircle,
-                color: 'text-red-700',
-                bgColor: 'bg-red-100',
-                borderColor: 'border-red-300',
+                color: 'text-destructive',
+                bgColor: 'bg-destructive/10',
+                borderColor: 'border-destructive/30',
             };
         case 'activated':
             return {
                 icon: Play,
-                color: 'text-green-700',
-                bgColor: 'bg-green-100',
-                borderColor: 'border-green-300',
+                color: 'text-success',
+                bgColor: 'bg-success/10',
+                borderColor: 'border-success/30',
             };
         case 'document_uploaded':
             return {
                 icon: Upload,
-                color: 'text-purple-700',
-                bgColor: 'bg-purple-100',
-                borderColor: 'border-purple-300',
+                color: 'text-purple-500',
+                bgColor: 'bg-purple-500/10',
+                borderColor: 'border-purple-500/30',
             };
         case 'expiring':
             return {
                 icon: AlertCircle,
-                color: 'text-orange-700',
-                bgColor: 'bg-orange-100',
-                borderColor: 'border-orange-300',
+                color: 'text-warning',
+                bgColor: 'bg-warning/10',
+                borderColor: 'border-warning/30',
             };
         case 'expired':
             return {
                 icon: XCircle,
-                color: 'text-red-700',
-                bgColor: 'bg-red-100',
-                borderColor: 'border-red-300',
+                color: 'text-destructive',
+                bgColor: 'bg-destructive/10',
+                borderColor: 'border-destructive/30',
             };
         case 'renewed':
             return {
                 icon: RefreshCw,
-                color: 'text-blue-700',
-                bgColor: 'bg-blue-100',
-                borderColor: 'border-blue-300',
+                color: 'text-primary',
+                bgColor: 'bg-primary/10',
+                borderColor: 'border-primary/30',
             };
         case 'terminated':
             return {
                 icon: Ban,
-                color: 'text-gray-100',
-                bgColor: 'bg-gray-700',
-                borderColor: 'border-gray-800',
+                color: 'text-muted-foreground',
+                bgColor: 'bg-muted',
+                borderColor: 'border-muted',
             };
         default:
             return {
                 icon: Calendar,
-                color: 'text-gray-700',
-                bgColor: 'bg-gray-100',
-                borderColor: 'border-gray-300',
+                color: 'text-muted-foreground',
+                bgColor: 'bg-muted',
+                borderColor: 'border-border',
             };
     }
 };
@@ -284,15 +284,15 @@ export default function ContractTimeline({
         <div className="space-y-6">
             {/* Progress Bar */}
             <div className="relative">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                        className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
+                        className="h-full bg-gradient-to-r from-primary to-success transition-all duration-500"
                         style={{ width: `${progressPercentage}%` }}
                     />
                 </div>
-                <div className="flex justify-between mt-2 text-xs text-gray-500">
+                <div className="flex justify-between mt-2 text-xs text-muted-foreground">
                     <span>{format(startDate, 'MMM dd, yyyy')}</span>
-                    <span className="font-medium text-gray-700">{Math.round(progressPercentage)}% Complete</span>
+                    <span className="font-medium text-foreground">{Math.round(progressPercentage)}% Complete</span>
                     <span>{format(endDate, 'MMM dd, yyyy')}</span>
                 </div>
             </div>
@@ -300,7 +300,7 @@ export default function ContractTimeline({
             {/* Timeline Events */}
             <div className="relative">
                 {/* Vertical line */}
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
 
                 {/* Events */}
                 <div className="space-y-6">
@@ -315,40 +315,40 @@ export default function ContractTimeline({
                                 <div className={`relative z-10 flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full border-2 ${event.borderColor} ${event.bgColor} ${isPast ? 'opacity-100' : 'opacity-50'} transition-all group-hover:scale-110 group-hover:opacity-100`}>
                                     <Icon className={`h-6 w-6 ${event.color}`} />
                                     {isCurrent && (
-                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full animate-pulse" />
+                                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full animate-pulse" />
                                     )}
                                 </div>
 
                                 {/* Content */}
                                 <div className={`flex-1 min-w-0 pt-1.5 ${isPast ? 'opacity-100' : 'opacity-60'} group-hover:opacity-100 transition-opacity`}>
-                                    <div className={`bg-white border ${event.borderColor} rounded-lg p-4 shadow-sm group-hover:shadow-md transition-shadow`}>
+                                    <div className={`bg-card border ${event.borderColor} rounded-lg p-4 shadow-sm group-hover:shadow-md transition-shadow`}>
                                         <div className="flex items-start justify-between mb-2">
                                             <div>
                                                 <p className={`text-sm font-semibold ${event.color}`}>
                                                     {event.title}
                                                 </p>
-                                                <p className="text-xs text-gray-500 mt-1">
+                                                <p className="text-xs text-muted-foreground mt-1">
                                                     {format(new Date(event.date), 'MMM dd, yyyy HH:mm')}
                                                 </p>
                                             </div>
                                             {isCurrent && (
-                                                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                                <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
                                                     Current
                                                 </span>
                                             )}
                                         </div>
 
                                         {event.description && (
-                                            <p className="text-sm text-gray-700 mt-2">
+                                            <p className="text-sm text-foreground mt-2">
                                                 {event.description}
                                             </p>
                                         )}
 
                                         {event.metadata && (
-                                            <div className="mt-3 pt-3 border-t border-gray-100">
+                                            <div className="mt-3 pt-3 border-t border-border">
                                                 <div className="flex flex-wrap gap-2">
                                                     {Object.entries(event.metadata).map(([key, value]) => (
-                                                        <span key={key} className="text-xs text-gray-500">
+                                                        <span key={key} className="text-xs text-muted-foreground">
                                                             <span className="font-medium">{key}:</span> {value}
                                                         </span>
                                                     ))}
@@ -364,18 +364,18 @@ export default function ContractTimeline({
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
                 <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{events.length}</p>
-                    <p className="text-xs text-gray-500">Total Events</p>
+                    <p className="text-2xl font-bold text-foreground">{events.length}</p>
+                    <p className="text-xs text-muted-foreground">Total Events</p>
                 </div>
                 <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{elapsedDays}</p>
-                    <p className="text-xs text-gray-500">Days Elapsed</p>
+                    <p className="text-2xl font-bold text-foreground">{elapsedDays}</p>
+                    <p className="text-xs text-muted-foreground">Days Elapsed</p>
                 </div>
                 <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">{Math.max(totalDays - elapsedDays, 0)}</p>
-                    <p className="text-xs text-gray-500">Days Remaining</p>
+                    <p className="text-2xl font-bold text-foreground">{Math.max(totalDays - elapsedDays, 0)}</p>
+                    <p className="text-xs text-muted-foreground">Days Remaining</p>
                 </div>
             </div>
         </div>

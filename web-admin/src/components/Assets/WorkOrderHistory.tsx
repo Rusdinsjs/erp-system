@@ -20,9 +20,9 @@ const statusColors: Record<string, string> = {
     pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
     approved: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     assigned: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    in_progress: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+    in_progress: 'bg-primary/20 text-primary border-primary/30',
     completed: 'bg-green-500/20 text-green-400 border-green-500/30',
-    cancelled: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+    cancelled: 'bg-muted/50 text-muted-foreground border-border/50',
 };
 
 const typeIcons: Record<string, React.ReactNode> = {
@@ -72,14 +72,14 @@ export function WorkOrderHistory({ assetId }: WorkOrderHistoryProps) {
 
             {/* Active WO Alert */}
             {activeWO && (
-                <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-between">
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                            <Wrench size={16} className="text-cyan-400" />
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                            <Wrench size={16} className="text-primary" />
                         </div>
                         <div>
-                            <p className="text-sm text-cyan-400 font-medium">Active Work Order: {activeWO.wo_number}</p>
-                            <p className="text-xs text-slate-400">{activeWO.wo_type} • {activeWO.status}</p>
+                            <p className="text-sm text-primary font-medium">Active Work Order: {activeWO.wo_number}</p>
+                            <p className="text-xs text-muted-foreground">{activeWO.wo_type} • {activeWO.status}</p>
                         </div>
                     </div>
                     {activeWO.status === 'in_progress' && (
@@ -125,7 +125,7 @@ export function WorkOrderHistory({ assetId }: WorkOrderHistoryProps) {
                         workOrders.map((wo: WorkOrder) => (
                             <TableRow key={wo.id}>
                                 <TableTd>
-                                    <span className="font-medium text-white">{wo.wo_number}</span>
+                                    <span className="font-medium text-foreground">{wo.wo_number}</span>
                                 </TableTd>
                                 <TableTd>
                                     <div className="flex items-center gap-2">

@@ -68,17 +68,17 @@ export function SalesQuotes() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Penawaran Penjualan</h1>
-                    <p className="text-slate-400">Buat dan kelola penawaran harga untuk pelanggan</p>
+                    <h1 className="text-2xl font-bold text-foreground">Penawaran Penjualan</h1>
+                    <p className="text-muted-foreground">Buat dan kelola penawaran harga untuk pelanggan</p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" className="gap-2 border-slate-700 text-slate-300">
+                    <Button variant="outline" className="gap-2 border-border text-muted-foreground">
                         <Download size={18} />
                         Export
                     </Button>
                     <Button
                         onClick={() => setIsModalOpen(true)}
-                        className="gap-2 bg-purple-600 hover:bg-purple-500"
+                        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                         <Plus size={18} />
                         Buat Penawaran
@@ -86,19 +86,19 @@ export function SalesQuotes() {
                 </div>
             </div>
 
-            <Card className="bg-slate-900/50 border-slate-800 overflow-hidden">
-                <div className="p-4 border-b border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+            <Card className="bg-card border-border overflow-hidden">
+                <div className="p-4 border-b border-border flex flex-wrap gap-4 items-center justify-between">
                     <div className="flex gap-2 items-center flex-1 min-w-[300px]">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                             <input
                                 placeholder="Cari penawaran..."
-                                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-300 focus:outline-none focus:border-purple-500/50 transition-all"
+                                className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <Button variant="outline" className="gap-2 border-slate-800 text-slate-400">
+                        <Button variant="outline" className="gap-2 border-border text-muted-foreground">
                             <Filter size={16} />
                             Filter
                         </Button>
@@ -106,8 +106,8 @@ export function SalesQuotes() {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-slate-950/50 text-slate-500 uppercase text-xs font-semibold">
+                    <table className="w-full text-left text-sm text-muted-foreground">
+                        <thead className="bg-muted/50 text-muted-foreground uppercase text-xs font-semibold">
                             <tr>
                                 <th className="px-6 py-4">Nomor</th>
                                 <th className="px-6 py-4">Pelanggan</th>
@@ -118,19 +118,19 @@ export function SalesQuotes() {
                                 <th className="px-6 py-4"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800 text-slate-300">
+                        <tbody className="divide-y divide-border text-foreground">
                             {isLoading ? (
                                 <tr><td colSpan={7} className="px-6 py-8 text-center animate-pulse">Memuat data...</td></tr>
                             ) : quotes && quotes.length > 0 ? (
                                 quotes.map((quote: any) => (
-                                    <tr key={quote.id} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-purple-400">{quote.quote_number}</td>
-                                        <td className="px-6 py-4 text-white">
+                                    <tr key={quote.id} className="hover:bg-muted/50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-primary">{quote.quote_number}</td>
+                                        <td className="px-6 py-4 text-foreground">
                                             {clients.find((c: any) => c.id === quote.client_id)?.name || quote.client_id}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-xs">{new Date(quote.date).toLocaleDateString('id-ID')}</td>
                                         <td className="px-6 py-4 font-mono text-xs">{quote.expiry_date ? new Date(quote.expiry_date).toLocaleDateString('id-ID') : '-'}</td>
-                                        <td className="px-6 py-4 text-right font-semibold text-white">
+                                        <td className="px-6 py-4 text-right font-semibold text-foreground">
                                             {formatCurrency(quote.total_amount)}
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -139,7 +139,7 @@ export function SalesQuotes() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                            <button className="p-2 hover:bg-muted rounded-lg transition-colors">
                                                 <MoreVertical size={16} />
                                             </button>
                                         </td>
@@ -147,7 +147,7 @@ export function SalesQuotes() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground italic">
                                         Belum ada penawaran
                                     </td>
                                 </tr>
@@ -159,38 +159,38 @@ export function SalesQuotes() {
 
             {/* Modal - Simplified Create Form */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <Card className="w-full max-w-2xl bg-slate-900 border-slate-800 shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-2xl bg-card border-border shadow-2xl">
                         {/* Form Content Similar to Invoice but for Quote */}
                         <div className="p-6">
-                            <h2 className="text-xl font-bold text-white mb-4">Buat Penawaran Baru</h2>
+                            <h2 className="text-xl font-bold text-foreground mb-4">Buat Penawaran Baru</h2>
                             <form onSubmit={handleCreate} className="space-y-4">
                                 {/* Fields for Quote Number, Client, Dates, Item */}
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input name="quote_number" placeholder="Nomor Penawaran" required className="bg-slate-950 border border-slate-800 rounded px-3 py-2" defaultValue={`QT/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`} />
-                                    <select name="client_id" className="bg-slate-950 border border-slate-800 rounded px-3 py-2" required>
+                                    <input name="quote_number" placeholder="Nomor Penawaran" required className="bg-background border border-border rounded px-3 py-2 text-foreground" defaultValue={`QT/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`} />
+                                    <select name="client_id" className="bg-background border border-border rounded px-3 py-2 text-foreground" required>
                                         <option value="">Pilih Klien</option>
                                         {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input name="date" type="date" required className="bg-slate-950 border border-slate-800 rounded px-3 py-2" />
-                                    <input name="expiry_date" type="date" className="bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                                    <input name="date" type="date" required className="bg-background border border-border rounded px-3 py-2 text-foreground" />
+                                    <input name="expiry_date" type="date" className="bg-background border border-border rounded px-3 py-2 text-foreground" />
                                 </div>
-                                <input name="subject" placeholder="Subjek" className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                                <input name="subject" placeholder="Subjek" className="w-full bg-background border border-border rounded px-3 py-2 text-foreground" />
 
-                                <div className="p-4 bg-slate-950/50 rounded border border-slate-800">
-                                    <h3 className="text-xs font-bold text-slate-500 uppercase mb-2">Item</h3>
+                                <div className="p-4 bg-muted/50 rounded border border-border">
+                                    <h3 className="text-xs font-bold text-muted-foreground uppercase mb-2">Item</h3>
                                     <div className="grid grid-cols-12 gap-2">
-                                        <div className="col-span-6"><input name="item_description" placeholder="Deskripsi" className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1" /></div>
-                                        <div className="col-span-2"><input name="quantity" type="number" placeholder="Qty" className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1" /></div>
-                                        <div className="col-span-4"><input name="unit_price" type="number" placeholder="Harga" className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1" /></div>
+                                        <div className="col-span-6"><input name="item_description" placeholder="Deskripsi" className="w-full bg-background border border-border rounded px-2 py-1 text-foreground" /></div>
+                                        <div className="col-span-2"><input name="quantity" type="number" placeholder="Qty" className="w-full bg-background border border-border rounded px-2 py-1 text-foreground" /></div>
+                                        <div className="col-span-4"><input name="unit_price" type="number" placeholder="Harga" className="w-full bg-background border border-border rounded px-2 py-1 text-foreground" /></div>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-2 justify-end mt-4">
                                     <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-                                    <Button type="submit" className="bg-purple-600 hover:bg-purple-500">Simpan</Button>
+                                    <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">Simpan</Button>
                                 </div>
                             </form>
                         </div>

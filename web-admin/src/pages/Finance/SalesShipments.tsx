@@ -46,17 +46,17 @@ export function SalesShipments() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Pengiriman Barang</h1>
-                    <p className="text-slate-400">Pantau pengiriman pesanan ke pelanggan</p>
+                    <h1 className="text-2xl font-bold text-foreground">Pengiriman Barang</h1>
+                    <p className="text-muted-foreground">Pantau pengiriman pesanan ke pelanggan</p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" className="gap-2 border-slate-700 text-slate-300">
+                    <Button variant="outline" className="gap-2 border-border text-muted-foreground">
                         <Download size={18} />
                         Export
                     </Button>
                     <Button
                         onClick={() => setIsModalOpen(true)}
-                        className="gap-2 bg-amber-600 hover:bg-amber-500"
+                        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                         <Plus size={18} />
                         Catat Pengiriman
@@ -64,19 +64,19 @@ export function SalesShipments() {
                 </div>
             </div>
 
-            <Card className="bg-slate-900/50 border-slate-800 overflow-hidden">
-                <div className="p-4 border-b border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+            <Card className="bg-card border-border overflow-hidden">
+                <div className="p-4 border-b border-border flex flex-wrap gap-4 items-center justify-between">
                     <div className="flex gap-2 items-center flex-1 min-w-[300px]">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                             <input
                                 placeholder="Cari resi, pengiriman..."
-                                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-300 focus:outline-none focus:border-amber-500/50 transition-all"
+                                className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <Button variant="outline" className="gap-2 border-slate-800 text-slate-400">
+                        <Button variant="outline" className="gap-2 border-border text-muted-foreground">
                             <Filter size={16} />
                             Filter
                         </Button>
@@ -84,8 +84,8 @@ export function SalesShipments() {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-slate-400">
-                        <thead className="bg-slate-950/50 text-slate-500 uppercase text-xs font-semibold">
+                    <table className="w-full text-left text-sm text-muted-foreground">
+                        <thead className="bg-muted/50 text-muted-foreground uppercase text-xs font-semibold">
                             <tr>
                                 <th className="px-6 py-4">Nomor Pengiriman</th>
                                 <th className="px-6 py-4">Kurir</th>
@@ -95,14 +95,14 @@ export function SalesShipments() {
                                 <th className="px-6 py-4"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800 text-slate-300">
+                        <tbody className="divide-y divide-border text-foreground">
                             {isLoading ? (
                                 <tr><td colSpan={6} className="px-6 py-8 text-center animate-pulse">Memuat data...</td></tr>
                             ) : shipments && shipments.length > 0 ? (
                                 shipments.map((ship: any) => (
-                                    <tr key={ship.id} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-amber-400">{ship.shipment_number}</td>
-                                        <td className="px-6 py-4 text-white">{ship.courier_name || '-'}</td>
+                                    <tr key={ship.id} className="hover:bg-muted/50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-primary">{ship.shipment_number}</td>
+                                        <td className="px-6 py-4 text-foreground">{ship.courier_name || '-'}</td>
                                         <td className="px-6 py-4 font-mono">{ship.tracking_number || '-'}</td>
                                         <td className="px-6 py-4 font-mono text-xs">{new Date(ship.date).toLocaleDateString('id-ID')}</td>
                                         <td className="px-6 py-4 text-center">
@@ -111,7 +111,7 @@ export function SalesShipments() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                            <button className="p-2 hover:bg-muted rounded-lg transition-colors">
                                                 <MoreVertical size={16} />
                                             </button>
                                         </td>
@@ -119,7 +119,7 @@ export function SalesShipments() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500 italic">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground italic">
                                         Belum ada pengiriman
                                     </td>
                                 </tr>
@@ -130,20 +130,20 @@ export function SalesShipments() {
             </Card>
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <Card className="w-full max-w-lg bg-slate-900 border-slate-800 shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-lg bg-card border-border shadow-2xl">
                         <div className="p-6">
-                            <h2 className="text-xl font-bold text-white mb-4">Catat Pengiriman</h2>
+                            <h2 className="text-xl font-bold text-foreground mb-4">Catat Pengiriman</h2>
                             <form onSubmit={handleCreate} className="space-y-4">
-                                <input name="shipment_number" placeholder="Nomor Pengiriman (DO)" required className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" defaultValue={`DO/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`} />
-                                <input name="date" type="date" required className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2" defaultValue={new Date().toISOString().split('T')[0]} />
+                                <input name="shipment_number" placeholder="Nomor Pengiriman (DO)" required className="w-full bg-background border border-border rounded px-3 py-2 text-foreground" defaultValue={`DO/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000)}`} />
+                                <input name="date" type="date" required className="w-full bg-background border border-border rounded px-3 py-2 text-foreground" defaultValue={new Date().toISOString().split('T')[0]} />
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input name="courier_name" placeholder="Nama Kurir (JNE, dll)" className="bg-slate-950 border border-slate-800 rounded px-3 py-2" />
-                                    <input name="tracking_number" placeholder="No. Resi" className="bg-slate-950 border border-slate-800 rounded px-3 py-2" />
+                                    <input name="courier_name" placeholder="Nama Kurir (JNE, dll)" className="bg-background border border-border rounded px-3 py-2 text-foreground" />
+                                    <input name="tracking_number" placeholder="No. Resi" className="bg-background border border-border rounded px-3 py-2 text-foreground" />
                                 </div>
                                 <div className="flex gap-2 justify-end mt-4">
                                     <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Batal</Button>
-                                    <Button type="submit" className="bg-amber-600 hover:bg-amber-500">Simpan</Button>
+                                    <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">Simpan</Button>
                                 </div>
                             </form>
                         </div>

@@ -122,6 +122,37 @@ impl AnalyticsService {
             .collect())
     }
 
+    /// Get distribution of assets by status (lifecycle)
+    pub async fn get_asset_status_distribution(&self) -> DomainResult<Vec<ConditionDistribution>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT 
+                status,
+                COUNT(id) as count,
+                COALESCE(SUM(purchase_price), 0) as total_value
+            FROM assets
+            WHERE status != 'archived'
+            GROUP BY status
+            ORDER BY count DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::ExternalServiceError {
+            service: "db".into(),
+            message: e.to_string(),
+        })?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| ConditionDistribution {
+                condition: r.status.unwrap_or_else(|| "Unknown".to_string()),
+                count: r.count.unwrap_or(0),
+                total_value: r.total_value.unwrap_or(Decimal::ZERO),
+            })
+            .collect())
+    }
+
     pub async fn get_asset_roi(&self, asset_id: Uuid) -> DomainResult<AssetRoiResponse> {
         // 1. Get Asset Basic Info & Depreciation
         let asset_info = sqlx::query!(

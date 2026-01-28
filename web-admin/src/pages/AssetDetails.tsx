@@ -79,8 +79,8 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
     if (error || !asset) {
         return (
             <div className="p-6 text-center">
-                <h2 className="text-xl font-bold text-red-500">Error Loading Asset</h2>
-                <p className="text-slate-400">{(error as any)?.message || 'Asset not found'}</p>
+                <h2 className="text-xl font-bold text-destructive">Error Loading Asset</h2>
+                <p className="text-muted-foreground">{(error as any)?.message || 'Asset not found'}</p>
                 <Button variant="outline" onClick={() => navigate('/assets')} className="mt-4">
                     Back to List
                 </Button>
@@ -97,13 +97,13 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
                         <ArrowLeft size={20} />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold text-white">
+                        <h1 className="text-2xl font-bold text-foreground">
                             {asset.name}
-                            <span className="ml-3 text-slate-400 font-normal text-lg">
+                            <span className="ml-3 text-muted-foreground font-normal text-lg">
                                 {asset.asset_code}
                             </span>
                         </h1>
-                        <p className="text-slate-400 text-sm">
+                        <p className="text-muted-foreground text-sm">
                             {asset.brand} {asset.model} • {asset.category_name}
                         </p>
                     </div>
@@ -192,9 +192,9 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
                                 />
                             </div>
 
-                            <div className="p-6 rounded-xl bg-slate-900/50 border border-slate-800 text-center">
-                                <p className="text-slate-400">Detailed ROI Charts & Breakdowns will be displayed here.</p>
-                                <p className="text-sm text-slate-500 mt-2">Integrating with Journal & Invoicing data...</p>
+                            <div className="p-6 rounded-xl bg-muted/50 border border-border text-center">
+                                <p className="text-muted-foreground">Detailed ROI Charts & Breakdowns will be displayed here.</p>
+                                <p className="text-sm text-muted-foreground/70 mt-2">Integrating with Journal & Invoicing data...</p>
                             </div>
                         </div>
                     </Card>
@@ -214,8 +214,8 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
                             </div>
 
                             <div className="text-center mb-8">
-                                <h3 className="text-2xl font-bold text-white mb-1">{asset.asset_code}</h3>
-                                <p className="text-slate-400">{asset.name}</p>
+                                <h3 className="text-2xl font-bold text-foreground mb-1">{asset.asset_code}</h3>
+                                <p className="text-muted-foreground">{asset.name}</p>
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
@@ -260,11 +260,11 @@ export function AssetDetails({ assetId }: { assetId?: string }) {
 
 function DetailItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
     return (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800">
-            <div className="text-slate-400">{icon}</div>
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+            <div className="text-muted-foreground">{icon}</div>
             <div>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{label}</p>
-                <p className="text-white font-medium">{value}</p>
+                <p className="text-xs text-muted-foreground/70 font-medium uppercase tracking-wider">{label}</p>
+                <p className="text-foreground font-medium">{value}</p>
             </div>
         </div>
     );

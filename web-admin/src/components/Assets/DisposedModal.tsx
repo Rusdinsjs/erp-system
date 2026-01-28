@@ -76,11 +76,11 @@ export function DisposedModal({ opened, onClose, assetId, onSuccess }: DisposedM
     return (
         <Modal isOpen={opened} onClose={onClose} title="Dispose Asset" size="md">
             <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
-                    <Trash2 size={24} className="text-red-400" />
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                    <Trash2 size={24} className="text-destructive" />
                     <div>
-                        <p className="text-red-400 font-medium">Tindakan Permanen</p>
-                        <p className="text-sm text-slate-400">Asset yang di-dispose akan dihapus dari inventaris aktif. Membutuhkan persetujuan Manager.</p>
+                        <p className="text-destructive font-medium">Tindakan Permanen</p>
+                        <p className="text-sm text-muted-foreground">Asset yang di-dispose akan dihapus dari inventaris aktif. Membutuhkan persetujuan Manager.</p>
                     </div>
                 </div>
 

@@ -71,7 +71,7 @@ export function BillingHistory({ rentalId }: BillingHistoryProps) {
                             billingPeriods.map((bp) => (
                                 <TableRow key={bp.id}>
                                     <TableTd>
-                                        <div className="font-medium text-white">{bp.period_start} - {bp.period_end}</div>
+                                        <div className="font-medium text-foreground">{bp.period_start} - {bp.period_end}</div>
                                     </TableTd>
                                     <TableTd>{bp.total_operating_hours || 0} hrs</TableTd>
                                     <TableTd>Rp {(bp.total_amount || 0).toLocaleString()}</TableTd>
@@ -79,7 +79,7 @@ export function BillingHistory({ rentalId }: BillingHistoryProps) {
                                         <div className="flex flex-col gap-1">
                                             <StatusBadge status={bp.status} />
                                             {bp.invoice_number && (
-                                                <span className="text-xs text-slate-500">Inv: {bp.invoice_number}</span>
+                                                <span className="text-xs text-muted-foreground">Inv: {bp.invoice_number}</span>
                                             )}
                                         </div>
                                     </TableTd>
@@ -91,14 +91,14 @@ export function BillingHistory({ rentalId }: BillingHistoryProps) {
                                             {(bp.status === 'invoiced' || bp.status === 'paid' || bp.invoice_number) && (
                                                 <>
                                                     <ActionIcon
-                                                        className="text-blue-400 hover:bg-blue-900/20"
+                                                        className="text-primary hover:bg-primary/20"
                                                         title="Download Invoice"
                                                         onClick={() => handleDownload(bp.id, bp.invoice_number)}
                                                     >
                                                         <Download size={16} />
                                                     </ActionIcon>
                                                     <ActionIcon
-                                                        className="text-amber-400 hover:bg-amber-900/20"
+                                                        className="text-orange-500 hover:bg-orange-500/10"
                                                         title="Email Invoice"
                                                         onClick={() => handleEmail(bp.id)}
                                                     >

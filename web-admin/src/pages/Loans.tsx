@@ -63,8 +63,8 @@ export function Loans() {
     const [rejectReason, setRejectReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     // Create form
     const [newLoan, setNewLoan] = useState({
@@ -155,21 +155,24 @@ export function Loans() {
         }
         setSubmitting(true);
         try {
-            let photoUrl = undefined;
-            if (imageFile) {
-                const uploadFormData = new FormData();
-                uploadFormData.append('file', imageFile);
-                const uploadRes = await import('../api/http').then(m => m.api.post('/upload', uploadFormData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                }));
-                photoUrl = uploadRes.data.url;
+            const photoUrls: string[] = [];
+            if (imageFiles.length > 0) {
+                // Upload sequentially
+                for (const file of imageFiles) {
+                    const uploadFormData = new FormData();
+                    uploadFormData.append('file', file);
+                    const uploadRes = await import('../api/http').then(m => m.api.post('/upload', uploadFormData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    }));
+                    photoUrls.push(uploadRes.data.url);
+                }
             }
 
             if (actionType === 'checkout') {
-                await loanApi.checkout(selectedLoan.id, conditionNote, photoUrl);
+                await loanApi.checkout(selectedLoan.id, conditionNote, photoUrls);
                 success('Asset checked out', 'Success');
             } else if (actionType === 'return') {
-                await loanApi.returnLoan(selectedLoan.id, conditionNote, photoUrl);
+                await loanApi.returnLoan(selectedLoan.id, conditionNote, photoUrls);
                 success('Asset returned', 'Success');
             } else if (actionType === 'reject') {
                 await loanApi.reject(selectedLoan.id, rejectReason);
@@ -185,11 +188,17 @@ export function Loans() {
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setImageFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            setImageFiles(prev => [...prev, ...files]);
+            const newPreviews = files.map(file => URL.createObjectURL(file));
+            setPreviewUrls(prev => [...prev, ...newPreviews]);
         }
+    };
+
+    const removePhoto = (index: number) => {
+        setImageFiles(prev => prev.filter((_, i) => i !== index));
+        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
 
     const openActionModal = (loan: Loan, type: 'checkout' | 'return' | 'reject') => {
@@ -198,8 +207,9 @@ export function Loans() {
         setConditionNote('');
         setRejectReason('');
         setTermsAccepted(false);
-        setImageFile(null);
-        setPreviewUrl(null);
+        setTermsAccepted(false);
+        setImageFiles([]);
+        setPreviewUrls([]);
         setActionModalOpen(true);
     };
 
@@ -457,36 +467,37 @@ export function Loans() {
 
                             <div className="space-y-3">
                                 <label className="text-sm font-medium text-slate-300">Foto Kondisi Aset (Opsional)</label>
-                                <div className="relative group">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                        onChange={handleFileChange}
-                                    />
-                                    <div className={`
-                                        border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300
-                                        ${previewUrl
-                                            ? 'border-green-500/50 bg-green-500/5'
-                                            : 'border-slate-800 hover:border-blue-500/50 hover:bg-blue-500/5 bg-slate-950/30'
-                                        }
-                                    `}>
-                                        {previewUrl ? (
-                                            <div className="space-y-3 text-center">
-                                                <img src={previewUrl} alt="Preview" className="w-40 h-28 object-cover rounded-lg border border-white/20 shadow-md mx-auto" />
-                                                <p className="text-xs text-green-400 font-medium flex items-center justify-center gap-2">
-                                                    <Camera size={14} /> Ganti Foto
-                                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-medium text-slate-300">Foto Kondisi Aset</label>
+                                        <span className="text-xs text-slate-500">{imageFiles.length} foto dipilih</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {previewUrls.map((url, idx) => (
+                                            <div key={idx} className="relative group aspect-square">
+                                                <img src={url} alt={`Preview ${idx}`} className="w-full h-full object-cover rounded-lg border border-slate-700" />
+                                                <button
+                                                    onClick={() => removePhoto(idx)}
+                                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X size={12} />
+                                                </button>
                                             </div>
-                                        ) : (
-                                            <>
-                                                <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-slate-400 mb-2 group-hover:text-blue-400 transition-all">
-                                                    <Camera size={20} />
-                                                </div>
-                                                <p className="text-slate-300 text-sm font-medium">Klik untuk upload foto</p>
-                                                <p className="text-slate-500 text-[10px] mt-0.5">PNG, JPG (Max 5MB)</p>
-                                            </>
-                                        )}
+                                        ))}
+                                        <div className="relative group aspect-square">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                onChange={handleFileChange}
+                                            />
+                                            <div className="w-full h-full border-2 border-dashed border-slate-700 hover:border-blue-500/50 hover:bg-slate-800 rounded-lg flex flex-col items-center justify-center text-slate-500 transition-all">
+                                                <Camera size={20} />
+                                                <span className="text-[10px] mt-1">Tambah</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -551,40 +562,50 @@ export function Loans() {
                             </div>
                         </div>
 
-                        {selectedLoan.condition_on_out && (
+                        {selectedLoan.condition_before && (
                             <div>
                                 <p className="text-xs text-slate-400 font-semibold uppercase">Kondisi Saat Keluar</p>
                                 <div className="mt-1 p-3 bg-slate-900/50 rounded-lg space-y-3">
-                                    <p className="text-sm text-slate-300">{selectedLoan.condition_on_out}</p>
-                                    {selectedLoan.handover_photo && (
+                                    <p className="text-sm text-slate-300">{selectedLoan.condition_before}</p>
+                                    {selectedLoan.check_out_photos && selectedLoan.check_out_photos.length > 0 && (
                                         <div className="pt-2">
                                             <p className="text-[10px] text-slate-500 uppercase font-semibold mb-2">Foto Handover</p>
-                                            <img
-                                                src={selectedLoan.handover_photo}
-                                                alt="Handover"
-                                                className="w-full max-h-48 object-cover rounded-lg border border-slate-800"
-                                                onClick={() => window.open(selectedLoan.handover_photo, '_blank')}
-                                            />
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {selectedLoan.check_out_photos.map((photo, i) => (
+                                                    <img
+                                                        key={i}
+                                                        src={photo}
+                                                        alt={`Handover ${i}`}
+                                                        className="w-full h-20 object-cover rounded-md border border-slate-800 cursor-pointer"
+                                                        onClick={() => window.open(photo, '_blank')}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         )}
 
-                        {selectedLoan.condition_on_return && (
+                        {selectedLoan.condition_after && (
                             <div>
                                 <p className="text-xs text-slate-400 font-semibold uppercase">Kondisi Saat Kembali</p>
                                 <div className="mt-1 p-3 bg-slate-900/50 rounded-lg space-y-3">
-                                    <p className="text-sm text-slate-300">{selectedLoan.condition_on_return}</p>
-                                    {selectedLoan.return_photo && (
+                                    <p className="text-sm text-slate-300">{selectedLoan.condition_after}</p>
+                                    {selectedLoan.return_photos && selectedLoan.return_photos.length > 0 && (
                                         <div className="pt-2">
                                             <p className="text-[10px] text-slate-500 uppercase font-semibold mb-2">Foto Pengembalian</p>
-                                            <img
-                                                src={selectedLoan.return_photo}
-                                                alt="Return"
-                                                className="w-full max-h-48 object-cover rounded-lg border border-slate-800"
-                                                onClick={() => window.open(selectedLoan.return_photo, '_blank')}
-                                            />
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {selectedLoan.return_photos.map((photo, i) => (
+                                                    <img
+                                                        key={i}
+                                                        src={photo}
+                                                        alt={`Return ${i}`}
+                                                        className="w-full h-20 object-cover rounded-md border border-slate-800 cursor-pointer"
+                                                        onClick={() => window.open(photo, '_blank')}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

@@ -62,7 +62,7 @@ export function HandoverGallery({ rentalId, handoverId, readOnly = false }: Hand
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-slate-300">
+                <h3 className="text-sm font-medium text-muted-foreground">
                     Photos ({photos.length})
                 </h3>
                 {!readOnly && (
@@ -79,7 +79,7 @@ export function HandoverGallery({ rentalId, handoverId, readOnly = false }: Hand
                             htmlFor={`upload-photo-${handoverId}`}
                             className={`
                                 flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md
-                                bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer
+                                bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer
                                 transition-colors border border-emerald-500/20
                                 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
@@ -94,7 +94,7 @@ export function HandoverGallery({ rentalId, handoverId, readOnly = false }: Hand
             {photos.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {photos.map((photo: any, index: number) => (
-                        <div key={index} className="group relative aspect-square rounded-lg overflow-hidden bg-slate-800 border border-slate-700">
+                        <div key={index} className="group relative aspect-square rounded-lg overflow-hidden bg-muted border border-border">
                             <img
                                 src={photo.url}
                                 alt={photo.description || `Evidence ${index + 1}`}
@@ -105,13 +105,13 @@ export function HandoverGallery({ rentalId, handoverId, readOnly = false }: Hand
                                     href={photo.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-white bg-slate-900/50 p-2 rounded-full hover:bg-slate-900/80"
+                                    className="text-foreground bg-background/80 p-2 rounded-full hover:bg-background"
                                 >
                                     <Upload size={16} className="rotate-180" /> {/* View/Download icon */}
                                 </a>
                             </div>
                             {photo.added_at && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-[10px] text-slate-300 truncate text-center">
+                                <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-[10px] text-muted-foreground truncate text-center">
                                     {new Date(photo.added_at).toLocaleDateString()}
                                 </div>
                             )}
@@ -119,9 +119,9 @@ export function HandoverGallery({ rentalId, handoverId, readOnly = false }: Hand
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-8 border-2 border-dashed border-slate-700 rounded-lg bg-slate-800/20">
-                    <Camera className="mx-auto h-8 w-8 text-slate-600 mb-2" />
-                    <p className="text-sm text-slate-500">No photos recorded</p>
+                <div className="text-center py-8 border-2 border-dashed border-border rounded-lg bg-muted/20">
+                    <Camera className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">No photos recorded</p>
                 </div>
             )}
         </div>

@@ -240,7 +240,7 @@ impl LoanService {
         id: Uuid,
         checked_out_by: Uuid,
         condition: &str,
-        photo: Option<&str>,
+        photos: Option<Vec<String>>,
     ) -> DomainResult<Loan> {
         let loan = self.get_by_id(id).await?;
 
@@ -252,7 +252,7 @@ impl LoanService {
         }
 
         self.loan_repo
-            .checkout(id, checked_out_by, condition, photo)
+            .checkout(id, checked_out_by, condition, photos)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -278,7 +278,7 @@ impl LoanService {
         id: Uuid,
         checked_in_by: Uuid,
         condition: &str,
-        photo: Option<&str>,
+        photos: Option<Vec<String>>,
     ) -> DomainResult<Loan> {
         let loan = self.get_by_id(id).await?;
 
@@ -291,7 +291,7 @@ impl LoanService {
 
         let return_date = Utc::now().date_naive();
         self.loan_repo
-            .checkin(id, checked_in_by, condition, photo, return_date)
+            .checkin(id, checked_in_by, condition, photos, return_date)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),

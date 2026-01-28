@@ -134,7 +134,7 @@ export const AssetConversionModal: React.FC<AssetConversionModalProps> = ({ open
                     />
 
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-300">Cost Treatment</label>
+                        <label className="block text-sm font-medium text-muted-foreground">Cost Treatment</label>
                         <div className="flex gap-4">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -143,9 +143,9 @@ export const AssetConversionModal: React.FC<AssetConversionModalProps> = ({ open
                                     value="capitalize"
                                     checked={formData.cost_treatment === 'capitalize'}
                                     onChange={(e) => handleChange('cost_treatment', e.target.value)}
-                                    className="w-4 h-4 text-cyan-500 bg-slate-900 border-slate-700"
+                                    className="w-4 h-4 text-primary bg-background border-border"
                                 />
-                                <span className="text-sm text-slate-300">Capitalize (Add to Asset Value)</span>
+                                <span className="text-sm text-foreground">Capitalize (Add to Asset Value)</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -154,9 +154,9 @@ export const AssetConversionModal: React.FC<AssetConversionModalProps> = ({ open
                                     value="expense"
                                     checked={formData.cost_treatment === 'expense'}
                                     onChange={(e) => handleChange('cost_treatment', e.target.value)}
-                                    className="w-4 h-4 text-cyan-500 bg-slate-900 border-slate-700"
+                                    className="w-4 h-4 text-primary bg-background border-border"
                                 />
-                                <span className="text-sm text-slate-300">Expense (Maintenance Cost)</span>
+                                <span className="text-sm text-foreground">Expense (Maintenance Cost)</span>
                             </label>
                         </div>
                     </div>

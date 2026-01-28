@@ -44,7 +44,7 @@ export const ConversionHistory: React.FC<ConversionHistoryProps> = ({ assetId })
     };
 
     if (conversions.length === 0 && !loading) {
-        return <p className="text-slate-400 text-center py-4">No conversion history found.</p>;
+        return <p className="text-muted-foreground text-center py-4">No conversion history found.</p>;
     }
 
     return (
@@ -64,26 +64,26 @@ export const ConversionHistory: React.FC<ConversionHistoryProps> = ({ assetId })
                 <TableBody>
                     {conversions.length > 0 ? conversions.map((item) => (
                         <TableRow key={item.id}>
-                            <td className="px-4 py-3 text-slate-200">
+                            <td className="px-4 py-3 text-muted-foreground">
                                 {new Date(item.created_at || '').toLocaleDateString()}
                             </td>
-                            <td className="px-4 py-3 text-slate-200">
+                            <td className="px-4 py-3 text-muted-foreground">
                                 {item.request_number}
                             </td>
-                            <td className="px-4 py-3 text-slate-200">
+                            <td className="px-4 py-3 text-muted-foreground">
                                 {item.title}
                             </td>
-                            <td className="px-4 py-3 text-slate-200">
+                            <td className="px-4 py-3 text-muted-foreground">
                                 <Badge variant={getStatusVariant(item.status)}>
                                     {item.status}
                                 </Badge>
                             </td>
-                            <td className="px-4 py-3 text-slate-200">
+                            <td className="px-4 py-3 text-muted-foreground">
                                 {item.conversion_cost > 0
                                     ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.conversion_cost)
                                     : '-'}
                             </td>
-                            <td className="px-4 py-3 text-slate-200">
+                            <td className="px-4 py-3 text-muted-foreground">
                                 {item.requested_by}
                             </td>
                         </TableRow>

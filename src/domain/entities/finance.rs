@@ -329,6 +329,7 @@ pub struct CreateExpenseRequest {
     pub date: chrono::NaiveDate,
     pub pay_from_account_id: Uuid,
     pub recipient: Option<String>,
+    pub status: Option<String>,
     pub items: Vec<CreateExpenseItemRequest>,
 }
 

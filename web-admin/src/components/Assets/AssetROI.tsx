@@ -33,8 +33,8 @@ export function AssetROI({ assetId }: AssetROIProps) {
         <div className="space-y-6">
             <div className="flex justify-between items-start">
                 <div>
-                    <span className="text-sm text-slate-400 font-medium">Total Return Analysis</span>
-                    <h3 className="text-xl font-bold text-white">{data.asset_name} ({data.asset_code})</h3>
+                    <span className="text-sm text-muted-foreground font-medium">Total Return Analysis</span>
+                    <h3 className="text-xl font-bold text-foreground">{data.asset_name} ({data.asset_code})</h3>
                 </div>
                 <Badge variant={isProfitable ? 'success' : 'warning'}>
                     {isProfitable ? 'Profitable' : 'Payback phase'}
@@ -71,12 +71,12 @@ export function AssetROI({ assetId }: AssetROIProps) {
                                 </span>
                             </div>
                         </div>
-                        <span className="text-sm text-slate-500 mt-2">Asset ROI</span>
+                        <span className="text-sm text-muted-foreground mt-2">Asset ROI</span>
                         <div className="flex items-center gap-1 mt-1">
-                            <span className="text-xl font-bold text-white">Rp {data.net_profit.toLocaleString()}</span>
+                            <span className="text-xl font-bold text-foreground">Rp {data.net_profit.toLocaleString()}</span>
                             {isProfitable ? <ArrowUpRight size={20} className="text-emerald-500" /> : <ArrowDownRight size={20} className="text-orange-500" />}
                         </div>
-                        <span className="text-xs text-slate-500">Net Profit</span>
+                        <span className="text-xs text-muted-foreground">Net Profit</span>
                     </Card>
                 </div>
 
@@ -87,9 +87,9 @@ export function AssetROI({ assetId }: AssetROIProps) {
                                 <DollarSign size={24} />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500 uppercase">Total Revenue</p>
-                                <p className="text-lg font-bold text-white">Rp {data.total_rental_revenue.toLocaleString()}</p>
-                                <p className="text-xs text-slate-500">{data.billing_count} Invoices</p>
+                                <p className="text-xs text-muted-foreground uppercase">Total Revenue</p>
+                                <p className="text-lg font-bold text-foreground">Rp {data.total_rental_revenue.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">{data.billing_count} Invoices</p>
                             </div>
                         </Card>
 
@@ -98,9 +98,9 @@ export function AssetROI({ assetId }: AssetROIProps) {
                                 <Wrench size={24} />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500 uppercase">Maintenance Cost</p>
-                                <p className="text-lg font-bold text-white">Rp {(data.maintenance_cost + data.parts_cost).toLocaleString()}</p>
-                                <p className="text-xs text-slate-500">{data.work_order_count} Work Orders</p>
+                                <p className="text-xs text-muted-foreground uppercase">Maintenance Cost</p>
+                                <p className="text-lg font-bold text-foreground">Rp {(data.maintenance_cost + data.parts_cost).toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">{data.work_order_count} Work Orders</p>
                             </div>
                         </Card>
 
@@ -109,9 +109,9 @@ export function AssetROI({ assetId }: AssetROIProps) {
                                 <Clock size={24} />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500 uppercase">Utilization</p>
-                                <p className="text-lg font-bold text-white">{data.utilization_days} Days</p>
-                                <p className="text-xs text-slate-500">Physical time rented</p>
+                                <p className="text-xs text-muted-foreground uppercase">Utilization</p>
+                                <p className="text-lg font-bold text-foreground">{data.utilization_days} Days</p>
+                                <p className="text-xs text-muted-foreground">Physical time rented</p>
                             </div>
                         </Card>
 
@@ -120,9 +120,9 @@ export function AssetROI({ assetId }: AssetROIProps) {
                                 <ChartLine size={24} />
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500 uppercase">Acc. Depreciation</p>
-                                <p className="text-lg font-bold text-white">Rp {data.accumulated_depreciation.toLocaleString()}</p>
-                                <p className="text-xs text-slate-500">Book Val: Rp {data.book_value.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground uppercase">Acc. Depreciation</p>
+                                <p className="text-lg font-bold text-foreground">Rp {data.accumulated_depreciation.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">Book Val: Rp {data.book_value.toLocaleString()}</p>
                             </div>
                         </Card>
                     </div>
@@ -131,53 +131,53 @@ export function AssetROI({ assetId }: AssetROIProps) {
 
             <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-800"></div>
+                    <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-slate-950 text-slate-500">Cost Breakdown</span>
+                    <span className="px-2 bg-background text-muted-foreground">Cost Breakdown</span>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card padding="md" className="bg-slate-900/50">
-                    <h5 className="font-medium text-white mb-4 flex items-center gap-2">
-                        <Wallet size={18} className="text-slate-400" /> Initial Investment
+                <Card padding="md" className="bg-muted/30">
+                    <h5 className="font-medium text-foreground mb-4 flex items-center gap-2">
+                        <Wallet size={18} className="text-muted-foreground" /> Initial Investment
                     </h5>
-                    <div className="space-y-2 text-sm text-slate-300">
+                    <div className="space-y-2 text-sm text-muted-foreground/80">
                         <div className="flex justify-between">
-                            <span className="text-slate-500">Purchase Price:</span>
+                            <span className="text-muted-foreground">Purchase Price:</span>
                             <span className="font-medium">Rp {data.purchase_price.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-500">Purchase Date:</span>
+                            <span className="text-muted-foreground">Purchase Date:</span>
                             <span className="font-medium">{data.purchase_date}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-500">Current Book Val:</span>
+                            <span className="text-muted-foreground">Current Book Val:</span>
                             <span className="font-medium">Rp {data.book_value.toLocaleString()}</span>
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="bg-slate-900/50">
-                    <h5 className="font-medium text-white mb-4 flex items-center gap-2">
-                        <Activity size={18} className="text-slate-400" /> Performance Stats
+                <Card padding="md" className="bg-muted/30">
+                    <h5 className="font-medium text-foreground mb-4 flex items-center gap-2">
+                        <Activity size={18} className="text-muted-foreground" /> Performance Stats
                     </h5>
-                    <div className="space-y-2 text-sm text-slate-300">
+                    <div className="space-y-2 text-sm text-muted-foreground/80">
                         <div className="flex justify-between">
-                            <span className="text-slate-500">Avg Rev / Bill:</span>
+                            <span className="text-muted-foreground">Avg Rev / Bill:</span>
                             <span className="font-medium">
                                 Rp {(data.billing_count > 0 ? data.total_rental_revenue / data.billing_count : 0).toLocaleString()}
                             </span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-500">Avg Maint / WO:</span>
+                            <span className="text-muted-foreground">Avg Maint / WO:</span>
                             <span className="font-medium">
                                 Rp {(data.work_order_count > 0 ? (data.maintenance_cost + data.parts_cost) / data.work_order_count : 0).toLocaleString()}
                             </span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-500">Maint-to-Rev Ratio:</span>
+                            <span className="text-muted-foreground">Maint-to-Rev Ratio:</span>
                             <span className="font-medium">
                                 {data.total_rental_revenue > 0 ? ((data.maintenance_cost + data.parts_cost) / data.total_rental_revenue * 100).toFixed(1) : 0}%
                             </span>

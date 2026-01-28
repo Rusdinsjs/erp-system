@@ -7,7 +7,41 @@ import { api } from '../api/http';
 import { Card, LoadingSpinner } from '../components/ui';
 import { DollarSign, PieChart as PieIcon, TrendingUp } from 'lucide-react';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+const STATUS_COLORS: Record<string, string> = {
+    planning: '#94a3b8',
+    procurement: '#3b82f6',
+    received: '#06b6d4',
+    in_inventory: '#10b981',
+    available: '#10b981',
+    deployed: '#059669',
+    in_use: '#059669',
+    rented_out: '#f59e0b',
+    under_maintenance: '#eab308',
+    under_repair: '#d97706',
+    under_conversion: '#8b5cf6',
+    retired: '#475569',
+    disposed: '#737373',
+    sold: '#84cc16',
+    lost_stolen: '#ef4444',
+};
+
+const formatStatusLabel = (status: string) => {
+    if (!status) return 'Unknown';
+    const mapping: Record<string, string> = {
+        planning: 'Rent Out',
+        in_inventory: 'In Inventory',
+        available: 'In Inventory',
+        deployed: 'In Use',
+        in_use: 'In Use',
+        under_maintenance: 'Under Maintenance',
+        under_repair: 'Under Repair',
+        under_conversion: 'Under Conversion',
+        lost_stolen: 'Lost/Stolen',
+    };
+
+    if (mapping[status]) return mapping[status];
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
 
 export function AnalyticsDashboard() {
     // Fetch Status Distribution
@@ -24,7 +58,6 @@ export function AnalyticsDashboard() {
         queryKey: ['analytics-costs'],
         queryFn: async () => {
             const res = await api.get('/analytics/costs');
-            // Assuming data is [{ month: '2023-01', maintenance_cost: 100, rental_income: 200 }]
             return res.data;
         }
     });
@@ -51,25 +84,23 @@ export function AnalyticsDashboard() {
                                     cy="50%"
                                     labelLine={true}
                                     label={({ status, percent }: { status?: string, percent?: number }) => {
-                                        if (!status) return 'Unknown';
-                                        const label = status === 'planning' ? 'Rent Out' : status === 'in_use' || status === 'deployed' ? 'In Use' : status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                                        return `${label} ${((percent || 0) * 100).toFixed(0)}%`;
+                                        if (!status) return '';
+                                        return `${formatStatusLabel(status)} ${((percent || 0) * 100).toFixed(0)}%`;
                                     }}
                                     nameKey="status"
                                     outerRadius={80}
                                     fill="#8884d8"
                                     dataKey="count"
                                 >
-                                    {statusData?.map((_entry: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    {statusData?.map((entry: any, index: number) => (
+                                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status] || '#64748b'} />
                                     ))}
                                 </Pie>
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }}
                                     formatter={(value: any, name?: string) => {
                                         if (!name) return [value, 'Unknown'];
-                                        const formattedName = name === 'planning' ? 'Rent Out' : name === 'in_use' || name === 'deployed' ? 'In Use' : name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                                        return [value, formattedName];
+                                        return [value, formatStatusLabel(name)];
                                     }}
                                 />
                                 <Legend
@@ -77,7 +108,7 @@ export function AnalyticsDashboard() {
                                     height={36}
                                     formatter={(value?: string) => {
                                         if (!value) return 'Unknown';
-                                        return value === 'planning' ? 'Rent Out' : value === 'in_use' || value === 'deployed' ? 'In Use' : value.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                        return formatStatusLabel(value);
                                     }}
                                 />
                             </PieChart>

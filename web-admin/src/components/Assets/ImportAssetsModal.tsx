@@ -166,7 +166,7 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
         >
             <div className="space-y-4">
                 {!file ? (
-                    <div className="border-2 border-dashed border-slate-700 rounded-lg p-8 flex flex-col items-center justify-center gap-4 hover:border-cyan-500/50 transition-colors">
+                    <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center gap-4 hover:border-primary/50 transition-colors">
                         <input
                             type="file"
                             accept=".csv"
@@ -177,11 +177,11 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                         <Button onClick={() => fileInputRef.current?.click()} leftIcon={<Upload size={18} />}>
                             Select CSV File
                         </Button>
-                        <p className="text-xs text-slate-500">Supported format: CSV (Comma separated)</p>
-                        <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-800 w-full max-w-lg mb-4">
+                        <p className="text-xs text-muted-foreground">Supported format: CSV (Comma separated)</p>
+                        <div className="bg-muted/50 p-4 rounded-lg border border-border w-full max-w-lg mb-4">
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-xs text-slate-400">Select Template by Category (Optional)</label>
+                                    <label className="text-xs text-muted-foreground/80">Select Template by Category (Optional)</label>
                                     <Select
                                         value={selectedCategoryId}
                                         onChange={setSelectedCategoryId}
@@ -193,7 +193,7 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                                             }))
                                         ]}
                                     />
-                                    <p className="text-[10px] text-slate-500">
+                                    <p className="text-[10px] text-muted-foreground/60">
                                         Selecting a category will add its specific attribute columns (e.g., spec_RAM, spec_Color) to the CSV.
                                     </p>
                                 </div>
@@ -207,13 +207,13 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                 ) : (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="font-medium text-white">Preview: {previewData.length} rows</span>
+                            <span className="font-medium text-foreground">Preview: {previewData.length} rows</span>
                             <Button variant="danger" size="sm" onClick={() => { setFile(null); setPreviewData([]); if (fileInputRef.current) fileInputRef.current.value = ''; }} leftIcon={<Trash size={16} />}>
                                 Clear
                             </Button>
                         </div>
 
-                        <div className="max-h-[300px] overflow-auto border border-slate-700 rounded-lg">
+                        <div className="max-h-[300px] overflow-auto border border-border rounded-lg">
                             <Table>
                                 <TableHead>
                                     <TableRow>
@@ -248,7 +248,7 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                                                     ) : (
                                                         <Badge variant="warning">Unknown: {row.location}</Badge>
                                                     )
-                                                ) : <span className="text-slate-500">-</span>}
+                                                ) : <span className="text-muted-foreground">-</span>}
                                             </TableTd>
                                         </TableRow>
                                     ))}
@@ -257,7 +257,7 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                         </div>
 
                         {/* Footer */}
-                        <div className="flex justify-end gap-2 text-right w-full pt-4 border-t border-slate-700">
+                        <div className="flex justify-end gap-2 text-right w-full pt-4 border-t border-border">
                             <Button variant="ghost" onClick={handleClose}>Cancel</Button>
                             <Button
                                 onClick={handleImport}

@@ -72,11 +72,11 @@ export function RetiredModal({ opened, onClose, assetId, onSuccess }: RetiredMod
     return (
         <Modal isOpen={opened} onClose={onClose} title="Retire Asset" size="md">
             <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                    <Archive size={24} className="text-amber-400" />
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                    <Archive size={24} className="text-orange-500" />
                     <div>
-                        <p className="text-amber-400 font-medium">Perhatian</p>
-                        <p className="text-sm text-slate-400">Asset yang di-retire tidak akan aktif lagi dan membutuhkan persetujuan Manager.</p>
+                        <p className="text-orange-500 font-medium">Perhatian</p>
+                        <p className="text-sm text-muted-foreground">Asset yang di-retire tidak akan aktif lagi dan membutuhkan persetujuan Manager.</p>
                     </div>
                 </div>
 

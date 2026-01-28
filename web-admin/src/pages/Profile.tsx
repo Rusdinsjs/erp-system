@@ -91,7 +91,7 @@ export function Profile() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-white">My Profile</h1>
+            <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Avatar Section */}
@@ -101,8 +101,8 @@ export function Profile() {
 
                         {/* User Info */}
                         <div className="text-center">
-                            <p className="text-lg font-semibold text-white">{user?.name}</p>
-                            <p className="text-sm text-slate-400">{user?.role}</p>
+                            <p className="text-lg font-semibold text-foreground">{user?.name}</p>
+                            <p className="text-sm text-muted-foreground">{user?.role}</p>
                         </div>
                     </div>
                 </Card>

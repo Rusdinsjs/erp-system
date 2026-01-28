@@ -350,7 +350,7 @@ impl FinanceService {
             pay_from_account_id: req.pay_from_account_id,
             recipient: req.recipient.clone(),
             total_amount: total,
-            status: "paid".to_string(),
+            status: req.status.unwrap_or_else(|| "paid".to_string()),
             journal_entry_id: None,
             created_at: Utc::now(),
         };

@@ -41,7 +41,7 @@ export function LifecycleTimeline({ history }: LifecycleTimelineProps) {
             case 'rented_out': return 'text-purple-400 bg-purple-400/10 border-purple-400/20';
             case 'under_maintenance': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
             case 'under_repair': return 'text-red-400 bg-red-400/10 border-red-400/20';
-            default: return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
+            default: return 'text-muted-foreground bg-muted/10 border-border/20';
         }
     };
 
@@ -59,7 +59,7 @@ export function LifecycleTimeline({ history }: LifecycleTimelineProps) {
     }
 
     return (
-        <div className="relative pl-4 space-y-8 before:absolute before:inset-0 before:left-4 before:h-full before:w-0.5 before:-translate-x-1/2 before:bg-gradient-to-b before:from-transparent before:via-slate-800 before:to-transparent">
+        <div className="relative pl-4 space-y-8 before:absolute before:inset-0 before:left-4 before:h-full before:w-0.5 before:-translate-x-1/2 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
             {history.map((item, index) => {
                 const isLatest = index === 0;
 
@@ -70,8 +70,8 @@ export function LifecycleTimeline({ history }: LifecycleTimelineProps) {
                             absolute left-0 top-1.5 -translate-x-1/2 w-4 h-4 rounded-full border-2 
                             transition-colors duration-300 z-10
                             ${isLatest
-                                ? 'bg-cyan-500 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.5)]'
-                                : 'bg-slate-900 border-slate-700 group-hover:border-slate-500'
+                                ? 'bg-primary border-primary shadow-[0_0_12px_rgba(var(--primary),0.5)]'
+                                : 'bg-card border-border group-hover:border-muted-foreground'
                             }
                         `} />
 
@@ -79,8 +79,8 @@ export function LifecycleTimeline({ history }: LifecycleTimelineProps) {
                         <div className={`
                             ml-6 p-4 rounded-xl border transition-all duration-300
                             ${isLatest
-                                ? 'bg-slate-800/80 border-cyan-500/30 shadow-lg'
-                                : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800 hover:border-slate-700'
+                                ? 'bg-muted/80 border-primary/30 shadow-lg'
+                                : 'bg-card/50 border-border hover:bg-muted hover:border-muted-foreground/50'
                             }
                         `}>
                             {/* Header: States */}
@@ -105,12 +105,12 @@ export function LifecycleTimeline({ history }: LifecycleTimelineProps) {
                             {/* Body: Info */}
                             <div className="space-y-2">
                                 {item.reason && (
-                                    <div className="text-sm text-slate-300 italic pl-3 border-l-2 border-slate-700">
+                                    <div className="text-sm text-muted-foreground italic pl-3 border-l-2 border-border">
                                         "{item.reason}"
                                     </div>
                                 )}
 
-                                <div className="flex items-center gap-4 text-xs text-slate-500 mt-2 pt-2 border-t border-slate-800/50">
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
                                     <div className="flex items-center gap-1.5">
                                         <User size={12} />
                                         <span>{item.performed_by_name || 'System / Unknown'}</span>

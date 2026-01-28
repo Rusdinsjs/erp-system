@@ -426,7 +426,7 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route(
             "/api/analytics/status",
-            get(analytics_handler::get_asset_condition_distribution),
+            get(analytics_handler::get_asset_status_distribution),
         )
         // Settings
         // Settings route moved to settings_routes.rs
