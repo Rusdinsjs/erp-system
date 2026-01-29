@@ -45,6 +45,11 @@ pub fn create_router(state: AppState) -> Router {
     let protected_routes = Router::new()
         // Assets
         .route(
+            "/api/assets/expiring",
+            get(get_expiring_assets
+                .layer(axum_middleware::from_fn(require_permission("asset.read")))),
+        )
+        .route(
             "/api/assets",
             get(list_assets.layer(axum_middleware::from_fn(require_permission("asset.read"))))
                 .post(
@@ -524,6 +529,9 @@ pub fn create_router(state: AppState) -> Router {
         .merge(lookup_routes)
         .merge(protected_routes)
         .merge(crate::api::routes::settings_routes::settings_routes())
+        .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes(
+            state.clone(),
+        ))
         .route(
             "/api/test/email",
             axum::routing::post(crate::api::handlers::test_handler::send_test_email),

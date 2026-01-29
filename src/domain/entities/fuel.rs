@@ -113,6 +113,10 @@ pub struct FuelLog {
     pub asset_name: Option<String>,
     #[sqlx(default)]
     pub requester_name: Option<String>,
+    #[sqlx(default)]
+    pub previous_odometer: Option<Decimal>,
+    #[sqlx(default)]
+    pub previous_fuel_volume: Option<Decimal>,
 }
 
 impl FuelLog {
@@ -150,6 +154,8 @@ impl FuelLog {
             updated_at: now,
             asset_name: None,
             requester_name: None,
+            previous_odometer: None,
+            previous_fuel_volume: None,
         }
     }
 }

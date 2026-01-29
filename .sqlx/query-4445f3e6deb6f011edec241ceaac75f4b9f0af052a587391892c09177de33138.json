@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                ms.*,\n                a.name as asset_name\n            FROM maintenance_schedules ms\n            JOIN assets a ON ms.asset_id = a.id\n            WHERE ms.is_active = true \n              AND ms.interval_type = 'time'\n              AND ms.next_run_date <= $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "interval_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "interval_value",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "interval_unit",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_run_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "last_run_reading",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "next_run_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "next_run_reading",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "asset_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4445f3e6deb6f011edec241ceaac75f4b9f0af052a587391892c09177de33138"
+}

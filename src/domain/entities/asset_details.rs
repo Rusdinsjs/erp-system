@@ -27,6 +27,8 @@ pub struct VehicleDetails {
     pub stnk_expiry: Option<NaiveDate>,
     pub kir_expiry: Option<NaiveDate>,
     pub tax_expiry: Option<NaiveDate>,
+    pub lapor_tiba_expiry: Option<NaiveDate>,
+    pub heavy_equipment_tax_expiry: Option<NaiveDate>,
     pub fuel_type: Option<String>,
     pub transmission: Option<String>,
     pub capacity: Option<String>,

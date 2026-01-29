@@ -52,7 +52,28 @@ impl FuelRepository {
     pub async fn list_pending(&self) -> Result<Vec<FuelLog>, sqlx::Error> {
         sqlx::query_as::<_, FuelLog>(
             r#"
-            SELECT f.*, a.name as asset_name, u.name as requester_name
+            SELECT 
+                f.*, 
+                a.name as asset_name, 
+                u.name as requester_name,
+                (
+                    SELECT odometer_reading 
+                    FROM fuel_logs prev 
+                    WHERE prev.asset_id = f.asset_id 
+                      AND prev.status = 'completed' 
+                      AND prev.created_at < f.created_at
+                    ORDER BY prev.created_at DESC 
+                    LIMIT 1
+                ) as previous_odometer,
+                (
+                    SELECT actual_volume 
+                    FROM fuel_logs prev 
+                    WHERE prev.asset_id = f.asset_id 
+                      AND prev.status = 'completed' 
+                      AND prev.created_at < f.created_at
+                    ORDER BY prev.created_at DESC 
+                    LIMIT 1
+                ) as previous_fuel_volume
             FROM fuel_logs f
             LEFT JOIN assets a ON f.asset_id = a.id
             LEFT JOIN users u ON f.requested_by = u.id

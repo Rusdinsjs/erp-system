@@ -127,6 +127,12 @@ pub async fn list_pending_requests(
         .collect();
 
     for loan in pending_loans {
+        let asset_name = if let Ok(asset) = state.asset_service.get_by_id(loan.asset_id).await {
+            asset.name
+        } else {
+            "Unknown Asset".to_string()
+        };
+
         requests.push(ApprovalRequest {
             id: loan.id,
             resource_type: "loan".to_string(),
@@ -135,6 +141,7 @@ pub async fn list_pending_requests(
             requested_by: loan.borrower_id.unwrap_or_else(Uuid::nil),
             data_snapshot: Some(serde_json::json!({
                 "asset_id": loan.asset_id,
+                "asset_name": asset_name,
                 "loan_date": loan.loan_date,
                 "return_date": loan.expected_return_date
             })),

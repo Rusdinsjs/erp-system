@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, workflow_name, entity_type, approval_levels,\n                level_1_role, level_2_role, level_3_role, level_4_role, level_5_role,\n                is_active as \"is_active!\", created_at, updated_at\n            FROM approval_workflows \n            WHERE entity_type = $1 AND is_active = true\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "workflow_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "entity_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "approval_levels",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "level_1_role",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "level_2_role",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "level_3_role",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "level_4_role",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "level_5_role",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_active!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f550e7313e723c15c6f5e7965928515258f4e3396f1f82bcd61c587e9b601ce6"
+}

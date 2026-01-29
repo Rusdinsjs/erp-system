@@ -23,6 +23,8 @@ export interface FuelLog {
     completed_at?: string;
     created_at: string;
     updated_at: string;
+    previous_odometer?: number;
+    previous_fuel_volume?: number;
 }
 
 export interface CreateFuelRequest {

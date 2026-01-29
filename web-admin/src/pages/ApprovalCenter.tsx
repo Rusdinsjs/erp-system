@@ -78,9 +78,34 @@ function RequestDetails({ request, showDetails = false }: { request: ApprovalReq
                         <Fuel size={12} />
                         <span>{data?.request_type === 'amount' ? `IDR ${Number(data.requested_value).toLocaleString()}` : `${data.requested_value} Liters`}</span>
                     </div>
-                    <p className="text-xs text-slate-500">
-                        Odo: {data?.odometer_reading} km
-                    </p>
+
+                    {/* Odometer Stats */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 p-2 bg-slate-800/50 rounded-lg text-xs">
+                        <div>
+                            <p className="text-slate-500">Current Odo</p>
+                            <p className="text-white font-mono">{Number(data?.odometer_reading).toLocaleString()} km</p>
+                        </div>
+                        <div>
+                            <p className="text-slate-500">Prev. Odo</p>
+                            <p className="text-white font-mono">
+                                {data?.previous_odometer ? `${Number(data.previous_odometer).toLocaleString()} km` : '-'}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-slate-500">Diff</p>
+                            <p className="text-emerald-400 font-mono">
+                                {data?.previous_odometer
+                                    ? `+${(Number(data.odometer_reading) - Number(data.previous_odometer)).toLocaleString()} km`
+                                    : '-'}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-slate-500">Prev. Usage</p>
+                            <p className="text-white font-mono">
+                                {data?.previous_fuel_volume ? `${Number(data.previous_fuel_volume).toLocaleString()} L` : '-'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 {showDetails && data?.odometer_image_url && (

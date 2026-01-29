@@ -1,5 +1,5 @@
 // Admin Dashboard - Main Container with Dark Theme
-import { useState, lazy, Suspense, useEffect } from 'react';
+import { useState, lazy, Suspense, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import {
@@ -68,7 +68,8 @@ const ApprovalWorkflowSettingsView = lazy(() => import('./ApprovalWorkflowSettin
 const SettingsView = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
 const InventoryItemsView = lazy(() => import('./Inventory/InventoryItems').then(m => ({ default: m.InventoryItems })));
 const InventoryCategoriesView = lazy(() => import('./Inventory/InventoryCategories').then(m => ({ default: m.InventoryCategories })));
-const StockOpnameView = lazy(() => import('./Inventory/StockOpname')); // Added StockOpname import (default export)
+const StockOpnameView = lazy(() => import('./Inventory/StockOpname'));
+const TaxRenewalsView = lazy(() => import('./TaxRenewals/TaxRenewals').then(m => ({ default: m.TaxRenewals })));
 
 const ExpensesView = lazy(() => import('./Finance/Expenses').then(m => ({ default: m.Expenses })));
 const AnalyticsDashboardView = lazy(() => import('./AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
@@ -125,6 +126,7 @@ type TabId =
     | 'purchase-bills'
     | 'maintenance-templates'
     | 'maintenance-schedules'
+    | 'tax-renewals'
     | 'expenses'
     | 'asset-lifecycle'
     | 'settings'
@@ -138,6 +140,7 @@ interface NavItem {
     adminOnly?: boolean;
     minLevel?: number; // 1=SuperAdmin, 2=Admin, 3=Manager, 4=Staff, 5=Viewer
     showBadge?: boolean;
+    context?: string; // New: To link with Launchpad Card ID
 }
 
 interface NavGroup {
@@ -147,12 +150,14 @@ interface NavGroup {
     children: NavEntry[];
     minLevel?: number;
     showBadge?: boolean;
+    context?: string; // New
 }
 
 interface NavHeader {
     type: 'header';
     label: string;
     minLevel?: number;
+    context?: string; // New
 }
 
 type NavEntry = NavItem | NavGroup | NavHeader;
@@ -167,21 +172,23 @@ const isNavHeader = (entry: NavEntry): entry is NavHeader => {
 
 // Navigation structure
 const navItems: NavEntry[] = [
-    { type: 'header', label: 'INSIGHTS & REPORTING', minLevel: 5 },
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview', minLevel: 5 },
-    { id: 'analytics', icon: TrendingUp, label: 'Performance Analytics', minLevel: 3 },
-    { id: 'reports', icon: FileText, label: 'Management Reports', minLevel: 3 },
+    { type: 'header', label: 'INSIGHTS & REPORTING', minLevel: 5, context: 'insights' },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview', minLevel: 5, context: 'insights' },
+    { id: 'analytics', icon: TrendingUp, label: 'Performance Analytics', minLevel: 3, context: 'insights' },
+    { id: 'reports', icon: FileText, label: 'Management Reports', minLevel: 3, context: 'insights' },
 
-    { type: 'header', label: 'OPERATIONS & ASSETS', minLevel: 5 },
+    { type: 'header', label: 'OPERATIONS & ASSETS', minLevel: 5, context: 'operations' },
     {
         id: 'asset_operations',
         label: 'Asset Operations',
         icon: Package,
         minLevel: 5,
+        context: 'operations',
         children: [
             { id: 'assets', icon: Package, label: 'Asset Registry', minLevel: 5 },
             { id: 'loans', icon: HandMetal, label: 'Internal Asset Loans', minLevel: 5 },
             { id: 'fuel', icon: Fuel, label: 'Fuel Usage (BBM)', minLevel: 5 },
+            { id: 'tax-renewals', icon: FileText, label: 'Tax & Renewals', minLevel: 4 },
             {
                 id: 'maintenance_subgroup',
                 label: 'Service & Maintenance',
@@ -190,18 +197,20 @@ const navItems: NavEntry[] = [
                     { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
                     { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
                     { id: 'maintenance-templates', icon: ClipboardCheck, label: 'SOP Templates', minLevel: 3 },
+
                     { id: 'asset-lifecycle', icon: History, label: 'Life Cycle Log', minLevel: 3 },
                 ]
             },
         ]
     },
 
-    { type: 'header', label: 'COMMERCIAL & REVENUE', minLevel: 4 },
+    { type: 'header', label: 'COMMERCIAL & REVENUE', minLevel: 4, context: 'commercial' },
     {
         id: 'commercial_group',
         label: 'Commercial & Rental',
         icon: Truck,
         minLevel: 4,
+        context: 'commercial',
         children: [
             { id: 'rentals', icon: Truck, label: 'Rental Operations', minLevel: 4 },
             { id: 'contracts', icon: FileText, label: 'Service Contracts', minLevel: 4 },
@@ -222,12 +231,13 @@ const navItems: NavEntry[] = [
         ]
     },
 
-    { type: 'header', label: 'PROCUREMENT & SUPPLY', minLevel: 3 },
+    { type: 'header', label: 'PROCUREMENT & SUPPLY', minLevel: 3, context: 'procurement' },
     {
         id: 'supply_chain_group',
         label: 'Procurement & Supply',
         icon: ShoppingBag,
         minLevel: 3,
+        context: 'procurement',
         children: [
             {
                 id: 'purchase_subgroup',
@@ -256,12 +266,13 @@ const navItems: NavEntry[] = [
         ]
     },
 
-    { type: 'header', label: 'FINANCE & HR', minLevel: 3 },
+    { type: 'header', label: 'FINANCE & HR', minLevel: 3, context: 'finance' },
     {
         id: 'finance_group',
         label: 'Finance & Accounting',
         icon: FolderTree,
         minLevel: 3,
+        context: 'finance',
         children: [
             { id: 'cash-bank', icon: Wallet, label: 'Cash & Bank', minLevel: 3 },
             { id: 'expenses', icon: Receipt, label: 'Expenditures', minLevel: 3 },
@@ -286,6 +297,7 @@ const navItems: NavEntry[] = [
         label: 'Human Resources',
         icon: Users,
         minLevel: 3,
+        context: 'hr',
         children: [
             { id: 'employees', icon: Users, label: 'Employee Directory' },
             { id: 'attendance', icon: Clock, label: 'Work Attendance' },
@@ -293,13 +305,17 @@ const navItems: NavEntry[] = [
         ]
     },
 
-    { type: 'header', label: 'ADMINISTRATION', minLevel: 3 },
-    { id: 'approvals', icon: ClipboardCheck, label: 'Approval Center', minLevel: 3, showBadge: true },
+    { type: 'header', label: 'ADMINISTRATION', minLevel: 3, context: 'approval' }, // Approvals Grouped here for simplification or own group? User said "Approval" is a card. Let's make Approval context cover this.
+    { id: 'approvals', icon: ClipboardCheck, label: 'Approval Center', minLevel: 3, showBadge: true, context: 'approval' },
+
+    // Master Data -> Admin Context? Or split?
+    // Let's explicitly put Master Data in 'admin' context.
     {
         id: 'master_data',
         label: 'Master Data',
         icon: Building2,
         minLevel: 3,
+        context: 'admin',
         children: [
             { id: 'clients', icon: Building2, label: 'Business Partners' },
             { id: 'locations', icon: MapPin, label: 'Operational Areas' },
@@ -312,6 +328,7 @@ const navItems: NavEntry[] = [
         label: 'System Settings',
         icon: Settings,
         minLevel: 5,
+        context: 'global', // Explicitly global
         children: [
             { id: 'users', icon: Users, label: 'User Control', minLevel: 2 },
             { id: 'roles', icon: Shield, label: 'RBAC Permissions', minLevel: 2 },
@@ -498,6 +515,61 @@ export default function AdminDashboard() {
     const toggleGroup = (groupId: string) => {
         setOpenGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
     };
+
+    // Helper to find context of current tab
+    const findTabContext = (tabId: TabId, items: NavEntry[], parentContext?: string): string | undefined => {
+        for (const item of items) {
+            // Check headers/items/groups
+            const currentContext = 'context' in item ? item.context : parentContext;
+
+            if (isNavGroup(item)) {
+                // Check direct children valid ids
+                // Note: Group itself might not match tabId, but one of its children will
+                const foundInChild = findTabContext(tabId, item.children, currentContext);
+                if (foundInChild) return foundInChild;
+            } else if (!isNavHeader(item)) {
+                if (item.id === tabId) return currentContext;
+            }
+        }
+        return undefined;
+    };
+
+    // Derived Context
+    const activeContext = useMemo(() => {
+        // Hardcode specific overrides if needed, or rely on recursion
+        return findTabContext(activeTab, navItems);
+    }, [activeTab]);
+
+    // Filtered Nav Items based on Context
+    const visibleNavItems = useMemo(() => {
+        const isSuperAdmin = user?.role === 'super_admin' || user?.role_level === 1;
+        if (isSuperAdmin) return navItems;
+
+        // If no context found (e.g. initial load or weird state), maybe show all or nothing?
+        // Default to showing Dashboard related if lost? Or just nothing?
+        // Let's assume if no context, we show Insights (default) or everything?
+        // Better: Show items where context matches OR context is 'global'
+
+        if (!activeContext) return navItems; // Fallback to all if context lost
+
+        return navItems.filter(item => {
+            // Global items (Settings, Profile) always show
+            if ('context' in item && item.context === 'global') return true;
+
+            // Context matches
+            if ('context' in item && item.context === activeContext) return true;
+
+            // Admin context special handling? User said "System Settings" always visible. 
+            // I tagged 'settings_group' as global.
+            // Master Data is tagged 'admin'. Should it show?
+            // "Menu Assets Operation dan System Settings (Selalu Tampil)".
+            // User did NOT say Master Data.
+            // So logic holds.
+
+            return false;
+        });
+    }, [user, activeContext]);
+
 
     // Check if user is admin
     const isAdmin = (user?.role_level ?? 5) <= 2;
@@ -699,6 +771,7 @@ export default function AdminDashboard() {
                 return <PurchaseBillsView />;
             case 'maintenance-templates': return <MaintenanceTemplatesView />;
             case 'maintenance-schedules': return <MaintenanceSchedulesView />;
+            case 'tax-renewals': return <TaxRenewalsView />;
             case 'purchases': // Fallback or remove if parent doesn't render content
                 return <PurchaseOverviewView />; // Default to overview for the group
             case 'expenses': return <ExpensesView />;
@@ -753,7 +826,7 @@ export default function AdminDashboard() {
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 global-scrollbar">
-                    {navItems.map((entry) => {
+                    {visibleNavItems.map((entry) => {
                         if (isNavHeader(entry)) return renderNavHeader(entry);
                         return isNavGroup(entry) ? renderNavGroup(entry) : renderNavItem(entry as NavItem);
                     })}
@@ -807,6 +880,18 @@ export default function AdminDashboard() {
                     </button>
 
                     <Logo className="lg:hidden" collapsed={false} />
+
+                    {/* Back to Launchpad Button (For Non-Super Admin) */}
+                    {user?.role !== 'super_admin' && (
+                        <button
+                            onClick={() => navigate('/launchpad')}
+                            className="hidden md:flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
+                            title="Back to Launchpad"
+                        >
+                            <LayoutDashboard size={18} />
+                            <span>Menu Utama</span>
+                        </button>
+                    )}
 
                     <div className="flex-1" /> {/* Spacer */}
 

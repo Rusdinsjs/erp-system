@@ -19,5 +19,6 @@ pub mod fuel_routes;
 pub mod location_routes;
 pub mod mobile_routes;
 pub mod settings_routes;
+pub mod tax_renewal_routes;
 pub use billing_routes::billing_routes;
 pub use timesheet_routes::timesheet_routes;

@@ -312,7 +312,8 @@ export function Loans() {
                             <TableRow>
                                 <TableTh>Aset / Peminjam</TableTh>
                                 <TableTh>Tanggal Pinjam</TableTh>
-                                <TableTh>Est. Kembali</TableTh>
+                                <TableTh>Batas Kembali</TableTh>
+                                <TableTh>Tgl Dikembalikan</TableTh>
                                 <TableTh>Status</TableTh>
                                 <TableTh align="center">Tindakan</TableTh>
                             </TableRow>
@@ -337,6 +338,11 @@ export function Loans() {
                                     <TableTd>
                                         <span className={loan.status === 'overdue' ? 'text-red-400' : ''}>
                                             {loan.expected_return_date}
+                                        </span>
+                                    </TableTd>
+                                    <TableTd>
+                                        <span className={loan.actual_return_date ? 'text-emerald-400' : 'text-slate-500'}>
+                                            {loan.actual_return_date || '-'}
                                         </span>
                                     </TableTd>
                                     <TableTd>

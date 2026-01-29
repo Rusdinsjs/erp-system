@@ -114,6 +114,126 @@ impl AssetService {
         Ok(asset)
     }
 
+    /// Check for expiring vehicle documents and send notifications
+    pub async fn check_upcoming_expiries(&self) -> DomainResult<usize> {
+        // Find vehicles with documents expiring in 30 days
+        let expiring_vehicles = self
+            .repository
+            .find_expiring_vehicles(30)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        let mut notification_count = 0;
+        let today = Utc::now().date_naive();
+        // Look ahead 30 days
+        let limit = today + chrono::Duration::days(30);
+
+        for (asset, details) in expiring_vehicles {
+            // Check STNK
+            if let Some(date) = details.stnk_expiry {
+                if date >= today && date <= limit {
+                    // Only notify if within range (SQL already filters, but double check doesn't hurt)
+                    let _ = self
+                        .notification_service
+                        .notify_admins(
+                            "vehicle_expiry",
+                            serde_json::json!({
+                                "asset_name": asset.name,
+                                "document_type": "STNK",
+                                "expiry_date": date.to_string(),
+                                "days_remaining": (date - today).num_days()
+                            }),
+                            Some("asset"),
+                            Some(asset.id),
+                        )
+                        .await;
+                    notification_count += 1;
+                }
+            }
+
+            // Check Tax (Pajak)
+            if let Some(date) = details.tax_expiry {
+                if date >= today && date <= limit {
+                    let _ = self
+                        .notification_service
+                        .notify_admins(
+                            "vehicle_expiry",
+                            serde_json::json!({
+                                "asset_name": asset.name,
+                                "document_type": "Pajak Kendaraan",
+                                "expiry_date": date.to_string(),
+                                "days_remaining": (date - today).num_days()
+                            }),
+                            Some("asset"),
+                            Some(asset.id),
+                        )
+                        .await;
+                    notification_count += 1;
+                }
+            }
+
+            // Check KIR
+            if let Some(date) = details.kir_expiry {
+                if date >= today && date <= limit {
+                    let _ = self
+                        .notification_service
+                        .notify_admins(
+                            "vehicle_expiry",
+                            serde_json::json!({
+                                "asset_name": asset.name,
+                                "document_type": "KIR",
+                                "expiry_date": date.to_string(),
+                                "days_remaining": (date - today).num_days()
+                            }),
+                            Some("asset"),
+                            Some(asset.id),
+                        )
+                        .await;
+                    notification_count += 1;
+                }
+            }
+        }
+
+        Ok(notification_count)
+    }
+
+    /// Get expiring vehicles for UI
+    pub async fn get_upcoming_expiries(
+        &self,
+        days: i64,
+    ) -> DomainResult<Vec<crate::domain::entities::asset::AssetDetail>> {
+        let expiring_vehicles =
+            self.repository
+                .find_expiring_vehicles(days)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+
+        let mut results = Vec::new();
+        for (asset, details) in expiring_vehicles {
+            results.push(crate::domain::entities::asset::AssetDetail {
+                asset,
+                category_name: None, // Could fetch if needed, but for dashboard maybe not essential or can join in repo
+                location_name: None,
+                department_name: None,
+                department_manager_name: None,
+                assigned_to_name: None,
+                vendor_name: None,
+                condition_name: None,
+                vehicle_details: Some(details),
+                total_maintenance_cost: None,
+                total_rental_income: None,
+            });
+        }
+
+        Ok(results)
+    }
+
     /// Get asset detail by ID (with joins)
     pub async fn get_detail_by_id(
         &self,
@@ -288,6 +408,7 @@ impl AssetService {
         asset.vendor_id = request.vendor_id;
         asset.is_rental = request.is_rental.unwrap_or(false);
         asset.is_fuel = request.is_fuel.unwrap_or(false);
+        asset.is_loan = request.is_loan.unwrap_or(false);
         asset.asset_class = request.asset_class;
         asset.condition_id = request.condition_id;
         asset.serial_number = request.serial_number;
@@ -334,6 +455,8 @@ impl AssetService {
                 transmission: vd.transmission,
                 capacity: vd.capacity,
                 odometer_last: vd.odometer_last,
+                lapor_tiba_expiry: vd.lapor_tiba_expiry,
+                heavy_equipment_tax_expiry: vd.heavy_equipment_tax_expiry,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
             };
@@ -404,7 +527,16 @@ impl AssetService {
 
     /// Update asset
     pub async fn update(&self, id: Uuid, request: UpdateAssetRequest) -> DomainResult<Asset> {
-        let mut asset = self.get_by_id(id).await?;
+        // Bypass cache to get the latest version for optimistic locking
+        let mut asset = self
+            .repository
+            .find_by_id(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("Asset", id))?;
 
         // Update fields if provided
         if let Some(code) = request.asset_code {
@@ -436,6 +568,9 @@ impl AssetService {
         }
         if let Some(f) = request.is_fuel {
             asset.is_fuel = f;
+        }
+        if let Some(l) = request.is_loan {
+            asset.is_loan = l;
         }
         if let Some(c) = request.asset_class {
             asset.asset_class = Some(c);
@@ -526,6 +661,8 @@ impl AssetService {
                 transmission: vd.transmission,
                 capacity: vd.capacity,
                 odometer_last: vd.odometer_last,
+                lapor_tiba_expiry: vd.lapor_tiba_expiry,
+                heavy_equipment_tax_expiry: vd.heavy_equipment_tax_expiry,
                 created_at: asset.created_at, // Preserve original creation? No, this struct is new or updated.
                 updated_at: Utc::now(),
             };
@@ -589,6 +726,9 @@ impl AssetService {
             .broadcast("ASSET_STATUS_CHANGED", serde_json::json!(updated))
             .await;
 
+        // Invalidate cache
+        let _ = self.cache.delete(&CacheKey::asset(&id)).await;
+
         Ok(updated)
     }
 
@@ -620,7 +760,16 @@ impl AssetService {
             )));
         }
 
-        let mut asset = self.get_by_id(id).await?;
+        // Bypass cache to get the latest version and status
+        let mut asset = self
+            .repository
+            .find_by_id(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::not_found("Asset", id))?;
 
         // 1. Validate State
         let current_state = AssetState::from_str(&asset.status)

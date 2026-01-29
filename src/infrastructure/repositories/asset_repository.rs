@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::domain::entities::analytics::AssetStatusStats;
 use crate::domain::entities::asset_details::VehicleDetails;
 use crate::domain::entities::{Asset, AssetDocument, AssetHistory, AssetSummary};
+use chrono::NaiveDate;
 
 /// Asset repository
 #[derive(Clone)]
@@ -767,5 +768,112 @@ impl AssetRepository {
         .await?;
 
         Ok(row.and_then(|r| r.0))
+    }
+
+    /// Update vehicle expiry date for a specific field
+    pub async fn update_vehicle_expiry(
+        &self,
+        asset_id: Uuid,
+        field: &str,
+        date: NaiveDate,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            UPDATE assets
+            SET vehicle_details = vehicle_details || jsonb_build_object($2, $3::date)
+            WHERE id = $1
+            "#,
+        )
+        .bind(asset_id)
+        .bind(field)
+        .bind(date)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Find assets with vehicle documents expiring within days
+    pub async fn find_expiring_vehicles(
+        &self,
+        days: i64,
+    ) -> Result<Vec<(Asset, VehicleDetails)>, sqlx::Error> {
+        let rows = sqlx::query(
+            r#"
+            SELECT 
+                id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
+                is_rental, is_fuel, is_loan, asset_class, status, condition_id,
+                serial_number, brand, model, year_manufacture,
+                specifications,
+                purchase_date, purchase_price, currency_id, unit_id, quantity,
+                residual_value, useful_life_months,
+                qr_code_url, notes,
+                sale_price, sale_date, sold_to,
+                created_at, updated_at, version,
+                vehicle_details
+            FROM assets
+            WHERE vehicle_details IS NOT NULL
+            AND (
+                ((vehicle_details->>'stnk_expiry')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days')::interval)
+                OR
+                ((vehicle_details->>'tax_expiry')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days')::interval)
+                OR
+                ((vehicle_details->>'kir_expiry')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days')::interval)
+            )
+            AND status != 'archived'
+            "#,
+        )
+        .bind(days)
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut results = Vec::new();
+        for r in rows {
+            use sqlx::Row;
+            let asset = Asset {
+                id: r.get("id"),
+                asset_code: r.get("asset_code"),
+                name: r.get("name"),
+                category_id: r.get("category_id"),
+                location_id: r.get("location_id"),
+                department_id: r.get("department_id"),
+                department: r.get("department"),
+                assigned_to: r.get("assigned_to"),
+                vendor_id: r.get("vendor_id"),
+                is_rental: r.get("is_rental"),
+                is_fuel: r.get("is_fuel"),
+                is_loan: r.get("is_loan"),
+                asset_class: r.get("asset_class"),
+                status: r.get("status"),
+                condition_id: r.get("condition_id"),
+                serial_number: r.get("serial_number"),
+                brand: r.get("brand"),
+                model: r.get("model"),
+                year_manufacture: r.get("year_manufacture"),
+                specifications: r.get("specifications"),
+                purchase_date: r.get("purchase_date"),
+                purchase_price: r.get("purchase_price"),
+                currency_id: r.get("currency_id"),
+                unit_id: r.get("unit_id"),
+                quantity: r.get("quantity"),
+                residual_value: r.get("residual_value"),
+                useful_life_months: r.get("useful_life_months"),
+                qr_code_url: r.get("qr_code_url"),
+                notes: r.get("notes"),
+                sale_price: r.get("sale_price"),
+                sale_date: r.get("sale_date"),
+                sold_to: r.get("sold_to"),
+                created_at: r.get("created_at"),
+                updated_at: r.get("updated_at"),
+                version: r.get("version"),
+            };
+
+            let vehicle_json: serde_json::Value = r.get("vehicle_details");
+            if let Ok(mut details) = serde_json::from_value::<VehicleDetails>(vehicle_json) {
+                details.asset_id = asset.id;
+                results.push((asset, details));
+            }
+        }
+
+        Ok(results)
     }
 }

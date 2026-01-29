@@ -23,6 +23,31 @@ use axum::{extract::Extension, response::IntoResponse};
 
 #[utoipa::path(
     get,
+    path = "/api/assets/expiring",
+    params(
+        ("days" = Option<i64>, Query, description = "Days threshold (default 30)")
+    ),
+    responses(
+        (status = 200, description = "List expiring assets", body = Vec<crate::domain::entities::asset::AssetDetail>),
+        (status = 400, description = "Bad Request")
+    ),
+    tag = "assets"
+)]
+pub async fn get_expiring_assets(
+    State(state): State<AppState>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<Vec<crate::domain::entities::asset::AssetDetail>>, AppError> {
+    let days = params
+        .get("days")
+        .and_then(|d| d.parse::<i64>().ok())
+        .unwrap_or(30);
+
+    let result = state.asset_service.get_upcoming_expiries(days).await?;
+    Ok(Json(result))
+}
+
+#[utoipa::path(
+    get,
     path = "/api/assets",
     params(AssetSearchParams),
     responses(

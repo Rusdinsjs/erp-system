@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COUNT(DISTINCT ca.contract_id) as \"count!\"\n            FROM contract_approvals ca\n            INNER JOIN rental_contracts rc ON ca.contract_id = rc.id\n            WHERE rc.status = 'pending_approval'\n            AND ca.action = 'submitted'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f51ada97a496556f79479cffe3c0f7229991f86374d8369eb120687c7c9a1038"
+}

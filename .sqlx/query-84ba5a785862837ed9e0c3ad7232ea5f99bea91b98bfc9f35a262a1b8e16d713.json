@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE rental_timesheets SET\n                start_time = $2, end_time = $3,\n                operating_hours = $4, standby_hours = $5, overtime_hours = $6, breakdown_hours = $7,\n                hm_km_start = $8, hm_km_end = $9, hm_km_usage = $10,\n                operation_status = $11, breakdown_reason = $12, work_description = $13, work_location = $14,\n                photos = $15, checker_notes = $16,\n                production_volume = $17, production_unit = $18,\n                updated_at = $19\n            WHERE id = $1\n            RETURNING *",
+  "query": "UPDATE rental_timesheets SET\n                start_time = $2, end_time = $3,\n                operating_hours = $4, standby_hours = $5, overtime_hours = $6, breakdown_hours = $7,\n                hm_km_start = $8, hm_km_end = $9, hm_km_usage = $10,\n                operation_status = $11, breakdown_reason = $12, work_description = $13, work_location = $14,\n                photos = $15, checker_notes = $16,\n                production_volume = $17, production_unit = $18,\n                fuel_consumed_liters = $19,\n                updated_at = $20\n            WHERE id = $1\n            RETURNING *",
   "describe": {
     "columns": [
       {
@@ -172,6 +172,31 @@
         "ordinal": 33,
         "name": "rental_item_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 34,
+        "name": "standby_start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 35,
+        "name": "standby_end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 36,
+        "name": "breakdown_start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 37,
+        "name": "breakdown_end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 38,
+        "name": "fuel_consumed_liters",
+        "type_info": "Numeric"
       }
     ],
     "parameters": {
@@ -194,6 +219,7 @@
         "Text",
         "Numeric",
         "Varchar",
+        "Numeric",
         "Timestamptz"
       ]
     },
@@ -231,8 +257,13 @@
       true,
       true,
       true,
+      true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "f95750351df216f807f2ee6ce6875e975458eb4f0d930cd4b8f328cc56a683fd"
+  "hash": "84ba5a785862837ed9e0c3ad7232ea5f99bea91b98bfc9f35a262a1b8e16d713"
 }

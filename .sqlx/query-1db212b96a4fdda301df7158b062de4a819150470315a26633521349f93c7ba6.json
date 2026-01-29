@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                ca.id, \n                ca.contract_id, \n                ca.approver_id, \n                u1.name as \"approver_name?\",\n                ca.action, \n                ca.notes, \n                ca.approval_level, \n                ca.delegated_to,\n                u2.name as \"delegated_to_name?\",\n                ca.created_at\n            FROM contract_approvals ca\n            LEFT JOIN users u1 ON ca.approver_id = u1.id\n            LEFT JOIN users u2 ON ca.delegated_to = u2.id\n            WHERE ca.contract_id = $1\n            ORDER BY ca.created_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "approver_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "approver_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "action",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "approval_level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "delegated_to",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "delegated_to_name?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "1db212b96a4fdda301df7158b062de4a819150470315a26633521349f93c7ba6"
+}

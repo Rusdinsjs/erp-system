@@ -42,6 +42,18 @@ interface AssetFormProps {
 export function AssetForm({ initialValues, categories, locations, onSubmit, onCancel, isLoading }: AssetFormProps) {
     const { user } = useAuthStore();
 
+    // Helper to normalize backend status to form values
+    const normalizeStatus = (status?: string) => {
+        if (!status) return 'planning';
+        const s = status.toLowerCase();
+        if (s === 'available') return 'in_inventory';
+        if (s === 'in_use' || s === 'active') return 'deployed';
+        if (s === 'maintenance') return 'under_maintenance';
+        if (s === 'repair') return 'under_repair';
+        if (s === 'lost') return 'lost_stolen';
+        return s;
+    };
+
     // Form State
     const [formData, setFormData] = useState({
         asset_code: initialValues?.asset_code || '',
@@ -50,7 +62,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         location_id: initialValues?.location_id || '',
         department_id: initialValues?.department_id || '',
         assigned_to: initialValues?.assigned_to || '',
-        status: initialValues?.status || 'planning',
+        status: normalizeStatus(initialValues?.status),
         serial_number: initialValues?.serial_number || '',
         brand: initialValues?.brand || '',
         model: initialValues?.model || '',
@@ -75,6 +87,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         vehicle_transmission: initialValues?.vehicle_details?.transmission || '',
         vehicle_capacity: initialValues?.vehicle_details?.capacity || '',
         vehicle_odometer: initialValues?.vehicle_details?.odometer_last,
+        vehicle_heavy_equipment_tax_expiry: initialValues?.vehicle_details?.heavy_equipment_tax_expiry ? new Date(initialValues.vehicle_details.heavy_equipment_tax_expiry) : null,
         // Building Details
         building_address: initialValues?.specifications?.address || '',
         building_city: initialValues?.specifications?.city || '',
@@ -95,7 +108,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 location_id: initialValues.location_id || '',
                 department_id: initialValues.department_id || '',
                 assigned_to: initialValues.assigned_to || '',
-                status: initialValues.status || 'planning',
+                status: normalizeStatus(initialValues.status),
                 serial_number: initialValues.serial_number || '',
                 brand: initialValues.brand || '',
                 model: initialValues.model || '',
@@ -120,6 +133,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 vehicle_transmission: initialValues.vehicle_details?.transmission || '',
                 vehicle_capacity: initialValues.vehicle_details?.capacity || '',
                 vehicle_odometer: initialValues.vehicle_details?.odometer_last,
+                vehicle_heavy_equipment_tax_expiry: initialValues.vehicle_details?.heavy_equipment_tax_expiry ? new Date(initialValues.vehicle_details.heavy_equipment_tax_expiry) : null,
                 // Building Details
                 building_address: initialValues.specifications?.address || '',
                 building_city: initialValues.specifications?.city || '',
@@ -173,6 +187,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 vehicle_transmission: '',
                 vehicle_capacity: '',
                 vehicle_odometer: undefined,
+                vehicle_heavy_equipment_tax_expiry: null,
                 building_address: '',
                 building_city: '',
                 building_land_area: undefined,
@@ -349,6 +364,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 transmission: formData.vehicle_transmission,
                 capacity: formData.vehicle_capacity,
                 odometer_last: formData.vehicle_odometer,
+                heavy_equipment_tax_expiry: formData.vehicle_heavy_equipment_tax_expiry?.toISOString().split('T')[0],
             };
         }
 
@@ -444,11 +460,17 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         onChange={(val) => updateField('status', val)}
                                         options={[
                                             { value: 'planning', label: 'Planning' },
-                                            { value: 'active', label: 'Active' },
-                                            { value: 'maintenance', label: 'Maintenance' },
+                                            { value: 'procurement', label: 'Procurement' },
+                                            { value: 'received', label: 'Received' },
+                                            { value: 'in_inventory', label: 'Available (In Inventory)' },
+                                            { value: 'deployed', label: 'Deployed (In Use)' },
+                                            { value: 'rented_out', label: 'Rented Out' },
+                                            { value: 'under_maintenance', label: 'Under Maintenance' },
+                                            { value: 'under_repair', label: 'Under Repair' },
+                                            { value: 'retired', label: 'Retired' },
                                             { value: 'disposed', label: 'Disposed' },
                                             { value: 'sold', label: 'Sold' },
-                                            { value: 'lost', label: 'Lost/Missing' },
+                                            { value: 'lost_stolen', label: 'Lost / Missing' },
                                             { value: 'archived', label: 'Archived' },
                                         ]}
                                     />
@@ -654,6 +676,11 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         label="KIR Expiry"
                                         value={formData.vehicle_kir_expiry}
                                         onChange={(date) => updateField('vehicle_kir_expiry', date)}
+                                    />
+                                    <DateInput
+                                        label="Heavy Equipment Tax Expiry"
+                                        value={formData.vehicle_heavy_equipment_tax_expiry}
+                                        onChange={(date) => updateField('vehicle_heavy_equipment_tax_expiry', date)}
                                     />
                                     <Select
                                         label="Fuel Type"

@@ -11,6 +11,7 @@ export interface VehicleDetails {
     stnk_expiry?: string;
     kir_expiry?: string;
     tax_expiry?: string;
+    heavy_equipment_tax_expiry?: string;
     fuel_type?: string;
     transmission?: string;
     capacity?: string;
@@ -277,6 +278,11 @@ export const assetApi = {
 
     rejectExpense: async (expenseId: string, notes: string) => {
         const response = await api.post<AssetExpense>(`/expenses/${expenseId}/reject`, { notes });
+        return response.data;
+    },
+
+    getExpiring: async (days: number = 30) => {
+        const response = await api.get<Asset[]>('/assets/expiring', { params: { days } });
         return response.data;
     }
 };

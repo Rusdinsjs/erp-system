@@ -21,6 +21,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../components/ui/Toast';
 import { PendingApprovalsWidget } from '../components/dashboard/PendingApprovalsWidget';
 import { LiveActivityFeed } from '../components/dashboard/LiveActivityFeed';
+import { VehicleLegalityWidget } from '../components/dashboard/VehicleLegalityWidget';
+
 
 // Stat Card Component
 interface StatCardProps {
@@ -321,8 +323,13 @@ export function Dashboard() {
                     </div>
                 </div>
 
+
+
                 {/* Right Column (1/3) */}
                 <div className="space-y-6">
+                    {/* Vehicle Legality Widget */}
+                    <VehicleLegalityWidget />
+
                     {/* Asset Availability & Condition Distribution */}
                     <Card padding="lg">
                         <div className="flex justify-between items-center mb-6">

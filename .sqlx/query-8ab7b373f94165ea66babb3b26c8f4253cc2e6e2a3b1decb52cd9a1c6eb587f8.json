@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE maintenance_schedules\n            SET next_run_date = $1,\n                last_run_date = $2,\n                updated_at = NOW()\n            WHERE id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ab7b373f94165ea66babb3b26c8f4253cc2e6e2a3b1decb52cd9a1c6eb587f8"
+}

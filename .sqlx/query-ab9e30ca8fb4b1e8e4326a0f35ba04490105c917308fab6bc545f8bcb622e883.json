@@ -1,0 +1,178 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, contract_number, client_id, NULL::text as client_name, start_date, end_date,\n                auto_renew, renewal_notice_days, payment_terms, price_lock,\n                status, contract_file_url, notes, \n                created_at, created_by, updated_at, updated_by, \n                approved_at, approved_by, submitted_for_approval_at, terminated_at, terminated_by, termination_reason,\n                current_approval_step as \"current_approval_step!\", \n                total_approval_steps as \"total_approval_steps!\", \n                template_id, \n                delegated_to\n            FROM rental_contracts WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "client_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "client_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "auto_renew",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "renewal_notice_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "payment_terms",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "price_lock",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "contract_file_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 17,
+        "name": "approved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "approved_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 19,
+        "name": "submitted_for_approval_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "terminated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 21,
+        "name": "terminated_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 22,
+        "name": "termination_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "current_approval_step!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 24,
+        "name": "total_approval_steps!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 25,
+        "name": "template_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 26,
+        "name": "delegated_to",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "ab9e30ca8fb4b1e8e4326a0f35ba04490105c917308fab6bc545f8bcb622e883"
+}

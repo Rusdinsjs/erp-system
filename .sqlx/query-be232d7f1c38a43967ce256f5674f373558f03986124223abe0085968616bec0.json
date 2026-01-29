@@ -172,6 +172,31 @@
         "ordinal": 33,
         "name": "rental_item_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 34,
+        "name": "standby_start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 35,
+        "name": "standby_end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 36,
+        "name": "breakdown_start_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 37,
+        "name": "breakdown_end_time",
+        "type_info": "Time"
+      },
+      {
+        "ordinal": 38,
+        "name": "fuel_consumed_liters",
+        "type_info": "Numeric"
       }
     ],
     "parameters": {
@@ -195,6 +220,11 @@
       true,
       true,
       false,
+      true,
+      true,
+      true,
+      true,
+      true,
       true,
       true,
       true,

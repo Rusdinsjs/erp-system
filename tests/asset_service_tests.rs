@@ -133,6 +133,7 @@ async fn test_create_and_get_asset() {
         vendor_id: None,
         is_rental: Some(false),
         is_fuel: Some(false),
+        is_loan: Some(false),
         asset_class: None,
         status: Some("Available".to_string()),
         condition_id: None,

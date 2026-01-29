@@ -39,6 +39,7 @@ use crate::application::services::{
     SchedulerService,
     SensorService,
     SettingsService,
+    TaxRenewalService,
     TimesheetService,
     UserService,
     WorkOrderService,
@@ -50,8 +51,8 @@ use crate::infrastructure::repositories::{
     ConversionRepository, EmployeeRepository, FinanceRepository, FuelRepository,
     InventoryRepository, JournalRepository, LifecycleRepository, LoanRepository,
     MaintenanceRepository, MaintenanceTemplateRepository, NotificationRepository, RbacRepository,
-    RentalRepository, SensorRepository, SettingsRepository, TimesheetRepository, UserRepository,
-    WorkOrderRepository,
+    RentalRepository, SensorRepository, SettingsRepository, TaxRenewalRepository,
+    TimesheetRepository, UserRepository, WorkOrderRepository,
 };
 use crate::infrastructure::storage::FileStorage;
 use crate::shared::utils::jwt::JwtConfig;
@@ -98,6 +99,7 @@ pub struct AppState {
     pub rental_billing_service: crate::application::services::RentalBillingService, // Added
     pub pdf_service: crate::application::services::PDFService, // Added
     pub email_service: crate::application::services::EmailService, // Added
+    pub tax_renewal_service: TaxRenewalService, // Added
     pub approval_workflow_service: crate::application::services::ApprovalWorkflowService,
     pub file_storage: Arc<FileStorage>,
     pub contract_document_repo: Arc<ContractDocumentRepository>,
@@ -145,6 +147,7 @@ impl AppState {
         let finance_repo = FinanceRepository::new(pool.clone());
         let journal_repo = JournalRepository::new(pool.clone());
         let inventory_repo = Arc::new(InventoryRepository::new(pool.clone()));
+        let tax_renewal_repo = TaxRenewalRepository::new(pool.clone());
 
         // Create cache
         let redis_config = RedisConfig::from_env();
@@ -244,11 +247,14 @@ impl AppState {
         );
         let email_service = crate::application::services::EmailService::new(config);
         let data_service = DataService::new(asset_repo.clone());
+        let tax_renewal_service = TaxRenewalService::new(tax_renewal_repo, asset_repo.clone()); // Instantiate here
         let scheduler_service = SchedulerService::new(
             loan_service.clone(),
             maintenance_service.clone(),
             work_order_service.clone(),
             notification_service.clone(),
+            asset_service.clone(),
+            tax_renewal_service.clone(),
         );
         let user_service = UserService::new(user_repo, rbac_repo);
         let report_service = ReportService::new(asset_repo.clone(), maintenance_repo.clone());
@@ -323,6 +329,7 @@ impl AppState {
             fuel_service,
             journal_service,
             settings_service,
+            tax_renewal_service,
             jwt_config: jwt_config.clone(), // Initialize
         }
     }

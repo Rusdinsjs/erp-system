@@ -14,6 +14,8 @@ pub struct SchedulerService {
     maintenance_service: MaintenanceService,
     work_order_service: WorkOrderService,
     notification_service: crate::application::services::NotificationService,
+    asset_service: crate::application::services::AssetService,
+    tax_renewal_service: crate::application::services::TaxRenewalService,
 }
 
 impl SchedulerService {
@@ -22,12 +24,16 @@ impl SchedulerService {
         maintenance_service: MaintenanceService,
         work_order_service: WorkOrderService,
         notification_service: crate::application::services::NotificationService,
+        asset_service: crate::application::services::AssetService,
+        tax_renewal_service: crate::application::services::TaxRenewalService,
     ) -> Self {
         Self {
             loan_service,
             maintenance_service,
             work_order_service,
             notification_service,
+            asset_service,
+            tax_renewal_service,
         }
     }
 
@@ -42,10 +48,6 @@ impl SchedulerService {
                 let service = loan_service.clone();
                 Box::pin(async move {
                     info!("Running scheduled job: Check Overdue Loans");
-                    // Implement strict checking logic here if needed,
-                    // currently we rely on list_overdue_loans or similar
-                    // But usually we want to explicitely ACTION on them (e.g. update status)
-                    // For now, we'll just log. In a real app we'd call a specific batch process method.
                     match service.check_overdue_loans().await {
                         Ok(_) => info!("Overdue loans check completed"),
                         Err(e) => error!("Error checking overdue loans: {}", e),
@@ -122,6 +124,42 @@ impl SchedulerService {
                             );
                         }
                         Err(e) => error!("Error checking maintenance: {}", e),
+                    }
+                })
+            })?)
+            .await?;
+
+        // Job 3: Check vehicle expires daily at 02:00
+        let asset_service = self.asset_service.clone();
+        sched
+            .add(Job::new_async("0 0 2 * * *", move |_uuid, _l| {
+                let service = asset_service.clone();
+                Box::pin(async move {
+                    info!("Running scheduled job: Check Vehicle Expiries");
+                    match service.check_upcoming_expiries().await {
+                        Ok(count) => info!(
+                            "Vehicle expiries check completed, sent {} notifications",
+                            count
+                        ),
+                        Err(e) => error!("Error checking vehicle expiries: {}", e),
+                    }
+                })
+            })?)
+            .await?;
+
+        // Job 4: Create Tax Renewals daily at 02:30
+        let tr_service = self.tax_renewal_service.clone();
+        sched
+            .add(Job::new_async("0 30 2 * * *", move |_uuid, _l| {
+                let service = tr_service.clone();
+                Box::pin(async move {
+                    info!("Running scheduled job: Detect Expiring Assets for Renewal Workflow");
+                    match service.detect_expiring_assets().await {
+                        Ok(count) => info!(
+                            "Tax renewal detection completed, created {} pending records",
+                            count
+                        ),
+                        Err(e) => error!("Error detecting tax renewals: {}", e),
                     }
                 })
             })?)

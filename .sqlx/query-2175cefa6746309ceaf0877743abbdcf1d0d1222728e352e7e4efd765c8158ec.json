@@ -282,6 +282,21 @@
         "ordinal": 55,
         "name": "rental_item_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 56,
+        "name": "total_fuel_consumed",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 57,
+        "name": "fuel_surcharge_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 58,
+        "name": "fuel_surcharge_amount",
+        "type_info": "Numeric"
       }
     ],
     "parameters": {
@@ -295,6 +310,9 @@
       false,
       false,
       false,
+      true,
+      true,
+      true,
       true,
       true,
       true,

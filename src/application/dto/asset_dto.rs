@@ -26,6 +26,10 @@ pub struct VehicleDetailsDto {
     pub kir_expiry: Option<NaiveDate>,
     #[schema(value_type = Option<String>, example = "2025-01-01")]
     pub tax_expiry: Option<NaiveDate>,
+    #[schema(value_type = String, format = Date)]
+    pub lapor_tiba_expiry: Option<NaiveDate>,
+    #[schema(value_type = String, format = Date)]
+    pub heavy_equipment_tax_expiry: Option<NaiveDate>,
     pub fuel_type: Option<String>,
     pub transmission: Option<String>,
     pub capacity: Option<String>,
@@ -47,6 +51,7 @@ pub struct CreateAssetRequest {
     pub vendor_id: Option<Uuid>,
     pub is_rental: Option<bool>,
     pub is_fuel: Option<bool>,
+    pub is_loan: Option<bool>,
     pub asset_class: Option<String>,
     pub status: Option<String>,
     pub condition_id: Option<i32>,
@@ -89,6 +94,7 @@ pub struct UpdateAssetRequest {
     pub vendor_id: Option<Uuid>,
     pub is_rental: Option<bool>,
     pub is_fuel: Option<bool>,
+    pub is_loan: Option<bool>,
     pub asset_class: Option<String>,
     pub status: Option<String>,
     pub condition_id: Option<i32>,

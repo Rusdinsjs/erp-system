@@ -163,6 +163,7 @@ async fn test_work_order_lifecycle() {
         vendor_id: None,
         is_rental: Some(false),
         is_fuel: Some(false),
+        is_loan: Some(false),
         asset_class: None,
         status: Some("Deployed".to_string()), // Start as Deployed
         condition_id: None,

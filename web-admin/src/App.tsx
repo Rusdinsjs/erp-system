@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Launchpad = lazy(() => import('./pages/Launchpad'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +26,18 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
+// Redirect based on role: Super Admin goes to dashboard, others to launchpad
+function HomeRedirect() {
+  const user = useAuthStore((state) => state.user);
+
+  // Super Admin (role_level 1) or admin bypasses launchpad
+  if (user?.role === 'super_admin' || user?.role_level === 1) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Navigate to="/launchpad" replace />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -34,6 +47,26 @@ function App() {
             <Suspense fallback={<PageLoading />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+
+                {/* Launchpad - Full screen menu for non-super-admin users */}
+                <Route
+                  path="/launchpad"
+                  element={
+                    <PrivateRoute>
+                      <Launchpad />
+                    </PrivateRoute>
+                  }
+                />
+
+                {/* Home redirect - decides where to go based on role */}
+                <Route
+                  path="/"
+                  element={
+                    <PrivateRoute>
+                      <HomeRedirect />
+                    </PrivateRoute>
+                  }
+                />
 
                 {/* Main Dashboard with Tab Navigation - handles all internal routes */}
                 <Route
@@ -54,3 +87,4 @@ function App() {
 }
 
 export default App;
+

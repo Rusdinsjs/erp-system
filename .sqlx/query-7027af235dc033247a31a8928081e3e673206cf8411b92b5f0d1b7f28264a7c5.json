@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO maintenance_schedules (\n                asset_id, title, description,\n                interval_type, interval_value, interval_unit,\n                next_run_date\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            RETURNING \n                id, asset_id, title, description,\n                interval_type, interval_value, interval_unit,\n                is_active, last_run_date, last_run_reading,\n                next_run_date, next_run_reading,\n                created_at, updated_at,\n                (SELECT name FROM assets WHERE id = $1) as asset_name\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "interval_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "interval_value",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "interval_unit",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_run_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "last_run_reading",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "next_run_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "next_run_reading",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "asset_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Int4",
+        "Varchar",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "7027af235dc033247a31a8928081e3e673206cf8411b92b5f0d1b7f28264a7c5"
+}
