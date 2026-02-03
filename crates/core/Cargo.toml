@@ -1,0 +1,30 @@
+[package]
+name = "management-system-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { workspace = true }
+sqlx = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+rust_decimal = { workspace = true }
+rust_decimal_macros = { workspace = true }
+uuid = { workspace = true }
+jsonwebtoken = { workspace = true }
+argon2 = { workspace = true }
+dotenvy = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+deadpool-redis = { workspace = true }
+redis = { workspace = true }
+utoipa = { workspace = true }
+futures = { workspace = true }
+genpdf = { workspace = true }
+lettre = { workspace = true }
+mime_guess = { workspace = true }
+axum = { workspace = true }
+csv = { workspace = true }
+tokio-cron-scheduler = { workspace = true }

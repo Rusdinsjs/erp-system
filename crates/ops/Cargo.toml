@@ -1,0 +1,19 @@
+[package]
+name = "management-system-ops"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+management-system-core = { workspace = true }
+management-system-finance = { workspace = true }
+management-system-assets = { workspace = true }
+sqlx = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+rust_decimal = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+chrono-tz = { workspace = true }

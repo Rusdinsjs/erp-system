@@ -4,6 +4,7 @@ use management_system::application::services::{
     NotificationService, WorkOrderService,
 };
 use management_system::domain::entities::WorkOrderStatus;
+use management_system::infrastructure::bus::EventBus;
 use management_system::infrastructure::cache::{CacheError, CacheOperations};
 use management_system::infrastructure::repositories::{
     ApprovalRepository, AssetExpenseRepository, AssetRepository, JournalRepository,
@@ -121,6 +122,8 @@ async fn test_work_order_lifecycle() {
         notif_service.clone(),
     );
 
+    let event_bus = EventBus::new(1024);
+
     let wo_service = WorkOrderService::new(
         wo_repo,
         lifecycle_repo,
@@ -130,7 +133,7 @@ async fn test_work_order_lifecycle() {
         ae_service,
         mt_repo,
         inventory_service,
-        journal_service,
+        event_bus,
     );
 
     // Setup: Create an Asset first

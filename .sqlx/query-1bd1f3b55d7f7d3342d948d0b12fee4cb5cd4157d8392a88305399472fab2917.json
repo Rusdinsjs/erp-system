@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO assets (\n            id, asset_code, name, category_id, status, \n            vehicle_details, created_at, updated_at, version,\n            is_rental, is_fuel, is_loan\n        )\n        VALUES (\n            $1, 'V-DUMMY-001', 'Toyota Innova Reborn (Dummy)', \n            (SELECT id FROM categories LIMIT 1), -- Just grab any category\n            'available',\n            $2, NOW(), NOW(), 1,\n            false, true, false\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1bd1f3b55d7f7d3342d948d0b12fee4cb5cd4157d8392a88305399472fab2917"
+}

@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT \n                        r.id, r.asset_id, r.document_type, r.current_expiry, r.renewal_cost, \n                        r.status, r.invoice_id, r.notes, r.payment_destination, r.invoice_attachment, r.payment_date, r.created_at, r.updated_at,\n                        a.name as asset_name\n                    FROM asset_tax_renewals r\n                    LEFT JOIN assets a ON r.asset_id = a.id\n                    ORDER BY r.current_expiry ASC\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "document_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "current_expiry",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "renewal_cost",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "invoice_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "payment_destination",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "invoice_attachment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "payment_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "asset_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c3f495e994cbffcec0893fec18b1216a641c1e5e4f28ea47bdf250490374785c"
+}

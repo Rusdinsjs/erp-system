@@ -1,4 +1,5 @@
 use chrono::Utc;
+use rust_decimal::prelude::ToPrimitive;
 use uuid::Uuid;
 
 use crate::domain::entities::{
@@ -12,16 +13,28 @@ use crate::infrastructure::repositories::FinanceRepository;
 pub struct FinanceService {
     repo: FinanceRepository,
     journal_service: crate::application::services::JournalService,
+    asset_expense_service: crate::application::services::AssetExpenseService,
+    asset_repo: crate::infrastructure::repositories::AssetRepository,
+    rental_repo: crate::infrastructure::repositories::RentalRepository,
+    event_bus: crate::infrastructure::bus::EventBus,
 }
 
 impl FinanceService {
     pub fn new(
         repo: FinanceRepository,
         journal_service: crate::application::services::JournalService,
+        asset_expense_service: crate::application::services::AssetExpenseService,
+        asset_repo: crate::infrastructure::repositories::AssetRepository,
+        rental_repo: crate::infrastructure::repositories::RentalRepository,
+        event_bus: crate::infrastructure::bus::EventBus,
     ) -> Self {
         Self {
             repo,
             journal_service,
+            asset_expense_service,
+            asset_repo,
+            rental_repo,
+            event_bus,
         }
     }
 
@@ -293,6 +306,7 @@ impl FinanceService {
             total_amount: total,
             amount_paid: 0.0,
             status: "draft".to_string(),
+            budget_type: req.budget_type.unwrap_or_else(|| "OPEX".to_string()),
             journal_entry_id: None,
             created_at: Utc::now(),
             attachment_url: req.attachment_url,
@@ -418,7 +432,15 @@ impl FinanceService {
         let journal = self.journal_service.create_entry(journal_req, None).await?;
         expense.journal_entry_id = Some(journal.header.id);
 
-        self.repo.create_expense(&expense).await
+        let created = self.repo.create_expense(&expense).await?;
+
+        // Publish Event
+        self.event_bus
+            .publish(crate::domain::events::SystemEvent::ExpenseCreated(
+                created.clone(),
+            ));
+
+        Ok(created)
     }
 
     pub async fn create_cash_bank_transaction(
@@ -577,7 +599,15 @@ impl FinanceService {
             budget_type: req.budget_type.unwrap_or_else(|| "OPEX".to_string()),
             created_at: Utc::now(),
         };
-        self.repo.create_purchase_order(&order).await
+        let po = self.repo.create_purchase_order(&order).await?;
+
+        // Publish Event
+        self.event_bus
+            .publish(crate::domain::events::SystemEvent::PurchaseOrderCreated(
+                po.clone(),
+            ));
+
+        Ok(po)
     }
 
     pub async fn list_purchase_shipments(
@@ -602,5 +632,217 @@ impl FinanceService {
             created_at: Utc::now(),
         };
         self.repo.create_purchase_shipment(&shipment).await
+    }
+
+    // --- Event Listeners ---
+
+    pub fn start_event_listener(
+        &self,
+        mut rx: tokio::sync::broadcast::Receiver<crate::domain::events::SystemEvent>,
+    ) {
+        let service = self.clone();
+        tokio::spawn(async move {
+            tracing::info!("Finance Service event listener started");
+            while let Ok(event) = rx.recv().await {
+                match event {
+                    crate::domain::events::SystemEvent::FuelLogCompleted(log) => {
+                        let _ = service.handle_fuel_log_completed(log).await;
+                    }
+                    crate::domain::events::SystemEvent::WorkOrderFinalized(wo) => {
+                        let _ = service.handle_work_order_finalized(wo).await;
+                    }
+                    crate::domain::events::SystemEvent::RentalInvoiceGenerated(period) => {
+                        let _ = service.handle_rental_invoice_generated(period).await;
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
+
+    async fn handle_fuel_log_completed(
+        &self,
+        log: crate::domain::entities::fuel::FuelLog,
+    ) -> DomainResult<()> {
+        let amount = log.actual_filled_amount.unwrap_or_default();
+        if amount.is_zero() {
+            return Ok(());
+        }
+
+        // 1. CREATE JOURNAL ENTRY
+        // Debit: 5-1140 (Biaya Bahan Bakar)
+        // Kredit: 2-1130 (Hutang BBM)
+        let expense_acc = self.find_by_code("5-1140").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 5-1140 (Fuel Expense) not found")
+        })?;
+        let payable_acc = self.find_by_code("2-1130").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 2-1130 (Fuel Payable) not found")
+        })?;
+
+        let journal_req = crate::domain::entities::journal::CreateJournalEntryRequest {
+            date: log.completed_at.unwrap_or_else(Utc::now).date_naive(),
+            description: format!(
+                "BBM: {} - {} ({})",
+                log.tracking_number,
+                log.asset_name.clone().unwrap_or_default(),
+                log.coupon_code.clone().unwrap_or_default()
+            ),
+            reference: Some(log.tracking_number.clone()),
+            lines: vec![
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: expense_acc.id,
+                    description: Some(format!("Beban BBM {}", log.tracking_number)),
+                    debit: amount,
+                    credit: rust_decimal::Decimal::ZERO,
+                },
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: payable_acc.id,
+                    description: Some(format!("Hutang BBM {}", log.tracking_number)),
+                    debit: rust_decimal::Decimal::ZERO,
+                    credit: amount,
+                },
+            ],
+        };
+
+        let _journal = self.journal_service.create_entry(journal_req, None).await?;
+
+        // 2. CREATE ASSET EXPENSE (TCO Tracking)
+        use crate::application::dto::asset_expense_dto::{
+            CreateAssetExpenseItemRequest, CreateAssetExpenseRequest,
+        };
+        let expense_req = CreateAssetExpenseRequest {
+            description: format!(
+                "Fuel Usage: {} Liters - {}",
+                log.actual_volume.unwrap_or_default(),
+                log.tracking_number
+            ),
+            items: vec![CreateAssetExpenseItemRequest {
+                description: format!("Fuel Asset Usage ({})", log.tracking_number),
+                amount,
+            }],
+            date: log.completed_at.unwrap_or_else(Utc::now).date_naive(),
+            vendor_name: None,
+            invoice_number: Some(log.tracking_number.clone()),
+            proof_url: log.receipt_image_url.clone(),
+            expense_type: Some("OPEX".to_string()),
+        };
+
+        let _ = self
+            .asset_expense_service
+            .create(log.asset_id, expense_req, log.requested_by)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn handle_work_order_finalized(
+        &self,
+        wo: crate::domain::entities::work_order::WorkOrder,
+    ) -> DomainResult<()> {
+        let labor_cost = wo.labor_cost.unwrap_or_default();
+        if labor_cost.is_zero() {
+            return Ok(());
+        }
+
+        // Account 6-1999 (Labor Applied) - Contra Expense
+        let maintenance_acc = self.find_by_code("5-1110").await?.ok_or_else(|| {
+            DomainError::business_rule(
+                "Missing Account",
+                "Account 5-1110 (Maintenance Expense) not found",
+            )
+        })?;
+        let labor_applied_acc = self.find_by_code("6-1999").await?.ok_or_else(|| {
+            DomainError::business_rule(
+                "Missing Account",
+                "Account 6-1999 (Labor Applied) not found",
+            )
+        })?;
+
+        // Determine Debit Account: Asset Control Account (if CAPEX) or Maintenance Expense
+        let debit_account_id = if wo.labor_expense_type.as_deref() == Some("CAPEX") {
+            if let Ok(Some(acc_id)) = self.asset_repo.get_asset_account_id(wo.asset_id).await {
+                acc_id
+            } else {
+                maintenance_acc.id
+            }
+        } else {
+            maintenance_acc.id
+        };
+
+        let journal_req = crate::domain::entities::journal::CreateJournalEntryRequest {
+            date: wo.actual_end_date.unwrap_or_else(Utc::now).date_naive(),
+            description: format!(
+                "Labor Allocation: {} - {}",
+                wo.wo_number,
+                wo.asset_name.clone().unwrap_or_default()
+            ),
+            reference: Some(wo.wo_number.clone()),
+            lines: vec![
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: debit_account_id,
+                    description: Some(format!("Biaya Tenaga Kerja WO {}", wo.wo_number)),
+                    debit: labor_cost,
+                    credit: rust_decimal::Decimal::ZERO,
+                },
+                crate::domain::entities::journal::CreateJournalLineRequest {
+                    account_id: labor_applied_acc.id,
+                    description: Some(format!("Alokasi Tenaga Kerja WO {}", wo.wo_number)),
+                    debit: rust_decimal::Decimal::ZERO,
+                    credit: labor_cost,
+                },
+            ],
+        };
+
+        let _ = self.journal_service.create_entry(journal_req, None).await?;
+
+        Ok(())
+    }
+
+    async fn handle_rental_invoice_generated(
+        &self,
+        period: crate::domain::entities::rental_billing::RentalBillingPeriod,
+    ) -> DomainResult<()> {
+        let total = period.total_amount.unwrap_or_default();
+        if total.is_zero() {
+            return Ok(());
+        }
+
+        // 1. Fetch Rental to get Client
+        let rental = self
+            .rental_repo
+            .find_by_id(period.rental_id)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?
+            .ok_or_else(|| DomainError::not_found("Rental", period.rental_id))?;
+
+        // 2. Create Sales Invoice
+        let inv_number = period
+            .invoice_number
+            .clone()
+            .unwrap_or_else(|| format!("INV-RNT-{}", period.id.to_string()[..8].to_uppercase()));
+
+        let req = crate::domain::entities::CreateSalesInvoiceRequest {
+            invoice_number: inv_number,
+            client_id: rental.client_id,
+            date: period
+                .invoice_date
+                .unwrap_or_else(|| Utc::now().date_naive()),
+            due_date: period.due_date,
+            subject: Some(format!(
+                "Rental Billing: {} ({} - {})",
+                rental.rental_number, period.period_start, period.period_end
+            )),
+            items: vec![crate::domain::entities::CreateInvoiceItemRequest {
+                description: format!("Rental Service Fee - Period {}", period.id),
+                quantity: 1.0,
+                unit_price: total.to_f64().unwrap_or_default(),
+                account_id: None,
+            }],
+            attachment_url: None,
+        };
+
+        let _ = self.create_sales_invoice(req).await?;
+
+        Ok(())
     }
 }

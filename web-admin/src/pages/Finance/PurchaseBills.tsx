@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
+import { clientApi } from '../../api/client-management';
 import { Card, Button, Badge } from '../../components/ui';
 import {
     Plus,
@@ -10,15 +11,37 @@ import {
     MoreVertical,
     ShoppingBag,
     AlertCircle,
-    CheckSquare
+    CheckSquare,
+    X
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function PurchaseBills() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const queryClient = useQueryClient();
 
     const { data: bills, isLoading } = useQuery({
         queryKey: ['finance', 'purchase-bills'],
         queryFn: financeApi.listPurchaseBills
+    });
+
+    const { data: vendorsResponse } = useQuery({
+        queryKey: ['vendors'],
+        queryFn: () => clientApi.list({ limit: 100 })
+    });
+    const vendors = vendorsResponse?.data?.data || [];
+
+    const createMutation = useMutation({
+        mutationFn: financeApi.createPurchaseBill,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['finance', 'purchase-bills'] });
+            setIsModalOpen(false);
+            toast.success('Tagihan pembelian berhasil dibuat');
+        },
+        onError: (error: any) => {
+            toast.error('Gagal membuat tagihan: ' + error.message);
+        }
     });
 
     const formatCurrency = (value: number) => {
@@ -27,6 +50,26 @@ export function PurchaseBills() {
             currency: 'IDR',
             maximumFractionDigits: 0
         }).format(value);
+    };
+
+    const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const data = {
+            bill_number: formData.get('bill_number'),
+            vendor_id: formData.get('vendor_id'),
+            date: formData.get('date'),
+            due_date: formData.get('due_date'),
+            budget_type: formData.get('budget_type'),
+            items: [
+                {
+                    description: formData.get('item_description'),
+                    quantity: parseFloat(formData.get('quantity') as string),
+                    unit_price: parseFloat(formData.get('unit_price') as string)
+                }
+            ]
+        };
+        createMutation.mutate(data);
     };
 
     const totalPayable = bills?.reduce((acc: number, b: any) => acc + (b.total_amount - b.amount_paid), 0) || 0;
@@ -49,7 +92,10 @@ export function PurchaseBills() {
                         <Download size={18} />
                         Export
                     </Button>
-                    <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Button
+                        onClick={() => setIsModalOpen(true)}
+                        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
                         <Plus size={18} />
                         Buat Tagihan
                     </Button>
@@ -100,6 +146,7 @@ export function PurchaseBills() {
                                 <th className="px-6 py-4">Supplier</th>
                                 <th className="px-6 py-4">Tanggal</th>
                                 <th className="px-6 py-4">Jatuh Tempo</th>
+                                <th className="px-6 py-4">Budget</th>
                                 <th className="px-6 py-4 text-right">Total</th>
                                 <th className="px-6 py-4 text-center">Status</th>
                                 <th className="px-6 py-4"></th>
@@ -108,15 +155,22 @@ export function PurchaseBills() {
                         <tbody className="divide-y divide-border text-foreground">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
+                                    <td colSpan={8} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
                                 </tr>
                             ) : bills && bills.length > 0 ? (
                                 bills.map((b: any) => (
                                     <tr key={b.id} className="hover:bg-muted/50 transition-colors cursor-pointer group">
                                         <td className="px-6 py-4 font-medium text-primary">{b.bill_number}</td>
-                                        <td className="px-6 py-4 text-foreground">{b.vendor_id}</td> {/* TODO: Resolve vendor name */}
+                                        <td className="px-6 py-4 text-foreground">
+                                            {vendors.find((v: any) => v.id === b.vendor_id)?.name || b.vendor_id}
+                                        </td>
                                         <td className="px-6 py-4 font-mono">{b.date}</td>
                                         <td className="px-6 py-4 font-mono">{b.due_date}</td>
+                                        <td className="px-6 py-4">
+                                            <Badge variant="outline" className={b.budget_type === 'CAPEX' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}>
+                                                {b.budget_type || 'OPEX'}
+                                            </Badge>
+                                        </td>
                                         <td className="px-6 py-4 text-right font-semibold text-foreground">
                                             {formatCurrency(b.total_amount)}
                                         </td>
@@ -136,7 +190,7 @@ export function PurchaseBills() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground italic">
+                                    <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground italic">
                                         Belum ada tagihan di periode ini
                                     </td>
                                 </tr>
@@ -145,6 +199,131 @@ export function PurchaseBills() {
                     </table>
                 </div>
             </Card>
+
+            {/* Modal Buat Tagihan */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-2xl bg-card border-border shadow-2xl">
+                        <div className="p-6 border-b border-border flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-foreground">Buat Tagihan Pembelian</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleCreate} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-muted-foreground">Nomor Tagihan</label>
+                                    <input
+                                        name="bill_number"
+                                        required
+                                        placeholder="BILL/2024/001"
+                                        defaultValue={`BILL/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-muted-foreground">Supplier / Vendor</label>
+                                    <select
+                                        name="vendor_id"
+                                        required
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                    >
+                                        <option value="">Pilih Supplier</option>
+                                        {vendors.map((vendor: any) => (
+                                            <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-muted-foreground">Tanggal</label>
+                                    <input
+                                        name="date"
+                                        type="date"
+                                        required
+                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-muted-foreground">Jatuh Tempo</label>
+                                    <input
+                                        name="due_date"
+                                        type="date"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">Tipe Anggaran (Budget)</label>
+                                <select
+                                    name="budget_type"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                >
+                                    <option value="OPEX">OPEX (Operasional)</option>
+                                    <option value="CAPEX">CAPEX (Modal)</option>
+                                </select>
+                            </div>
+
+                            <div className="p-4 bg-muted/50 rounded-xl border border-border space-y-3">
+                                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Item Pembelian</h3>
+                                <div className="grid grid-cols-12 gap-3 items-end">
+                                    <div className="col-span-6 space-y-1">
+                                        <label className="text-[10px] text-muted-foreground uppercase">Deskripsi</label>
+                                        <input
+                                            name="item_description"
+                                            required
+                                            className="w-full bg-background border border-border rounded px-2 py-1.5 text-sm text-foreground focus:border-primary outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-2 space-y-1">
+                                        <label className="text-[10px] text-muted-foreground uppercase">Qty</label>
+                                        <input
+                                            name="quantity"
+                                            type="number"
+                                            defaultValue="1"
+                                            required
+                                            className="w-full bg-background border border-border rounded px-2 py-1.5 text-sm text-foreground focus:border-primary outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-4 space-y-1">
+                                        <label className="text-[10px] text-muted-foreground uppercase">Harga Satuan</label>
+                                        <input
+                                            name="unit_price"
+                                            type="number"
+                                            placeholder="0"
+                                            required
+                                            className="w-full bg-background border border-border rounded px-2 py-1.5 text-sm text-foreground focus:border-primary outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 border-border text-muted-foreground"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={createMutation.isPending}
+                                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                                >
+                                    {createMutation.isPending ? 'Menyimpan...' : 'Simpan Tagihan'}
+                                </Button>
+                            </div>
+                        </form>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

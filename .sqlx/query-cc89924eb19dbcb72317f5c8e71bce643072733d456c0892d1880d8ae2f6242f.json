@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO notification_templates (id, code, name, subject_template, body_template, event_type, is_active) VALUES ($1, 'loan_approved', 'Loan Approved', 'Loan Approved', 'Your loan for {{asset_name}} has been approved', 'LOAN_APPROVED', true) ON CONFLICT (code) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cc89924eb19dbcb72317f5c8e71bce643072733d456c0892d1880d8ae2f6242f"
+}

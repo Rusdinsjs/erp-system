@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO purchase_bills (\n                id, bill_number, vendor_id, date, due_date, total_amount, amount_paid, status, budget_type, attachment_url\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            RETURNING id, bill_number, vendor_id, date, due_date, \n                      total_amount::FLOAT8 as \"total_amount!\", amount_paid::FLOAT8 as \"amount_paid!\", \n                      status, budget_type as \"budget_type!\", journal_entry_id, created_at, attachment_url\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "bill_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "vendor_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "due_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_amount!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "amount_paid!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "budget_type!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "journal_entry_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "attachment_url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Uuid",
+        "Date",
+        "Date",
+        "Numeric",
+        "Numeric",
+        "Varchar",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "d3625775e58a251e7f37b1fe5835649f360e02da15d602c164b0d87c30c559b1"
+}

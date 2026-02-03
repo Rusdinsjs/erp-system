@@ -45,6 +45,7 @@ use crate::application::services::{
     UserService,
     WorkOrderService,
 };
+use crate::infrastructure::bus::EventBus;
 use crate::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
 use crate::infrastructure::repositories::{
     ApprovalRepository, AssetExpenseRepository, AssetRepository, AuditRepository,
@@ -108,6 +109,7 @@ pub struct AppState {
     pub pool: PgPool,
     pub ws_manager: Arc<crate::api::handlers::notification_ws::WebSocketManager>,
     pub jwt_config: JwtConfig, // Added for middleware access
+    pub event_bus: EventBus,   // Added for internal communication
 }
 
 impl AppState {
@@ -152,6 +154,9 @@ impl AppState {
         let tax_renewal_repo = TaxRenewalRepository::new(pool.clone());
         let vendor_repo = VendorRepository::new(pool.clone());
 
+        // Create Internal Event Bus
+        let event_bus = EventBus::new(1024);
+
         // Create cache
         let redis_config = RedisConfig::from_env();
         let redis_cache = RedisCache::new(&redis_config);
@@ -160,6 +165,12 @@ impl AppState {
         // WebSocket & Notification Service first
         let ws_manager = Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new());
         let notification_service = NotificationService::new(notification_repo, ws_manager.clone());
+
+        let audit_service = AuditService::new(audit_repo.clone());
+
+        // Start Internal Event Listeners
+        notification_service.start_event_listener(event_bus.subscribe());
+        audit_service.start_event_listener(event_bus.subscribe());
 
         // Create services
         let approval_service = ApprovalService::new(approval_repo);
@@ -175,7 +186,6 @@ impl AppState {
             asset_repo.clone(),
             approval_service.clone(),
         ); // Added
-        let audit_service = AuditService::new(audit_repo);
         let auth_service = AuthService::new(
             user_repo.clone(),
             rbac_repo.clone(),
@@ -197,8 +207,7 @@ impl AppState {
         );
         let contract_template_service =
             ContractTemplateService::new(contract_template_repo.clone());
-        let loan_service =
-            LoanService::new(loan_repo, asset_repo.clone(), notification_service.clone());
+        let loan_service = LoanService::new(loan_repo, asset_repo.clone(), event_bus.clone());
         let maintenance_service = MaintenanceService::new(
             maintenance_repo.clone(),
             asset_repo.clone(),
@@ -208,7 +217,15 @@ impl AppState {
         let maintenance_template_service =
             MaintenanceTemplateService::new(maintenance_template_repo.clone());
         let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
-        let finance_service = FinanceService::new(finance_repo.clone(), journal_service.clone());
+        let finance_service = FinanceService::new(
+            finance_repo.clone(),
+            journal_service.clone(),
+            asset_expense_service.clone(),
+            asset_repo.clone(),
+            rental_repo.clone(),
+            event_bus.clone(),
+        );
+        finance_service.start_event_listener(event_bus.subscribe());
         let depreciation_service = DepreciationService::new(
             asset_repo.clone(),
             category_repo.clone(),
@@ -230,7 +247,7 @@ impl AppState {
             asset_expense_service.clone(),
             maintenance_template_repo.clone(),
             inventory_service.clone(),
-            journal_service.clone(),
+            event_bus.clone(),
         );
         let rbac_service = RbacService::new(rbac_repo.clone());
         let sensor_service = SensorService::new(
@@ -249,6 +266,7 @@ impl AppState {
         let rental_billing_service = crate::application::services::RentalBillingService::new(
             rental_billing_repo.clone(),
             rental_repo.clone(),
+            event_bus.clone(),
         );
         let pdf_service = crate::application::services::PDFService::new(
             rental_billing_repo.clone(),
@@ -297,7 +315,7 @@ impl AppState {
             crate::application::services::LeaveService::new(leave_repo, employee_repo);
 
         let fuel_repo = FuelRepository::new(pool.clone());
-        let fuel_service = FuelService::new(fuel_repo, journal_service.clone());
+        let fuel_service = FuelService::new(fuel_repo, event_bus.clone());
 
         let settings_service = SettingsService::new(settings_repo);
 
@@ -352,6 +370,7 @@ impl AppState {
             tax_renewal_service,
             depreciation_service, // Added & Moved to end
             jwt_config: jwt_config.clone(),
+            event_bus,
         }
     }
 }

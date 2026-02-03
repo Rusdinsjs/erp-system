@@ -10,5 +10,7 @@ pub mod storage;
 
 pub use cache::*;
 pub use database::*;
+pub mod bus;
+pub use bus::*;
 pub use repositories::*;
 pub mod pdf;

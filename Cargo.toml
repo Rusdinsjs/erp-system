@@ -1,14 +1,14 @@
-[package]
-name = "management-system"
-version = "0.1.0"
-edition = "2021"
-description = "Management System ERP - Integrated Asset, HRD, and Business Management"
-authors = ["Developer"]
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/finance",
+    "crates/assets",
+    "crates/ops",
+    "crates/api-server",
+]
 
-default-run = "management-system"
-
-
-[dependencies]
+[workspace.dependencies]
 # Web Framework & Async
 axum = { version = "0.7", features = ["macros", "multipart", "ws"] }
 tokio = { version = "1.0", features = ["full"] }
@@ -57,45 +57,26 @@ csv = "1.4.0"
 tokio-cron-scheduler = "0.15.1"
 image = { version = "0.24", features = ["webp"] }
 
-# Validation (optional, for future use)
+# Validation
 regex = "1.10"
-# validator = { version = "0.18", features = ["derive"] }
-
 
 # OpenAPI
 utoipa = { version = "4.2", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
 
 # Real-time / WebSockets
-# axum-tungstenite removed, relying on axum "ws" feature
 futures = "0.3"
 genpdf = { version = "0.2.0", features = ["images"] }
 lettre = { version = "0.11.19", features = ["smtp-transport", "tokio1", "builder", "tokio1-native-tls"] }
 mime_guess = "2.0"
 
-[dev-dependencies]
-http-body-util = "0.1.3"
 # Testing
+http-body-util = "0.1.3"
 tokio-test = "0.4"
 tower = { version = "0.5.2", features = ["util"] }
-tower-http = { version = "0.5", features = ["fs"] }
 
-[[bin]]
-name = "management-system"
-path = "src/main.rs"
-
-# Fix for Windows Linker Error LNK1318 (PDB size limit)
-[profile.dev]
-debug = 0
-
-[[test]]
-name = "auth_flow_tests"
-path = "tests/integration/auth_flow_tests.rs"
-
-[[test]]
-name = "asset_crud_tests"
-path = "tests/integration/asset_crud_tests.rs"
-
-[[test]]
-name = "notification_tests"
-path = "tests/integration/notification_tests.rs"
+# Local Workspace Crates
+management-system-core = { path = "crates/core" }
+management-system-finance = { path = "crates/finance" }
+management-system-assets = { path = "crates/assets" }
+management-system-ops = { path = "crates/ops" }

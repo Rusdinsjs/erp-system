@@ -1,0 +1,543 @@
+use sqlx::PgPool;
+use uuid::Uuid;
+
+use crate::domain::entities::{ChecklistItem, WorkOrder, WorkOrderPart};
+
+#[derive(Clone)]
+pub struct WorkOrderRepository {
+    pool: PgPool,
+}
+
+impl WorkOrderRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<WorkOrder>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>(
+            r#"
+            SELECT w.*, a.name as asset_name 
+            FROM maintenance_work_orders w
+            LEFT JOIN assets a ON w.asset_id = a.id
+            WHERE w.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    pub async fn find_by_number(&self, wo_number: &str) -> Result<Option<WorkOrder>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>("SELECT * FROM maintenance_work_orders WHERE wo_number = $1")
+            .bind(wo_number)
+            .fetch_optional(&self.pool)
+            .await
+    }
+
+    pub async fn list(&self, limit: i64, offset: i64) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>(
+            r#"
+            SELECT w.*, a.name as asset_name 
+            FROM maintenance_work_orders w
+            LEFT JOIN assets a ON w.asset_id = a.id
+            ORDER BY w.created_at DESC
+            LIMIT $1 OFFSET $2
+            "#,
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn list_by_asset(&self, asset_id: Uuid) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>(
+            "SELECT * FROM maintenance_work_orders WHERE asset_id = $1 ORDER BY created_at DESC",
+        )
+        .bind(asset_id)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn list_by_technician(
+        &self,
+        technician_id: Uuid,
+    ) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>(
+            "SELECT * FROM maintenance_work_orders WHERE assigned_technician = $1 ORDER BY priority DESC, due_date"
+        )
+        .bind(technician_id)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn list_pending(&self) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>(
+            "SELECT * FROM maintenance_work_orders WHERE status = 'pending' ORDER BY priority DESC, created_at"
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn list_overdue(&self) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>(
+            r#"
+            SELECT w.*, a.name as asset_name
+            FROM maintenance_work_orders w
+            LEFT JOIN assets a ON w.asset_id = a.id
+            WHERE w.due_date < CURRENT_DATE AND w.status NOT IN ('completed', 'cancelled')
+            ORDER BY w.priority DESC, w.due_date
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn create(&self, wo: &WorkOrder) -> Result<WorkOrder, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrder>(
+            r#"
+            INSERT INTO maintenance_work_orders (
+                id, wo_number, asset_id, wo_type, priority, status,
+                scheduled_date, due_date, assigned_technician, vendor_id,
+                estimated_hours, estimated_cost, problem_description,
+                safety_requirements, lockout_tagout_required, created_by, location_id,
+                target_category_id, target_specifications, conversion_notes, conversion_type,
+                labor_expense_type, expense_id, opex_expense_id, capex_expense_id
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+            RETURNING *
+            "#,
+        )
+        .bind(wo.id)
+        .bind(&wo.wo_number)
+        .bind(wo.asset_id)
+        .bind(&wo.wo_type)
+        .bind(&wo.priority)
+        .bind(&wo.status)
+        .bind(wo.scheduled_date)
+        .bind(wo.due_date)
+        .bind(wo.assigned_technician)
+        .bind(wo.vendor_id)
+        .bind(wo.estimated_hours)
+        .bind(wo.estimated_cost)
+        .bind(&wo.problem_description)
+        .bind(&wo.safety_requirements)
+        .bind(wo.lockout_tagout_required)
+        .bind(wo.created_by)
+        .bind(wo.location_id)
+        .bind(wo.target_category_id)
+        .bind(&wo.target_specifications)
+        .bind(&wo.conversion_notes)
+        .bind(&wo.conversion_type)
+        .bind(&wo.labor_expense_type)
+        .bind(wo.expense_id)
+        .bind(wo.opex_expense_id)
+        .bind(wo.capex_expense_id)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn update_status(&self, id: Uuid, status: &str) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            "UPDATE maintenance_work_orders SET status = $2, updated_at = NOW() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(status)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn assign_technician(
+        &self,
+        id: Uuid,
+        technician_id: Uuid,
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            r#"
+            UPDATE maintenance_work_orders 
+            SET assigned_technician = $2, status = 'assigned', updated_at = NOW() 
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .bind(technician_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn start_work(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            r#"
+            UPDATE maintenance_work_orders 
+            SET status = 'in_progress', actual_start_date = NOW(), updated_at = NOW() 
+            WHERE id = $1 AND status IN ('approved', 'assigned')
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn complete(
+        &self,
+        id: Uuid,
+        completed_by: Uuid,
+        work_performed: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            r#"
+            UPDATE maintenance_work_orders 
+            SET status = 'pending_review', completed_by = $2, work_performed = $3, 
+                actual_end_date = NOW(), updated_at = NOW() 
+            WHERE id = $1 AND status = 'in_progress'
+            "#,
+        )
+        .bind(id)
+        .bind(completed_by)
+        .bind(work_performed)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn verify(
+        &self,
+        id: Uuid,
+        _verified_by: Uuid,
+        labor_cost: rust_decimal::Decimal,
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            r#"
+            UPDATE maintenance_work_orders 
+            SET status = 'verified', 
+                labor_cost = $2,
+                actual_cost = COALESCE(parts_cost, 0) + $2,
+                updated_at = NOW() 
+            WHERE id = $1 AND status = 'pending_review'
+            "#,
+        )
+        .bind(id)
+        .bind(labor_cost)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn set_expense_info(
+        &self,
+        id: Uuid,
+        labor_expense_type: &str,
+        opex_expense_id: Option<Uuid>,
+        capex_expense_id: Option<Uuid>,
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            "UPDATE maintenance_work_orders SET labor_expense_type = $2, opex_expense_id = $3, capex_expense_id = $4, updated_at = NOW() WHERE id = $1"
+        )
+        .bind(id)
+        .bind(labor_expense_type)
+        .bind(opex_expense_id)
+        .bind(capex_expense_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn set_part_expense_type(
+        &self,
+        part_id: Uuid,
+        expense_type: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let result =
+            sqlx::query("UPDATE maintenance_work_order_parts SET expense_type = $2 WHERE id = $1")
+                .bind(part_id)
+                .bind(expense_type)
+                .execute(&self.pool)
+                .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    // Checklist methods
+    pub async fn get_checklists(
+        &self,
+        work_order_id: Uuid,
+    ) -> Result<Vec<ChecklistItem>, sqlx::Error> {
+        sqlx::query_as::<_, ChecklistItem>(
+            "SELECT * FROM maintenance_checklists WHERE work_order_id = $1 ORDER BY task_number",
+        )
+        .bind(work_order_id)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn add_checklist_item(
+        &self,
+        item: &ChecklistItem,
+    ) -> Result<ChecklistItem, sqlx::Error> {
+        sqlx::query_as::<_, ChecklistItem>(
+            r#"
+            INSERT INTO maintenance_checklists (id, work_order_id, task_number, description, instructions, expected_result)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+            "#
+        )
+        .bind(item.id)
+        .bind(item.work_order_id)
+        .bind(item.task_number)
+        .bind(&item.description)
+        .bind(&item.instructions)
+        .bind(&item.expected_result)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn update_checklist_item(
+        &self,
+        id: Uuid,
+        description: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let result =
+            sqlx::query("UPDATE maintenance_checklists SET description = $2 WHERE id = $1")
+                .bind(id)
+                .bind(description)
+                .execute(&self.pool)
+                .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    pub async fn update_checklist_photos(
+        &self,
+        id: Uuid,
+        photos: &[String],
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query("UPDATE maintenance_checklists SET photos = $2 WHERE id = $1")
+            .bind(id)
+            .bind(photos)
+            .execute(&self.pool)
+            .await?;
+
+        let rows = result.rows_affected();
+        tracing::debug!(
+            "Updated checklist photos for ID: {}, rows affected: {}",
+            id,
+            rows
+        );
+        Ok(rows > 0)
+    }
+
+    pub async fn complete_checklist_item(
+        &self,
+        id: Uuid,
+        completed_by: Uuid,
+        result: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let res = sqlx::query(
+            r#"
+            UPDATE maintenance_checklists 
+            SET status = 'completed', completed_by = $2, completed_at = NOW(), actual_result = $3
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .bind(completed_by)
+        .bind(result)
+        .execute(&self.pool)
+        .await?;
+        Ok(res.rows_affected() > 0)
+    }
+
+    pub async fn remove_checklist_item(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+        let res = sqlx::query("DELETE FROM maintenance_checklists WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(res.rows_affected() > 0)
+    }
+
+    // Parts methods
+    pub async fn get_parts(&self, work_order_id: Uuid) -> Result<Vec<WorkOrderPart>, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrderPart>(
+            "SELECT * FROM maintenance_work_order_parts WHERE work_order_id = $1 ORDER BY created_at",
+        )
+        .bind(work_order_id)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    pub async fn add_part(&self, part: &WorkOrderPart) -> Result<WorkOrderPart, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrderPart>(
+            r#"
+            INSERT INTO maintenance_work_order_parts (
+                id, work_order_id, part_name, quantity, unit_cost, total_cost, 
+                created_at, updated_at, expense_type, inventory_item_id
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING *
+            "#,
+        )
+        .bind(part.id)
+        .bind(part.work_order_id)
+        .bind(&part.part_name)
+        .bind(part.quantity)
+        .bind(part.unit_cost)
+        .bind(part.total_cost)
+        .bind(part.created_at)
+        .bind(part.updated_at)
+        .bind(&part.expense_type)
+        .bind(part.inventory_item_id)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn update_part(&self, part: &WorkOrderPart) -> Result<WorkOrderPart, sqlx::Error> {
+        sqlx::query_as::<_, WorkOrderPart>(
+            r#"
+            UPDATE maintenance_work_order_parts 
+            SET part_name = $2, quantity = $3, unit_cost = $4, total_cost = $5, 
+                expense_type = $6, inventory_item_id = $7, updated_at = NOW()
+            WHERE id = $1
+            RETURNING *
+            "#,
+        )
+        .bind(part.id)
+        .bind(&part.part_name)
+        .bind(part.quantity)
+        .bind(part.unit_cost)
+        .bind(part.total_cost)
+        .bind(&part.expense_type)
+        .bind(part.inventory_item_id)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn remove_part(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+        let res = sqlx::query("DELETE FROM maintenance_work_order_parts WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(res.rows_affected() > 0)
+    }
+
+    pub async fn update_parts_cost(
+        &self,
+        work_order_id: Uuid,
+    ) -> Result<rust_decimal::Decimal, sqlx::Error> {
+        let row: (Option<rust_decimal::Decimal>,) = sqlx::query_as(
+            "SELECT SUM(total_cost) FROM maintenance_work_order_parts WHERE work_order_id = $1",
+        )
+        .bind(work_order_id)
+        .fetch_one(&self.pool)
+        .await?;
+
+        let total = row.0.unwrap_or(rust_decimal::Decimal::ZERO);
+
+        // Update WO parts_cost
+        sqlx::query("UPDATE maintenance_work_orders SET parts_cost = $2 WHERE id = $1")
+            .bind(work_order_id)
+            .bind(total)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(total)
+    }
+
+    pub async fn update_signoff(
+        &self,
+        id: Uuid,
+        role: &str,
+        signature_url: &str,
+    ) -> Result<bool, sqlx::Error> {
+        let sql = match role {
+            "technician" => {
+                "UPDATE maintenance_work_orders SET technician_signoff = $2, updated_at = NOW() WHERE id = $1"
+            }
+            "supervisor" => {
+                "UPDATE maintenance_work_orders SET supervisor_signoff = $2, updated_at = NOW() WHERE id = $1"
+            }
+            _ => "UPDATE maintenance_work_orders SET customer_signoff = $2, updated_at = NOW() WHERE id = $1",
+        };
+
+        let res = sqlx::query(sql)
+            .bind(id)
+            .bind(signature_url)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(res.rows_affected() > 0)
+    }
+
+    pub async fn get_analytics(&self) -> Result<WorkOrderAnalyticsData, sqlx::Error> {
+        // 1. Status Counts
+        let status_counts = sqlx::query_as::<_, StatusCount>(
+            r#"
+            SELECT status, COUNT(*) as count
+            FROM maintenance_work_orders
+            GROUP BY status
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        // 2. Type Distribution
+        let type_counts = sqlx::query_as::<_, TypeCount>(
+            r#"
+            SELECT wo_type, COUNT(*) as count
+            FROM maintenance_work_orders
+            GROUP BY wo_type
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        // 3. Monthly Cost Trend (Last 6 Months)
+        let cost_trend = sqlx::query_as::<_, CostTrend>(
+            r#"
+            SELECT 
+                TO_CHAR(created_at, 'Mon') as month,
+                COALESCE(SUM(actual_cost), 0) as total_cost,
+                COUNT(*) as wo_count
+            FROM maintenance_work_orders
+            WHERE created_at > NOW() - INTERVAL '6 months'
+            GROUP BY TO_CHAR(created_at, 'Mon'), DATE_TRUNC('month', created_at)
+            ORDER BY DATE_TRUNC('month', created_at)
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(WorkOrderAnalyticsData {
+            status_counts,
+            type_counts,
+            cost_trend,
+        })
+    }
+}
+
+// Analytics Structs
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct StatusCount {
+    pub status: String,
+    pub count: i64,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct TypeCount {
+    pub wo_type: String,
+    pub count: i64,
+}
+
+#[derive(sqlx::FromRow, serde::Serialize)]
+pub struct CostTrend {
+    pub month: String,
+    pub total_cost: rust_decimal::Decimal,
+    pub wo_count: i64,
+}
+
+#[derive(serde::Serialize)]
+pub struct WorkOrderAnalyticsData {
+    pub status_counts: Vec<StatusCount>,
+    pub type_counts: Vec<TypeCount>,
+    pub cost_trend: Vec<CostTrend>,
+}

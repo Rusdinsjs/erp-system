@@ -8,19 +8,26 @@ use uuid::Uuid;
 
 use crate::domain::entities::RentalBillingPeriod;
 use crate::domain::errors::{DomainError, DomainResult};
+use crate::infrastructure::bus::EventBus;
 use crate::infrastructure::repositories::{RentalBillingRepository, RentalRepository};
 
 #[derive(Clone)]
 pub struct RentalBillingService {
     pub billing_repo: RentalBillingRepository,
     pub rental_repo: RentalRepository,
+    pub event_bus: EventBus,
 }
 
 impl RentalBillingService {
-    pub fn new(billing_repo: RentalBillingRepository, rental_repo: RentalRepository) -> Self {
+    pub fn new(
+        billing_repo: RentalBillingRepository,
+        rental_repo: RentalRepository,
+        event_bus: EventBus,
+    ) -> Self {
         Self {
             billing_repo,
             rental_repo,
+            event_bus,
         }
     }
 
@@ -214,6 +221,14 @@ impl RentalBillingService {
                     message: e.to_string(),
                 }
             })?;
+
+            // Publish Event for Finance (Automated Sales Invoice)
+            let _ =
+                self.event_bus
+                    .publish(crate::domain::events::SystemEvent::RentalInvoiceGenerated(
+                        saved.clone(),
+                    ));
+
             saved_periods.push(saved);
         }
 

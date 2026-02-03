@@ -348,4 +348,113 @@ impl NotificationService {
             })
             .await;
     }
+
+    /// Background listener for the internal event bus
+    pub fn start_event_listener(
+        &self,
+        mut receiver: tokio::sync::broadcast::Receiver<crate::domain::events::SystemEvent>,
+    ) {
+        let service = self.clone();
+        tokio::spawn(async move {
+            tracing::info!("Notification Service event listener started");
+            while let Ok(event) = receiver.recv().await {
+                match event {
+                    crate::domain::events::SystemEvent::ExpenseCreated(expense) => {
+                        // Example: Notify admins for all new expenses
+                        let _ = service
+                            .notify_admins(
+                                "expense_created",
+                                json!({
+                                    "expense_number": expense.expense_number,
+                                    "amount": expense.total_amount,
+                                    "type": expense.expense_type
+                                }),
+                                Some("expense"),
+                                Some(expense.id),
+                            )
+                            .await;
+                    }
+                    crate::domain::events::SystemEvent::LoanRequested {
+                        loan_id,
+                        asset_name,
+                        ..
+                    } => {
+                        let _ = service
+                            .broadcast(
+                                "LOAN_CREATED",
+                                json!({ "id": loan_id, "asset_name": asset_name }),
+                            )
+                            .await;
+                    }
+                    crate::domain::events::SystemEvent::LoanApproved {
+                        loan_id,
+                        borrower_id,
+                        asset_name,
+                        ..
+                    } => {
+                        if let Some(uid) = borrower_id {
+                            let _ = service
+                                .notify_loan_approved(uid, &asset_name, loan_id)
+                                .await;
+                        }
+                    }
+                    crate::domain::events::SystemEvent::LoanRejected {
+                        loan_id,
+                        asset_name,
+                        borrower_id,
+                        reason,
+                        ..
+                    } => {
+                        if let Some(uid) = borrower_id {
+                            let _ = service
+                                .create(
+                                    uid,
+                                    &format!("Loan Rejected: {}", asset_name),
+                                    &format!(
+                                        "Your loan request for {} has been rejected. Reason: {}",
+                                        asset_name,
+                                        reason.unwrap_or_else(|| "No reason provided".to_string())
+                                    ),
+                                    Some("loan"),
+                                    Some(loan_id),
+                                )
+                                .await;
+                        }
+                    }
+                    crate::domain::events::SystemEvent::LoanCheckedOut { loan_id, .. } => {
+                        let _ = service
+                            .broadcast("LOAN_CHECKOUT", json!({ "id": loan_id }))
+                            .await;
+                    }
+                    crate::domain::events::SystemEvent::LoanReturned { loan_id, .. } => {
+                        let _ = service
+                            .broadcast("LOAN_RETURNED", json!({ "id": loan_id }))
+                            .await;
+                    }
+                    crate::domain::events::SystemEvent::LoanOverdue {
+                        loan_id,
+                        borrower_id,
+                        asset_name,
+                        days_overdue,
+                    } => {
+                        if let Some(uid) = borrower_id {
+                            let _ = service
+                                .notify_loan_overdue(uid, &asset_name, days_overdue, loan_id)
+                                .await;
+                        }
+                    }
+                    crate::domain::events::SystemEvent::LowStockAlert {
+                        item_name,
+                        current_qty,
+                        min_qty,
+                    } => {
+                        let _ = service
+                            .notify_low_stock(&item_name, current_qty, min_qty)
+                            .await;
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
 }

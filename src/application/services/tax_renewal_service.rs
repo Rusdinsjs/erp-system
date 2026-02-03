@@ -220,6 +220,7 @@ impl TaxRenewalService {
             vendor_id: vendor.id,
             date: Utc::now().date_naive(),
             due_date: Some(Utc::now().date_naive()), // Due immediately
+            budget_type: Some("OPEX".to_string()),   // Tax renewals are operational
             items: vec![CreateBillItemRequest {
                 description: format!(
                     "Tax Renewal: {} - {} ({})",
