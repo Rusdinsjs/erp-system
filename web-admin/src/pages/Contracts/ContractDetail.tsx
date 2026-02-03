@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { contractApi } from '../api/contract';
-import type { ContractDetail, ContractDocument, ContractApproval } from '../types/contract';
-import DocumentUploadModal from '../components/Contracts/DocumentUploadModal';
-import ApprovalModal from '../components/Contracts/ApprovalModal';
-import ApprovalHistory from '../components/Contracts/ApprovalHistory';
-import ApprovalProgress from '../components/Contracts/ApprovalProgress';
-import ApprovalStatusBadge from '../components/Contracts/ApprovalStatusBadge';
-import ContractTimeline from '../components/Contracts/ContractTimeline';
-import RenewalModal from '../components/Contracts/RenewalModal';
+import { contractApi } from '../../api/contract';
+import type { ContractDetail, ContractDocument, ContractApproval } from '../../types/contract';
+import DocumentUploadModal from '../../components/Contracts/DocumentUploadModal';
+import ApprovalModal from '../../components/Contracts/ApprovalModal';
+import ApprovalHistory from '../../components/Contracts/ApprovalHistory';
+import ApprovalProgress from '../../components/Contracts/ApprovalProgress';
+import ApprovalStatusBadge from '../../components/Contracts/ApprovalStatusBadge';
+import ContractTimeline from '../../components/Contracts/ContractTimeline';
+import RenewalModal from '../../components/Contracts/RenewalModal';
 import {
     ArrowLeft,
     FileText,
@@ -22,8 +22,8 @@ import {
     Eye,
     RefreshCw,
 } from 'lucide-react';
-import DocumentPreviewModal from '../components/Contracts/DocumentPreviewModal';
-import PerformanceCharts from '../components/Contracts/PerformanceCharts';
+import DocumentPreviewModal from '../../components/Contracts/DocumentPreviewModal';
+import PerformanceCharts from '../../components/Contracts/PerformanceCharts';
 import { format } from 'date-fns';
 
 export default function ContractDetailPage() {

@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Save } from 'lucide-react';
-import { departmentApi, type DepartmentTreeNode, type CreateDepartmentRequest } from '../api/departments';
+import { departmentApi, type DepartmentTreeNode, type CreateDepartmentRequest } from '../../api/departments';
 import {
     Button,
     Card,
@@ -13,9 +13,9 @@ import {
     useToast,
     TreeItem,
     ActionIcon
-} from '../components/ui';
+} from '../../components/ui';
 
-export function Departments() {
+export default function Departments() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
 
@@ -117,12 +117,12 @@ export function Departments() {
 
     const handleAddChild = (parentId: string) => {
         handleReset();
-        setFormData(prev => ({ ...prev, parent_id: parentId }));
+        setFormData((prev: CreateDepartmentRequest) => ({ ...prev, parent_id: parentId }));
         setIsEditing(false);
     };
 
     const handleChange = (field: string, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData((prev: CreateDepartmentRequest) => ({ ...prev, [field]: value }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {

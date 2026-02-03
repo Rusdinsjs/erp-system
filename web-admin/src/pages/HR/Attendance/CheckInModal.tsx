@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Modal } from '../../components/ui/Modal';
-import { Button } from '../../components/ui/Button';
-import { Textarea } from '../../components/ui/Textarea';
-import { showToast } from '../../components/ui/Toast';
+import { Modal, Button, Textarea, useToast } from '../../../components/ui';
 import { MapPin, Camera } from 'lucide-react';
 
 interface CheckInModalProps {
@@ -14,6 +11,7 @@ interface CheckInModalProps {
 }
 
 export const CheckInModal = ({ isOpen, onClose, onConfirm, type, isLoading }: CheckInModalProps) => {
+    const { error: showError } = useToast();
     const [notes, setNotes] = useState('');
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [locationError, setLocationError] = useState<string | null>(null);
@@ -58,7 +56,7 @@ export const CheckInModal = ({ isOpen, onClose, onConfirm, type, isLoading }: Ch
 
     const handleSubmit = () => {
         if (!location) {
-            showToast('Location is required', 'error');
+            showError('Location is required', 'Error');
             return;
         }
         // In a real app, we would handle camera/photo here using a file input or camera API

@@ -312,7 +312,7 @@ function StatCard({ title, value, icon: Icon, iconColor }: { title: string; valu
     );
 }
 
-export function ApprovalCenter() {
+export default function ApprovalCenter() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
     const [activeTab, setActiveTab] = useState('pending');

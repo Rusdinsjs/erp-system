@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, CheckCircle, Clock, FileText, Eye, Edit2, Trash2, BarChart2, X } from 'lucide-react';
-import { contractApi } from '../api/contract'
-import type { Contract } from '../types/contract';
-import ContractForm from '../components/Contracts/ContractForm';
-import { Card, Modal, Button, useToast } from '../components/ui';
+import { contractApi } from '../../api/contract'
+import type { Contract } from '../../types/contract';
+import ContractForm from '../../components/Contracts/ContractForm';
+import { Card, Modal, Button, useToast } from '../../components/ui';
 import { format } from 'date-fns';
 
-import AdvancedFilterPanel, { type FilterOptions } from '../components/Contracts/AdvancedFilterPanel';
-import ApprovalStatusBadge from '../components/Contracts/ApprovalStatusBadge';
-import MobileContractCard from '../components/Contracts/MobileContractCard';
-import ApprovalModal from '../components/Contracts/ApprovalModal';
+import AdvancedFilterPanel, { type FilterOptions } from '../../components/Contracts/AdvancedFilterPanel';
+import ApprovalStatusBadge from '../../components/Contracts/ApprovalStatusBadge';
+import MobileContractCard from '../../components/Contracts/MobileContractCard';
+import ApprovalModal from '../../components/Contracts/ApprovalModal';
 
-const ContractList: React.FC = () => {
+const Contracts: React.FC = () => {
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -581,4 +581,4 @@ const ContractList: React.FC = () => {
     );
 };
 
-export default ContractList;
+export default Contracts;

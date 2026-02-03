@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { FileBarChart, PieChart, TrendingUp, Landmark } from 'lucide-react';
 
-export function FinancialReports() {
+export default function FinancialReports() {
     const [reportType, setReportType] = useState<'balance-sheet' | 'income-statement'>('balance-sheet');
 
     const { data: balanceSheet, isLoading: isLoadingBS } = useQuery({

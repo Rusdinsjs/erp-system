@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Edit, Trash2, AlertTriangle, Wrench, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { workOrderApi } from '../api/work-order';
-import type { WorkOrder } from '../api/work-order';
-import { WorkOrderForm } from '../components/WorkOrders/WorkOrderForm';
-import { PermissionGate } from '../components/PermissionGate';
-import { useWebSocket } from '../contexts/WebSocketContext';
+import { workOrderApi } from '../../api/work-order';
+import type { WorkOrder } from '../../api/work-order';
+import { WorkOrderForm } from '../../components/WorkOrders/WorkOrderForm';
+import { PermissionGate } from '../../components/PermissionGate';
+import { useWebSocket } from '../../contexts/WebSocketContext';
 import {
     Button,
     Card,
@@ -21,9 +21,9 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
-} from '../components/ui';
+} from '../../components/ui';
 
-export function WorkOrders() {
+export default function WorkOrders() {
     const [page, setPage] = useState(1);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);

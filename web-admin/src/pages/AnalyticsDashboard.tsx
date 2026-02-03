@@ -44,7 +44,7 @@ const formatStatusLabel = (status: string) => {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
-export function AnalyticsDashboard() {
+export default function AnalyticsDashboard() {
     // Fetch Status Distribution
     const { data: statusData, isLoading: statusLoading } = useQuery({
         queryKey: ['analytics-status'],

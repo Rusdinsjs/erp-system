@@ -1,7 +1,7 @@
 // Locations Page - Pure Tailwind
 import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { locationApi, type Location } from '../api/locations';
+import { locationApi, type Location } from '../../api/locations';
 import {
     Button,
     Card,
@@ -14,7 +14,7 @@ import {
     NumberInput,
     LoadingOverlay,
     useToast,
-} from '../components/ui';
+} from '../../components/ui';
 
 const initialFormState = {
     code: '',
@@ -25,7 +25,7 @@ const initialFormState = {
     capacity: undefined as number | undefined,
 };
 
-export function Locations() {
+export default function Locations() {
     const [locations, setLocations] = useState<Location[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');

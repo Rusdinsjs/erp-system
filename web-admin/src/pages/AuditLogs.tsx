@@ -21,7 +21,7 @@ const JsonDiffViewer = ({ data }: { data: any }) => {
     );
 };
 
-export function AuditLogs() {
+export default function AuditLogs() {
     const [page, setPage] = useState(1);
     const [entityType, setEntityType] = useState<string>('');
     const [actionFilter, setActionFilter] = useState<string>('');

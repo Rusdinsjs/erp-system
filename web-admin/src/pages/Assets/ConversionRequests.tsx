@@ -13,7 +13,7 @@ import {
     useToast,
 } from '../components/ui';
 
-export const ConversionRequests = () => {
+export default function ConversionRequests() {
     const [requests, setRequests] = useState<AssetConversion[]>([]);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);

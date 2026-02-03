@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { Scale, Download } from 'lucide-react';
 
-export function TrialBalance() {
+export default function TrialBalance() {
     const { data: tb, isLoading } = useQuery({
         queryKey: ['finance', 'trial-balance'],
         queryFn: financeApi.getTrialBalance

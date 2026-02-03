@@ -2,10 +2,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MapPin, Building2, Tag, Calendar, Truck, Printer, BarChart3 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { assetApi } from '../api/assets';
+import { assetApi } from '../../api/assets';
 
-import { AssetDocuments } from '../components/Assets/AssetDocuments';
-import { AssetExpenses } from '../components/Assets/AssetExpenses';
+import { AssetDocuments } from '../../components/Assets/AssetDocuments';
+import { AssetExpenses } from '../../components/Assets/AssetExpenses';
 import {
     Button,
     Card,
@@ -14,9 +14,9 @@ import {
     Badge,
     LoadingOverlay,
     Tabs, TabsContent, TabsList, TabsTrigger,
-} from '../components/ui';
+} from '../../components/ui';
 
-export function AssetDetails({ assetId }: { assetId?: string }) {
+export default function AssetDetails({ assetId }: { assetId?: string }) {
     const { id: paramId } = useParams<{ id: string }>();
     const id = assetId || paramId;
     const navigate = useNavigate();

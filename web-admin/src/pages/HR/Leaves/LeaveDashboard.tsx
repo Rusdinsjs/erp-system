@@ -5,17 +5,17 @@ import { toast } from 'sonner';
 import dayjs from 'dayjs';
 
 // Replaced PageHeader with simple div
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Badge, StatusBadge } from '../../components/ui/Badge'; // Import StatusBadge
-import { Modal } from '../../components/ui/Modal'; // Use Modal instead of Dialog
-import { Table, TableHead, TableRow, TableTh, TableBody, TableTd } from '../../components/ui/Table';
-import { PageLoading } from '../../components/ui/Loading'; // Use PageLoading
-import { DateInput } from '../../components/ui/DateInput';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../components/ui/Tabs';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
+import { Badge, StatusBadge } from '../../../components/ui/Badge'; // Import StatusBadge
+import { Modal } from '../../../components/ui/Modal'; // Use Modal instead of Dialog
+import { Table, TableHead, TableRow, TableTh, TableBody, TableTd } from '../../../components/ui/Table';
+import { PageLoading } from '../../../components/ui/Loading'; // Use PageLoading
+import { DateInput } from '../../../components/ui/DateInput';
 
-import { getMyLeaves, getPendingLeaves, requestLeave, approveLeave, rejectLeave } from '../../api/leaves';
-import { profileApi } from '../../api/profile';
+import { getMyLeaves, getPendingLeaves, requestLeave, approveLeave, rejectLeave } from '../../../api/leaves';
+import { profileApi } from '../../../api/profile';
 
 // Helper to calculate days diff
 const calculateDays = (start: string, end: string) => {
@@ -26,7 +26,7 @@ const calculateDays = (start: string, end: string) => {
     return diff > 0 ? diff : 0;
 };
 
-const LeaveDashboard = () => {
+export default function LeaveDashboard() {
     const queryClient = useQueryClient();
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     // Use uncontrolled tabs, but we track activeTab for queries if needed.
@@ -312,6 +312,4 @@ const LeaveDashboard = () => {
             </Modal>
         </div>
     );
-};
-
-export default LeaveDashboard;
+}

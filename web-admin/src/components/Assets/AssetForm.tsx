@@ -15,6 +15,7 @@ import {
     DateInput,
     Tabs, TabsList, TabsTrigger, TabsContent,
     ActionIcon,
+    Badge,
 } from '../ui';
 import { CreateCategoryModal } from './CreateCategoryModal';
 import { AssetDocuments } from './AssetDocuments';
@@ -197,6 +198,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 building_certificate_expiry: null,
             });
             setCustomSpecs([]);
+            setPendingDocs([]);
         }
     }, [initialValues]);
 
@@ -215,6 +217,26 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showCategoryModal, setShowCategoryModal] = useState(false);
+
+    // State for pending documents (New Asset Mode)
+    const [pendingDocs, setPendingDocs] = useState<{
+        file: File;
+        type: string;
+        name: string;
+        notes: string;
+    }[]>([]);
+
+    const [newDoc, setNewDoc] = useState<{
+        file: File | null;
+        type: string;
+        name: string;
+        notes: string;
+    }>({
+        file: null,
+        type: 'MANUAL',
+        name: '',
+        notes: ''
+    });
 
     const updateField = (field: string, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -392,6 +414,11 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             if (Object.keys(specObj).length > 0) {
                 payload.specifications = specObj;
             }
+        }
+
+        // Include pending documents if any
+        if (pendingDocs.length > 0) {
+            payload.pending_documents = pendingDocs;
         }
 
         onSubmit(payload);
@@ -891,14 +918,106 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         {initialValues?.id ? (
                             <AssetDocuments assetId={initialValues.id} />
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-20 h-full text-center">
-                                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5">
-                                    <FileText size={40} className="text-slate-500" />
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xl font-bold text-white">New Asset Documents</h3>
+                                    <Badge variant="warning">Pending Upload</Badge>
                                 </div>
-                                <h3 className="text-xl font-bold text-white mb-2">Create Asset First</h3>
-                                <p className="text-slate-400 max-w-md">
-                                    Please save the asset details first. Once created, you can upload documents, certificates, and photos in this tab.
+                                <p className="text-slate-400 text-sm">
+                                    Documents added here will be uploaded automatically after the asset is created.
                                 </p>
+
+                                {/* Pending Docs List */}
+                                <div className="space-y-3">
+                                    {pendingDocs.map((doc, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
+                                                    <FileText size={20} />
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-white">{doc.name}</p>
+                                                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                        <Badge variant="outline" className="text-[10px] px-1 py-0">{doc.type}</Badge>
+                                                        <span>{(doc.file.size / 1024).toFixed(1)} KB</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => setPendingDocs(prev => prev.filter((_, i) => i !== idx))}
+                                                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                            >
+                                                <Trash2 size={16} />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    {pendingDocs.length === 0 && (
+                                        <div className="text-center py-8 border border-dashed border-slate-700 rounded-xl bg-slate-800/20 text-slate-500">
+                                            No documents queued yet.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Add Document Form */}
+                                <div className="p-5 bg-slate-800/50 rounded-2xl border border-white/5 space-y-4">
+                                    <h4 className="font-medium text-white">Add Document</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Input
+                                            type="file"
+                                            onChange={(e) => {
+                                                if (e.target.files?.[0]) {
+                                                    const file = e.target.files[0];
+                                                    setNewDoc(prev => ({ ...prev, file, name: prev.name || file.name }));
+                                                }
+                                            }}
+                                            className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20"
+                                        />
+                                        <Select
+                                            placeholder="Document Type"
+                                            options={[
+                                                { value: 'MANUAL', label: 'Manual / Guide' },
+                                                { value: 'INVOICE', label: 'Purchase Invoice' },
+                                                { value: 'WARRANTY', label: 'Warranty Card' },
+                                                { value: 'STNK', label: 'STNK' },
+                                                { value: 'BPKB', label: 'BPKB' },
+                                                { value: 'PHOTO', label: 'Asset Photo' },
+                                                { value: 'OTHER', label: 'Other' },
+                                            ]}
+                                            value={newDoc.type}
+                                            onChange={(val) => setNewDoc(prev => ({ ...prev, type: val }))}
+                                        />
+                                        <Input
+                                            placeholder="Document Name"
+                                            value={newDoc.name}
+                                            onChange={(e) => setNewDoc(prev => ({ ...prev, name: e.target.value }))}
+                                        />
+                                        <Input
+                                            placeholder="Notes (Optional)"
+                                            value={newDoc.notes}
+                                            onChange={(e) => setNewDoc(prev => ({ ...prev, notes: e.target.value }))}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!newDoc.file) return;
+                                            setPendingDocs(prev => [...prev, {
+                                                file: newDoc.file!,
+                                                type: newDoc.type,
+                                                name: newDoc.name,
+                                                notes: newDoc.notes
+                                            }]);
+                                            setNewDoc({ file: null, type: 'MANUAL', name: '', notes: '' });
+                                        }}
+                                        disabled={!newDoc.file}
+                                        className="w-full"
+                                        leftIcon={<Plus size={16} />}
+                                    >
+                                        Add to Queue
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>

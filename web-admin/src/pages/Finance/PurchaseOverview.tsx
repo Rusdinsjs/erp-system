@@ -8,7 +8,7 @@ import {
     FileText
 } from 'lucide-react';
 
-export function PurchaseOverview() {
+export default function PurchaseOverview() {
     // Queries to fetch data for stats
     const { data: quotes } = useQuery({ queryKey: ['finance', 'purchase-quotes'], queryFn: financeApi.listPurchaseQuotes });
     const { data: orders } = useQuery({ queryKey: ['finance', 'purchase-orders'], queryFn: financeApi.listPurchaseOrders });

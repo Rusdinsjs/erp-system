@@ -1,27 +1,7 @@
 import { api } from './http';
+import type { Department, DepartmentTreeNode, CreateDepartmentRequest, UpdateDepartmentRequest } from '../types';
 
-export interface Department {
-    id: string;
-    code: string;
-    name: string;
-    description?: string;
-    parent_id?: string;
-    created_at?: string;
-    updated_at?: string;
-}
-
-export interface DepartmentTreeNode extends Department {
-    children: DepartmentTreeNode[];
-}
-
-export interface CreateDepartmentRequest {
-    code: string;
-    name: string;
-    description?: string;
-    parent_id?: string;
-}
-
-export interface UpdateDepartmentRequest extends Partial<CreateDepartmentRequest> { }
+export type { Department, DepartmentTreeNode, CreateDepartmentRequest, UpdateDepartmentRequest };
 
 export const departmentApi = {
     list: async () => {

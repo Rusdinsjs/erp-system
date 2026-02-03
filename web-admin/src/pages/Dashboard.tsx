@@ -98,7 +98,7 @@ function RingProgress({ percentage }: { percentage: number }) {
     );
 }
 
-export function Dashboard() {
+export default function Dashboard() {
     const [isExporting, setIsExporting] = React.useState(false);
 
     // 1. Fetch Main Stats

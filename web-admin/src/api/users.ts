@@ -1,17 +1,6 @@
 import { api } from './http';
-
-export interface UserSummary {
-    id: string;
-    email: string;
-    name: string;
-    role_code: string;
-    role_level: number;
-    department?: string;
-    department_id?: string;
-    is_active: boolean;
-    employee_name?: string;
-    employee_nik?: string;
-}
+import type { CreateUserRequest, UpdateUserRequest, UserSummary } from '../types';
+export type { CreateUserRequest, UpdateUserRequest, UserSummary };
 
 export const usersApi = {
     list: async (page = 1, limit = 20) => {
@@ -45,20 +34,3 @@ export const usersApi = {
         return response.data;
     }
 };
-
-export interface CreateUserRequest {
-    email: string;
-    password: string;
-    name: string;
-    role_code: string;
-    department_id?: string;
-    organization_id?: string;
-}
-
-export interface UpdateUserRequest {
-    name?: string;
-    role_code?: string;
-    department_id?: string;
-    is_active?: boolean;
-    password?: string;
-}

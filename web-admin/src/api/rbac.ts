@@ -1,20 +1,5 @@
 import { api } from './http';
-
-export interface Role {
-    id: string;
-    code: string;
-    name: string;
-    description?: string;
-    role_level: number;
-    is_system: boolean;
-}
-
-export interface Permission {
-    id: string;
-    code: string;
-    resource: string;
-    action: string;
-}
+import type { Role, Permission } from '../types';
 
 export const rbacApi = {
     listRoles: async () => {
@@ -36,6 +21,22 @@ export const rbacApi = {
         const response = await api.post(`/rbac/roles/${roleId}/permissions`, {
             permission_ids: permissionIds,
         });
+        return response.data;
+    },
+
+    // Role CRUD
+    createRole: async (data: { code: string; name: string; description: string; role_level: number }) => {
+        const response = await api.post<Role>('/rbac/roles', data);
+        return response.data;
+    },
+
+    updateRole: async (id: string, data: { name?: string; description?: string; role_level?: number }) => {
+        const response = await api.put<Role>(`/rbac/roles/${id}`, data);
+        return response.data;
+    },
+
+    deleteRole: async (id: string) => {
+        const response = await api.delete(`/rbac/roles/${id}`);
         return response.data;
     },
 

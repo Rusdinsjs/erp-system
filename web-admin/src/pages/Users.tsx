@@ -29,7 +29,7 @@ const initialFormState: CreateUserRequest = {
     role_code: 'user',
 };
 
-export function Users() {
+export default function Users() {
     const [users, setUsers] = useState<UserSummary[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<UserSummary[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);

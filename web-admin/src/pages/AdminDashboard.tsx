@@ -6,73 +6,74 @@ import {
     LayoutDashboard, Package, FolderTree, Users, LogOut, Menu, X,
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
-    Calendar as CalendarIcon, ArrowLeftRight, Scale, TrendingUp,
-    Wallet, ShoppingCart, ShoppingBag, Receipt, History, Calculator, Wrench, Fuel, Shield, Layers
+    Calendar as CalendarIcon, ArrowLeftRight, TrendingUp,
+    Wallet, ShoppingCart, Receipt, History, Wrench, Fuel, Shield, Layers,
+    CheckSquare, BarChart3, Box
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
 
 // Import all views
-const DashboardView = lazy(() => import('./Dashboard').then(m => ({ default: m.Dashboard })));
-const AssetsView = lazy(() => import('./Assets').then(m => ({ default: m.Assets })));
-const AssetDetailsView = lazy(() => import('./AssetDetails').then(m => ({ default: m.AssetDetails })));
-const CategoriesView = lazy(() => import('./Categories').then(m => ({ default: m.Categories })));
-const WorkOrdersView = lazy(() => import('./WorkOrders').then(m => ({ default: m.WorkOrders })));
-const WorkOrderDetailsView = lazy(() => import('./WorkOrderDetails').then(m => ({ default: m.WorkOrderDetails })));
-const ApprovalCenterView = lazy(() => import('./ApprovalCenter').then(m => ({ default: m.ApprovalCenter })));
-const UsersView = lazy(() => import('./Users').then(m => ({ default: m.Users })));
-const RolesView = lazy(() => import('./Roles').then(m => ({ default: m.Roles })));
-const ProfileView = lazy(() => import('./Profile').then(m => ({ default: m.Profile })));
+const DashboardView = lazy(() => import('./Dashboard'));
+const AssetsView = lazy(() => import('./Assets/Assets'));
+const AssetDetailsView = lazy(() => import('./Assets/AssetDetails'));
+const CategoriesView = lazy(() => import('./Assets/Categories'));
+const WorkOrdersView = lazy(() => import('./WorkOrders/WorkOrders'));
+const WorkOrderDetailsView = lazy(() => import('./WorkOrders/WorkOrderDetails'));
+const ApprovalCenterView = lazy(() => import('./ApprovalCenter'));
+const UsersView = lazy(() => import('./Users'));
+const RolesView = lazy(() => import('./Roles'));
+const ProfileView = lazy(() => import('./Profile'));
 const ReportsView = lazy(() => import('./Reports/ReportCenter'));
-const AuditModeView = lazy(() => import('./AuditMode').then(m => ({ default: m.AuditMode })));
-const AuditLogsView = lazy(() => import('./AuditLogs').then(m => ({ default: m.AuditLogs })));
-const AssetLifecycleView = lazy(() => import('./AssetLifecycle').then(m => ({ default: m.AssetLifecycle })));
-const ConversionsView = lazy(() => import('./Conversions').then(m => ({ default: m.Conversions })));
-const FuelView = lazy(() => import('./Fuel/FuelDashboard').then(m => ({ default: m.FuelDashboard })));
-const RentalsView = lazy(() => import('./rentals/Rentals').then(m => ({ default: m.Rentals })));
-const RentalFormView = lazy(() => import('./rentals/RentalForm').then(m => ({ default: m.RentalForm })));
-const RentalDetailView = lazy(() => import('./rentals/RentalDetail').then(m => ({ default: m.RentalDetail })));
-const ContractListView = lazy(() => import('./Contracts').then(m => ({ default: m.default }))); // Added ContractList
-const ContractDetailView = lazy(() => import('./ContractDetail')); // Added ContractDetail
-const ContractAnalyticsView = lazy(() => import('./ContractAnalytics')); // Added ContractAnalytics
-const ContractTemplatesView = lazy(() => import('./ContractTemplates')); // Added ContractTemplates
-const ClientsView = lazy(() => import('./Clients').then(m => ({ default: m.Clients })));
-const LoansView = lazy(() => import('./Loans').then(m => ({ default: m.Loans })));
-const LocationsView = lazy(() => import('./Locations').then(m => ({ default: m.Locations })));
-const EmployeesView = lazy(() => import('./Employees').then(m => ({ default: m.Employees })));
-const DepartmentsView = lazy(() => import('./Departments').then(m => ({ default: m.Departments })));
-const AttendanceView = lazy(() => import('./Attendance/AttendanceDashboard'));
-const LeaveDashboardView = lazy(() => import('./Leaves/LeaveDashboard'));
-const ChartOfAccountsView = lazy(() => import('./Finance/ChartOfAccounts').then(m => ({ default: m.ChartOfAccounts })));
-const JournalEntriesView = lazy(() => import('./Finance/JournalEntries').then(m => ({ default: m.JournalEntries })));
-const JournalEntryFormView = lazy(() => import('./Finance/JournalEntryForm').then(m => ({ default: m.JournalEntryForm })));
-const GeneralLedgerView = lazy(() => import('./Finance/GeneralLedger').then(m => ({ default: m.GeneralLedger })));
-const TrialBalanceView = lazy(() => import('./Finance/TrialBalance').then(m => ({ default: m.TrialBalance })));
-const FinancialReportsView = lazy(() => import('./Finance/FinancialReports').then(m => ({ default: m.FinancialReports })));
+const AuditModeView = lazy(() => import('./AuditMode'));
+const AuditLogsView = lazy(() => import('./AuditLogs'));
+const AssetLifecycleView = lazy(() => import('./Assets/AssetLifecycle'));
+const ConversionsView = lazy(() => import('./Assets/Conversions'));
+const FuelView = lazy(() => import('./Fuel/FuelDashboard'));
+const RentalsView = lazy(() => import('./rentals/Rentals'));
+const RentalFormView = lazy(() => import('./rentals/RentalForm'));
+const RentalDetailView = lazy(() => import('./rentals/RentalDetail'));
+const ContractListView = lazy(() => import('./Contracts/Contracts')); // Added ContractList
+const ContractDetailView = lazy(() => import('./Contracts/ContractDetail')); // Added ContractDetail
+const ContractAnalyticsView = lazy(() => import('./Contracts/ContractAnalytics')); // Added ContractAnalytics
+const ContractTemplatesView = lazy(() => import('./Contracts/ContractTemplates')); // Added ContractTemplates
+const ClientsView = lazy(() => import('./Clients'));
+const LoansView = lazy(() => import('./Loans'));
+const LocationsView = lazy(() => import('./Assets/Locations'));
+const EmployeesView = lazy(() => import('./HR/Employees'));
+const DepartmentsView = lazy(() => import('./HR/Departments'));
+const AttendanceView = lazy(() => import('./HR/Attendance/AttendanceDashboard'));
+const LeaveDashboardView = lazy(() => import('./HR/Leaves/LeaveDashboard'));
+const ChartOfAccountsView = lazy(() => import('./Finance/ChartOfAccounts'));
+const JournalEntriesView = lazy(() => import('./Finance/JournalEntries'));
+const JournalEntryFormView = lazy(() => import('./Finance/JournalEntryForm'));
+const GeneralLedgerView = lazy(() => import('./Finance/GeneralLedger'));
+const TrialBalanceView = lazy(() => import('./Finance/TrialBalance'));
+const FinancialReportsView = lazy(() => import('./Finance/FinancialReports'));
 
 // Placeholder for new Kledo-style views (to be created)
-const CashBankView = lazy(() => import('./Finance/CashBank').then(m => ({ default: m.CashBank })));
-const SalesOverviewView = lazy(() => import('./Finance/SalesOverview').then(m => ({ default: m.SalesOverview })));
-const SalesInvoicesView = lazy(() => import('./Finance/SalesInvoices').then(m => ({ default: m.SalesInvoices })));
-const SalesQuotesView = lazy(() => import('./Finance/SalesQuotes').then(m => ({ default: m.SalesQuotes })));
-const SalesOrdersView = lazy(() => import('./Finance/SalesOrders').then(m => ({ default: m.SalesOrders })));
-const SalesShipmentsView = lazy(() => import('./Finance/SalesShipments').then(module => ({ default: module.SalesShipments })));
-const PurchaseOverviewView = lazy(() => import('./Finance/PurchaseOverview').then(module => ({ default: module.PurchaseOverview })));
-const PurchaseQuotesView = lazy(() => import('./Finance/PurchaseQuotes').then(module => ({ default: module.PurchaseQuotes })));
-const PurchaseOrdersView = lazy(() => import('./Finance/PurchaseOrders').then(module => ({ default: module.PurchaseOrders })));
-const PurchaseShipmentsView = lazy(() => import('./Finance/PurchaseShipments').then(module => ({ default: module.PurchaseShipments })));
-const PurchaseBillsView = lazy(() => import('./Finance/PurchaseBills').then(module => ({ default: module.PurchaseBills })));
-const MaintenanceTemplatesView = lazy(() => import('./MaintenanceTemplates').then(m => ({ default: m.MaintenanceTemplates })));
+const CashBankView = lazy(() => import('./Finance/CashBank'));
+const SalesOverviewView = lazy(() => import('./Finance/SalesOverview'));
+const SalesInvoicesView = lazy(() => import('./Finance/SalesInvoices'));
+const SalesQuotesView = lazy(() => import('./Finance/SalesQuotes'));
+const SalesOrdersView = lazy(() => import('./Finance/SalesOrders'));
+const SalesShipmentsView = lazy(() => import('./Finance/SalesShipments'));
+const PurchaseOverviewView = lazy(() => import('./Finance/PurchaseOverview'));
+const PurchaseQuotesView = lazy(() => import('./Finance/PurchaseQuotes'));
+const PurchaseOrdersView = lazy(() => import('./Finance/PurchaseOrders'));
+const PurchaseShipmentsView = lazy(() => import('./Finance/PurchaseShipments'));
+const PurchaseBillsView = lazy(() => import('./Finance/PurchaseBills'));
+const MaintenanceTemplatesView = lazy(() => import('./Maintenance/MaintenanceTemplates'));
 const MaintenanceSchedulesView = lazy(() => import('./Maintenance/MaintenanceSchedules'));
 const ApprovalWorkflowSettingsView = lazy(() => import('./ApprovalWorkflowSettings'));
-const SettingsView = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
-const InventoryItemsView = lazy(() => import('./Inventory/InventoryItems').then(m => ({ default: m.InventoryItems })));
-const InventoryCategoriesView = lazy(() => import('./Inventory/InventoryCategories').then(m => ({ default: m.InventoryCategories })));
+const SettingsView = lazy(() => import('./Settings'));
+const InventoryItemsView = lazy(() => import('./Inventory/InventoryItems'));
+const InventoryCategoriesView = lazy(() => import('./Inventory/InventoryCategories'));
 const StockOpnameView = lazy(() => import('./Inventory/StockOpname'));
-const TaxRenewalsView = lazy(() => import('./TaxRenewals/TaxRenewals').then(m => ({ default: m.TaxRenewals })));
+const TaxRenewalsView = lazy(() => import('./TaxRenewals/TaxRenewals'));
 
-const ExpensesView = lazy(() => import('./Finance/Expenses').then(m => ({ default: m.Expenses })));
-const AnalyticsDashboardView = lazy(() => import('./AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
+const ExpensesView = lazy(() => import('./Finance/Expenses'));
+const AnalyticsDashboardView = lazy(() => import('./AnalyticsDashboard'));
 
 // Define the available tabs
 type TabId =
@@ -177,122 +178,91 @@ const navItems: NavEntry[] = [
     { id: 'analytics', icon: TrendingUp, label: 'Performance Analytics', minLevel: 3, context: 'insights' },
     { id: 'reports', icon: FileText, label: 'Management Reports', minLevel: 3, context: 'insights' },
 
-    { type: 'header', label: 'OPERATIONS & ASSETS', minLevel: 5, context: 'operations' },
+    { type: 'header', label: 'ASSET MANAGEMENT', minLevel: 5, context: 'assets' },
     {
         id: 'asset_operations',
-        label: 'Asset Operations',
-        icon: Package,
+        label: 'Assets & Inventory',
+        icon: Box,
         minLevel: 5,
-        context: 'operations',
+        context: 'assets',
         children: [
-            { id: 'assets', icon: Package, label: 'Asset Registry', minLevel: 5 },
-            { id: 'loans', icon: HandMetal, label: 'Internal Asset Loans', minLevel: 5 },
-            { id: 'fuel', icon: Fuel, label: 'Fuel Usage (BBM)', minLevel: 5 },
-            { id: 'tax-renewals', icon: FileText, label: 'Tax & Renewals', minLevel: 4 },
-            { id: 'asset-lifecycle', icon: History, label: 'Life Cycle Log', minLevel: 3 },
+            { id: 'assets', icon: Box, label: 'All Assets', minLevel: 5 },
+            { id: 'asset-lifecycle', icon: History, label: 'Asset Lifecycle', minLevel: 4 },
+            { id: 'categories', icon: FolderTree, label: 'Categories', minLevel: 4 },
+            { id: 'locations', icon: MapPin, label: 'Locations', minLevel: 4 },
         ]
     },
+    {
+        id: 'inventory_group',
+        label: 'Parts & Inventory',
+        icon: Package,
+        minLevel: 4,
+        context: 'ops',
+        children: [
+            { id: 'inventory-items', icon: Package, label: 'Items', minLevel: 4 },
+            { id: 'inventory-categories', icon: FolderTree, label: 'Categories', minLevel: 4 },
+            { id: 'stock-opname', icon: Scan, label: 'Stock Opname', minLevel: 3 },
+        ]
+    },
+
+    { type: 'header', label: 'OPERATIONS', minLevel: 5, context: 'ops' },
     {
         id: 'maintenance_group',
-        label: 'Service & Maintenance',
+        label: 'Field Operations',
         icon: Wrench,
-        minLevel: 5, // Main group visible to all, children have specific levels
-        context: 'operations',
+        minLevel: 5,
+        context: 'ops',
         children: [
-            { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
+            { id: 'work-orders', icon: ClipboardCheck, label: 'Work Orders', minLevel: 4 },
+            { id: 'conversions', icon: ArrowLeftRight, label: 'Conversions', minLevel: 3 },
             { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
-            { id: 'maintenance-templates', icon: ClipboardCheck, label: 'SOP Templates', minLevel: 3 },
+            { id: 'maintenance-templates', icon: FileText, label: 'SOP Templates', minLevel: 3 },
+            { id: 'fuel', icon: Fuel, label: 'Fuel Management', minLevel: 4 },
+            { id: 'loans', icon: HandMetal, label: 'Internal Loans', minLevel: 5 },
+            { id: 'tax-renewals', icon: Receipt, label: 'Tax & Documents', minLevel: 3 },
         ]
     },
-
-    { type: 'header', label: 'COMMERCIAL & REVENUE', minLevel: 4, context: 'commercial' },
     {
-        id: 'commercial_group',
-        label: 'Commercial & Rental',
+        id: 'rental_module',
+        label: 'Rental & Contracts',
         icon: Truck,
         minLevel: 4,
-        context: 'commercial',
+        context: 'ops',
         children: [
-            { id: 'rentals', icon: Truck, label: 'Rental Operations', minLevel: 4 },
-            { id: 'contracts', icon: FileText, label: 'Service Contracts', minLevel: 4 },
-            { id: 'contract-templates', icon: Settings, label: 'Contract Templates', minLevel: 3 },
-            {
-                id: 'sales_subgroup',
-                label: 'Sales Management',
-                icon: ShoppingCart,
-                minLevel: 3,
-                children: [
-                    { id: 'sales-overview', icon: TrendingUp, label: 'Sales Performance' },
-                    { id: 'sales-quotes', icon: Calculator, label: 'Sales Quotations' },
-                    { id: 'sales-orders', icon: ShoppingCart, label: 'Sales Orders' },
-                    { id: 'sales-shipments', icon: Truck, label: 'Delivery Slips' },
-                    { id: 'sales-invoices', icon: FileText, label: 'Invoice Collection' },
-                ]
-            }
+            { id: 'rentals', icon: Truck, label: 'Rental Orders', minLevel: 4 },
+            { id: 'contracts', icon: FileText, label: 'Contracts', minLevel: 4 },
+            { id: 'contract-templates', icon: Settings, label: 'Templates', minLevel: 3 },
         ]
     },
 
-    { type: 'header', label: 'PROCUREMENT & SUPPLY', minLevel: 3, context: 'procurement' },
-    {
-        id: 'supply_chain_group',
-        label: 'Procurement & Supply',
-        icon: ShoppingBag,
-        minLevel: 3,
-        context: 'procurement',
-        children: [
-            {
-                id: 'purchase_subgroup',
-                label: 'Purchasing',
-                icon: ShoppingBag,
-                minLevel: 3,
-                children: [
-                    { id: 'purchase-overview', icon: TrendingUp, label: 'Procurement Stats' },
-                    { id: 'purchase-quotes', icon: Calculator, label: 'Purchase Requests' },
-                    { id: 'purchase-orders', icon: ShoppingBag, label: 'Purchase Orders' },
-                    { id: 'purchase-shipments', icon: Truck, label: 'Incoming Goods' },
-                    { id: 'purchase-bills', icon: FileText, label: 'Vendor Bills' },
-                ]
-            },
-            {
-                id: 'inventory_subgroup',
-                label: 'Inventory Control',
-                icon: Layers,
-                minLevel: 3,
-                children: [
-                    { id: 'inventory-items', icon: Package, label: 'Stock Items' },
-                    { id: 'stock-opname', icon: ClipboardCheck, label: 'Stock Take' },
-                    { id: 'inventory-categories', icon: FolderTree, label: 'Stock Categories' },
-                ]
-            }
-        ]
-    },
-
-    { type: 'header', label: 'FINANCE & HR', minLevel: 3, context: 'finance' },
+    { type: 'header', label: 'FINANCE & ACCOUNTING', minLevel: 2, context: 'finance' },
     {
         id: 'finance_group',
-        label: 'Finance & Accounting',
-        icon: FolderTree,
+        label: 'Finance',
+        icon: Wallet,
+        minLevel: 2,
+        context: 'finance',
+        children: [
+            { id: 'finance', icon: FolderTree, label: 'Chart of Accounts', minLevel: 2 },
+            { id: 'cash-bank', icon: Wallet, label: 'Cash & Bank', minLevel: 2 },
+            { id: 'expenses', icon: Receipt, label: 'Expenses (Opex/Capex)', minLevel: 2 },
+            { id: 'journal-entries', icon: FileText, label: 'Journal Entries', minLevel: 2 },
+            { id: 'financial-reports', icon: TrendingUp, label: 'Reports', minLevel: 2 },
+        ]
+    },
+    {
+        id: 'commercial_group',
+        label: 'Commercial In/Out',
+        icon: ShoppingCart,
         minLevel: 3,
         context: 'finance',
         children: [
-            { id: 'cash-bank', icon: Wallet, label: 'Cash & Bank', minLevel: 3 },
-            { id: 'expenses', icon: Receipt, label: 'Expenditures', minLevel: 3 },
-            {
-                id: 'accounting_subgroup',
-                label: 'General Ledger',
-                icon: History,
-                minLevel: 3,
-                children: [
-                    { id: 'finance', icon: FolderTree, label: 'Chart of Accounts' },
-                    { id: 'journal-entries', icon: FileText, label: 'Journal Entries' },
-                    { id: 'general-ledger', icon: ArrowLeftRight, label: 'Account Ledger' },
-                    { id: 'trial-balance', icon: Scale, label: 'Trial Balance' },
-                    { id: 'financial-reports', icon: TrendingUp, label: 'Financial Statements' },
-                ]
-            }
+            { id: 'sales-invoices', icon: FileText, label: 'Sales Invoices', minLevel: 3 },
+            { id: 'purchase-bills', icon: FileText, label: 'Vendor Bills', minLevel: 3 },
         ]
     },
 
+    { type: 'header', label: 'ORGANIZATION', minLevel: 3, context: 'hr' },
     {
         id: 'hr_group',
         label: 'Human Resources',
@@ -300,43 +270,30 @@ const navItems: NavEntry[] = [
         minLevel: 3,
         context: 'hr',
         children: [
-            { id: 'employees', icon: Users, label: 'Employee Directory' },
-            { id: 'attendance', icon: Clock, label: 'Work Attendance' },
-            { id: 'leaves', icon: CalendarIcon, label: 'Leave Requests' },
+            { id: 'employees', icon: Users, label: 'Employees', minLevel: 3 },
+            { id: 'departments', icon: Building2, label: 'Departments', minLevel: 3 },
+            { id: 'attendance', icon: Clock, label: 'Attendance', minLevel: 3 },
+            { id: 'leaves', icon: CalendarIcon, label: 'Leaves', minLevel: 3 },
         ]
     },
+    { id: 'clients', icon: Building2, label: 'Clients / Partners', minLevel: 4, context: 'hr' },
 
-    { type: 'header', label: 'ADMINISTRATION', minLevel: 3, context: 'approval' }, // Approvals Grouped here for simplification or own group? User said "Approval" is a card. Let's make Approval context cover this.
-    { id: 'approvals', icon: ClipboardCheck, label: 'Approval Center', minLevel: 3, showBadge: true, context: 'approval' },
+    { type: 'header', label: 'SYSTEM', minLevel: 3, context: 'system' },
+    { id: 'approvals', icon: CheckSquare, label: 'Approval Center', minLevel: 3, showBadge: true, context: 'system' },
+    { id: 'reports', icon: BarChart3, label: 'Reports Center', minLevel: 3, context: 'system' },
 
-    // Master Data -> Admin Context? Or split?
-    // Let's explicitly put Master Data in 'admin' context.
-    {
-        id: 'master_data',
-        label: 'Master Data',
-        icon: Building2,
-        minLevel: 3,
-        context: 'admin',
-        children: [
-            { id: 'clients', icon: Building2, label: 'Business Partners' },
-            { id: 'locations', icon: MapPin, label: 'Operational Areas' },
-            { id: 'categories', icon: FolderTree, label: 'Asset Categories' },
-            { id: 'departments', icon: Building2, label: 'Departments' },
-        ]
-    },
     {
         id: 'settings_group',
-        label: 'System Settings',
+        label: 'Configuration',
         icon: Settings,
-        minLevel: 5,
-        context: 'global', // Explicitly global
+        minLevel: 2,
+        context: 'system',
         children: [
-            { id: 'users', icon: Users, label: 'User Control', minLevel: 2 },
-            { id: 'roles', icon: Shield, label: 'RBAC Permissions', minLevel: 2 },
-            { id: 'approval-workflow-settings', icon: Layers, label: 'Workflow Engines', minLevel: 2 },
-            { id: 'audit', icon: Scan, label: 'Audit Compliance', minLevel: 2 },
-            { id: 'system-audit', icon: History, label: 'System Event Logs', minLevel: 2 },
-            { id: 'settings', icon: Settings, label: 'App Configuration', minLevel: 2 },
+            { id: 'users', icon: Users, label: 'User Operations', minLevel: 2 },
+            { id: 'roles', icon: Shield, label: 'Access Rights', minLevel: 1 },
+            { id: 'approval-workflow-settings', icon: Layers, label: 'Workflows', minLevel: 1 },
+            { id: 'audit', icon: Scan, label: 'Audit Logs', minLevel: 2 },
+            { id: 'settings', icon: Settings, label: 'App Settings', minLevel: 2 },
             { id: 'profile', icon: UserCircle, label: 'My Profile', minLevel: 5 },
         ]
     },

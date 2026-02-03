@@ -3,13 +3,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, UserPlus, ClipboardCheck, Edit, FileText, ChevronRight, Camera, Loader2 } from 'lucide-react';
-import { workOrderApi } from '../api/work-order';
-import { uploadApi } from '../api/upload';
-import { useAuthStore } from '../store/useAuthStore';
-import { TechnicianSelectModal } from '../components/WorkOrders/TechnicianSelectModal';
-import { InventoryItemSelector } from '../components/Inventory/InventoryItemSelector';
-import { useWebSocket } from '../contexts/WebSocketContext';
-import { SignaturePad } from '../components/WorkOrders/SignaturePad';
+import { workOrderApi } from '../../api/work-order';
+import { uploadApi } from '../../api/upload';
+import { useAuthStore } from '../../store/useAuthStore';
+import { TechnicianSelectModal } from '../../components/WorkOrders/TechnicianSelectModal';
+import { InventoryItemSelector } from '../../components/Inventory/InventoryItemSelector';
+import { useWebSocket } from '../../contexts/WebSocketContext';
+import { SignaturePad } from '../../components/WorkOrders/SignaturePad';
 import {
     Button,
     Card,
@@ -23,14 +23,14 @@ import {
     LoadingOverlay,
     useToast,
     Progress,
-} from '../components/ui';
-import { getImageUrl } from '../utils/image';
+} from '../../components/ui';
+import { getImageUrl } from '../../utils/image';
 
 interface WorkOrderDetailsProps {
     workOrderId?: string | null;
 }
 
-export function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps) {
+export default function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetailsProps) {
     const { id: paramId } = useParams<{ id: string }>();
     const id = propId || paramId;
     const navigate = useNavigate();

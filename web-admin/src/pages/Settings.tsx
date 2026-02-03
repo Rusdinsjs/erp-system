@@ -15,7 +15,7 @@ import {
     TabsContent
 } from '../components/ui';
 
-export function Settings() {
+export default function Settings() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
     const [activeTab, setActiveTab] = useState('general');

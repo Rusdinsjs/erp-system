@@ -42,7 +42,7 @@ const MOCK_ITEMS = [
     }
 ];
 
-export function InventoryItems() {
+export default function InventoryItems() {
     const [searchTerm, setSearchTerm] = useState('');
 
     return (

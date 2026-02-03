@@ -5,7 +5,7 @@ import { LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { api } from '../api/http';
 import { useAuthStore } from '../store/useAuthStore';
 
-export function LoginPage() {
+export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -154,4 +154,4 @@ export function LoginPage() {
     );
 }
 
-export default LoginPage;
+

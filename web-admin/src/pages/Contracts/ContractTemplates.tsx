@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { contractTemplateApi } from '../api/contractTemplate';
-import type { ContractTemplate, CreateContractTemplateRequest, UpdateContractTemplateRequest } from '../types/contractTemplate';
+import { contractTemplateApi } from '../../api/contractTemplate';
+import type { ContractTemplate, CreateContractTemplateRequest, UpdateContractTemplateRequest } from '../../types/contractTemplate';
 import { Plus, Edit2, Trash2, Eye, X, Save } from 'lucide-react';
 
-const ContractTemplates: React.FC = () => {
+export default function ContractTemplates() {
     const [templates, setTemplates] = useState<ContractTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -357,6 +357,6 @@ const ContractTemplates: React.FC = () => {
             )}
         </div>
     );
-};
+}
 
-export default ContractTemplates;
+

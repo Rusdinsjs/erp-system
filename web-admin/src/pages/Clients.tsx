@@ -16,7 +16,7 @@ import {
     useToast,
 } from '../components/ui';
 
-export const Clients = () => {
+export default function Clients() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
     const [search, setSearch] = useState('');

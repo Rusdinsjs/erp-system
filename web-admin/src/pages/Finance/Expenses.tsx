@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
-export function Expenses() {
+export default function Expenses() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -78,16 +78,9 @@ export function Expenses() {
             status: newExpenseStatus,
             expense_type: newExpenseType
         };
+        createMutation.mutate(data);
     };
-    createMutation.mutate(data);
-};
 
-const toggleFilter = (status: string) => {
-    setFilterStatus(prev =>
-        prev.includes(status)
-            ? prev.filter(s => s !== status)
-            : [...prev, status]
-    );
     const toggleFilter = (status: string) => {
         setFilterStatus(prev =>
             prev.includes(status)

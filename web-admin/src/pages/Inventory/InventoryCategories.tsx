@@ -13,7 +13,7 @@ import { useToast } from '../../components/ui/Toast';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 
-export function InventoryCategories() {
+export default function InventoryCategories() {
     const [searchTerm, setSearchTerm] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
     const [showCoaStructure, setShowCoaStructure] = useState(false); // New state for COA modal

@@ -1,8 +1,8 @@
 // Employees Page - Pure Tailwind
 import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search, UserPlus, UserCheck } from 'lucide-react';
-import { employeeApi, type Employee, type EmploymentStatus } from '../api/employee';
-import { api } from '../api/http';
+import { employeeApi, type Employee, type EmploymentStatus } from '../../api/employee';
+import { api } from '../../api/http';
 import {
     Button,
     Card,
@@ -17,7 +17,7 @@ import {
     Tabs, TabsList, TabsTrigger, TabsContent,
     DateInput,
     Textarea
-} from '../components/ui';
+} from '../../components/ui';
 import dayjs from 'dayjs';
 
 interface Department {
@@ -74,7 +74,7 @@ const initialUserFormState = {
     employee_id: '',
 };
 
-export function Employees() {
+export default function Employees() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(false);

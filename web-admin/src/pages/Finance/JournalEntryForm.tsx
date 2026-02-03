@@ -12,7 +12,7 @@ interface JournalLineItem {
     credit: string;
 }
 
-export function JournalEntryForm() {
+export default function JournalEntryForm() {
     const navigate = useNavigate();
     const [accounts, setAccounts] = useState<ChartOfAccount[]>([]);
     const [submitting, setSubmitting] = useState(false);

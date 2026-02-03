@@ -15,7 +15,7 @@ import { BillingList } from '../../components/Rentals/BillingList';
 import { ClientList } from '../../components/Rentals/ClientList';
 import { RentalScheduler } from '../../components/Rentals/RentalScheduler';
 
-export function Rentals() {
+export default function Rentals() {
     return (
         <div className="p-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
             {/* Header Section */}

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, FileText, Settings } from 'lucide-react';
-import { workOrderApi } from '../api/work-order';
-import type { MaintenanceTemplate, TemplateTask } from '../api/work-order';
+import { workOrderApi } from '../../api/work-order';
+import type { TemplateTask } from '../../api/work-order';
 import {
     Button,
     Card,
@@ -13,9 +13,9 @@ import {
     Input,
     LoadingOverlay,
     useToast
-} from '../components/ui';
+} from '../../components/ui';
 
-export function MaintenanceTemplates() {
+export default function MaintenanceTemplates() {
     const queryClient = useQueryClient();
     const { success } = useToast();
     const [templateModalOpen, setTemplateModalOpen] = useState(false);
@@ -126,7 +126,7 @@ export function MaintenanceTemplates() {
                                         <ActionIcon
                                             variant="danger"
                                             size="sm"
-                                            onClick={(e) => {
+                                            onClick={(e: React.MouseEvent) => {
                                                 e.stopPropagation();
                                                 if (confirm('Delete this template?')) deleteTemplateMutation.mutate(template.id);
                                             }}
@@ -177,7 +177,7 @@ export function MaintenanceTemplates() {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {selectedTemplate?.tasks.map((task) => (
+                                        {selectedTemplate?.tasks.map((task: TemplateTask) => (
                                             <TableRow key={task.id} className="group hover:bg-white/5">
                                                 <TableTd align="center">
                                                     <Badge variant="default" className="bg-gray-800 text-gray-400">
@@ -222,14 +222,14 @@ export function MaintenanceTemplates() {
                         label="Template Name"
                         placeholder="e.g. Servis Berkala 5.000 KM"
                         value={newTemplate.name}
-                        onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                         required
                     />
                     <Input
                         label="Description"
                         placeholder="Brief explanation of when to use this template"
                         value={newTemplate.description}
-                        onChange={(e) => setNewTemplate({ ...newTemplate, description: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTemplate({ ...newTemplate, description: e.target.value })}
                     />
                     <div className="flex justify-end gap-3 pt-4">
                         <Button variant="ghost" onClick={() => setTemplateModalOpen(false)}>Cancel</Button>
@@ -253,7 +253,7 @@ export function MaintenanceTemplates() {
                                 label="Seq #"
                                 type="number"
                                 value={newTask.task_number}
-                                onChange={(e) => setNewTask({ ...newTask, task_number: parseInt(e.target.value) || 1 })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTask({ ...newTask, task_number: parseInt(e.target.value) || 1 })}
                             />
                         </div>
                         <div className="col-span-3">
@@ -261,7 +261,7 @@ export function MaintenanceTemplates() {
                                 label="Task Description"
                                 placeholder="e.g. Ganti Oli Mesin"
                                 value={newTask.description}
-                                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTask({ ...newTask, description: e.target.value })}
                                 required
                             />
                         </div>

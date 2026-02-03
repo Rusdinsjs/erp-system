@@ -1,7 +1,7 @@
 import { Card } from '../../components/ui';
 import { TrendingUp, ShoppingCart, Truck, AlertCircle } from 'lucide-react';
 
-export function SalesOverview() {
+export default function SalesOverview() {
     // Queries to fetch stats would go here
     // For now, we mock or use basic stats
 

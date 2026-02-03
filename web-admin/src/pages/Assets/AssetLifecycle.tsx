@@ -6,17 +6,17 @@ import {
     ArrowRight, Check, Clock, AlertTriangle, Package, Truck,
     Wrench, Trash2, Archive, RefreshCw, Lock, Info, DollarSign
 } from 'lucide-react';
-import { lifecycleApi } from '../api/lifecycle';
-import { assetApi } from '../api/assets';
-import { useAuthStore } from '../store/useAuthStore';
-import { AssetConversionModal } from '../components/Assets/AssetConversionModal';
-import { CreateLoanModal } from '../components/Assets/CreateLoanModal';
-import { RetiredModal } from '../components/Assets/RetiredModal';
-import { DisposedModal } from '../components/Assets/DisposedModal';
-import { LostStolenModal } from '../components/Assets/LostStolenModal';
-import { SoldModal } from '../components/Assets/SoldModal';
-import { LifecycleTimeline } from '../components/Assets/LifecycleTimeline';
-import { AssetFinancials } from '../components/Assets/AssetFinancials';
+import { lifecycleApi } from '../../api/lifecycle';
+import { assetApi } from '../../api/assets';
+import { useAuthStore } from '../../store/useAuthStore';
+import { AssetConversionModal } from '../../components/Assets/AssetConversionModal';
+import { CreateLoanModal } from '../../components/Assets/CreateLoanModal';
+import { RetiredModal } from '../../components/Assets/RetiredModal';
+import { DisposedModal } from '../../components/Assets/DisposedModal';
+import { LostStolenModal } from '../../components/Assets/LostStolenModal';
+import { SoldModal } from '../../components/Assets/SoldModal';
+import { LifecycleTimeline } from '../../components/Assets/LifecycleTimeline';
+import { AssetFinancials } from '../../components/Assets/AssetFinancials';
 import {
     Button,
     Card,
@@ -28,7 +28,7 @@ import {
     useToast,
     Input,
     Table, TableHead, TableBody, TableRow, TableTh, TableTd
-} from '../components/ui';
+} from '../../components/ui';
 
 // State icon mapping
 const stateIcons: Record<string, React.ReactNode> = {
@@ -90,7 +90,7 @@ interface AssetLifecycleProps {
     assetId?: string | null;
 }
 
-export function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
+export default function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleProps) {
     const { id: paramAssetId } = useParams<{ id: string }>();
     const assetId = propAssetId || paramAssetId;
     const navigate = useNavigate();

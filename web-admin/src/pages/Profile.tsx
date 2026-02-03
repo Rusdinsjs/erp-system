@@ -13,7 +13,7 @@ import {
     useToast,
 } from "../components/ui";
 
-export function Profile() {
+export default function Profile() {
     const user = useAuthStore((state) => state.user);
     const refreshUser = useAuthStore((state) => state.refreshUser);
     const { success, error: showError } = useToast();

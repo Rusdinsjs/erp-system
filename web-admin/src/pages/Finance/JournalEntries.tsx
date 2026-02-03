@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { type JournalEntry, journalApi } from '../../api/journal';
 
 
-export function JournalEntries() {
+export default function JournalEntries() {
     const [entries, setEntries] = useState<JournalEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();

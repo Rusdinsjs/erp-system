@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { attendanceApi } from '../../api/attendance';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Table, TableHead, TableRow, TableBody, TableTd, TableTh } from '../../components/ui/Table';
-import { Badge } from '../../components/ui/Badge';
-import { PageLoading } from '../../components/ui/Loading';
+import { attendanceApi } from '../../../api/attendance';
+import { Card } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
+import { Table, TableHead, TableRow, TableBody, TableTd, TableTh } from '../../../components/ui/Table';
+import { Badge } from '../../../components/ui/Badge';
+import { PageLoading } from '../../../components/ui/Loading';
 import { CheckInModal } from './CheckInModal';
-import { showToast } from '../../components/ui/Toast';
+import { showToast } from '../../../components/ui/Toast';
 import { Clock, Calendar, CheckCircle } from 'lucide-react';
 import dayjs from 'dayjs';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useAuthStore } from '../../../store/useAuthStore';
 
 export default function AttendanceDashboard() {
     const queryClient = useQueryClient();

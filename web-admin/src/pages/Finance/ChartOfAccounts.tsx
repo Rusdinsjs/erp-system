@@ -11,7 +11,7 @@ import {
     Edit2
 } from 'lucide-react';
 
-export function ChartOfAccounts() {
+export default function ChartOfAccounts() {
     // const { success, error: showError } = useToast(); // Removed unused toast for now
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -167,7 +167,7 @@ function AccountRow({
                     </Button>
                 </td>
             </tr>
-            {isExpanded && node.children?.map(child => (
+            {isExpanded && node.children?.map((child: ChartOfAccount) => (
                 <AccountRow
                     key={child.id}
                     node={child}
@@ -191,7 +191,7 @@ function AccountTypeBadge({ type }: { type: AccountType }) {
     };
 
     return (
-        <span className={`px-2 py-1 rounded text-xs border ${styles[type] || 'text-muted-foreground'}`}>
+        <span className={`px-2 py-1 rounded text-xs border ${styles[type as keyof typeof styles] || 'text-muted-foreground'}`}>
             {type.charAt(0).toUpperCase() + type.slice(1)}
         </span>
     );

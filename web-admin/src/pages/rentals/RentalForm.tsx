@@ -24,7 +24,7 @@ import { CreateClientModal } from '../../components/Clients/CreateClientModal';
 // Ideally we reuse the AssetForm, but it's large. For "Quick Add" let's redirect or use a simple modal if crucial.
 // For now, let's implement CreateClientModal integration fully.
 
-export function RentalForm() {
+export default function RentalForm() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const assetIdParam = searchParams.get('asset_id');

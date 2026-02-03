@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { Save, AlertTriangle } from 'lucide-react';
-import { rbacApi, type Role, type Permission } from '../../api/rbac';
+import { rbacApi } from '../../api/rbac';
+import type { Role, Permission } from '../../types';
 import { Button, Card, LoadingOverlay, useToast, Badge } from '../ui';
 
 export function RolePermissionsMatrix() {
@@ -81,17 +82,22 @@ export function RolePermissionsMatrix() {
         }
     };
 
-    // Group permissions by resource
-    const groupedPermissions = permissions.reduce((acc, perm) => {
-        if (!acc[perm.resource]) {
-            acc[perm.resource] = [];
-        }
-        acc[perm.resource].push(perm);
-        return acc;
-    }, {} as Record<string, Permission[]>);
+    // Pool of ignored permissions (handled by workflows)
+    const ignoredActions = ['approve', 'assign'];
 
-    // Filter non-system editable roles
-    const editableRoles = roles.filter(r => !r.is_system || r.code === 'admin');
+    // Group permissions by resource, filtering out ignored actions
+    const groupedPermissions = permissions
+        .filter(perm => !ignoredActions.includes(perm.action.toLowerCase()))
+        .reduce((acc, perm) => {
+            if (!acc[perm.resource]) {
+                acc[perm.resource] = [];
+            }
+            acc[perm.resource].push(perm);
+            return acc;
+        }, {} as Record<string, Permission[]>);
+
+    // Show all roles in the matrix
+    const editableRoles = roles;
 
     return (
         <div className="space-y-4">

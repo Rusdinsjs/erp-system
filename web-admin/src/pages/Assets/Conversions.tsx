@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     RefreshCw, Search, Plus, Check, X, Play
 } from 'lucide-react';
-import { conversionApi, type AssetConversion } from '../api/conversion';
-import { assetApi, type Asset } from '../api/assets';
+import { conversionApi, type AssetConversion } from '../../api/conversion';
+import { assetApi, type Asset } from '../../api/assets';
 import {
     Card, Input, Button, Badge,
     Table, TableHead, TableBody, TableRow, TableTh, TableTd,
@@ -12,8 +12,8 @@ import {
     useToast,
     Modal,
     Select
-} from '../components/ui';
-import { AssetConversionModal } from '../components/Assets/AssetConversionModal';
+} from '../../components/ui';
+import { AssetConversionModal } from '../../components/Assets/AssetConversionModal';
 
 // Simple Asset Picker Modal
 function AssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean; onClose: () => void; onSelect: (assetId: string) => void }) {
@@ -67,7 +67,7 @@ function AssetPickerModal({ isOpen, onClose, onSelect }: { isOpen: boolean; onCl
     );
 }
 
-export function Conversions() {
+export default function Conversions() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
 

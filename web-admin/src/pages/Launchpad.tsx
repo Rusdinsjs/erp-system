@@ -120,7 +120,7 @@ const domainCards: DomainCard[] = [
     }
 ];
 
-export function Launchpad() {
+export default function Launchpad() {
     const navigate = useNavigate();
     const { user, logout, hasRoleLevel } = useAuthStore();
 
@@ -287,4 +287,4 @@ export function Launchpad() {
     );
 }
 
-export default Launchpad;
+

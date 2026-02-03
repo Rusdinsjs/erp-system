@@ -2,8 +2,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Save, Link2 } from 'lucide-react';
-import { api } from '../api/http';
-import { financeApi } from '../api/finance'; // Import financeApi
+import { api } from '../../api/http';
+import { financeApi } from '../../api/finance'; // Import financeApi
 import {
     Button,
     Card,
@@ -17,7 +17,7 @@ import {
     TreeItem,
     TagsInput,
     ActionIcon
-} from '../components/ui';
+} from '../../components/ui';
 
 interface Category {
     id: string;
@@ -64,7 +64,7 @@ const MAIN_CATEGORIES = [
     'ASET TETAP INFRASTRUKTUR'
 ];
 
-export function Categories() {
+export default function Categories() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
 

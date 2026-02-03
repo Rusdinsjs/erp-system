@@ -2,9 +2,8 @@
 import { useState } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, Box, MapPin, FolderTree, Truck,
-    Users, CheckSquare, BarChart3,
-    ScanLine, User, LogOut, Menu, ChevronLeft, ChevronRight, ChevronDown
+    LayoutDashboard, Box, Wrench, Wallet, Building2, Settings,
+    LogOut, Menu, ChevronLeft, ChevronRight, ChevronDown
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { NotificationBell } from '../Header/NotificationBell';
@@ -15,7 +14,7 @@ export function MainLayout() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const [openMenus, setOpenMenus] = useState<string[]>(['/assets']);
+    const [openMenus, setOpenMenus] = useState<string[]>(['/assets', '/ops', '/finance']);
 
     const toggleMenu = (path: string) => {
         setOpenMenus(prev =>
@@ -32,30 +31,84 @@ export function MainLayout() {
 
     const navItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/', minLevel: 5 },
+
+        // MODUL ASSETS
         {
-            label: 'Asset Tetap',
+            label: 'Asset Management',
             icon: Box,
-            path: '/assets',
+            path: '/assets-module',
             minLevel: 5,
             children: [
-                { label: 'Semua Asset', path: '/assets', minLevel: 5 },
-                { label: 'Under Maintenance', path: '/assets?status=under_maintenance', minLevel: 4 },
-                { label: 'Under Repair', path: '/assets?status=under_repair', minLevel: 4 },
-                { label: 'Work Orders', path: '/work-orders', minLevel: 4 },
+                { label: 'All Assets', path: '/assets', minLevel: 5 },
+                { label: 'Lifecycle (Audit)', path: '/assets/lifecycle', minLevel: 4 },
+                { label: 'Categories', path: '/categories', minLevel: 4 },
+                { label: 'Locations', path: '/locations', minLevel: 4 },
                 { label: 'Conversions', path: '/conversions', minLevel: 3 },
-                { label: 'Internal Loans', path: '/loans', minLevel: 5 },
             ]
         },
-        { label: 'Locations', icon: MapPin, path: '/locations', minLevel: 3 },
-        { label: 'Categories', icon: FolderTree, path: '/categories', minLevel: 3 },
-        { label: 'Rentals', icon: Truck, path: '/rentals', minLevel: 4 },
-        { label: 'Clients', icon: Users, path: '/clients', minLevel: 4 },
-        { label: 'Pegawai', icon: Users, path: '/employees', minLevel: 3 },
-        { label: 'Approvals', icon: CheckSquare, path: '/approvals', minLevel: 3 },
-        { label: 'Reports', icon: BarChart3, path: '/reports', minLevel: 3 },
-        { label: 'Users', icon: Users, path: '/users', minLevel: 2 }, // Admin/Super Admin only
-        { label: 'Audit', icon: ScanLine, path: '/audit', minLevel: 2 },
-        { label: 'Profile', icon: User, path: '/profile', minLevel: 5 },
+
+        // MODUL OPERATIONS
+        {
+            label: 'Operations',
+            icon: Wrench,
+            path: '/ops-module',
+            minLevel: 5,
+            children: [
+                { label: 'Work Orders', path: '/work-orders', minLevel: 5 },
+                { label: 'Maint. Templates', path: '/maintenance-templates', minLevel: 3 },
+                { label: 'Fuel Management', path: '/fuel', minLevel: 4 },
+                { label: 'Rentals', path: '/rentals', minLevel: 4 },
+                { label: 'Internal Loans', path: '/loans', minLevel: 5 },
+                { label: 'Inventory / Parts', path: '/inventory', minLevel: 4 },
+                { label: 'Tax & Documents', path: '/tax-renewals', minLevel: 3 },
+            ]
+        },
+
+        // MODUL FINANCE
+        {
+            label: 'Finance',
+            icon: Wallet,
+            path: '/finance-module',
+            minLevel: 2, // Finance usually restricted
+            children: [
+                { label: 'Overview', path: '/finance', minLevel: 2 },
+                { label: 'Expenses (Opex/Capex)', path: '/finance/expenses', minLevel: 2 },
+                { label: 'Sales Invoices', path: '/finance/invoices', minLevel: 2 },
+                { label: 'Purchase Bills', path: '/finance/bills', minLevel: 2 },
+                { label: 'Financial Reports', path: '/finance/reports', minLevel: 2 },
+            ]
+        },
+
+        // MODUL HR / CORE
+        {
+            label: 'Organization',
+            icon: Building2,
+            path: '/hr-module',
+            minLevel: 4,
+            children: [
+                { label: 'Employees', path: '/employees', minLevel: 4 },
+                { label: 'Departments', path: '/departments', minLevel: 3 },
+                { label: 'Clients', path: '/clients', minLevel: 4 },
+                { label: 'Attendance', path: '/attendance', minLevel: 4 },
+                { label: 'Leaves', path: '/leaves', minLevel: 4 },
+            ]
+        },
+
+        // SYSTEM / ADMIN
+        {
+            label: 'System',
+            icon: Settings,
+            path: '/system-module',
+            minLevel: 5,
+            children: [
+                { label: 'Approval Center', path: '/approvals', minLevel: 3 }, // Managers need this
+                { label: 'Reports Center', path: '/reports', minLevel: 3 },
+                { label: 'User Management', path: '/users', minLevel: 2 },
+                { label: 'Access Rights (RBAC)', path: '/roles', minLevel: 1 },
+                { label: 'Audit Logs', path: '/audit', minLevel: 2 },
+                { label: 'Settings', path: '/settings', minLevel: 2 },
+            ]
+        },
     ];
 
     // Filter items based on role

@@ -202,7 +202,7 @@ const InputCostModal = ({
     );
 };
 
-export function TaxRenewals() {
+export default function TaxRenewals() {
     const [activeTab, setActiveTab] = useState('Needs Attention');
     const queryClient = useQueryClient();
 

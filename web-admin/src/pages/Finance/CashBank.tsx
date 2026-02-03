@@ -5,7 +5,7 @@ import { Card, Button } from '../../components/ui';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, MoreVertical, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function CashBank() {
+export default function CashBank() {
     // In a real app, we'd filter COA for 'Cash & Bank' accounts
     const { data: accounts, isLoading: accountsLoading } = useQuery({
         queryKey: ['finance', 'accounts'],

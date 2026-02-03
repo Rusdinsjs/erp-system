@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { contractApi } from '../api/contract';
-import type { Contract } from '../types/contract';
+import { contractApi } from '../../api/contract';
+import type { Contract } from '../../types/contract';
 import {
     PieChart,
     Pie,

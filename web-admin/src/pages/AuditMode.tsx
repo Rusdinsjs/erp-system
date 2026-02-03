@@ -12,7 +12,7 @@ import {
     useToast,
 } from '../components/ui';
 
-export function AuditMode() {
+export default function AuditMode() {
     const queryClient = useQueryClient();
     const { success, error: showError, info } = useToast();
     const [assetInput, setAssetInput] = useState('');

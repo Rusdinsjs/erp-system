@@ -13,7 +13,7 @@ import {
     CheckSquare
 } from 'lucide-react';
 
-export function Purchases() {
+export default function Purchases() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const { data: bills, isLoading } = useQuery({

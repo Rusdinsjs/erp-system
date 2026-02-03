@@ -1,31 +1,7 @@
 import { api } from './http';
+import type { Location, CreateLocationRequest } from '../types';
 
-export interface Location {
-    id: string;
-    parent_id?: string | null;
-    code: string;
-    name: string;
-    location_type: string;
-    address?: string | null;
-    latitude?: string | null;
-    longitude?: string | null;
-    capacity?: number | null;
-    current_count?: number | null;
-    created_at: string;
-    updated_at: string;
-    children?: Location[]; // For hierarchy view
-}
-
-export interface CreateLocationRequest {
-    parent_id?: string | null;
-    code: string;
-    name: string;
-    location_type: string;
-    address?: string;
-    latitude?: string;
-    longitude?: string;
-    capacity?: number;
-}
+export type { Location, CreateLocationRequest };
 
 export const locationApi = {
     list: async () => {

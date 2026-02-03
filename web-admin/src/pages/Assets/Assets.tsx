@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw } from 'lucide-react';
-import { assetApi } from '../api/assets';
-import { categoryApi } from '../api/category';
-import { locationApi } from '../api/locations';
-import { departmentApi } from '../api/departments';
-import type { Asset, CreateAssetRequest } from '../api/assets';
-import { api } from '../api/http';
-import { AssetForm } from '../components/Assets/AssetForm';
-import { ImportAssetsModal } from '../components/Assets/ImportAssetsModal';
+import { assetApi } from '../../api/assets';
+import { categoryApi } from '../../api/category';
+import { locationApi } from '../../api/locations';
+import { departmentApi } from '../../api/departments';
+import type { Asset, CreateAssetRequest } from '../../api/assets';
+import { api } from '../../api/http';
+import { AssetForm } from '../../components/Assets/AssetForm';
+import { ImportAssetsModal } from '../../components/Assets/ImportAssetsModal';
 import { useNavigate } from 'react-router-dom';
 import {
     Button,
@@ -25,8 +25,8 @@ import {
     Drawer,
     Checkbox,
     Select,
-} from '../components/ui';
-import { BulkActionToolbar } from '../components/Assets/BulkActionToolbar';
+} from '../../components/ui';
+import { BulkActionToolbar } from '../../components/Assets/BulkActionToolbar';
 
 // Helper to flatten category tree
 const flattenCategories = (nodes: any[], prefix = ''): any[] => {
@@ -42,7 +42,7 @@ const flattenCategories = (nodes: any[], prefix = ''): any[] => {
 };
 
 
-export function Assets() {
+export default function Assets() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { success, error: showError } = useToast();
@@ -134,7 +134,43 @@ export function Assets() {
 
     // Mutations
     const createMutation = useMutation({
-        mutationFn: assetApi.create,
+        mutationFn: async (data: any) => {
+            // Extract pending documents from the payload
+            const { pending_documents, ...assetData } = data;
+
+            // 1. Create Asset
+            const newAsset = await assetApi.create(assetData);
+
+            // 2. Upload Documents if any
+            if (pending_documents && Array.isArray(pending_documents) && pending_documents.length > 0) {
+                // We'll upload them sequentially to ensure reliability, paralleling might trigger rate limits or be messy
+                // Ideally, show a toast or loading state for this.
+                let uploadedCount = 0;
+
+                for (const doc of pending_documents) {
+                    try {
+                        const fileData = await assetApi.uploadFile(doc.file);
+                        await assetApi.addDocument(newAsset.id, {
+                            name: doc.name || doc.file.name,
+                            type: doc.type,
+                            file_path: fileData.url,
+                            mime_type: fileData.content_type,
+                            size_bytes: fileData.size,
+                            notes: doc.notes
+                        });
+                        uploadedCount++;
+                    } catch (e) {
+                        console.error(`Failed to upload document: ${doc.name}`, e);
+                        // Continue to next document
+                    }
+                }
+
+                // If we want to return something about the docs, we could attach it to the response
+                // but the standard response is fine.
+            }
+
+            return newAsset;
+        },
         onSuccess: (data: any) => {
             const message = data.message || 'Asset created successfully';
             const isApproval = message.toLowerCase().includes('approval');
@@ -456,16 +492,24 @@ export function Assets() {
                                     <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('asset_code')}>
                                         <div className="flex items-center">Asset Code <SortIcon field="asset_code" /></div>
                                     </TableTh>
-                                    <TableTh>Category</TableTh>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('category_id')}>
+                                        <div className="flex items-center">Category <SortIcon field="category_id" /></div>
+                                    </TableTh>
                                     <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('name')}>
                                         <div className="flex items-center">Name <SortIcon field="name" /></div>
                                     </TableTh>
                                     <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('brand')}>
                                         <div className="flex items-center">Brand/Model <SortIcon field="brand" /></div>
                                     </TableTh>
-                                    <TableTh>Location</TableTh>
-                                    <TableTh>Department</TableTh>
-                                    <TableTh>Penanggung Jawab</TableTh>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('location_id')}>
+                                        <div className="flex items-center">Location <SortIcon field="location_id" /></div>
+                                    </TableTh>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('department_id')}>
+                                        <div className="flex items-center">Department <SortIcon field="department_id" /></div>
+                                    </TableTh>
+                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('assigned_to')}>
+                                        <div className="flex items-center">Penanggung Jawab <SortIcon field="assigned_to" /></div>
+                                    </TableTh>
                                     <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('status')}>
                                         <div className="flex items-center">Status <SortIcon field="status" /></div>
                                     </TableTh>

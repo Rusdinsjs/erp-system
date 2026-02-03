@@ -40,7 +40,7 @@ const statusBadgeVariant: Record<string, 'warning' | 'info' | 'success' | 'dange
     damaged: 'warning',
 };
 
-export function Loans() {
+export default function Loans() {
     const user = useAuthStore((state) => state.user);
     const { success, error: showError } = useToast();
     const [loans, setLoans] = useState<Loan[]>([]);

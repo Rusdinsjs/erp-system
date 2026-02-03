@@ -7,7 +7,7 @@ import { FuelList } from './FuelList';
 import { FuelRequestModal } from './FuelRequestModal';
 import { fuelApi } from '../../api/fuel';
 
-export const FuelDashboard: React.FC = () => {
+export default function FuelDashboard() {
     const [activeTab, setActiveTab] = useState('requests');
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);

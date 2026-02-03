@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { approvalWorkflowApi } from '../api/approvalWorkflow';
-import { rbacApi, type Role } from '../api/rbac';
+import { rbacApi } from '../api/rbac';
+import type { Role } from '../types';
 import type { ApprovalWorkflow, ApprovalWorkflowRequest } from '../types/contract';
 import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { Card } from '../components/ui';
@@ -215,6 +216,10 @@ const ApprovalWorkflowSettings: React.FC = () => {
                                         <option value="contract">Contract</option>
                                         <option value="rental">Rental</option>
                                         <option value="work_order">Work Order</option>
+                                        <option value="purchase_order">Purchase Order</option>
+                                        <option value="expense">Expense</option>
+                                        <option value="leave_request">Leave Request</option>
+                                        <option value="asset_disposal">Asset Disposal</option>
                                     </select>
                                 </div>
                             </div>

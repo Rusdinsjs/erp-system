@@ -4,7 +4,7 @@ import { financeApi } from '../../api/finance';
 import { Search, Calendar, ArrowLeftRight } from 'lucide-react';
 import dayjs from 'dayjs';
 
-export function GeneralLedger() {
+export default function GeneralLedger() {
     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
     const [startDate, setStartDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
     const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));

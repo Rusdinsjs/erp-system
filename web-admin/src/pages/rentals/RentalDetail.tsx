@@ -85,7 +85,7 @@ interface RentalDetailProps {
     rentalId?: string;
 }
 
-export function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
+export default function RentalDetail({ rentalId: propRentalId }: RentalDetailProps) {
     const params = useParams<{ id: string }>();
     const id = propRentalId || params.id;
     const navigate = useNavigate();
