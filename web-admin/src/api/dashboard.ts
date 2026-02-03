@@ -76,5 +76,16 @@ export const dashboardApi = {
     getAssetStatusStats: async () => {
         const response = await api.get<AssetStatusStats[]>('/analytics/status');
         return response.data;
+    },
+
+    getCapexOpexStats: async () => {
+        const response = await api.get<{ success: boolean; data: ExpenseAnalysis[] }>('/reports/finance/capex-opex');
+        return response.data.data;
     }
 };
+
+export interface ExpenseAnalysis {
+    month: string;
+    expense_type: string;
+    total_amount: number;
+}

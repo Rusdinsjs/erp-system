@@ -290,14 +290,51 @@ impl AssetService {
         let per_page = params.per_page.unwrap_or(20).clamp(1, 100);
         let offset = (page - 1) * per_page;
 
+        let category_id_clean = params.category_id.as_ref().map(|s| {
+            s.split(',')
+                .map(|v| v.trim())
+                .filter(|v| !v.is_empty())
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+        let location_id_clean = params.location_id.as_ref().map(|s| {
+            s.split(',')
+                .map(|v| v.trim())
+                .filter(|v| !v.is_empty())
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+        let department_clean = params.department.as_ref().map(|s| {
+            s.split(',')
+                .map(|v| v.trim())
+                .filter(|v| !v.is_empty())
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+        let status_clean = params.status.as_ref().map(|s| {
+            s.split(',')
+                .map(|v| v.trim())
+                .filter(|v| !v.is_empty())
+                .collect::<Vec<_>>()
+                .join(",")
+        });
+
+        tracing::info!(
+            "Searching assets (raw): query='{}', category_id={:?}, location_id={:?}, status={:?}",
+            params.query.as_deref().unwrap_or(""),
+            params.category_id,
+            params.location_id,
+            params.status
+        );
+
         let assets = self
             .repository
             .search(
                 params.query.as_deref().unwrap_or(""),
-                params.category_id.as_deref(),
-                params.location_id.as_deref(),
-                params.department.as_deref(),
-                params.status.as_deref(),
+                category_id_clean.as_deref(),
+                location_id_clean.as_deref(),
+                department_clean.as_deref(),
+                status_clean.as_deref(),
                 params.is_fuel,
                 per_page,
                 offset,

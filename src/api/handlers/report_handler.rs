@@ -68,3 +68,24 @@ pub async fn export_maintenance(
     )
         .into_response())
 }
+
+#[derive(Deserialize)]
+pub struct AnalysisParams {
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
+}
+
+pub async fn get_capex_opex_analysis(
+    State(state): State<AppState>,
+    Query(params): Query<AnalysisParams>,
+) -> Result<axum::Json<serde_json::Value>, AppError> {
+    let data = state
+        .report_service
+        .get_capex_opex_analysis(params.start_date, params.end_date)
+        .await?;
+
+    Ok(axum::Json(serde_json::json!({
+        "success": true,
+        "data": data
+    })))
+}

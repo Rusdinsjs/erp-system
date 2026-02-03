@@ -105,8 +105,7 @@ export function Categories() {
         queryFn: financeApi.listAccounts
     });
 
-    // Filter for Asset Accounts
-    const assetAccounts = useMemo(() => accounts.filter(a => a.account_type === 'asset'), [accounts]);
+
 
     const isLoading = treeLoading || accountsLoading;
 
@@ -398,73 +397,34 @@ export function Categories() {
 
                                     <div className="space-y-4">
                                         <div className="p-3 bg-cyan-900/20 rounded-xl border border-cyan-500/20">
-                                            <label className="block text-sm font-medium text-cyan-400 mb-1.5">
-                                                Akun Debit CAPEX (Asset Cost)
-                                            </label>
-                                            <select
-                                                className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-500/50 appearance-none"
+                                            <Select
+                                                label="Akun Debit CAPEX (Asset Cost)"
+                                                options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
                                                 value={formData.asset_account_id}
-                                                onChange={(e) => handleChange('asset_account_id', e.target.value)}
-                                            >
-                                                <option value="">Select Asset Account...</option>
-                                                {assetAccounts.map(acc => (
-                                                    <option key={acc.id} value={acc.id}>
-                                                        {acc.code} - {acc.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                Debited when acquiring or upgrading assets (Capitalization).
-                                            </p>
+                                                onChange={(val) => handleChange('asset_account_id', val)}
+                                                placeholder="Select Asset Account..."
+                                                hint="Debited when acquiring or upgrading assets (Capitalization)."
+                                            />
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-400 mb-1.5">
-                                                    Akun Debit OPEX (Depr. Expense)
-                                                </label>
-                                                <select
-                                                    className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none"
-                                                    value={formData.expense_account_id}
-                                                    onChange={(e) => handleChange('expense_account_id', e.target.value)}
-                                                >
-                                                    <option value="">Select Expense Account...</option>
-                                                    {accounts.filter(a => a.account_type === 'expense').map(acc => (
-                                                        <option key={acc.id} value={acc.id}>
-                                                            {acc.code} - {acc.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    Debited during monthly depreciation.
-                                                </p>
-                                            </div>
+                                            <Select
+                                                label="Akun Debit OPEX (Depr. Expense)"
+                                                options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
+                                                value={formData.expense_account_id}
+                                                onChange={(val) => handleChange('expense_account_id', val)}
+                                                placeholder="Select Expense Account..."
+                                                hint="Debited during monthly depreciation."
+                                            />
 
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-400 mb-1.5">
-                                                    Akun Kredit (Accum. Depreciation)
-                                                </label>
-                                                <select
-                                                    className="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none"
-                                                    value={formData.accumulated_depreciation_account_id}
-                                                    onChange={(e) => handleChange('accumulated_depreciation_account_id', e.target.value)}
-                                                >
-                                                    <option value="">Select Accum. Account...</option>
-                                                    {/* Ideally filtered for Contra-Asset or similar, but showing all Assets/Liabilities/Equity might be needed depending on COA structure. 
-                                                        Usually it's a Contra-Asset (Asset type with negative balance or specific type). 
-                                                        For simplicity, showing all Asset accounts or specific Contra-Asset if type exists. 
-                                                        Assuming it's an Asset account for now. 
-                                                    */}
-                                                    {accounts.map(acc => (
-                                                        <option key={acc.id} value={acc.id}>
-                                                            {acc.code} - {acc.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    Credited during monthly depreciation.
-                                                </p>
-                                            </div>
+                                            <Select
+                                                label="Akun Kredit (Accum. Depreciation)"
+                                                options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
+                                                value={formData.accumulated_depreciation_account_id}
+                                                onChange={(val) => handleChange('accumulated_depreciation_account_id', val)}
+                                                placeholder="Select Accum. Account..."
+                                                hint="Credited during monthly depreciation."
+                                            />
                                         </div>
                                     </div>
                                 </TabsContent>

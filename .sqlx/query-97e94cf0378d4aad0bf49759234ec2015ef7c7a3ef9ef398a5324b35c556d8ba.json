@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO asset_tax_renewals (\n                id, asset_id, document_type, current_expiry, renewal_cost, status, invoice_id, notes, created_at, updated_at\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            RETURNING *\n            ",
+  "query": "\n            INSERT INTO asset_tax_renewals (\n                id, asset_id, document_type, current_expiry, renewal_cost, status, invoice_id, notes, payment_destination, invoice_attachment, created_at, updated_at\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n            RETURNING id, asset_id, document_type, current_expiry, renewal_cost, status, invoice_id, notes, payment_destination, invoice_attachment, created_at, updated_at, NULL as asset_name\n            ",
   "describe": {
     "columns": [
       {
@@ -45,13 +45,28 @@
       },
       {
         "ordinal": 8,
+        "name": "payment_destination",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "invoice_attachment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "asset_name",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -63,6 +78,8 @@
         "Numeric",
         "Varchar",
         "Uuid",
+        "Text",
+        "Varchar",
         "Text",
         "Timestamptz",
         "Timestamptz"
@@ -77,9 +94,12 @@
       false,
       true,
       true,
+      true,
+      true,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "02dabfb3ad5a37f4895056ae937bf18283d67a36d13c0e1bcdad6d18069645cb"
+  "hash": "97e94cf0378d4aad0bf49759234ec2015ef7c7a3ef9ef398a5324b35c556d8ba"
 }

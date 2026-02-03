@@ -22,6 +22,13 @@ impl VendorRepository {
             .await
     }
 
+    pub async fn find_by_name(&self, name: &str) -> Result<Option<Vendor>, sqlx::Error> {
+        sqlx::query_as::<_, Vendor>("SELECT * FROM vendors WHERE name = $1")
+            .bind(name)
+            .fetch_optional(&self.pool)
+            .await
+    }
+
     pub async fn list(&self, limit: i64, offset: i64) -> Result<Vec<VendorSummary>, sqlx::Error> {
         sqlx::query_as::<_, VendorSummary>(
             r#"

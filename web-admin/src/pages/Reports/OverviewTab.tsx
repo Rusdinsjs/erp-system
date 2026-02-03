@@ -13,6 +13,8 @@ import {
 import {
     AreaChart,
     Area,
+    BarChart,
+    Bar,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -20,12 +22,10 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Card, Button } from '../../components/ui';
-import { dashboardApi, type DashboardStats, type RecentActivity as APIRecentActivity, type MonthlyCost, type AssetStatusStats } from '../../api/dashboard';
+import { dashboardApi, type DashboardStats, type RecentActivity as APIRecentActivity, type MonthlyCost, type AssetStatusStats, type ExpenseAnalysis } from '../../api/dashboard';
 import { PieChart, Pie, Cell, Legend } from 'recharts';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-
-dayjs.extend(relativeTime);
 
 dayjs.extend(relativeTime);
 
@@ -139,21 +139,44 @@ const OverviewTab: React.FC = () => {
     const [activities, setActivities] = useState<APIRecentActivity[]>([]);
     const [costData, setCostData] = useState<MonthlyCost[]>([]);
     const [statusData, setStatusData] = useState<AssetStatusStats[]>([]);
+    const [capexOpexData, setCapexOpexData] = useState<any[]>([]); // Pivoted data
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [statsData, activitiesData, costs, statuses] = await Promise.all([
+                const [statsData, activitiesData, costs, statuses, capexOpex] = await Promise.all([
                     dashboardApi.getStats(),
                     dashboardApi.getActivities(),
                     dashboardApi.getCostAnalytics(),
-                    dashboardApi.getAssetStatusStats()
+                    dashboardApi.getAssetStatusStats(),
+                    dashboardApi.getCapexOpexStats().catch(() => []) // Handle potential error gracefully
                 ]);
                 setStats(statsData);
                 setActivities(activitiesData);
                 setCostData(costs);
                 setStatusData(statuses);
+
+                // Process CAPEX/OPEX data
+                // Need to group by month and pivot
+                const pivoted: Record<string, any> = {};
+                capexOpex.forEach((item: ExpenseAnalysis) => {
+                    const monthKey = dayjs(item.month).format('MMM YYYY');
+                    if (!pivoted[monthKey]) {
+                        pivoted[monthKey] = { month: monthKey, CAPEX: 0, OPEX: 0 };
+                    }
+                    if (item.expense_type === 'CAPEX') {
+                        pivoted[monthKey].CAPEX += item.total_amount;
+                    } else {
+                        pivoted[monthKey].OPEX += item.total_amount;
+                    }
+                });
+
+                // Convert to array and sort by date (approximation by reversing or simple sort if keys ordered)
+                // Better to use original date for sorting
+                const sortedData = Object.values(pivoted); // Assuming order from backend is preserved (which is ORDER BY month ASC)
+                setCapexOpexData(sortedData);
+
             } catch (error) {
                 console.error("Failed to load dashboard data:", error);
             } finally {
@@ -371,6 +394,58 @@ const OverviewTab: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </Card>
+
+                {/* CAPEX vs OPEX Chart */}
+                <Card className="lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                        <div>
+                            <h3 className="text-lg font-bold text-white">Financial Overview (CAPEX vs OPEX)</h3>
+                            <p className="text-slate-400 text-xs mt-1">Monthly expenditure breakdown</p>
+                        </div>
+                    </div>
+                    <div className="h-[350px] w-full">
+                        {capexOpexData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={capexOpexData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                    <XAxis
+                                        dataKey="month"
+                                        stroke="#64748b"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+                                    <YAxis
+                                        stroke="#64748b"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) => `${value / 1000000}M`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                            borderColor: '#334155',
+                                            color: '#F3F4F6',
+                                            borderRadius: '8px',
+                                            backdropFilter: 'blur(4px)'
+                                        }}
+                                        itemStyle={{ fontSize: '12px' }}
+                                        formatter={(value: any) => formatCurrency(value || 0)}
+                                        cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                                    />
+                                    <Legend />
+                                    <Bar dataKey="OPEX" stackId="a" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="CAPEX" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-500">
+                                No financial data available
+                            </div>
+                        )}
                     </div>
                 </Card>
             </div>

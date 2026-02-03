@@ -18,16 +18,22 @@ pub struct FuelRequest {
     pub driver_id: Option<Uuid>,
 }
 
+use crate::application::services::JournalService;
+use crate::domain::entities::journal::{CreateJournalEntryRequest, CreateJournalLineRequest};
 use crate::domain::errors::DomainResult;
 
 #[derive(Clone)]
 pub struct FuelService {
     repo: FuelRepository,
+    journal_service: JournalService,
 }
 
 impl FuelService {
-    pub fn new(repo: FuelRepository) -> Self {
-        Self { repo }
+    pub fn new(repo: FuelRepository, journal_service: JournalService) -> Self {
+        Self {
+            repo,
+            journal_service,
+        }
     }
 
     // Create new fuel request
@@ -127,10 +133,68 @@ impl FuelService {
         actual_volume: Option<Decimal>,
         receipt_image_url: &str,
     ) -> DomainResult<bool> {
-        self.repo
+        let completed = self
+            .repo
             .complete(id, actual_filled_amount, actual_volume, receipt_image_url)
             .await
-            .map_err(|e| crate::domain::errors::DomainError::Database(e.to_string()))
+            .map_err(|e| crate::domain::errors::DomainError::Database(e.to_string()))?;
+
+        if completed {
+            // AUTOMATIC JOURNAL ENTRY
+            // Debit: Biaya Bahan Bakar (5-1140) -> 00000000-0000-4005-a114-000000000000
+            // Credit: Hutang BBM (2-1130)       -> 00000000-0000-4002-a113-000000000000
+
+            let expense_account_id =
+                Uuid::parse_str("00000000-0000-4005-a114-000000000000").unwrap();
+            let payable_account_id =
+                Uuid::parse_str("00000000-0000-4002-a113-000000000000").unwrap();
+
+            // Fetch log to get tracking number
+            let log_opt = self.repo.find_by_id(id).await.unwrap_or(None);
+            let description = if let Some(log) = log_opt {
+                format!(
+                    "Fuel Use {} - {}",
+                    log.tracking_number,
+                    log.asset_name.unwrap_or_default()
+                )
+            } else {
+                "Fuel Usage".to_string()
+            };
+
+            let req = CreateJournalEntryRequest {
+                date: Utc::now().date_naive(),
+                description,
+                reference: Some(id.to_string()),
+                lines: vec![
+                    CreateJournalLineRequest {
+                        account_id: expense_account_id,
+                        debit: actual_filled_amount,
+                        credit: Decimal::ZERO,
+                        description: Some("Biaya Bahan Bakar".to_string()),
+                    },
+                    CreateJournalLineRequest {
+                        account_id: payable_account_id,
+                        debit: Decimal::ZERO,
+                        credit: actual_filled_amount,
+                        description: Some("Hutang BBM".to_string()),
+                    },
+                ],
+            };
+
+            // Fire and forget? Or fail if journal fails?
+            // Better to log error if fails but not fail the transaction since fuel is physically done.
+            // But for data integrity, maybe we should await it.
+            let _ = self
+                .journal_service
+                .create_entry(req, None)
+                .await
+                .map_err(|e| {
+                    println!("Failed to create auto-journal for fuel: {:?}", e);
+                    e
+                });
+        }
+
+        Ok(completed)
     }
 
     // Get dashboard stats

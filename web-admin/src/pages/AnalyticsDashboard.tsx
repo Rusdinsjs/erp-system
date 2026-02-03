@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -62,6 +63,23 @@ export function AnalyticsDashboard() {
         }
     });
 
+    const processedStatusData = useMemo(() => {
+        if (!statusData) return [];
+        const map = new Map<string, any>();
+
+        statusData.forEach((item: any) => {
+            const label = formatStatusLabel(item.status);
+            if (!map.has(label)) {
+                map.set(label, { ...item }); // Keep the first item's status for color mapping
+            } else {
+                const existing = map.get(label);
+                existing.count = Number(existing.count) + Number(item.count);
+            }
+        });
+
+        return Array.from(map.values());
+    }, [statusData]);
+
     if (statusLoading || costLoading) {
         return <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>;
     }
@@ -79,7 +97,7 @@ export function AnalyticsDashboard() {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={statusData}
+                                    data={processedStatusData}
                                     cx="50%"
                                     cy="50%"
                                     labelLine={true}
@@ -92,7 +110,7 @@ export function AnalyticsDashboard() {
                                     fill="#8884d8"
                                     dataKey="count"
                                 >
-                                    {statusData?.map((entry: any, index: number) => (
+                                    {processedStatusData.map((entry: any, index: number) => (
                                         <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status] || '#64748b'} />
                                     ))}
                                 </Pie>

@@ -117,7 +117,7 @@ async fn test_work_order_lifecycle() {
     );
     let inventory_service = management_system::application::services::InventoryService::new(
         inventory_repo,
-        journal_service,
+        journal_service.clone(),
         notif_service.clone(),
     );
 
@@ -130,6 +130,7 @@ async fn test_work_order_lifecycle() {
         ae_service,
         mt_repo,
         inventory_service,
+        journal_service,
     );
 
     // Setup: Create an Asset first

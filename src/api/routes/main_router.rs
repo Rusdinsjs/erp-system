@@ -62,14 +62,20 @@ pub fn create_router(state: AppState) -> Router {
             post(
                 bulk_create_assets
                     .layer(axum_middleware::from_fn(require_permission("asset.create"))),
-            ),
+            )
+            .layer(tower_http::limit::RequestBodyLimitLayer::new(
+                10 * 1024 * 1024,
+            )),
         )
         .route(
             "/api/assets/bulk-update",
             post(
                 bulk_update_assets
                     .layer(axum_middleware::from_fn(require_permission("asset.update"))),
-            ),
+            )
+            .layer(tower_http::limit::RequestBodyLimitLayer::new(
+                10 * 1024 * 1024,
+            )),
         )
         .route(
             "/api/assets/search",
@@ -415,6 +421,10 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/reports/maintenance",
             get(report_handler::export_maintenance),
+        )
+        .route(
+            "/api/reports/finance/capex-opex",
+            get(report_handler::get_capex_opex_analysis),
         )
         // Analytics
         .route(

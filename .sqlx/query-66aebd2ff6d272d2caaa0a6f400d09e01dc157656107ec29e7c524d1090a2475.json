@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE asset_tax_renewals\n            SET renewal_cost = $1, notes = COALESCE($2, notes), status = 'PENDING_APPROVAL', updated_at = NOW()\n            WHERE id = $3\n            RETURNING *\n            ",
+  "query": "\n                SELECT \n                    r.id, r.asset_id, r.document_type, r.current_expiry, r.renewal_cost, \n                    r.status, r.invoice_id, r.notes, r.payment_destination, r.invoice_attachment, r.created_at, r.updated_at,\n                    a.name as asset_name\n                FROM asset_tax_renewals r\n                LEFT JOIN assets a ON r.asset_id = a.id\n                WHERE r.status = $1 \n                ORDER BY r.current_expiry ASC\n                ",
   "describe": {
     "columns": [
       {
@@ -45,20 +45,33 @@
       },
       {
         "ordinal": 8,
+        "name": "payment_destination",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "invoice_attachment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "asset_name",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
       "Left": [
-        "Numeric",
-        "Text",
-        "Uuid"
+        "Text"
       ]
     },
     "nullable": [
@@ -70,9 +83,12 @@
       false,
       true,
       true,
+      true,
+      true,
+      false,
       false,
       false
     ]
   },
-  "hash": "a33b7e9906a50954e780f6803508cce7070b26f89f02d594625de32a878f7704"
+  "hash": "66aebd2ff6d272d2caaa0a6f400d09e01dc157656107ec29e7c524d1090a2475"
 }

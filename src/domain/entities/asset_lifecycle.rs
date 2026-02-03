@@ -35,16 +35,18 @@ impl std::str::FromStr for AssetState {
             "planning" => Ok(Self::Planning),
             "procurement" => Ok(Self::Procurement),
             "received" => Ok(Self::Received),
-            "in_inventory" | "available" => Ok(Self::InInventory),
-            "deployed" | "in_use" | "active" => Ok(Self::Deployed),
-            "rented_out" => Ok(Self::RentedOut),
-            "under_maintenance" | "in_maintenance" | "maintenance" => Ok(Self::UnderMaintenance),
-            "under_repair" | "in_repair" => Ok(Self::UnderRepair),
-            "under_conversion" | "in_conversion" => Ok(Self::UnderConversion),
+            "in_inventory" | "available" | "in inventory" => Ok(Self::InInventory),
+            "deployed" | "in_use" | "active" | "in use" => Ok(Self::Deployed),
+            "rented_out" | "rented out" => Ok(Self::RentedOut),
+            "under_maintenance" | "in_maintenance" | "maintenance" | "under maintenance" => {
+                Ok(Self::UnderMaintenance)
+            }
+            "under_repair" | "in_repair" | "under repair" => Ok(Self::UnderRepair),
+            "under_conversion" | "in_conversion" | "under conversion" => Ok(Self::UnderConversion),
             "retired" => Ok(Self::Retired),
             "disposed" => Ok(Self::Disposed),
             "sold" => Ok(Self::Sold),
-            "lost_stolen" => Ok(Self::LostStolen),
+            "lost_stolen" | "lost stolen" | "lost/stolen" => Ok(Self::LostStolen),
             "archived" => Ok(Self::Archived),
             _ => Err(()),
         }

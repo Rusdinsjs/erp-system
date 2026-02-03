@@ -18,6 +18,10 @@ pub fn tax_renewal_routes(state: AppState) -> Router<AppState> {
             put(tax_renewal_handler::approve_renewal),
         )
         .route(
+            "/api/tax-renewals/:id/reject",
+            put(tax_renewal_handler::reject_renewal),
+        )
+        .route(
             "/api/tax-renewals/:id/complete",
             put(tax_renewal_handler::complete_renewal),
         )

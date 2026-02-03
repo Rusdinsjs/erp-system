@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE asset_tax_renewals\n            SET status = $1, updated_at = NOW()\n            WHERE id = $2\n            RETURNING *\n            ",
+  "query": "\n            SELECT \n                r.id, r.asset_id, r.document_type, r.current_expiry, r.renewal_cost, r.status, r.invoice_id, r.notes, r.payment_destination, r.invoice_attachment, r.created_at, r.updated_at,\n                NULL as asset_name\n            FROM asset_tax_renewals r\n            WHERE asset_id = $1 AND document_type = $2 AND status != 'COMPLETED'\n            LIMIT 1\n            ",
   "describe": {
     "columns": [
       {
@@ -45,19 +45,34 @@
       },
       {
         "ordinal": 8,
+        "name": "payment_destination",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "invoice_attachment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "asset_name",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Varchar",
-        "Uuid"
+        "Uuid",
+        "Text"
       ]
     },
     "nullable": [
@@ -69,9 +84,12 @@
       false,
       true,
       true,
+      true,
+      true,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "3cb7241d0656ee4322c850c715159b35a56182299223545b2a175dbfd65b4c8b"
+  "hash": "14ba0186c163813c77731610c54dd63f2ab20742b1b8fcf4b2c264e5dd71462e"
 }

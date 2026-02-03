@@ -59,6 +59,7 @@ export function PurchaseOrders() {
             date: formData.get('date'),
             delivery_date: formData.get('delivery_date'),
             subject: formData.get('subject'),
+            budget_type: formData.get('budget_type'),
             items: [
                 {
                     description: formData.get('item_description'),
@@ -116,6 +117,7 @@ export function PurchaseOrders() {
                         <thead className="bg-muted/50 text-muted-foreground uppercase text-xs font-semibold">
                             <tr>
                                 <th className="px-6 py-4">Nomor PO</th>
+                                <th className="px-6 py-4">Tipe</th>
                                 <th className="px-6 py-4">Vendor</th>
                                 <th className="px-6 py-4">Tanggal</th>
                                 <th className="px-6 py-4">Pengiriman</th>
@@ -133,6 +135,11 @@ export function PurchaseOrders() {
                                 orders.map((order: any) => (
                                     <tr key={order.id} className="hover:bg-muted/50 transition-colors cursor-pointer group">
                                         <td className="px-6 py-4 font-medium text-primary">{order.order_number}</td>
+                                        <td className="px-6 py-4">
+                                            <Badge variant="outline" className={order.budget_type === 'CAPEX' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}>
+                                                {order.budget_type || 'OPEX'}
+                                            </Badge>
+                                        </td>
                                         <td className="px-6 py-4 text-foreground">
                                             {vendors.find((v: any) => v.id === order.vendor_id)?.name || order.vendor_id}
                                         </td>
@@ -223,13 +230,25 @@ export function PurchaseOrders() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">Subjek</label>
-                                <input
-                                    name="subject"
-                                    placeholder="Pesanan pembelian untuk..."
-                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
-                                />
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 space-y-2">
+                                    <label className="text-sm font-medium text-muted-foreground">Subjek</label>
+                                    <input
+                                        name="subject"
+                                        placeholder="Pesanan pembelian untuk..."
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-muted-foreground">Tipe Anggaran</label>
+                                    <select
+                                        name="budget_type"
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                    >
+                                        <option value="OPEX">OPEX (Operasional)</option>
+                                        <option value="CAPEX">CAPEX (Modal)</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="p-4 bg-muted/50 rounded-xl border border-border space-y-3">

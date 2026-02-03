@@ -231,6 +231,7 @@ impl FinanceService {
             status: "draft".to_string(),
             journal_entry_id: None,
             created_at: Utc::now(),
+            attachment_url: req.attachment_url,
         };
 
         // --- Automated Journaling Logic ---
@@ -294,6 +295,7 @@ impl FinanceService {
             status: "draft".to_string(),
             journal_entry_id: None,
             created_at: Utc::now(),
+            attachment_url: req.attachment_url,
         };
 
         // --- Automated Journaling Logic ---
@@ -302,9 +304,26 @@ impl FinanceService {
         let purchase_acc = self.find_by_code("5-1000").await?.ok_or_else(|| {
             DomainError::business_rule("Missing Account", "Account 5-1000 (Purchases) not found")
         })?;
-        let payable_acc = self.find_by_code("2-1100").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 2-1100 (Utang Usaha) not found")
-        })?;
+
+        // Use custom payable account if provided, else default to 2-1100
+        let payable_acc = if let Some(id) = req.account_payable_id {
+            // Validate it exists
+            self.repo
+                .find_by_id(id)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?
+                .ok_or_else(|| DomainError::not_found("ChartOfAccount", id))?
+        } else {
+            self.find_by_code("2-1100").await?.ok_or_else(|| {
+                DomainError::business_rule(
+                    "Missing Account",
+                    "Account 2-1100 (Utang Usaha) not found",
+                )
+            })?
+        };
 
         // 2. Prepare Journal Entry
         use rust_decimal::prelude::FromPrimitive;
@@ -351,8 +370,10 @@ impl FinanceService {
             recipient: req.recipient.clone(),
             total_amount: total,
             status: req.status.unwrap_or_else(|| "paid".to_string()),
+            expense_type: req.expense_type.unwrap_or_else(|| "OPEX".to_string()),
             journal_entry_id: None,
             created_at: Utc::now(),
+            attachment_url: req.attachment_url,
         };
 
         // --- Automated Journaling Logic ---
@@ -553,6 +574,7 @@ impl FinanceService {
             tax: 0.0,
             total_amount: total,
             status: "draft".to_string(),
+            budget_type: req.budget_type.unwrap_or_else(|| "OPEX".to_string()),
             created_at: Utc::now(),
         };
         self.repo.create_purchase_order(&order).await

@@ -24,9 +24,11 @@ export function Expenses() {
 
     // Filter State
     const [filterStatus, setFilterStatus] = useState<string[]>(['paid', 'unpaid']);
+    const [filterType, setFilterType] = useState<string[]>(['OPEX', 'CAPEX']);
 
     // New Expense State
     const [newExpenseStatus, setNewExpenseStatus] = useState<'paid' | 'unpaid'>('paid');
+    const [newExpenseType, setNewExpenseType] = useState<'OPEX' | 'CAPEX'>('OPEX');
 
     const queryClient = useQueryClient();
 
@@ -46,6 +48,7 @@ export function Expenses() {
             queryClient.invalidateQueries({ queryKey: ['finance', 'expenses'] });
             setIsModalOpen(false);
             setNewExpenseStatus('paid'); // Reset
+            setNewExpenseType('OPEX');
         }
     });
 
@@ -72,16 +75,32 @@ export function Expenses() {
                     amount: parseFloat(formData.get('amount') as string)
                 }
             ],
-            status: newExpenseStatus
+            status: newExpenseStatus,
+            expense_type: newExpenseType
         };
-        createMutation.mutate(data);
     };
+    createMutation.mutate(data);
+};
 
+const toggleFilter = (status: string) => {
+    setFilterStatus(prev =>
+        prev.includes(status)
+            ? prev.filter(s => s !== status)
+            : [...prev, status]
+    );
     const toggleFilter = (status: string) => {
         setFilterStatus(prev =>
             prev.includes(status)
                 ? prev.filter(s => s !== status)
                 : [...prev, status]
+        );
+    };
+
+    const toggleTypeFilter = (type: string) => {
+        setFilterType(prev =>
+            prev.includes(type)
+                ? prev.filter(t => t !== type)
+                : [...prev, type]
         );
     };
 
@@ -91,8 +110,9 @@ export function Expenses() {
             expense.expense_number?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = filterStatus.includes(expense.status);
+        const matchesType = filterType.includes(expense.expense_type || 'OPEX');
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus && matchesType;
     });
 
     const totalThisMonth = filteredExpenses?.reduce((sum: number, expense: any) => sum + expense.total_amount, 0) || 0;
@@ -156,6 +176,39 @@ export function Expenses() {
                                     <Clock size={14} className={newExpenseStatus === 'unpaid' ? 'opacity-100' : 'opacity-0'} />
                                     Bayar Nanti (Hutang)
                                 </button>
+                            </div>
+
+                            {/* Type Toggle */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipe Pengeluaran</label>
+                                    <div className="flex bg-muted/50 p-1 rounded-lg">
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewExpenseType('OPEX')}
+                                            className={clsx(
+                                                "flex-1 py-1.5 text-xs font-medium rounded-md transition-all",
+                                                newExpenseType === 'OPEX'
+                                                    ? "bg-background text-foreground shadow-sm ring-1 ring-border"
+                                                    : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                        >
+                                            OPEX (Operasional)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewExpenseType('CAPEX')}
+                                            className={clsx(
+                                                "flex-1 py-1.5 text-xs font-medium rounded-md transition-all",
+                                                newExpenseType === 'CAPEX'
+                                                    ? "bg-blue-500/10 text-blue-600 shadow-sm ring-1 ring-blue-500/20"
+                                                    : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                        >
+                                            CAPEX (Modal)
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -345,6 +398,47 @@ export function Expenses() {
                                 <span className="group-hover:text-amber-500 transition-colors">Belum Dibayar (Hutang)</span>
                             </label>
                         </div>
+
+                        <h3 className="text-xs font-bold text-muted-foreground mb-4 mt-8 uppercase tracking-wider flex items-center gap-2">
+                            <Tag size={14} /> Filter Tipe
+                        </h3>
+                        <div className="space-y-3">
+                            <label className="flex items-center gap-3 text-sm text-foreground cursor-pointer group select-none">
+                                <div className={clsx(
+                                    "w-5 h-5 rounded border flex items-center justify-center transition-colors",
+                                    filterType.includes('OPEX')
+                                        ? "bg-slate-500 border-slate-500 text-white"
+                                        : "border-muted-foreground/30 bg-background group-hover:border-slate-500"
+                                )}>
+                                    {filterType.includes('OPEX') && <Check size={12} strokeWidth={3} />}
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    className="hidden"
+                                    checked={filterType.includes('OPEX')}
+                                    onChange={() => toggleTypeFilter('OPEX')}
+                                />
+                                <span className="group-hover:text-slate-500 transition-colors">OPEX (Operasional)</span>
+                            </label>
+
+                            <label className="flex items-center gap-3 text-sm text-foreground cursor-pointer group select-none">
+                                <div className={clsx(
+                                    "w-5 h-5 rounded border flex items-center justify-center transition-colors",
+                                    filterType.includes('CAPEX')
+                                        ? "bg-blue-600 border-blue-600 text-white"
+                                        : "border-muted-foreground/30 bg-background group-hover:border-blue-600"
+                                )}>
+                                    {filterType.includes('CAPEX') && <Check size={12} strokeWidth={3} />}
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    className="hidden"
+                                    checked={filterType.includes('CAPEX')}
+                                    onChange={() => toggleTypeFilter('CAPEX')}
+                                />
+                                <span className="group-hover:text-blue-600 transition-colors">CAPEX (Modal)</span>
+                            </label>
+                        </div>
                     </Card>
                 </div>
 
@@ -386,9 +480,17 @@ export function Expenses() {
                                         <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
                                             <div className="text-right">
                                                 <p className="font-bold text-foreground text-lg">{formatCurrency(expense.total_amount)}</p>
-                                                <Badge variant={expense.status === 'paid' ? 'success' : 'warning'} className="text-[10px] py-0.5 px-2 uppercase tracking-wide">
-                                                    {expense.status === 'paid' ? 'LUNAS' : 'BELUM DIBAYAR'}
-                                                </Badge>
+                                                <div className="flex justify-end gap-2 mt-1">
+                                                    <Badge variant="outline" className={clsx(
+                                                        "text-[10px] py-0.5 px-2 uppercase tracking-wide border-0",
+                                                        expense.expense_type === 'CAPEX' ? "bg-blue-500/10 text-blue-600" : "bg-slate-500/10 text-slate-600"
+                                                    )}>
+                                                        {expense.expense_type || 'OPEX'}
+                                                    </Badge>
+                                                    <Badge variant={expense.status === 'paid' ? 'success' : 'warning'} className="text-[10px] py-0.5 px-2 uppercase tracking-wide">
+                                                        {expense.status === 'paid' ? 'LUNAS' : 'BELUM DIBAYAR'}
+                                                    </Badge>
+                                                </div>
                                             </div>
                                             <div className="flex gap-1">
                                                 <button className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors" title="Lihat Detail">

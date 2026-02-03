@@ -818,6 +818,8 @@ impl AssetRepository {
                 ((vehicle_details->>'tax_expiry')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days')::interval)
                 OR
                 ((vehicle_details->>'kir_expiry')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days')::interval)
+                OR
+                ((vehicle_details->>'heavy_equipment_tax_expiry')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days')::interval)
             )
             AND status != 'archived'
             "#,

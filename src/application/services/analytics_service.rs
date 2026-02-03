@@ -1,3 +1,4 @@
+use crate::domain::entities::AssetState;
 use crate::domain::errors::{DomainError, DomainResult};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -143,14 +144,39 @@ impl AnalyticsService {
             message: e.to_string(),
         })?;
 
-        Ok(rows
+        // Normalize and aggregate
+        let mut normalization_map: std::collections::HashMap<String, (i64, Decimal)> =
+            std::collections::HashMap::new();
+
+        for row in rows {
+            let raw_status = row.status.unwrap_or_else(|| "Unknown".to_string());
+            let count = row.count.unwrap_or(0);
+            let value = row.total_value.unwrap_or(Decimal::ZERO);
+
+            let normalized_status = AssetState::from_str(&raw_status)
+                .map(|s| s.as_str().to_string())
+                .unwrap_or(raw_status);
+
+            let entry = normalization_map
+                .entry(normalized_status)
+                .or_insert((0, Decimal::ZERO));
+            entry.0 += count;
+            entry.1 += value;
+        }
+
+        let mut result: Vec<ConditionDistribution> = normalization_map
             .into_iter()
-            .map(|r| ConditionDistribution {
-                condition: r.status.unwrap_or_else(|| "Unknown".to_string()),
-                count: r.count.unwrap_or(0),
-                total_value: r.total_value.unwrap_or(Decimal::ZERO),
+            .map(|(condition, (count, total_value))| ConditionDistribution {
+                condition,
+                count,
+                total_value,
             })
-            .collect())
+            .collect();
+
+        // Sort by count descending
+        result.sort_by(|a, b| b.count.cmp(&a.count));
+
+        Ok(result)
     }
 
     pub async fn get_asset_roi(&self, asset_id: Uuid) -> DomainResult<AssetRoiResponse> {

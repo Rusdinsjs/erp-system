@@ -189,18 +189,19 @@ const navItems: NavEntry[] = [
             { id: 'loans', icon: HandMetal, label: 'Internal Asset Loans', minLevel: 5 },
             { id: 'fuel', icon: Fuel, label: 'Fuel Usage (BBM)', minLevel: 5 },
             { id: 'tax-renewals', icon: FileText, label: 'Tax & Renewals', minLevel: 4 },
-            {
-                id: 'maintenance_subgroup',
-                label: 'Service & Maintenance',
-                icon: Wrench,
-                children: [
-                    { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
-                    { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
-                    { id: 'maintenance-templates', icon: ClipboardCheck, label: 'SOP Templates', minLevel: 3 },
-
-                    { id: 'asset-lifecycle', icon: History, label: 'Life Cycle Log', minLevel: 3 },
-                ]
-            },
+            { id: 'asset-lifecycle', icon: History, label: 'Life Cycle Log', minLevel: 3 },
+        ]
+    },
+    {
+        id: 'maintenance_group',
+        label: 'Service & Maintenance',
+        icon: Wrench,
+        minLevel: 5, // Main group visible to all, children have specific levels
+        context: 'operations',
+        children: [
+            { id: 'work-orders', icon: Wrench, label: 'Work Orders', minLevel: 4 },
+            { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
+            { id: 'maintenance-templates', icon: ClipboardCheck, label: 'SOP Templates', minLevel: 3 },
         ]
     },
 
@@ -346,6 +347,7 @@ export default function AdminDashboard() {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
         asset_operations: false,
+        maintenance_group: false,
         hrd_group: false,
         master_data: false,
         rental_group: false,

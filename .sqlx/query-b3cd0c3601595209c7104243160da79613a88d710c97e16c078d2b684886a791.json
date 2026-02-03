@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT id, expense_number, date, pay_from_account_id, recipient, \n                   total_amount::FLOAT8 as \"total_amount!\", status, journal_entry_id, created_at\n            FROM expenses\n            ORDER BY date DESC, created_at DESC\n            ",
+  "query": "\n            INSERT INTO expenses (\n                id, expense_number, date, pay_from_account_id, recipient, total_amount, status, attachment_url\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING id, expense_number, date, pay_from_account_id, recipient, \n                      total_amount::FLOAT8 as \"total_amount!\", status, journal_entry_id, created_at, attachment_url\n            ",
   "describe": {
     "columns": [
       {
@@ -47,10 +47,24 @@
         "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "attachment_url",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Date",
+        "Uuid",
+        "Varchar",
+        "Numeric",
+        "Varchar",
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -61,8 +75,9 @@
       null,
       false,
       true,
-      false
+      false,
+      true
     ]
   },
-  "hash": "4c96dcf9b8cd48d2df9769ceda63b9ae11b937873b3a59274ff10c553e35d057"
+  "hash": "b3cd0c3601595209c7104243160da79613a88d710c97e16c078d2b684886a791"
 }

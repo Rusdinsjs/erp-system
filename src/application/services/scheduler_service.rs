@@ -16,6 +16,7 @@ pub struct SchedulerService {
     notification_service: crate::application::services::NotificationService,
     asset_service: crate::application::services::AssetService,
     tax_renewal_service: crate::application::services::TaxRenewalService,
+    depreciation_service: crate::application::services::DepreciationService,
 }
 
 impl SchedulerService {
@@ -26,6 +27,7 @@ impl SchedulerService {
         notification_service: crate::application::services::NotificationService,
         asset_service: crate::application::services::AssetService,
         tax_renewal_service: crate::application::services::TaxRenewalService,
+        depreciation_service: crate::application::services::DepreciationService,
     ) -> Self {
         Self {
             loan_service,
@@ -34,6 +36,7 @@ impl SchedulerService {
             notification_service,
             asset_service,
             tax_renewal_service,
+            depreciation_service,
         }
     }
 
@@ -164,6 +167,29 @@ impl SchedulerService {
                 })
             })?)
             .await?;
+
+        // Job 5: Monthly Depreciation (1st of month at 01:00 AM)
+        let dep_service = self.depreciation_service.clone();
+        sched
+            .add(Job::new_async("0 0 1 1 * *", move |_uuid, _l| {
+                let service = dep_service.clone();
+                Box::pin(async move {
+                    info!("Running scheduled job: Monthly Depreciation Process");
+                    match service.process_monthly_depreciation().await {
+                        Ok(count) => {
+                            info!("Depreciation process completed, processed {} assets", count)
+                        }
+                        Err(e) => error!("Error processing depreciation: {}", e),
+                    }
+                })
+            })?)
+            .await?;
+
+        // For testing: Run detection on startup
+        info!("Running initial tax renewal detection on startup...");
+        if let Err(e) = self.tax_renewal_service.detect_expiring_assets().await {
+            error!("Error running initial detection: {}", e);
+        }
 
         sched.start().await?;
         info!("Scheduler started");

@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::application::dto::asset_expense_dto::{
     CreateAssetExpenseItemRequest, CreateAssetExpenseRequest,
 };
+use crate::domain::entities::journal::{CreateJournalEntryRequest, CreateJournalLineRequest};
 use crate::domain::entities::{
     AssetState, ChecklistItem, WorkOrder, WorkOrderPart, WorkOrderStatus,
 };
@@ -49,6 +50,7 @@ pub struct WorkOrderService {
     asset_expense_service: crate::application::services::AssetExpenseService,
     maintenance_template_repo: MaintenanceTemplateRepository,
     inventory_service: crate::application::services::InventoryService,
+    journal_service: crate::application::services::JournalService,
 }
 
 impl WorkOrderService {
@@ -61,6 +63,7 @@ impl WorkOrderService {
         asset_expense_service: crate::application::services::AssetExpenseService,
         maintenance_template_repo: MaintenanceTemplateRepository,
         inventory_service: crate::application::services::InventoryService,
+        journal_service: crate::application::services::JournalService,
     ) -> Self {
         Self {
             repository,
@@ -71,6 +74,7 @@ impl WorkOrderService {
             asset_expense_service,
             maintenance_template_repo,
             inventory_service,
+            journal_service,
         }
     }
 
@@ -578,6 +582,62 @@ impl WorkOrderService {
                 .create(wo.asset_id, expense_req, reviewer_id)
                 .await?;
             capex_id = Some(expense.id);
+        }
+
+        // Labor Journaling (Internal Allocation)
+        if let Some(labor) = wo.labor_cost {
+            if labor > rust_decimal::Decimal::ZERO {
+                // 6-1999 "Alokasi Tenaga Kerja" (Labor Applied)
+                let labor_applied_id =
+                    Uuid::parse_str("00000000-0000-4006-a199-000000000000").unwrap_or_default();
+                // 5-1110 "Biaya Suku Cadang & Maintenance"
+                let maintenance_expense_id =
+                    Uuid::parse_str("00000000-0000-4005-a111-000000000000").unwrap_or_default();
+
+                let debit_account_id = if labor_expense_type == "CAPEX" {
+                    // Try to fetch the Asset's Control Account
+                    if let Ok(Some(acc_id)) =
+                        self.asset_repo.get_asset_account_id(wo.asset_id).await
+                    {
+                        acc_id
+                    } else {
+                        // Fallback to Maintenance Expense
+                        maintenance_expense_id
+                    }
+                } else {
+                    maintenance_expense_id
+                };
+
+                let journal_req = CreateJournalEntryRequest {
+                    date: chrono::Utc::now().date_naive(),
+                    description: format!("Labor Allocation: WO-{}", wo.wo_number),
+                    reference: Some(wo.wo_number.clone()),
+                    lines: vec![
+                        CreateJournalLineRequest {
+                            account_id: debit_account_id,
+                            description: Some(format!("Labor Cost: WO-{}", wo.wo_number)),
+                            debit: labor,
+                            credit: rust_decimal::Decimal::ZERO,
+                        },
+                        CreateJournalLineRequest {
+                            account_id: labor_applied_id,
+                            description: Some("Internal Labor Applied".to_string()),
+                            debit: rust_decimal::Decimal::ZERO,
+                            credit: labor,
+                        },
+                    ],
+                };
+
+                // Fire and forget (log error)
+                let _ = self
+                    .journal_service
+                    .create_entry(journal_req, Some(reviewer_id))
+                    .await
+                    .map_err(|e| {
+                        println!("ERROR creating journal entry for Labor: {:?}", e);
+                        e
+                    });
+            }
         }
 
         // 3. Update Work Order

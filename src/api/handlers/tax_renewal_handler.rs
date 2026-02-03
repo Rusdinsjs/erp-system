@@ -1,7 +1,7 @@
 use crate::api::responses::ApiResponse;
 use crate::api::server::AppState;
 use crate::application::dto::{
-    CompleteTaxRenewalRequest, TaxRenewalDto, UpdateTaxRenewalCostRequest,
+    ApproveTaxRenewalRequest, CompleteTaxRenewalRequest, TaxRenewalDto, UpdateTaxRenewalCostRequest,
 };
 use crate::domain::errors::DomainError;
 use axum::{
@@ -27,13 +27,15 @@ pub async fn list_renewals(
         .map(|r| TaxRenewalDto {
             id: r.id,
             asset_id: r.asset_id,
-            asset_name: None, // Frontend can fetch or we enhance later
+            asset_name: r.asset_name,
             license_plate: None,
             document_type: r.document_type,
             current_expiry: r.current_expiry,
             renewal_cost: r.renewal_cost,
             status: r.status,
             notes: r.notes,
+            payment_destination: r.payment_destination,
+            invoice_attachment: r.invoice_attachment,
             created_at: r.created_at,
             updated_at: r.updated_at,
         })
@@ -47,7 +49,16 @@ pub async fn submit_cost(
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateTaxRenewalCostRequest>,
 ) -> Result<Json<ApiResponse<TaxRenewalDto>>, DomainError> {
-    let renewal = state.tax_renewal_service.submit_cost(id, req).await?;
+    let domain_req = crate::domain::entities::UpdateTaxRenewalCostRequest {
+        renewal_cost: req.renewal_cost,
+        notes: req.notes,
+        payment_destination: req.payment_destination,
+        invoice_attachment: req.invoice_attachment,
+    };
+    let renewal = state
+        .tax_renewal_service
+        .submit_cost(id, domain_req)
+        .await?;
 
     Ok(Json(ApiResponse::success(TaxRenewalDto {
         id: renewal.id,
@@ -59,6 +70,8 @@ pub async fn submit_cost(
         renewal_cost: renewal.renewal_cost,
         status: renewal.status,
         notes: renewal.notes,
+        payment_destination: renewal.payment_destination,
+        invoice_attachment: renewal.invoice_attachment,
         created_at: renewal.created_at,
         updated_at: renewal.updated_at,
     })))
@@ -67,8 +80,12 @@ pub async fn submit_cost(
 pub async fn approve_renewal(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    Json(req): Json<ApproveTaxRenewalRequest>,
 ) -> Result<Json<ApiResponse<TaxRenewalDto>>, DomainError> {
-    let renewal = state.tax_renewal_service.approve_renewal(id).await?;
+    let renewal = state
+        .tax_renewal_service
+        .approve_renewal(id, req.notes)
+        .await?;
 
     Ok(Json(ApiResponse::success(TaxRenewalDto {
         id: renewal.id,
@@ -80,6 +97,35 @@ pub async fn approve_renewal(
         renewal_cost: renewal.renewal_cost,
         status: renewal.status,
         notes: renewal.notes,
+        payment_destination: renewal.payment_destination,
+        invoice_attachment: renewal.invoice_attachment,
+        created_at: renewal.created_at,
+        updated_at: renewal.updated_at,
+    })))
+}
+
+pub async fn reject_renewal(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(req): Json<ApproveTaxRenewalRequest>,
+) -> Result<Json<ApiResponse<TaxRenewalDto>>, DomainError> {
+    let renewal = state
+        .tax_renewal_service
+        .reject_renewal(id, req.notes)
+        .await?;
+
+    Ok(Json(ApiResponse::success(TaxRenewalDto {
+        id: renewal.id,
+        asset_id: renewal.asset_id,
+        asset_name: None,
+        license_plate: None,
+        document_type: renewal.document_type,
+        current_expiry: renewal.current_expiry,
+        renewal_cost: renewal.renewal_cost,
+        status: renewal.status,
+        notes: renewal.notes,
+        payment_destination: renewal.payment_destination,
+        invoice_attachment: renewal.invoice_attachment,
         created_at: renewal.created_at,
         updated_at: renewal.updated_at,
     })))
@@ -105,6 +151,8 @@ pub async fn complete_renewal(
         renewal_cost: renewal.renewal_cost,
         status: renewal.status,
         notes: renewal.notes,
+        payment_destination: renewal.payment_destination,
+        invoice_attachment: renewal.invoice_attachment,
         created_at: renewal.created_at,
         updated_at: renewal.updated_at,
     })))

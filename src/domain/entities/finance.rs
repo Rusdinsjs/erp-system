@@ -111,6 +111,7 @@ pub struct SalesInvoice {
     pub status: String,
     pub journal_entry_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    pub attachment_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -136,6 +137,7 @@ pub struct PurchaseBill {
     pub status: String,
     pub journal_entry_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    pub attachment_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -147,7 +149,9 @@ pub struct Expense {
     pub recipient: Option<String>,
     pub total_amount: f64,
     pub status: String,
+    pub expense_type: String, // OPEX or CAPEX
     pub journal_entry_id: Option<Uuid>,
+    pub attachment_url: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -251,6 +255,7 @@ pub struct PurchaseOrder {
     pub tax: f64,
     pub total_amount: f64,
     pub status: String,
+    pub budget_type: String, // OPEX or CAPEX
     pub created_at: DateTime<Utc>,
 }
 
@@ -262,6 +267,7 @@ pub struct CreatePurchaseOrderRequest {
     pub date: chrono::NaiveDate,
     pub delivery_date: Option<chrono::NaiveDate>,
     pub subject: Option<String>,
+    pub budget_type: Option<String>,
     pub items: Vec<CreateInvoiceItemRequest>,
 }
 
@@ -296,6 +302,7 @@ pub struct CreateSalesInvoiceRequest {
     pub due_date: Option<chrono::NaiveDate>,
     pub subject: Option<String>,
     pub items: Vec<CreateInvoiceItemRequest>,
+    pub attachment_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -312,7 +319,9 @@ pub struct CreatePurchaseBillRequest {
     pub vendor_id: Uuid,
     pub date: chrono::NaiveDate,
     pub due_date: Option<chrono::NaiveDate>,
+    pub account_payable_id: Option<Uuid>,
     pub items: Vec<CreateBillItemRequest>,
+    pub attachment_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -330,7 +339,9 @@ pub struct CreateExpenseRequest {
     pub pay_from_account_id: Uuid,
     pub recipient: Option<String>,
     pub status: Option<String>,
+    pub expense_type: Option<String>,
     pub items: Vec<CreateExpenseItemRequest>,
+    pub attachment_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

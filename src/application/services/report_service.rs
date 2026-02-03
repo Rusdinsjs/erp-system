@@ -1,6 +1,8 @@
 use crate::domain::entities::AssetState;
 use crate::domain::errors::{DomainError, DomainResult};
-use crate::infrastructure::repositories::{AssetRepository, MaintenanceRepository};
+use crate::infrastructure::repositories::{
+    AssetRepository, FinanceRepository, MaintenanceRepository,
+};
 use chrono::NaiveDate;
 use genpdf::{elements, style, Element};
 use std::io::Cursor;
@@ -12,13 +14,19 @@ use std::io::Cursor;
 pub struct ReportService {
     asset_repo: AssetRepository,
     maintenance_repo: MaintenanceRepository,
+    finance_repo: FinanceRepository,
 }
 
 impl ReportService {
-    pub fn new(asset_repo: AssetRepository, maintenance_repo: MaintenanceRepository) -> Self {
+    pub fn new(
+        asset_repo: AssetRepository,
+        maintenance_repo: MaintenanceRepository,
+        finance_repo: FinanceRepository,
+    ) -> Self {
         Self {
             asset_repo,
             maintenance_repo,
+            finance_repo,
         }
     }
 
@@ -279,12 +287,51 @@ impl ReportService {
             .map_err(|e| DomainError::internal(e.to_string()))
     }
 
+    pub async fn get_capex_opex_analysis(
+        &self,
+        start_date: Option<NaiveDate>,
+        end_date: Option<NaiveDate>,
+    ) -> DomainResult<Vec<crate::infrastructure::repositories::ExpenseAnalysis>> {
+        self.finance_repo
+            .get_expense_analysis(start_date, end_date)
+            .await
+    }
+
     pub async fn get_asset_status_distribution(
         &self,
     ) -> DomainResult<Vec<crate::domain::entities::analytics::AssetStatusStats>> {
-        self.asset_repo
+        let raw_stats = self
+            .asset_repo
             .get_status_distribution()
             .await
-            .map_err(|e| DomainError::internal(e.to_string()))
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
+        // Normalize and aggregate
+        let mut normalization_map: std::collections::HashMap<String, i64> =
+            std::collections::HashMap::new();
+
+        for stat in raw_stats {
+            let normalized_status = AssetState::from_str(&stat.status)
+                .map(|s| s.as_str().to_string())
+                .unwrap_or(stat.status); // Fallback to original if not a known enum variant
+
+            *normalization_map.entry(normalized_status).or_insert(0) += stat.count;
+        }
+
+        let mut normalized_stats: Vec<crate::domain::entities::analytics::AssetStatusStats> =
+            normalization_map
+                .into_iter()
+                .map(
+                    |(status, count)| crate::domain::entities::analytics::AssetStatusStats {
+                        status,
+                        count,
+                    },
+                )
+                .collect();
+
+        // Sort by count descending
+        normalized_stats.sort_by(|a, b| b.count.cmp(&a.count));
+
+        Ok(normalized_stats)
     }
 }

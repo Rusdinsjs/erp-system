@@ -12,6 +12,9 @@ export interface TaxRenewal {
     renewal_cost?: number;
     status: TaxRenewalStatus;
     notes?: string;
+    payment_destination?: string;
+    invoice_attachment?: string;
+    payment_date?: string;
     created_at: string;
     updated_at: string;
 }
@@ -19,6 +22,8 @@ export interface TaxRenewal {
 export interface UpdateRenewalCostRequest {
     renewal_cost: number;
     notes?: string;
+    payment_destination?: string;
+    invoice_attachment?: string;
 }
 
 export interface CompleteTaxRenewalRequest {
@@ -27,8 +32,8 @@ export interface CompleteTaxRenewalRequest {
 
 export const taxRenewalApi = {
     list: async (status?: string) => {
-        const response = await api.get<TaxRenewal[]>('/tax-renewals', { params: { status } });
-        return response.data;
+        const response = await api.get<{ data: TaxRenewal[] }>('/tax-renewals', { params: { status } });
+        return response.data.data;
     },
 
     submitCost: async (id: string, data: UpdateRenewalCostRequest) => {
@@ -36,8 +41,13 @@ export const taxRenewalApi = {
         return response.data;
     },
 
-    approve: async (id: string) => {
-        const response = await api.put<TaxRenewal>(`/tax-renewals/${id}/approve`);
+    approve: async (id: string, notes?: string) => {
+        const response = await api.put<TaxRenewal>(`/tax-renewals/${id}/approve`, { notes });
+        return response.data;
+    },
+
+    reject: async (id: string, notes: string) => {
+        const response = await api.put<TaxRenewal>(`/tax-renewals/${id}/reject`, { notes });
         return response.data;
     },
 

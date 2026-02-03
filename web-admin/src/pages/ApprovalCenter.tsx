@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { approvalApi } from '../api/approval';
 import { conversionApi } from '../api/conversion';
 import { fuelApi } from '../api/fuel';
+import { taxRenewalApi } from '../api/tax-renewals';
 import type { ApprovalRequest } from '../api/approval';
 import {
     Button,
@@ -20,7 +21,7 @@ import {
     LoadingOverlay,
     useToast,
 } from '../components/ui';
-import { Fuel } from 'lucide-react';
+import { Fuel, FileText } from 'lucide-react';
 
 // Resource type config
 const resourceTypeConfig: Record<string, { label: string; iconColor: string }> = {
@@ -32,6 +33,7 @@ const resourceTypeConfig: Record<string, { label: string; iconColor: string }> =
     loan: { label: 'Loan Request', iconColor: 'text-cyan-400' },
     conversion_request: { label: 'Conversion', iconColor: 'text-purple-400' },
     fuel_request: { label: 'Fuel Request', iconColor: 'text-yellow-400' },
+    tax_renewal: { label: 'Tax Renewal', iconColor: 'text-rose-400' },
 };
 
 // State colors for lifecycle
@@ -243,6 +245,50 @@ function RequestDetails({ request, showDetails = false }: { request: ApprovalReq
         );
     }
 
+    if (request.resource_type === 'tax_renewal') {
+        return (
+            <div className="space-y-1">
+                <p className="text-sm font-medium text-white">{data?.asset_name || data?.asset_id || 'Unknown Asset'}</p>
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                    <FileText size={12} />
+                    <span>{data?.document_type}</span>
+                </div>
+                {data?.renewal_cost && (
+                    <p className="text-xs text-emerald-400">
+                        Cost: Rp {Number(data.renewal_cost).toLocaleString()}
+                    </p>
+                )}
+                {showDetails && data?.invoice_attachment && (
+                    <div className="mt-3">
+                        <p className="text-xs text-slate-400 mb-1">Invoice / Receipt:</p>
+                        <div className="relative rounded-lg overflow-hidden border border-slate-700 bg-slate-900 w-full max-w-sm">
+                            {data.invoice_attachment.toLowerCase().endsWith('.pdf') ? (
+                                <a
+                                    href={getFullImageUrl(data.invoice_attachment)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center p-4 text-cyan-400 hover:bg-slate-800 transition-colors"
+                                >
+                                    <FileText size={24} className="mr-2" />
+                                    <span className="text-sm font-medium">View PDF Invoice</span>
+                                </a>
+                            ) : (
+                                <img
+                                    src={getFullImageUrl(data.invoice_attachment)}
+                                    alt="Invoice Attachment"
+                                    className="w-full h-auto object-cover max-h-[400px]"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                />
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <p className="text-xs text-slate-500 truncate max-w-[200px]">
             {JSON.stringify(data)}
@@ -297,6 +343,13 @@ export function ApprovalCenter() {
         enabled: activeTab === 'pending',
     });
 
+    // Tax Renewals (integrated)
+    const { data: taxRenewals = [], isLoading: loadingTax } = useQuery({
+        queryKey: ['tax-renewals', 'pending'],
+        queryFn: () => taxRenewalApi.list('PENDING_APPROVAL'),
+        enabled: activeTab === 'pending',
+    });
+
     const { data: myRequests = [], isLoading: loadingMy } = useQuery({
         queryKey: ['approvals', 'my-requests'],
         queryFn: approvalApi.listMyRequests,
@@ -318,7 +371,7 @@ export function ApprovalCenter() {
             action_type: 'conversion',
             status: c.status.toUpperCase(), // 'PENDING'
             current_approval_level: 1,
-            requester_id: '',
+            requested_by: c.requested_by || 'Unknown', // Map to correct field
             requester_name: c.requested_by,
             created_at: c.created_at,
             updated_at: c.created_at,
@@ -339,10 +392,24 @@ export function ApprovalCenter() {
             data_snapshot: f,
         }));
 
-        return [...standardRequests, ...mappedConversions, ...mappedFuel].sort((a, b) =>
+        const mappedTax: ApprovalRequest[] = taxRenewals.map((t: any) => ({
+            id: t.id,
+            resource_type: 'tax_renewal',
+            resource_id: t.asset_id,
+            action_type: 'tax_renewal',
+            status: t.status.toUpperCase(),
+            current_approval_level: 1,
+            requested_by: 'System', // Placeholder as tax renewals are system/admin generated
+            requester_name: 'Admin / Operator',
+            created_at: t.created_at,
+            updated_at: t.updated_at,
+            data_snapshot: t,
+        }));
+
+        return [...standardRequests, ...mappedConversions, ...mappedFuel, ...mappedTax].sort((a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
-    }, [standardRequests, conversionRequests, fuelRequests]);
+    }, [standardRequests, conversionRequests, fuelRequests, taxRenewals]);
 
     // Merge Requests for 'my_requests' view
     const myMergedRequests = useMemo(() => {
@@ -373,6 +440,9 @@ export function ApprovalCenter() {
             if (selectedRequest?.resource_type === 'fuel_request') {
                 return fuelApi.approve(id);
             }
+            if (selectedRequest?.resource_type === 'tax_renewal') {
+                return taxRenewalApi.approve(id, notes);
+            }
             return approvalApi.approve(id, notes);
         },
         onSuccess: () => {
@@ -380,6 +450,7 @@ export function ApprovalCenter() {
             queryClient.invalidateQueries({ queryKey: ['approvals'] });
             queryClient.invalidateQueries({ queryKey: ['conversions'] });
             queryClient.invalidateQueries({ queryKey: ['fuel'] });
+            queryClient.invalidateQueries({ queryKey: ['tax-renewals'] });
             setModalOpen(false);
         },
         onError: (err: any) => {
@@ -395,6 +466,9 @@ export function ApprovalCenter() {
             if (selectedRequest?.resource_type === 'fuel_request') {
                 return fuelApi.reject(id, notes);
             }
+            if (selectedRequest?.resource_type === 'tax_renewal') {
+                return taxRenewalApi.reject(id, notes);
+            }
             return approvalApi.reject(id, notes);
         },
         onSuccess: () => {
@@ -402,6 +476,7 @@ export function ApprovalCenter() {
             queryClient.invalidateQueries({ queryKey: ['approvals'] });
             queryClient.invalidateQueries({ queryKey: ['conversions'] });
             queryClient.invalidateQueries({ queryKey: ['fuel'] });
+            queryClient.invalidateQueries({ queryKey: ['tax-renewals'] });
             setModalOpen(false);
         },
         onError: (err: any) => {
@@ -417,12 +492,16 @@ export function ApprovalCenter() {
 
     const handleApprove = () => {
         if (!selectedRequest) return;
-        approveMutation.mutate({ id: selectedRequest.id, notes: actionNotes });
+        if (window.confirm('Are you sure you want to approve this request?')) {
+            approveMutation.mutate({ id: selectedRequest.id, notes: actionNotes });
+        }
     };
 
     const handleReject = () => {
         if (!selectedRequest) return;
-        rejectMutation.mutate({ id: selectedRequest.id, notes: actionNotes || 'Rejected' });
+        if (window.confirm('Are you sure you want to reject this request?')) {
+            rejectMutation.mutate({ id: selectedRequest.id, notes: actionNotes || 'Rejected' });
+        }
     };
 
     const getStatusBadge = (status: string): 'info' | 'success' | 'warning' | 'danger' | 'default' => {
@@ -438,7 +517,7 @@ export function ApprovalCenter() {
     };
 
     const currentData = activeTab === 'pending' ? pendingRequests : myMergedRequests;
-    const isLoading = activeTab === 'pending' ? (loadingStandard || loadingConversions || loadingFuel) : (loadingMy || loadingMyFuel);
+    const isLoading = activeTab === 'pending' ? (loadingStandard || loadingConversions || loadingFuel || loadingTax) : (loadingMy || loadingMyFuel);
     const filteredData = filterType === 'all' ? currentData : currentData.filter(r => r.resource_type === filterType);
 
     // Stats
@@ -450,6 +529,7 @@ export function ApprovalCenter() {
     const assetCount = pendingRequests.filter(r => r.resource_type === 'asset').length;
     const loanCount = pendingRequests.filter(r => r.resource_type === 'loan').length;
     const fuelCount = pendingRequests.filter(r => r.resource_type === 'fuel_request').length;
+    const taxCount = pendingRequests.filter(r => r.resource_type === 'tax_renewal').length;
 
     const TabButton = ({ value, children, icon: Icon }: { value: string; children: React.ReactNode; icon: any }) => (
         <button
@@ -486,7 +566,7 @@ export function ApprovalCenter() {
 
             {/* Stats */}
             {activeTab === 'pending' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                     <StatCard title="Lifecycle" value={lifecycleCount} icon={RefreshCw} iconColor="text-violet-400" />
                     <StatCard title="Work Orders" value={workOrderCount} icon={Wrench} iconColor="text-blue-400" />
                     <StatCard title="Rentals" value={rentalCount} icon={Truck} iconColor="text-orange-400" />
@@ -495,6 +575,7 @@ export function ApprovalCenter() {
                     <StatCard title="Assets" value={assetCount} icon={ClipboardList} iconColor="text-green-400" />
                     <StatCard title="Loans" value={loanCount} icon={ClipboardList} iconColor="text-pink-400" />
                     <StatCard title="Fuel" value={fuelCount} icon={Fuel} iconColor="text-yellow-400" />
+                    <StatCard title="Tax" value={taxCount} icon={FileText} iconColor="text-rose-400" />
                 </div>
             )}
 
@@ -518,6 +599,7 @@ export function ApprovalCenter() {
                         { value: 'asset', label: 'Asset' },
                         { value: 'loan', label: 'Loan' },
                         { value: 'fuel_request', label: 'Fuel' },
+                        { value: 'tax_renewal', label: 'Tax Renewal' },
                     ]}
                 />
             </div>

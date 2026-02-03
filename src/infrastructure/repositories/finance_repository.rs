@@ -5,6 +5,14 @@ use crate::domain::entities::{
     AccountType, ChartOfAccount, GeneralLedgerEntry, NormalBalance, TrialBalanceEntry,
 };
 use crate::domain::errors::{DomainError, DomainResult};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExpenseAnalysis {
+    pub month: chrono::NaiveDate,
+    pub expense_type: String,
+    pub total_amount: f64,
+}
 
 #[derive(Clone)]
 pub struct FinanceRepository {
@@ -246,7 +254,7 @@ impl FinanceRepository {
             SELECT id, invoice_number, client_id, date, due_date, subject, 
                    subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
                    total_amount::FLOAT8 as "total_amount!", amount_paid::FLOAT8 as "amount_paid!", 
-                   status, journal_entry_id, created_at
+                   status, journal_entry_id, created_at, attachment_url
             FROM sales_invoices
             ORDER BY date DESC, created_at DESC
             "#
@@ -265,7 +273,7 @@ impl FinanceRepository {
             r#"
             SELECT id, bill_number, vendor_id, date, due_date, 
                    total_amount::FLOAT8 as "total_amount!", amount_paid::FLOAT8 as "amount_paid!", 
-                   status, journal_entry_id, created_at
+                   status, journal_entry_id, created_at, attachment_url
             FROM purchase_bills
             ORDER BY date DESC, created_at DESC
             "#
@@ -281,7 +289,8 @@ impl FinanceRepository {
             crate::domain::entities::Expense,
             r#"
             SELECT id, expense_number, date, pay_from_account_id, recipient, 
-                   total_amount::FLOAT8 as "total_amount!", status, journal_entry_id, created_at
+                   total_amount::FLOAT8 as "total_amount!", status, expense_type, 
+                   journal_entry_id, created_at, attachment_url
             FROM expenses
             ORDER BY date DESC, created_at DESC
             "#
@@ -384,11 +393,13 @@ impl FinanceRepository {
             crate::domain::entities::Expense,
             r#"
             INSERT INTO expenses (
-                id, expense_number, date, pay_from_account_id, recipient, total_amount, status
+                id, expense_number, date, pay_from_account_id, recipient, total_amount, 
+                status, expense_type, attachment_url
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id, expense_number, date, pay_from_account_id, recipient, 
-                      total_amount::FLOAT8 as "total_amount!", status, journal_entry_id, created_at
+                      total_amount::FLOAT8 as "total_amount!", status, expense_type, 
+                      journal_entry_id, created_at, attachment_url
             "#,
             expense.id,
             expense.expense_number,
@@ -396,7 +407,9 @@ impl FinanceRepository {
             expense.pay_from_account_id,
             expense.recipient,
             expense.total_amount as f64,
-            expense.status
+            expense.status,
+            expense.expense_type,
+            expense.attachment_url
         )
         .fetch_one(&self.pool)
         .await
@@ -413,13 +426,13 @@ impl FinanceRepository {
             r#"
             INSERT INTO sales_invoices (
                 id, invoice_number, client_id, date, due_date, subject, 
-                subtotal, tax, total_amount, amount_paid, status
+                subtotal, tax, total_amount, amount_paid, status, attachment_url
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING id, invoice_number, client_id, date, due_date, subject, 
                       subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
                       total_amount::FLOAT8 as "total_amount!", amount_paid::FLOAT8 as "amount_paid!", 
-                      status, journal_entry_id, created_at
+                      status, journal_entry_id, created_at, attachment_url
             "#,
             invoice.id,
             invoice.invoice_number,
@@ -431,7 +444,8 @@ impl FinanceRepository {
             invoice.tax as f64,
             invoice.total_amount as f64,
             invoice.amount_paid as f64,
-            invoice.status
+            invoice.status,
+            invoice.attachment_url
         )
         .fetch_one(&self.pool)
         .await
@@ -447,12 +461,12 @@ impl FinanceRepository {
             crate::domain::entities::PurchaseBill,
             r#"
             INSERT INTO purchase_bills (
-                id, bill_number, vendor_id, date, due_date, total_amount, amount_paid, status
+                id, bill_number, vendor_id, date, due_date, total_amount, amount_paid, status, attachment_url
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id, bill_number, vendor_id, date, due_date, 
                       total_amount::FLOAT8 as "total_amount!", amount_paid::FLOAT8 as "amount_paid!", 
-                      status, journal_entry_id, created_at
+                      status, journal_entry_id, created_at, attachment_url
             "#,
             bill.id,
             bill.bill_number,
@@ -461,7 +475,8 @@ impl FinanceRepository {
             bill.due_date,
             bill.total_amount as f64,
             bill.amount_paid as f64,
-            bill.status
+            bill.status,
+            bill.attachment_url
         )
         .fetch_one(&self.pool)
         .await
@@ -684,7 +699,7 @@ impl FinanceRepository {
             r#"
             SELECT id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
                    subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
-                   total_amount::FLOAT8 as "total_amount!", status, created_at as "created_at!"
+                   total_amount::FLOAT8 as "total_amount!", status, budget_type, created_at as "created_at!"
             FROM purchase_orders
             ORDER BY date DESC, created_at DESC
             "#
@@ -704,12 +719,12 @@ impl FinanceRepository {
             r#"
             INSERT INTO purchase_orders (
                 id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
-                subtotal, tax, total_amount, status, created_at
+                subtotal, tax, total_amount, status, budget_type, created_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
                       subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
-                      total_amount::FLOAT8 as "total_amount!", status, created_at as "created_at!"
+                      total_amount::FLOAT8 as "total_amount!", status, budget_type, created_at as "created_at!"
             "#,
             order.id,
             order.order_number,
@@ -722,6 +737,7 @@ impl FinanceRepository {
             order.tax as f64,
             order.total_amount as f64,
             order.status,
+            order.budget_type,
             order.created_at
         )
         .fetch_one(&self.pool)
@@ -773,5 +789,32 @@ impl FinanceRepository {
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
         Ok(rec)
+    }
+
+    pub async fn get_expense_analysis(
+        &self,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+    ) -> DomainResult<Vec<ExpenseAnalysis>> {
+        let recs = sqlx::query_as!(
+            ExpenseAnalysis,
+            r#"
+            SELECT 
+                DATE_TRUNC('month', date)::DATE as "month!",
+                expense_type,
+                SUM(total_amount)::FLOAT8 as "total_amount!"
+            FROM expenses
+            WHERE ($1::DATE IS NULL OR date >= $1)
+            AND ($2::DATE IS NULL OR date <= $2)
+            GROUP BY 1, 2
+            ORDER BY 1 ASC
+            "#,
+            start_date,
+            end_date
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(recs)
     }
 }
