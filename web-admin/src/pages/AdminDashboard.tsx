@@ -8,7 +8,7 @@ import {
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, TrendingUp,
     Wallet, ShoppingCart, Receipt, History, Wrench, Fuel, Shield, Layers,
-    CheckSquare, BarChart3, Box
+    CheckSquare, Box
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
@@ -280,7 +280,6 @@ const navItems: NavEntry[] = [
 
     { type: 'header', label: 'SYSTEM', minLevel: 3, context: 'system' },
     { id: 'approvals', icon: CheckSquare, label: 'Approval Center', minLevel: 3, showBadge: true, context: 'system' },
-    { id: 'reports', icon: BarChart3, label: 'Reports Center', minLevel: 3, context: 'system' },
 
     {
         id: 'settings_group',

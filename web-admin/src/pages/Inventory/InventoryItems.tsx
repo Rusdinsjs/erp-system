@@ -44,6 +44,46 @@ const MOCK_ITEMS = [
 
 export default function InventoryItems() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedItems = [...MOCK_ITEMS].sort((a, b) => {
+        if (!sortConfig) return 0;
+
+        let aValue: any = a[sortConfig.key as keyof typeof a];
+        let bValue: any = b[sortConfig.key as keyof typeof b];
+
+        // Specific handling for 'totalValue' since it's a computed field
+        if (sortConfig.key === 'totalValue') {
+            aValue = a.quantity * a.avgCost;
+            bValue = b.quantity * b.avgCost;
+        }
+
+        if (aValue < bValue) {
+            return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+            return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+
+    const filteredItems = sortedItems.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const SortIcon = ({ columnKey }: { columnKey: string }) => {
+        if (sortConfig?.key !== columnKey) return <div className="w-4 h-4 opacity-0 group-hover:opacity-30"><Filter size={14} /></div>;
+        return sortConfig.direction === 'asc' ? <ArrowUpRight size={14} className="text-cyan-400" /> : <ArrowDownRight size={14} className="text-cyan-400" />;
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -116,16 +156,40 @@ export default function InventoryItems() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-800 bg-slate-800/20">
-                                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Barang</th>
-                                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Kategori</th>
+                                <th
+                                    className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-800/50 hover:text-cyan-400 transition-colors group select-none"
+                                    onClick={() => handleSort('name')}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        Barang
+                                        <SortIcon columnKey="name" />
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-800/50 hover:text-cyan-400 transition-colors group select-none"
+                                    onClick={() => handleSort('category')}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        Kategori
+                                        <SortIcon columnKey="category" />
+                                    </div>
+                                </th>
                                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Stok</th>
                                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Hrg Rata-rata</th>
-                                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Total Nilai</th>
+                                <th
+                                    className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 cursor-pointer hover:bg-slate-800/50 hover:text-cyan-400 transition-colors group select-none"
+                                    onClick={() => handleSort('totalValue')}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        Total Nilai
+                                        <SortIcon columnKey="totalValue" />
+                                    </div>
+                                </th>
                                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/50">
-                            {MOCK_ITEMS.map((item) => (
+                            {filteredItems.map((item) => (
                                 <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as React from 'react';
-import { Save, AlertTriangle } from 'lucide-react';
+import { Save, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { rbacApi } from '../../api/rbac';
 import type { Role, Permission } from '../../types';
 import { Button, Card, LoadingOverlay, useToast, Badge } from '../ui';
@@ -99,6 +99,16 @@ export function RolePermissionsMatrix() {
     // Show all roles in the matrix
     const editableRoles = roles;
 
+    // Use a state to track expanded groups
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+    const toggleGroup = (groupName: string) => {
+        setExpandedGroups(prev => ({
+            ...prev,
+            [groupName]: !prev[groupName]
+        }));
+    };
+
     return (
         <div className="space-y-4">
             {hasChanges && (
@@ -122,15 +132,15 @@ export function RolePermissionsMatrix() {
                     <LoadingOverlay visible={loading} />
 
                     {!loading && (
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                                <thead>
+                        <div className="overflow-x-auto max-h-[70vh]">
+                            <table className="w-full border-collapse relative">
+                                <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
                                     <tr className="border-b border-slate-700">
-                                        <th className="text-left p-3 text-slate-300 font-semibold sticky left-0 bg-slate-900 z-10">
-                                            Permission
+                                        <th className="text-left p-3 text-slate-300 font-semibold sticky left-0 top-0 bg-slate-900 z-30 w-64 shadow-[1px_0_0_0_rgb(51,65,85)]">
+                                            Permission Group
                                         </th>
                                         {editableRoles.map(role => (
-                                            <th key={role.id} className="p-3 text-center min-w-[120px]">
+                                            <th key={role.id} className="p-3 text-center min-w-[120px] bg-slate-900">
                                                 <div className="flex flex-col items-center gap-1">
                                                     <span className="font-semibold text-white">{role.name}</span>
                                                     <Badge variant={role.role_level === 1 ? 'danger' : role.role_level === 2 ? 'warning' : 'info'}>
@@ -142,41 +152,53 @@ export function RolePermissionsMatrix() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {Object.entries(groupedPermissions).map(([resource, perms]) => (
-                                        <React.Fragment key={resource}>
-                                            <tr className="bg-slate-800/50">
-                                                <td colSpan={editableRoles.length + 1} className="p-3 font-bold text-cyan-400 uppercase text-sm">
-                                                    {resource.replace('_', ' ')}
-                                                </td>
-                                            </tr>
-                                            {perms.map(perm => (
-                                                <tr key={perm.id} className="border-b border-slate-800 hover:bg-slate-800/30">
-                                                    <td className="p-3 sticky left-0 bg-slate-900">
-                                                        <div>
-                                                            <div className="text-white font-medium">{perm.action}</div>
-                                                            <div className="text-xs text-slate-500">{perm.code}</div>
+                                    {Object.entries(groupedPermissions).map(([resource, perms]) => {
+                                        const isExpanded = expandedGroups[resource];
+                                        return (
+                                            <React.Fragment key={resource}>
+                                                <tr
+                                                    className="bg-slate-800/50 cursor-pointer hover:bg-slate-800 transition-colors"
+                                                    onClick={() => toggleGroup(resource)}
+                                                >
+                                                    <td colSpan={editableRoles.length + 1} className="p-3">
+                                                        <div className="flex items-center gap-2 font-bold text-cyan-400 uppercase text-sm">
+                                                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                                            {resource.replace(/_/g, ' ')}
+                                                            <span className="ml-auto text-xs text-slate-500 font-normal normal-case">
+                                                                {perms.length} permissions
+                                                            </span>
                                                         </div>
                                                     </td>
-                                                    {editableRoles.map(role => {
-                                                        const hasPermission = rolePermissions[role.id]?.has(perm.id) || false;
-                                                        const isSystemRole = role.is_system && role.code !== 'admin';
-
-                                                        return (
-                                                            <td key={role.id} className="p-3 text-center">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={hasPermission}
-                                                                    disabled={isSystemRole}
-                                                                    onChange={() => togglePermission(role.id, perm.id)}
-                                                                    className="w-5 h-5 rounded border-slate-600 bg-slate-950 text-cyan-500 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                />
-                                                            </td>
-                                                        );
-                                                    })}
                                                 </tr>
-                                            ))}
-                                        </React.Fragment>
-                                    ))}
+                                                {isExpanded && perms.map(perm => (
+                                                    <tr key={perm.id} className="border-b border-slate-800 hover:bg-slate-800/30 animate-in slide-in-from-top-2 duration-200">
+                                                        <td className="p-3 pl-8 sticky left-0 bg-slate-900 border-r border-slate-800">
+                                                            <div>
+                                                                <div className="text-white font-medium">{perm.action}</div>
+                                                                <div className="text-xs text-slate-500">{perm.description || perm.code}</div>
+                                                            </div>
+                                                        </td>
+                                                        {editableRoles.map(role => {
+                                                            const hasPermission = rolePermissions[role.id]?.has(perm.id) || false;
+
+                                                            return (
+                                                                <td key={role.id} className="p-3 text-center border-r border-slate-800/50">
+                                                                    <div className="flex justify-center">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={hasPermission}
+                                                                            onChange={() => togglePermission(role.id, perm.id)}
+                                                                            className="w-5 h-5 rounded border-slate-600 bg-slate-950 text-cyan-500 focus:ring-cyan-500 cursor-pointer transition-all hover:scale-110"
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

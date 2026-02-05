@@ -106,6 +106,7 @@ export interface Permission {
     code: string;
     resource: string;
     action: string;
+    description?: string;
 }
 
 export interface AuditLog {
