@@ -35,3 +35,7 @@ debug = 0
 [[bin]]
 name = "management-system"
 path = "src/main.rs"
+
+[dev-dependencies]
+tower = { workspace = true }
+http-body-util = { workspace = true }

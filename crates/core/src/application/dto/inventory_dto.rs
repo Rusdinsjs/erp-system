@@ -12,6 +12,14 @@ pub struct CreateInventoryCategoryRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct UpdateInventoryCategoryRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub inventory_account_id: Option<Uuid>,
+    pub expense_account_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CreateInventoryItemRequest {
     pub category_id: Uuid,
     pub unit_id: i32,

@@ -215,13 +215,13 @@ impl AppState {
         );
 
         let inventory_service = management_system_ops::InventoryService::new(
-            inventory_repo,
+            inventory_repo.clone(),
             journal_service.clone(),
             notification_service.clone(),
         );
 
         let work_order_service = management_system_ops::WorkOrderService::new(
-            work_order_repo,
+            work_order_repo.clone(),
             lifecycle_repo.clone(),
             asset_repo.clone(),
             cache.clone(),
@@ -233,7 +233,7 @@ impl AppState {
         );
         let rbac_service = RbacService::new(rbac_repo.clone());
         let sensor_service = SensorService::new(
-            sensor_repo,
+            sensor_repo.clone(),
             asset_repo.clone(),
             notification_service.clone(),
         );
@@ -271,11 +271,19 @@ impl AppState {
             depreciation_service.clone(),
         );
         let user_service = UserService::new(user_repo, rbac_repo);
+        let fuel_repo = FuelRepository::new(pool.clone());
+        let fuel_service = FuelService::new(fuel_repo.clone(), event_bus.clone());
+
         let report_service = ReportService::new(
             asset_repo.clone(),
             maintenance_repo.clone(),
             finance_repo.clone(),
+            (*settings_repo).clone(),
+            fuel_repo.clone(),
+            loan_repo.clone(),
+            work_order_repo.clone(),
         );
+
         let lifecycle_service = LifecycleService::new(lifecycle_repo.clone());
         let timesheet_service = TimesheetService::new(
             timesheet_repo.clone(),
@@ -293,9 +301,6 @@ impl AppState {
         let location_service = LocationService::new(location_repo);
 
         let leave_service = management_system_ops::LeaveService::new(leave_repo, employee_repo);
-
-        let fuel_repo = FuelRepository::new(pool.clone());
-        let fuel_service = FuelService::new(fuel_repo, event_bus.clone());
 
         let settings_service = SettingsService::new(settings_repo);
 
@@ -369,18 +374,10 @@ pub fn create_app(state: AppState) -> axum::Router {
         .layer(
             CorsLayer::new()
                 .allow_origin([
-                    "http://localhost:3000"
-                        .parse::<axum::http::HeaderValue>()
-                        .unwrap(),
-                    "http://localhost:5173"
-                        .parse::<axum::http::HeaderValue>()
-                        .unwrap(),
-                    "http://localhost:5174"
-                        .parse::<axum::http::HeaderValue>()
-                        .unwrap(),
-                    "http://localhost:5175"
-                        .parse::<axum::http::HeaderValue>()
-                        .unwrap(),
+                    axum::http::HeaderValue::from_static("http://localhost:3000"),
+                    axum::http::HeaderValue::from_static("http://localhost:5173"),
+                    axum::http::HeaderValue::from_static("http://localhost:5174"),
+                    axum::http::HeaderValue::from_static("http://localhost:5175"),
                 ])
                 .allow_methods([
                     axum::http::Method::GET,

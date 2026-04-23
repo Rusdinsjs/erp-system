@@ -35,10 +35,10 @@ pub async fn security_headers_middleware(req: Request<Body>, next: Next) -> Resp
     // Note: This might need adjustment if loading external scripts/styles
     // Keeping it relatively permissive for now to avoid breaking existing frontend functionality
     // but enforcing some basics.
-    // headers.insert(
-    //     header::CONTENT_SECURITY_POLICY,
-    //     HeaderValue::from_static("default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"),
-    // );
+    headers.insert(
+        header::CONTENT_SECURITY_POLICY,
+        HeaderValue::from_static("default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; font-src 'self' data: https:"),
+    );
 
     response
 }

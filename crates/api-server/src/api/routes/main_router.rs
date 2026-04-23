@@ -422,6 +422,18 @@ pub fn create_router(state: AppState) -> Router {
             "/api/reports/maintenance",
             get(report_handler::export_maintenance),
         )
+        .route("/api/reports/fuel", get(report_handler::export_fuel_csv))
+        .route("/api/reports/fuel/pdf", get(report_handler::export_fuel_pdf))
+        .route(
+            "/api/reports/work-orders",
+            get(report_handler::export_work_orders_csv),
+        )
+        .route(
+            "/api/reports/work-orders/pdf",
+            get(report_handler::export_work_orders_pdf),
+        )
+        .route("/api/reports/loans", get(report_handler::export_loans_csv))
+        .route("/api/reports/loans/pdf", get(report_handler::export_loans_pdf))
         .route(
             "/api/reports/finance/capex-opex",
             get(report_handler::get_capex_opex_analysis),

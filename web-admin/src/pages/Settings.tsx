@@ -137,7 +137,38 @@ export default function Settings() {
                                         onChange={(e) => handleChange('app_name', e.target.value)}
                                         placeholder="e.g. Asset Management System"
                                     />
-                                    {/* Additional fields can be added dynamically */}
+
+                                    <div className="border-t border-border my-6"></div>
+
+                                    <h3 className="text-lg font-bold text-foreground mb-1">Company Profile</h3>
+                                    <p className="text-sm text-muted-foreground mb-6">These details will be used for invoices and reports.</p>
+
+                                    <div className="space-y-4">
+                                        <Input
+                                            label="Company Name"
+                                            value={formData['company_name'] || ''}
+                                            onChange={(e) => handleChange('company_name', e.target.value)}
+                                            placeholder="e.g. PT SJS Group"
+                                        />
+                                        <Input
+                                            label="Phone Number"
+                                            value={formData['company_phone'] || ''}
+                                            onChange={(e) => handleChange('company_phone', e.target.value)}
+                                            placeholder="e.g. +62 812 3456 7890"
+                                        />
+                                        <Input
+                                            label="Email Address"
+                                            value={formData['company_email'] || ''}
+                                            onChange={(e) => handleChange('company_email', e.target.value)}
+                                            placeholder="e.g. contact@sjsgroup.site"
+                                        />
+                                        <Input
+                                            label="Address"
+                                            value={formData['company_address'] || ''}
+                                            onChange={(e) => handleChange('company_address', e.target.value)}
+                                            placeholder="City, Province, Zip Code"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </TabsContent>
@@ -257,13 +288,36 @@ export default function Settings() {
                                 <p className="text-sm text-muted-foreground mb-6">Default values for financial calculations.</p>
 
                                 <div className="space-y-4 max-w-xl">
-                                    <Input
-                                        label="Default Tax Rate (0.0 - 1.0)"
-                                        type="number"
-                                        step="0.01"
-                                        value={formData['tax_rate'] || ''}
-                                        onChange={(e) => handleChange('tax_rate', parseFloat(e.target.value))}
-                                    />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="Default Tax Rate (%)"
+                                            type="number"
+                                            step="0.1"
+                                            value={formData['tax_rate'] !== undefined ? formData['tax_rate'] * 100 : ''}
+                                            onChange={(e) => handleChange('tax_rate', parseFloat(e.target.value) / 100)}
+                                            placeholder="e.g. 11"
+                                        />
+                                        <Input
+                                            label="Currency Symbol"
+                                            value={formData['currency_symbol'] || 'Rp'}
+                                            onChange={(e) => handleChange('currency_symbol', e.target.value)}
+                                            placeholder="e.g. Rp"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="Currency Code"
+                                            value={formData['currency_code'] || 'IDR'}
+                                            onChange={(e) => handleChange('currency_code', e.target.value)}
+                                            placeholder="e.g. IDR"
+                                        />
+                                        <Input
+                                            label="Date Format"
+                                            value={formData['date_format'] || 'DD/MM/YYYY'}
+                                            onChange={(e) => handleChange('date_format', e.target.value)}
+                                            placeholder="e.g. DD/MM/YYYY"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </TabsContent>

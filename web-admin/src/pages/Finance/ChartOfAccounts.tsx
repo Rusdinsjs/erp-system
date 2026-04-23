@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { financeApi, type ChartOfAccount, type AccountType, type NormalBalance } from '../../api/finance';
-import { Card, Button, Input, Select, Textarea, Badge, useToast, Modal } from '../../components/ui';
+import { Card, Button, Input, Select, Textarea, Badge, Modal, useToast, TableSkeleton } from '../../components/ui';
 import {
     FolderPlus,
     FileText,
@@ -65,7 +65,7 @@ export default function ChartOfAccounts() {
 
             <Card className="border-border bg-card">
                 {isLoading ? (
-                    <div className="p-8 text-center text-muted-foreground">Loading chart of accounts...</div>
+                    <div className="p-4"><TableSkeleton rows={5} cols={6} /></div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">

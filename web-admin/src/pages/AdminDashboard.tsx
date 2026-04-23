@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
+import { useQuery } from '@tanstack/react-query';
+import { settingsApi } from '../api/settings';
 
 // Import all views
 const DashboardView = lazy(() => import('./Dashboard'));
@@ -324,6 +326,21 @@ export default function AdminDashboard() {
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Fetch public settings for dynamic branding
+    const { data: publicSettings } = useQuery({
+        queryKey: ['public-settings'],
+        queryFn: settingsApi.getPublic
+    });
+
+    // Update document title dynamically
+    useEffect(() => {
+        if (publicSettings?.app_name) {
+            document.title = `${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} | ${publicSettings.app_name}`;
+        } else {
+            document.title = 'Asset Management System';
+        }
+    }, [activeTab, publicSettings]);
 
     // Sync URL with State
     useEffect(() => {

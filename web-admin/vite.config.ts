@@ -11,8 +11,15 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
       }
-    }
+    },
+    allowedHosts: [
+      'app.sjsgroup.site'
+    ]
   },
   build: {
     rollupOptions: {

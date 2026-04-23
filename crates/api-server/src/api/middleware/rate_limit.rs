@@ -29,7 +29,7 @@ impl RateLimiter {
     }
 
     fn check_rate_limit(&self, ip: String) -> bool {
-        let mut requests = self.requests.lock().unwrap();
+        let mut requests = self.requests.lock().unwrap_or_else(|e| e.into_inner());
         let now = Instant::now();
 
         // Clean up expired entries occasionally (simplified cleanup)

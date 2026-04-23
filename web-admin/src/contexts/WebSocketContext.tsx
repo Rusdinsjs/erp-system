@@ -22,9 +22,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const { info } = useToast();
 
     const connect = useCallback(() => {
-        // Use window.location.hostname to support network access
-        const hostname = window.location.hostname;
-        const wsUrl = import.meta.env.VITE_WS_URL || `ws://${hostname}:8082/ws`;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host; // includes hostname and port
+        const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${host}/ws`;
 
         // Close existing if any
         if (ws.current) {

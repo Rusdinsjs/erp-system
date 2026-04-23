@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { Search, Calendar, ArrowLeftRight } from 'lucide-react';
+import { TableSkeleton } from '../../components/ui';
 import dayjs from 'dayjs';
 
 export default function GeneralLedger() {
@@ -93,8 +94,8 @@ export default function GeneralLedger() {
                             <tbody className="divide-y divide-border">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">
-                                            Memuat data...
+                                        <td colSpan={6} className="p-4">
+                                            <TableSkeleton rows={5} cols={6} />
                                         </td>
                                     </tr>
                                 ) : ledger && ledger.length > 0 ? (

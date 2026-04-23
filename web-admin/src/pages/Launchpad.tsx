@@ -11,11 +11,13 @@ import {
     ClipboardCheck,
     Settings,
     ChevronRight,
-    Sparkles,
     LogOut
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import clsx from 'clsx';
+import { useQuery } from '@tanstack/react-query';
+import { settingsApi } from '../api/settings';
+import { Logo } from '../components/ui';
 
 interface DomainCard {
     id: string;
@@ -124,6 +126,13 @@ export default function Launchpad() {
     const navigate = useNavigate();
     const { user, logout, hasRoleLevel } = useAuthStore();
 
+    const { data: publicSettings } = useQuery({
+        queryKey: ['public-settings'],
+        queryFn: settingsApi.getPublic
+    });
+
+    const appName = publicSettings?.app_name || 'Management System';
+
     const visibleCards = domainCards.filter(card => hasRoleLevel(card.minLevel));
 
     const handleLogout = () => {
@@ -165,13 +174,7 @@ export default function Launchpad() {
                 {/* Header */}
                 <header className="px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center shadow-lg shadow-primary/20">
-                            <Sparkles className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-white tracking-tight">Management System</h1>
-                            <p className="text-xs text-slate-400">Enterprise Resource Platform</p>
-                        </div>
+                        <Logo collapsed={false} />
                     </div>
 
                     <button
@@ -275,7 +278,7 @@ export default function Launchpad() {
                 {/* Footer */}
                 <footer className="px-6 py-4 border-t border-white/5">
                     <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-                        <p>© 2024 Management System. All rights reserved.</p>
+                        <p>© {new Date().getFullYear()} {appName}. All rights reserved.</p>
                         <p className="flex items-center gap-1">
                             Logged in as <span className="text-slate-400 font-medium">{user?.email}</span>
                             <span className="ml-2 px-2 py-0.5 rounded bg-white/5 text-slate-400">{user?.role}</span>

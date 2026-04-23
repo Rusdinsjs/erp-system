@@ -14,7 +14,9 @@ use management_system_core::application::dto::{
     StatusCount,
 };
 
-#[derive(Serialize)]
+use utoipa::ToSchema;
+
+#[derive(Serialize, ToSchema)]
 pub struct RecentActivity {
     pub entity_type: String,
     pub entity_id: Uuid,
@@ -24,6 +26,18 @@ pub struct RecentActivity {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/dashboard/stats",
+    responses(
+        (status = 200, description = "Get dashboard statistics", body = DashboardStats),
+        (status = 401, description = "Unauthorized")
+    ),
+    security(
+        ("token" = [])
+    ),
+    tag = "dashboard"
+)]
 pub async fn get_dashboard_stats(
     State(state): State<AppState>,
 ) -> Result<Json<DashboardStats>, AppError> {
@@ -31,6 +45,18 @@ pub async fn get_dashboard_stats(
     Ok(Json(stats))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/dashboard/recent-activities",
+    responses(
+        (status = 200, description = "Get recent activities", body = Vec<RecentActivity>),
+        (status = 401, description = "Unauthorized")
+    ),
+    security(
+        ("token" = [])
+    ),
+    tag = "dashboard"
+)]
 pub async fn get_recent_activities(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<RecentActivity>>, AppError> {
@@ -67,7 +93,7 @@ pub async fn get_recent_activities(
     Ok(Json(activities))
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DepreciationSummary {
     pub total_original_cost: Decimal,
     pub total_accumulated_depreciation: Decimal,
@@ -107,13 +133,11 @@ pub async fn export_dashboard_pdf(
         axum::http::header::HeaderMap::from_iter(vec![
             (
                 axum::http::header::CONTENT_TYPE,
-                "application/pdf".parse().unwrap(),
+                axum::http::HeaderValue::from_static("application/pdf"),
             ),
             (
                 axum::http::header::CONTENT_DISPOSITION,
-                "attachment; filename=\"dashboard_summary.pdf\""
-                    .parse()
-                    .unwrap(),
+                axum::http::HeaderValue::from_static("attachment; filename=\"dashboard_summary.pdf\""),
             ),
         ]),
         pdf_bytes,
@@ -237,6 +261,18 @@ async fn get_dashboard_stats_internal(state: &AppState) -> Result<DashboardStats
     })
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/dashboard/depreciation",
+    responses(
+        (status = 200, description = "Get depreciation summary", body = DepreciationSummary),
+        (status = 401, description = "Unauthorized")
+    ),
+    security(
+        ("token" = [])
+    ),
+    tag = "dashboard"
+)]
 pub async fn get_depreciation_summary(
     State(state): State<AppState>,
 ) -> Result<Json<DepreciationSummary>, AppError> {

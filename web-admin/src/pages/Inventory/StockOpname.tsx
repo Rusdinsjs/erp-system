@@ -7,7 +7,7 @@ import { showToast } from '../../components/ui/Toast';
 import {
     Card,
     Button,
-    Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty
+    Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty, TableSkeleton
 } from '../../components/ui';
 
 const StockOpname: React.FC = () => {
@@ -192,7 +192,7 @@ const StockOpname: React.FC = () => {
                 {/* Table */}
                 <div className="overflow-x-auto">
                     {isLoading ? (
-                        <div className="p-12 text-center text-gray-500">Loading inventory...</div>
+                        <div className="p-4"><TableSkeleton rows={5} cols={4} /></div>
                     ) : (
                         <Table className="border-none">
                             <TableHead>

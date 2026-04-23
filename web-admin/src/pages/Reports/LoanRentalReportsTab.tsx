@@ -15,12 +15,15 @@ import {
 import { Card, Button, DateInput } from '../../components/ui';
 import { Download, Filter, Truck, Package, Clock, ArrowRightLeft } from 'lucide-react';
 import { loanApi, type LoanAnalyticsData } from '../../api/loan';
+import { reportsApi } from '../../api/reports';
+import { toast } from 'sonner';
 
 const LoanRentalReportsTab: React.FC = () => {
     const [startDate, setStartDate] = useState<Date | null>(new Date());
     const [endDate, setEndDate] = useState<Date | null>(new Date());
     const [analytics, setAnalytics] = useState<LoanAnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -35,6 +38,26 @@ const LoanRentalReportsTab: React.FC = () => {
         };
         fetchAnalytics();
     }, []);
+
+    const handleExport = async (format: 'pdf' | 'csv') => {
+        setExporting(true);
+        try {
+            const data = await reportsApi.exportLoans(format);
+            const url = window.URL.createObjectURL(new Blob([data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `loan_report_${new Date().getTime()}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast.success(`${format.toUpperCase()} Report exported successfully`);
+        } catch (error) {
+            console.error("Export failed:", error);
+            toast.error("Failed to export report");
+        } finally {
+            setExporting(false);
+        }
+    };
 
     if (loading) {
         return <div className="text-white p-8">Loading analytics...</div>;
@@ -88,8 +111,21 @@ const LoanRentalReportsTab: React.FC = () => {
                     <Button variant="outline" leftIcon={<Filter size={16} />}>
                         Filter
                     </Button>
-                    <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20" leftIcon={<Download size={16} />}>
-                        Export Report
+                    <Button
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border-0 shadow-lg shadow-purple-500/20"
+                        leftIcon={<Download size={16} />}
+                        onClick={() => handleExport('pdf')}
+                        loading={exporting}
+                    >
+                        Export PDF
+                    </Button>
+                    <Button
+                        variant="outline"
+                        leftIcon={<Download size={16} />}
+                        onClick={() => handleExport('csv')}
+                        disabled={exporting}
+                    >
+                        CSV
                     </Button>
                 </div>
             </div>

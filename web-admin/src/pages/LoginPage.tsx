@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { api } from '../api/http';
 import { useAuthStore } from '../store/useAuthStore';
+import { useQuery } from '@tanstack/react-query';
+import { settingsApi } from '../api/settings';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -13,6 +15,15 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
+
+    const { data: publicSettings } = useQuery({
+        queryKey: ['public-settings'],
+        queryFn: settingsApi.getPublic
+    });
+
+    const companyName = publicSettings?.company_name || 'SJS Group';
+    const appName = publicSettings?.app_name || 'Management System';
+    const companyLogo = publicSettings?.company_logo;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,23 +66,29 @@ export default function LoginPage() {
                 <div className="text-center mb-10 space-y-6">
                     <div className="relative group inline-block">
                         <div className="absolute -inset-4 bg-blue-500/20 rounded-full blur-2xl opacity-25 group-hover:opacity-50 transition duration-700"></div>
-                        <div className="relative inline-flex items-center justify-center w-24 h-24 bg-white border border-white/20 rounded-full shadow-2xl p-2 transform group-hover:scale-110 transition duration-500 ease-out">
-                            <img
-                                src="/logo-sjs.png"
-                                alt="SJS Logo"
-                                className="w-full h-full object-contain"
-                            />
+                        <div className="relative inline-flex items-center justify-center w-24 h-24 bg-white border border-white/20 rounded-full shadow-2xl p-2 transform group-hover:scale-110 transition duration-500 ease-out overflow-hidden">
+                            {companyLogo ? (
+                                <img
+                                    src={companyLogo}
+                                    alt={companyName}
+                                    className="w-full h-full object-contain"
+                                />
+                            ) : (
+                                <div className="text-blue-600 font-black text-4xl">
+                                    {companyName.charAt(0)}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <h1 className="text-4xl font-black text-white tracking-tighter mb-1">
-                            SJS Group
+                            {companyName}
                         </h1>
                         <div className="flex items-center justify-center gap-2">
                             <div className="h-px w-8 bg-blue-500/50" />
                             <p className="text-blue-400 font-bold text-xs uppercase tracking-[0.3em] whitespace-nowrap">
-                                Management System
+                                {appName}
                             </p>
                             <div className="h-px w-8 bg-blue-500/50" />
                         </div>

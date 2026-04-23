@@ -21,6 +21,7 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
+    TableSkeleton,
 } from '../../components/ui';
 
 export default function WorkOrders() {
@@ -205,11 +206,8 @@ export default function WorkOrders() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableTd colSpan={6} align="center">
-                                        <div className="py-12 flex flex-col items-center gap-3">
-                                            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                            <p className="text-muted-foreground text-sm font-medium tracking-wide">Loading work orders...</p>
-                                        </div>
+                                    <TableTd colSpan={6} className="p-0">
+                                        <div className="p-4"><TableSkeleton rows={5} cols={6} /></div>
                                     </TableTd>
                                 </TableRow>
                             ) : records.length === 0 ? (

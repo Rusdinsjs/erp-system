@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, Settings, Plus, Edit2, Trash2, Save } from 'lucide-react';
-import { Card, Modal, Input, Button, useToast, LoadingOverlay } from '../components/ui';
+import { Card, Modal, Input, Button, useToast, Skeleton } from '../components/ui';
 import { RolePermissionsMatrix } from '../components/Admin/RolePermissionsMatrix';
 import { rbacApi } from '../api/rbac';
 import type { Role } from '../types';
@@ -86,7 +86,22 @@ function RolesList() {
         }
     };
 
-    if (isLoading) return <LoadingOverlay visible />;
+    if (isLoading) return (
+        <Card padding="lg">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <Skeleton className="h-6 w-48 mb-2" />
+                    <Skeleton className="h-4 w-64" />
+                </div>
+                <Skeleton className="h-10 w-24" />
+            </div>
+            <div className="grid gap-4">
+                {[1, 2, 3].map(i => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                ))}
+            </div>
+        </Card>
+    );
 
     return (
         <Card padding="lg">

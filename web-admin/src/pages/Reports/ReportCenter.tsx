@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../api/http';
 import { useToast } from '../../components/ui';
+import { reportsApi } from '../../api/reports';
 import OverviewTab from './OverviewTab';
 import FuelReportsTab from './FuelReportsTab';
 import WorkOrderReportsTab from './WorkOrderReportsTab';
@@ -22,12 +23,10 @@ const ReportCenter: React.FC = () => {
     const handleExportPdf = async () => {
         try {
             setExporting(true);
-            const response = await api.get('/reports/assets/pdf', {
-                responseType: 'blob',
-            });
+            const data = await reportsApi.exportAssetsPdf();
 
             // Create blob link to download
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const url = window.URL.createObjectURL(new Blob([data]));
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', 'asset_inventory.pdf');

@@ -11,6 +11,9 @@ use utoipa::OpenApi;
         crate::api::handlers::asset_handler::create_asset,
         crate::api::handlers::asset_handler::update_asset,
         crate::api::handlers::asset_handler::delete_asset,
+        crate::api::handlers::dashboard_handler::get_dashboard_stats,
+        crate::api::handlers::dashboard_handler::get_recent_activities,
+        crate::api::handlers::dashboard_handler::get_depreciation_summary,
     ),
     components(
         schemas(
@@ -34,6 +37,17 @@ use utoipa::OpenApi;
             management_system_core::application::dto::common::PaginatedResponseAssetSummary,
             management_system_core::application::dto::common::ApiResponseAsset,
             // management_system_core::application::dto::common::ApiResponseApprovalRequest, // Need to annotate ApprovalRequest first if we use it
+            
+            // Dashboard Schemas
+            management_system_core::application::dto::dashboard_dto::DashboardStats,
+            management_system_core::application::dto::dashboard_dto::AssetStats,
+            management_system_core::application::dto::dashboard_dto::MaintenanceStats,
+            management_system_core::application::dto::dashboard_dto::LoanStats,
+            management_system_core::application::dto::dashboard_dto::AlertStats,
+            management_system_core::application::dto::dashboard_dto::CategoryDistribution,
+            management_system_core::application::dto::dashboard_dto::StatusCount,
+            crate::api::handlers::dashboard_handler::RecentActivity,
+            crate::api::handlers::dashboard_handler::DepreciationSummary,
         )
     ),
     tags(

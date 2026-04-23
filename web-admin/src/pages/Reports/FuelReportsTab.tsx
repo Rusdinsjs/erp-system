@@ -15,12 +15,15 @@ import {
 import { Card, Button, DateInput } from '../../components/ui';
 import { Download, Filter, Droplets, Banknote, Gauge, TrendingUp } from 'lucide-react';
 import { fuelApi, type FuelAnalyticsData } from '../../api/fuel';
+import { reportsApi } from '../../api/reports';
+import { toast } from 'sonner';
 
 const FuelReportsTab: React.FC = () => {
     const [startDate, setStartDate] = useState<Date | null>(new Date());
     const [endDate, setEndDate] = useState<Date | null>(new Date());
     const [analytics, setAnalytics] = useState<FuelAnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -56,8 +59,27 @@ const FuelReportsTab: React.FC = () => {
     const totalCost = analytics?.monthly_spend.reduce((acc, curr) => acc + curr.total_spend, 0) || 0;
 
     // Calculate pseudo-efficiency (placeholder logic until we have odometer delta)
-    // Assuming hardcoded est. distance for now or just hiding it if no data
     const avgEfficiency = totalConsumption > 0 ? (totalConsumption * 8.5 / totalConsumption).toFixed(1) : "0.0";
+
+    const handleExport = async (format: 'pdf' | 'csv') => {
+        setExporting(true);
+        try {
+            const data = await reportsApi.exportFuel(format);
+            const url = window.URL.createObjectURL(new Blob([data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `fuel_report_${new Date().getTime()}.${format}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast.success(`${format.toUpperCase()} Report exported successfully`);
+        } catch (error) {
+            console.error("Export failed:", error);
+            toast.error("Failed to export report");
+        } finally {
+            setExporting(false);
+        }
+    };
 
     if (loading) {
         return <div className="text-white p-8">Loading analytics...</div>;
@@ -92,8 +114,21 @@ const FuelReportsTab: React.FC = () => {
                     <Button variant="outline" leftIcon={<Filter size={16} />}>
                         Filter
                     </Button>
-                    <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 shadow-lg shadow-indigo-500/20" leftIcon={<Download size={16} />}>
-                        Export
+                    <Button
+                        className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 shadow-lg shadow-indigo-500/20"
+                        leftIcon={<Download size={16} />}
+                        onClick={() => handleExport('pdf')}
+                        loading={exporting}
+                    >
+                        Export PDF
+                    </Button>
+                    <Button
+                        variant="outline"
+                        leftIcon={<Download size={16} />}
+                        onClick={() => handleExport('csv')}
+                        disabled={exporting}
+                    >
+                        CSV
                     </Button>
                 </div>
             </div>

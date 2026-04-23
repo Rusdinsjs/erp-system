@@ -2,8 +2,9 @@
 import { type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
-import { LogOut, Package, ArrowLeft } from 'lucide-react';
+import { LogOut, ArrowLeft } from 'lucide-react';
 import { AvatarUpload } from '../AvatarUpload';
+import { Logo } from '../ui';
 
 interface StandaloneLayoutProps {
     children: ReactNode;
@@ -51,11 +52,8 @@ export function StandaloneLayout({ children, title, onBack, backTo = '/' }: Stan
                 {/* Right section */}
                 <div className="flex items-center gap-4">
                     {/* Logo/Brand */}
-                    <div className="hidden lg:flex items-center gap-2">
-                        <Package size={24} className="text-cyan-500" />
-                        <span className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                            Management System
-                        </span>
+                    <div className="hidden lg:block">
+                        <Logo collapsed={false} />
                     </div>
 
                     <div className="h-8 w-px bg-slate-800 hidden lg:block" />

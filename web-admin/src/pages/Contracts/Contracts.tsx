@@ -5,7 +5,7 @@ import { Plus, CheckCircle, Clock, FileText, Eye, Edit2, Trash2, BarChart2, X } 
 import { contractApi } from '../../api/contract'
 import type { Contract } from '../../types/contract';
 import ContractForm from '../../components/Contracts/ContractForm';
-import { Card, Modal, Button, useToast } from '../../components/ui';
+import { Card, Modal, Button, useToast, TableSkeleton, Skeleton } from '../../components/ui';
 import { format } from 'date-fns';
 
 import AdvancedFilterPanel, { type FilterOptions } from '../../components/Contracts/AdvancedFilterPanel';
@@ -295,11 +295,8 @@ const Contracts: React.FC = () => {
                         <tbody className="divide-y divide-border/50">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                                        <div className="animate-pulse flex flex-col items-center">
-                                            <div className="h-4 w-48 bg-muted rounded mb-2"></div>
-                                            <div className="h-3 w-32 bg-muted/50 rounded"></div>
-                                        </div>
+                                    <td colSpan={7} className="p-4">
+                                        <TableSkeleton rows={5} cols={7} />
                                     </td>
                                 </tr>
                             ) : filteredContracts.length === 0 ? (
@@ -391,9 +388,10 @@ const Contracts: React.FC = () => {
                 {/* Mobile View (Hidden on Desktop) */}
                 <div className="md:hidden space-y-3">
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-                            <p className="text-muted-foreground">Loading contracts...</p>
+                        <div className="flex flex-col gap-3 py-4">
+                            <Skeleton className="h-32 w-full rounded-2xl" />
+                            <Skeleton className="h-32 w-full rounded-2xl" />
+                            <Skeleton className="h-32 w-full rounded-2xl" />
                         </div>
                     ) : filteredContracts.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

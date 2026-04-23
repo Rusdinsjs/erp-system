@@ -1,7 +1,7 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, utoipa::ToSchema)]
 pub struct DashboardStats {
     pub assets: AssetStats,
     pub maintenance: MaintenanceStats,
@@ -10,40 +10,40 @@ pub struct DashboardStats {
     pub category_distribution: Vec<CategoryDistribution>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, utoipa::ToSchema)]
 pub struct CategoryDistribution {
     pub category: String,
     pub count: i64,
     pub value: Decimal,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, utoipa::ToSchema)]
 pub struct AssetStats {
     pub total: i64,
     pub by_status: Vec<StatusCount>,
     pub total_value: Decimal,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, utoipa::ToSchema)]
 pub struct MaintenanceStats {
     pub pending: i64,
     pub overdue: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, utoipa::ToSchema)]
 pub struct LoanStats {
     pub active: i64,
     pub overdue: i64,
     pub pending_approval: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, utoipa::ToSchema)]
 pub struct AlertStats {
     pub active: i64,
     pub critical: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, utoipa::ToSchema)]
 pub struct StatusCount {
     pub status: String,
     pub count: i64,

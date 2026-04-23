@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { Package, Search, Loader2 } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 import { Badge } from '../ui/Badge';
+import { inventoryApi } from '../../api/inventory';
 
 interface InventoryItem {
     id: string;
     name: string;
     sku: string;
-    current_quantity: string;
-    average_cost: string;
-    unit_id: string;
+    current_quantity: number | string;
+    average_cost: number | string;
+    unit_id: number;
 }
 
 interface InventoryItemSelectorProps {
@@ -46,18 +47,15 @@ export function InventoryItemSelector({
         const fetchItems = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem('token');
-                const url = `/api/inventory/items?search=${encodeURIComponent(debouncedSearch)}`;
-
-                const response = await fetch(url, {
-                    headers: { Authorization: `Bearer ${token}` }
+                // Use inventoryApi instead of raw fetch
+                const response = await inventoryApi.listItems({
+                    search: debouncedSearch,
+                    limit: 20
                 });
 
-                if (!response.ok) throw new Error('Failed to fetch items');
-
-                const data = await response.json();
-                const allItems: InventoryItem[] = Array.isArray(data) ? data : data.data || [];
-                setItems(allItems.slice(0, 20));
+                // items might be in 'data' field or direct array
+                const allItems: InventoryItem[] = Array.isArray(response) ? response : (response as any).items || (response as any).data || [];
+                setItems(allItems);
             } catch (err) {
                 console.error(err);
                 if (debouncedSearch) {

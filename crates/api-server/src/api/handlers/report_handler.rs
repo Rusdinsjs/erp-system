@@ -15,58 +15,63 @@ pub struct MaintenanceReportParams {
     end_date: NaiveDate,
 }
 
-pub async fn export_assets(State(state): State<AppState>) -> Result<Response, AppError> {
-    let csv_content = state.report_service.generate_asset_inventory_csv().await?;
-
-    Ok((
-        [
-            (header::CONTENT_TYPE, "text/csv"),
-            (
-                header::CONTENT_DISPOSITION,
-                "attachment; filename=\"asset_inventory.csv\"",
-            ),
-        ],
-        csv_content,
-    )
-        .into_response())
+pub async fn export_assets(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_asset_inventory_csv().await {
+        Ok(csv_content) => (
+            [
+                (header::CONTENT_TYPE, "text/csv"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"asset_inventory.csv\"",
+                ),
+            ],
+            csv_content,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
 }
 
-pub async fn export_assets_pdf(State(state): State<AppState>) -> Result<Response, AppError> {
-    let pdf_bytes = state.report_service.generate_asset_inventory_pdf().await?;
-
-    Ok((
-        [
-            (header::CONTENT_TYPE, "application/pdf"),
-            (
-                header::CONTENT_DISPOSITION,
-                "attachment; filename=\"asset_inventory.pdf\"",
-            ),
-        ],
-        pdf_bytes,
-    )
-        .into_response())
+#[axum::debug_handler]
+pub async fn export_assets_pdf(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_asset_inventory_pdf().await {
+        Ok(pdf_bytes) => (
+            [
+                (header::CONTENT_TYPE, "application/pdf"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"asset_inventory.pdf\"",
+                ),
+            ],
+            pdf_bytes,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
 }
 
 pub async fn export_maintenance(
     State(state): State<AppState>,
     Query(params): Query<MaintenanceReportParams>,
-) -> Result<Response, AppError> {
-    let csv_content = state
+) -> Response {
+    match state
         .report_service
         .generate_maintenance_log_csv(params.start_date, params.end_date)
-        .await?;
-
-    Ok((
-        [
-            (header::CONTENT_TYPE, "text/csv"),
-            (
-                header::CONTENT_DISPOSITION,
-                "attachment; filename=\"maintenance_logs.csv\"",
-            ),
-        ],
-        csv_content,
-    )
-        .into_response())
+        .await
+    {
+        Ok(csv_content) => (
+            [
+                (header::CONTENT_TYPE, "text/csv"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"maintenance_logs.csv\"",
+                ),
+            ],
+            csv_content,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -78,14 +83,119 @@ pub struct AnalysisParams {
 pub async fn get_capex_opex_analysis(
     State(state): State<AppState>,
     Query(params): Query<AnalysisParams>,
-) -> Result<axum::Json<serde_json::Value>, AppError> {
-    let data = state
+) -> Response {
+    match state
         .report_service
         .get_capex_opex_analysis(params.start_date, params.end_date)
-        .await?;
+        .await
+    {
+        Ok(data) => axum::Json(serde_json::json!({
+            "success": true,
+            "data": data
+        }))
+        .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
+}
 
-    Ok(axum::Json(serde_json::json!({
-        "success": true,
-        "data": data
-    })))
+pub async fn export_fuel_csv(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_fuel_report_csv().await {
+        Ok(csv_content) => (
+            [
+                (header::CONTENT_TYPE, "text/csv"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"fuel_report.csv\"",
+                ),
+            ],
+            csv_content,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
+}
+
+pub async fn export_fuel_pdf(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_fuel_report_pdf().await {
+        Ok(pdf_bytes) => (
+            [
+                (header::CONTENT_TYPE, "application/pdf"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"fuel_report.pdf\"",
+                ),
+            ],
+            pdf_bytes,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
+}
+
+pub async fn export_work_orders_csv(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_work_order_report_csv().await {
+        Ok(csv_content) => (
+            [
+                (header::CONTENT_TYPE, "text/csv"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"work_order_report.csv\"",
+                ),
+            ],
+            csv_content,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
+}
+
+pub async fn export_work_orders_pdf(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_work_order_report_pdf().await {
+        Ok(pdf_bytes) => (
+            [
+                (header::CONTENT_TYPE, "application/pdf"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"work_order_report.pdf\"",
+                ),
+            ],
+            pdf_bytes,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
+}
+
+pub async fn export_loans_csv(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_loan_report_csv().await {
+        Ok(csv_content) => (
+            [
+                (header::CONTENT_TYPE, "text/csv"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"loan_report.csv\"",
+                ),
+            ],
+            csv_content,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
+}
+
+pub async fn export_loans_pdf(State(state): State<AppState>) -> Response {
+    match state.report_service.generate_loan_report_pdf().await {
+        Ok(pdf_bytes) => (
+            [
+                (header::CONTENT_TYPE, "application/pdf"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"loan_report.pdf\"",
+                ),
+            ],
+            pdf_bytes,
+        )
+            .into_response(),
+        Err(err) => AppError::from(err).into_response(),
+    }
 }

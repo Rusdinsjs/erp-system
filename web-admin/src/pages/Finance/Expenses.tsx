@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
-import { Card, Button, Badge } from '../../components/ui';
+import { Card, Button, Badge, TableSkeleton } from '../../components/ui';
 import {
     Plus,
     Search,
@@ -449,7 +449,7 @@ export default function Expenses() {
 
                     <div className="space-y-3">
                         {isLoading ? (
-                            <div className="py-12 text-center animate-pulse text-muted-foreground">Memuat data...</div>
+                            <div className="p-4"><TableSkeleton rows={3} cols={1} /></div>
                         ) : filteredExpenses && filteredExpenses.length > 0 ? (
                             filteredExpenses.map((expense: any) => (
                                 <Card key={expense.id} className="bg-card border-border hover:border-primary/50 transition-all group shadow-sm hover:shadow-md">

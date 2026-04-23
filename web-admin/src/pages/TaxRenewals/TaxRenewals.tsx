@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taxRenewalApi, type TaxRenewal } from '../../api/tax-renewals';
 import { uploadApi } from '../../api/upload';
-import { Card, Button, Badge, Modal, NumberInput, Input, Textarea, Pagination, SearchInput, Select } from '../../components/ui';
+import { Card, Button, Badge, Modal, NumberInput, Input, Textarea, Pagination, SearchInput, Select, TableSkeleton } from '../../components/ui';
 import { CheckCircle } from 'lucide-react';
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
@@ -345,7 +345,7 @@ export default function TaxRenewals() {
                 </div>
 
                 {isLoading ? (
-                    <div className="text-center py-8">Loading...</div>
+                    <div className="py-4 px-2"><TableSkeleton rows={5} cols={7} /></div>
                 ) : !processedRenewals || processedRenewals.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                         <CheckCircle className="mx-auto mb-2 opacity-50" size={32} />

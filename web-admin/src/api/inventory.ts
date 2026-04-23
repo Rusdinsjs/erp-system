@@ -78,12 +78,42 @@ export const inventoryApi = {
         const response = await api.get(`/inventory/items/${id}`);
         return response.data.data;
     },
+    createItem: async (data: any) => {
+        const response = await api.post('/inventory/items', data);
+        return response.data.data;
+    },
+    updateItem: async (id: string, data: any) => {
+        const response = await api.put(`/inventory/items/${id}`, data);
+        return response.data.data;
+    },
+    deleteItem: async (id: string) => {
+        const response = await api.delete(`/inventory/items/${id}`);
+        return response.data.data;
+    },
+    listMovements: async (params?: { item_id?: string; limit?: number }) => {
+        const response = await api.get('/inventory/movements', { params });
+        return response.data.data;
+    },
     // Add other item methods as needed
     batchAdjust: async (data: BatchInventoryAdjustmentRequest) => {
         const response = await api.post('/inventory/adjust/batch', data);
         return response.data.data;
     },
 };
+
+export interface InventoryMovement {
+    id: string;
+    item_id: string;
+    movement_type: 'IN_PURCHASE' | 'IN_ADJUSTMENT' | 'OUT_USAGE' | 'OUT_ADJUSTMENT' | 'OUT_TRANSFER';
+    quantity: number;
+    unit_price: number;
+    total_value: number;
+    reference_id?: string;
+    reference_number?: string;
+    notes?: string;
+    created_by?: string;
+    created_at: string;
+}
 
 export interface BatchInventoryAdjustmentRequest {
     items: InventoryAdjustmentItem[];

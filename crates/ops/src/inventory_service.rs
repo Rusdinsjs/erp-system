@@ -1,6 +1,7 @@
 use chrono::Utc;
 use management_system_core::application::dto::{
     CreateInventoryCategoryRequest, CreateInventoryItemRequest, InventoryAdjustmentRequest,
+    UpdateInventoryCategoryRequest, UpdateInventoryItemRequest,
 };
 use management_system_core::application::services::NotificationService;
 use management_system_core::domain::entities::inventory::{
@@ -55,6 +56,37 @@ impl InventoryService {
 
         self.repository
             .create_category(&category)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn get_category(&self, id: Uuid) -> DomainResult<Option<InventoryCategory>> {
+        self.repository
+            .get_category(id)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn update_category(
+        &self,
+        id: Uuid,
+        req: UpdateInventoryCategoryRequest,
+    ) -> DomainResult<InventoryCategory> {
+        self.repository
+            .update_category(
+                id,
+                req.name,
+                req.description,
+                req.inventory_account_id,
+                req.expense_account_id,
+            )
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn delete_category(&self, id: Uuid) -> DomainResult<bool> {
+        self.repository
+            .delete_category(id)
             .await
             .map_err(|e| DomainError::Database(e.to_string()))
     }
@@ -206,9 +238,45 @@ impl InventoryService {
         Ok(true)
     }
 
-    pub async fn list_items(&self, category_id: Option<Uuid>) -> DomainResult<Vec<InventoryItem>> {
+    pub async fn list_items(
+        &self,
+        category_id: Option<Uuid>,
+        search: Option<String>,
+    ) -> DomainResult<Vec<InventoryItem>> {
         self.repository
-            .list_items(category_id)
+            .list_items(category_id, search)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn get_item(&self, id: Uuid) -> DomainResult<Option<InventoryItem>> {
+        self.repository
+            .get_item(id)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn update_item(
+        &self,
+        id: Uuid,
+        req: UpdateInventoryItemRequest,
+    ) -> DomainResult<InventoryItem> {
+        self.repository
+            .update_item(
+                id,
+                req.name,
+                req.description,
+                req.min_stock,
+                req.max_stock,
+                req.is_active,
+            )
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn delete_item(&self, id: Uuid) -> DomainResult<bool> {
+        self.repository
+            .delete_item(id)
             .await
             .map_err(|e| DomainError::Database(e.to_string()))
     }
@@ -356,5 +424,16 @@ impl InventoryService {
         }
 
         Ok(())
+    }
+
+    pub async fn list_movements(
+        &self,
+        item_id: Option<Uuid>,
+        limit: i64,
+    ) -> DomainResult<Vec<InventoryMovement>> {
+        self.repository
+            .list_movements(item_id, limit)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
     }
 }

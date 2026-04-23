@@ -48,22 +48,11 @@ const stateBadgeVariant: Record<string, 'default' | 'info' | 'success' | 'warnin
     disposed: 'danger',
 };
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 function getFullImageUrl(path: string | undefined) {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    // Remove duplicate /api if present
-    // Remove duplicate /api if present
-    // If API_URL ends with /api, we might need to adjust. 
-    // Usually VITE_API_URL includes /api. 
-    // Let's assume path is relative to server root if it starts with /api/uploads
-    // But VITE_API_URL is typically http://localhost:8080/api
-
-    // Safer approach: construction from specific logic
-    // If path is /api/uploads/xyz.jpg and API_URL is .../api
-    // We want http://localhost:8080/api/uploads/xyz.jpg
-
     const baseUrl = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
     return `${baseUrl}${path}`;
 }
