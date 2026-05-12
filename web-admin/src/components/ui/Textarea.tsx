@@ -12,29 +12,29 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         return (
             <div className="space-y-1.5">
                 {label && (
-                    <label className="block text-sm font-medium text-slate-300">
+                    <label className="block text-sm font-medium text-muted-foreground">
                         {label}
-                        {props.required && <span className="text-red-400 ml-1">*</span>}
+                        {props.required && <span className="text-destructive ml-1">*</span>}
                     </label>
                 )}
                 <textarea
                     ref={ref}
                     className={`
-                        w-full px-4 py-3 bg-slate-950/50 border rounded-xl
-                        text-white placeholder-slate-500 resize-none
-                        focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 focus:bg-slate-950
+                        w-full px-4 py-3 bg-background border rounded-xl
+                        text-foreground placeholder-muted-foreground/50 resize-none
+                        focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background
                         disabled:opacity-50 disabled:cursor-not-allowed
                         transition-all duration-200 outline-none
-                        ${error ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-700'}
+                        ${error ? 'border-destructive focus:ring-destructive/20' : 'border-border'}
                         ${className}
                     `}
                     {...props}
                 />
                 {hint && !error && (
-                    <p className="text-xs text-slate-500">{hint}</p>
+                    <p className="text-xs text-muted-foreground">{hint}</p>
                 )}
                 {error && (
-                    <p className="text-xs text-red-400">{error}</p>
+                    <p className="text-xs text-destructive">{error}</p>
                 )}
             </div>
         );

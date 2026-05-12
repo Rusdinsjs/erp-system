@@ -15,9 +15,9 @@ export function ActionIcon({
     ...props
 }: ActionIconProps) {
     const variants = {
-        default: 'text-slate-400 hover:text-white hover:bg-slate-800',
-        danger: 'text-slate-400 hover:text-red-400 hover:bg-red-900/20',
-        success: 'text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/20',
+        default: 'text-muted-foreground hover:text-foreground hover:bg-muted',
+        danger: 'text-muted-foreground hover:text-destructive hover:bg-destructive/10',
+        success: 'text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10',
     };
 
     const sizes = {

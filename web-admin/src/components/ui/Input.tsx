@@ -14,43 +14,43 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         return (
             <div className="space-y-1.5">
                 {label && (
-                    <label className="block text-sm font-medium text-gray-300">
+                    <label className="block text-sm font-medium text-muted-foreground">
                         {label}
-                        {props.required && <span className="text-red-400 ml-1">*</span>}
+                        {props.required && <span className="text-destructive ml-1">*</span>}
                     </label>
                 )}
                 <div className="relative">
                     {leftIcon && (
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                             {leftIcon}
                         </div>
                     )}
                     <input
                         ref={ref}
                         className={`
-                            w-full px-4 py-3 bg-gray-900 border rounded-xl
-                            text-white placeholder-gray-600
-                            focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:bg-gray-900
+                            w-full px-4 py-3 bg-background border rounded-xl
+                            text-foreground placeholder-muted-foreground/50
+                            focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background
                             disabled:opacity-50 disabled:cursor-not-allowed
                             transition-all duration-200 outline-none
                             ${leftIcon ? 'pl-10' : ''}
                             ${rightIcon ? 'pr-10' : ''}
-                            ${error ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-700'}
+                            ${error ? 'border-destructive focus:ring-destructive/20' : 'border-border'}
                             ${className}
                         `}
                         {...props}
                     />
                     {rightIcon && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                             {rightIcon}
                         </div>
                     )}
                 </div>
                 {hint && !error && (
-                    <p className="text-xs text-gray-500">{hint}</p>
+                    <p className="text-xs text-muted-foreground">{hint}</p>
                 )}
                 {error && (
-                    <p className="text-xs text-red-400">{error}</p>
+                    <p className="text-xs text-destructive">{error}</p>
                 )}
             </div>
         );

@@ -44,7 +44,7 @@ export function TagsInput({
     return (
         <div className={`space-y-1.5 ${className}`}>
             {label && (
-                <label className="block text-sm font-medium text-slate-300">
+                <label className="block text-sm font-medium text-muted-foreground">
                     {label}
                 </label>
             )}
@@ -52,9 +52,9 @@ export function TagsInput({
             <div
                 className={`
                     flex flex-wrap items-center gap-2 p-2 min-h-[42px]
-                    bg-slate-950/50 border rounded-xl transition-all duration-200
-                    focus-within:ring-2 focus-within:ring-cyan-500/50 focus-within:border-cyan-500 focus-within:bg-slate-950
-                    ${error ? 'border-red-500' : 'border-slate-700'}
+                    bg-background border rounded-xl transition-all duration-200
+                    focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:bg-background
+                    ${error ? 'border-destructive' : 'border-border'}
                 `}
                 onClick={() => containerRef.current?.querySelector('input')?.focus()}
                 ref={containerRef}
@@ -62,13 +62,13 @@ export function TagsInput({
                 {value.map((tag) => (
                     <span
                         key={tag}
-                        className="flex items-center gap-1 px-2 py-0.5 text-sm bg-slate-800 text-slate-200 rounded-md border border-slate-700"
+                        className="flex items-center gap-1 px-2 py-0.5 text-sm bg-muted text-foreground rounded-md border border-border"
                     >
                         {tag}
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
-                            className="text-slate-400 hover:text-red-400 transition-colors"
+                            className="text-muted-foreground hover:text-destructive transition-colors"
                         >
                             <X size={12} />
                         </button>
@@ -81,15 +81,15 @@ export function TagsInput({
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={value.length === 0 ? placeholder : ''}
-                    className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-white text-sm placeholder-slate-500 p-0"
+                    className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-foreground text-sm placeholder-muted-foreground/50 p-0"
                 />
             </div>
 
             {description && !error && (
-                <p className="text-xs text-slate-500">{description}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
             )}
             {error && (
-                <p className="text-xs text-red-400">{error}</p>
+                <p className="text-xs text-destructive">{error}</p>
             )}
         </div>
     );

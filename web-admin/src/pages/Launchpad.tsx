@@ -149,7 +149,7 @@ export default function Launchpad() {
     };
 
     return (
-        <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="min-h-screen relative overflow-hidden bg-background">
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
@@ -158,11 +158,11 @@ export default function Launchpad() {
 
                 {/* Grid Pattern Overlay */}
                 <div
-                    className="absolute inset-0 opacity-[0.02]"
+                    className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]"
                     style={{
                         backgroundImage: `
-                            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+                            linear-gradient(currentColor 1px, transparent 1px),
+                            linear-gradient(90deg, currentColor 1px, transparent 1px)
                         `,
                         backgroundSize: '50px 50px'
                     }}
@@ -179,7 +179,7 @@ export default function Launchpad() {
 
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-sm"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/50 hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-all text-sm"
                     >
                         <LogOut size={16} />
                         <span className="hidden sm:inline">Keluar</span>
@@ -193,20 +193,20 @@ export default function Launchpad() {
                             <img
                                 src={getImageUrl(user.avatar_url)}
                                 alt="Avatar"
-                                className="w-20 h-20 rounded-2xl object-cover ring-4 ring-white/10"
+                                className="w-20 h-20 rounded-2xl object-cover ring-4 ring-primary/20 shadow-xl"
                             />
                         ) : (
-                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center ring-4 ring-white/10">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center ring-4 ring-primary/20 shadow-xl">
                                 <span className="text-3xl font-bold text-white">
                                     {user?.name?.charAt(0) || 'U'}
                                 </span>
                             </div>
                         )}
                     </div>
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                    <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                         {getGreeting()}, {user?.name?.split(' ')[0] || 'User'}!
                     </h2>
-                    <p className="text-slate-400 text-lg">
+                    <p className="text-muted-foreground text-lg">
                         Pilih modul untuk memulai
                     </p>
                 </div>
@@ -220,10 +220,10 @@ export default function Launchpad() {
                                 onClick={() => navigate(card.route)}
                                 className={clsx(
                                     "group relative p-6 rounded-2xl text-left transition-all duration-300",
-                                    "bg-white/[0.03] hover:bg-white/[0.08]",
-                                    "border border-white/[0.08] hover:border-white/20",
+                                    "bg-card/50 hover:bg-card",
+                                    "border border-border hover:border-primary/30",
                                     "backdrop-blur-xl",
-                                    "hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/20",
+                                    "hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/5",
                                     "focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 )}
                                 style={{
@@ -232,7 +232,7 @@ export default function Launchpad() {
                             >
                                 {/* Gradient Overlay on Hover */}
                                 <div className={clsx(
-                                    "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br",
+                                    "absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-5 transition-opacity duration-300 bg-gradient-to-br",
                                     card.gradient
                                 )} />
 
@@ -247,18 +247,18 @@ export default function Launchpad() {
                                     </div>
 
                                     {/* Title */}
-                                    <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-white transition-colors">
+                                    <h3 className="text-lg font-semibold text-foreground mb-1 transition-colors">
                                         {card.title}
                                     </h3>
-                                    <p className="text-sm text-slate-400 mb-4">
+                                    <p className="text-sm text-muted-foreground mb-4">
                                         {card.subtitle}
                                     </p>
 
                                     {/* Features */}
                                     <div className="space-y-1.5 mb-4">
                                         {card.features.map((feature, i) => (
-                                            <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
-                                                <div className="w-1 h-1 rounded-full bg-slate-600" />
+                                            <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                                                <div className="w-1 h-1 rounded-full bg-border" />
                                                 <span>{feature}</span>
                                             </div>
                                         ))}
@@ -276,12 +276,12 @@ export default function Launchpad() {
                 </div>
 
                 {/* Footer */}
-                <footer className="px-6 py-4 border-t border-white/5">
-                    <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+                <footer className="px-6 py-4 border-t border-border/50">
+                    <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
                         <p>© {new Date().getFullYear()} {appName}. All rights reserved.</p>
                         <p className="flex items-center gap-1">
-                            Logged in as <span className="text-slate-400 font-medium">{user?.email}</span>
-                            <span className="ml-2 px-2 py-0.5 rounded bg-white/5 text-slate-400">{user?.role}</span>
+                            Logged in as <span className="text-foreground font-medium">{user?.email}</span>
+                            <span className="ml-2 px-2 py-0.5 rounded bg-accent text-accent-foreground">{user?.role}</span>
                         </p>
                     </div>
                 </footer>

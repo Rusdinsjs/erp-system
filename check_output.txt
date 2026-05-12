@@ -1,0 +1,567 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/rus/projects/management-system/crates/api-server/Cargo.toml
+workspace: /home/rus/projects/management-system/Cargo.toml
+    Checking api-server v0.1.0 (/home/rus/projects/management-system/crates/api-server)
+error[E0277]: `(dyn genpdf::PageDecorator + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:118:1
+    |
+118 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn genpdf::PageDecorator + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn genpdf::PageDecorator + 'static)`
+    = note: required for `std::ptr::Unique<(dyn genpdf::PageDecorator + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn genpdf::PageDecorator + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `std::option::Option<Box<(dyn genpdf::PageDecorator + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/option.rs:600:9
+note: required because it appears within the type `genpdf::Document`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:572:12
+    |
+572 | pub struct Document {
+    |            ^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:409:75
+    |
+409 |       pub async fn generate_fuel_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  ___________________________________________________________________________^
+410 | |         let logs = self
+411 | |             .fuel_repo
+412 | |             .list(1000, 0)
+...   |
+496 | |         Ok(buffer)
+497 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:119:73
+    |
+119 |   pub async fn export_fuel_pdf(State(state): State<AppState>) -> Response {
+    |  _________________________________________________________________________^
+120 | |     match state.report_service.generate_fuel_report_pdf().await {
+121 | |         Ok(pdf_bytes) => (
+...   |
+134 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_fuel_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:118:1
+    |
+118 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:118:1
+    |
+118 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)`
+    = note: required for `std::ptr::Unique<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `std::option::Option<Box<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/option.rs:600:9
+note: required because it appears within the type `genpdf::SimplePageDecorator`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:804:12
+    |
+804 | pub struct SimplePageDecorator {
+    |            ^^^^^^^^^^^^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:409:75
+    |
+409 |       pub async fn generate_fuel_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  ___________________________________________________________________________^
+410 | |         let logs = self
+411 | |             .fuel_repo
+412 | |             .list(1000, 0)
+...   |
+496 | |         Ok(buffer)
+497 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:119:73
+    |
+119 |   pub async fn export_fuel_pdf(State(state): State<AppState>) -> Response {
+    |  _________________________________________________________________________^
+120 | |     match state.report_service.generate_fuel_report_pdf().await {
+121 | |         Ok(pdf_bytes) => (
+...   |
+134 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_fuel_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:118:1
+    |
+118 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn genpdf::Element + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:118:1
+    |
+118 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn genpdf::Element + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn genpdf::Element + 'static)`
+    = note: required for `std::ptr::Unique<(dyn genpdf::Element + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn genpdf::Element + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `PhantomData<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/marker.rs:814:11
+note: required because it appears within the type `alloc::raw_vec::RawVec<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/raw_vec/mod.rs:73:18
+note: required because it appears within the type `Vec<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/vec/mod.rs:438:11
+note: required because it appears within the type `genpdf::elements::LinearLayout`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/elements.rs:81:12
+    |
+ 81 | pub struct LinearLayout {
+    |            ^^^^^^^^^^^^
+note: required because it appears within the type `genpdf::Document`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:572:12
+    |
+572 | pub struct Document {
+    |            ^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:409:75
+    |
+409 |       pub async fn generate_fuel_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  ___________________________________________________________________________^
+410 | |         let logs = self
+411 | |             .fuel_repo
+412 | |             .list(1000, 0)
+...   |
+496 | |         Ok(buffer)
+497 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:119:73
+    |
+119 |   pub async fn export_fuel_pdf(State(state): State<AppState>) -> Response {
+    |  _________________________________________________________________________^
+120 | |     match state.report_service.generate_fuel_report_pdf().await {
+121 | |         Ok(pdf_bytes) => (
+...   |
+134 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_fuel_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:118:1
+    |
+118 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn genpdf::PageDecorator + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:153:1
+    |
+153 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn genpdf::PageDecorator + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn genpdf::PageDecorator + 'static)`
+    = note: required for `std::ptr::Unique<(dyn genpdf::PageDecorator + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn genpdf::PageDecorator + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `std::option::Option<Box<(dyn genpdf::PageDecorator + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/option.rs:600:9
+note: required because it appears within the type `genpdf::Document`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:572:12
+    |
+572 | pub struct Document {
+    |            ^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:539:81
+    |
+539 |       pub async fn generate_work_order_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  _________________________________________________________________________________^
+540 | |         let orders = self
+541 | |             .work_order_repo
+542 | |             .list(1000, 0)
+...   |
+622 | |         Ok(buffer)
+623 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:154:80
+    |
+154 |   pub async fn export_work_orders_pdf(State(state): State<AppState>) -> Response {
+    |  ________________________________________________________________________________^
+155 | |     match state.report_service.generate_work_order_report_pdf().await {
+156 | |         Ok(pdf_bytes) => (
+...   |
+169 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_work_orders_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:153:1
+    |
+153 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:153:1
+    |
+153 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)`
+    = note: required for `std::ptr::Unique<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `std::option::Option<Box<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/option.rs:600:9
+note: required because it appears within the type `genpdf::SimplePageDecorator`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:804:12
+    |
+804 | pub struct SimplePageDecorator {
+    |            ^^^^^^^^^^^^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:539:81
+    |
+539 |       pub async fn generate_work_order_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  _________________________________________________________________________________^
+540 | |         let orders = self
+541 | |             .work_order_repo
+542 | |             .list(1000, 0)
+...   |
+622 | |         Ok(buffer)
+623 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:154:80
+    |
+154 |   pub async fn export_work_orders_pdf(State(state): State<AppState>) -> Response {
+    |  ________________________________________________________________________________^
+155 | |     match state.report_service.generate_work_order_report_pdf().await {
+156 | |         Ok(pdf_bytes) => (
+...   |
+169 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_work_orders_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:153:1
+    |
+153 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn genpdf::Element + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:153:1
+    |
+153 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn genpdf::Element + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn genpdf::Element + 'static)`
+    = note: required for `std::ptr::Unique<(dyn genpdf::Element + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn genpdf::Element + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `PhantomData<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/marker.rs:814:11
+note: required because it appears within the type `alloc::raw_vec::RawVec<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/raw_vec/mod.rs:73:18
+note: required because it appears within the type `Vec<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/vec/mod.rs:438:11
+note: required because it appears within the type `genpdf::elements::LinearLayout`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/elements.rs:81:12
+    |
+ 81 | pub struct LinearLayout {
+    |            ^^^^^^^^^^^^
+note: required because it appears within the type `genpdf::Document`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:572:12
+    |
+572 | pub struct Document {
+    |            ^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:539:81
+    |
+539 |       pub async fn generate_work_order_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  _________________________________________________________________________________^
+540 | |         let orders = self
+541 | |             .work_order_repo
+542 | |             .list(1000, 0)
+...   |
+622 | |         Ok(buffer)
+623 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:154:80
+    |
+154 |   pub async fn export_work_orders_pdf(State(state): State<AppState>) -> Response {
+    |  ________________________________________________________________________________^
+155 | |     match state.report_service.generate_work_order_report_pdf().await {
+156 | |         Ok(pdf_bytes) => (
+...   |
+169 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_work_orders_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:153:1
+    |
+153 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn genpdf::PageDecorator + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:188:1
+    |
+188 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn genpdf::PageDecorator + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn genpdf::PageDecorator + 'static)`
+    = note: required for `std::ptr::Unique<(dyn genpdf::PageDecorator + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn genpdf::PageDecorator + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `std::option::Option<Box<(dyn genpdf::PageDecorator + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/option.rs:600:9
+note: required because it appears within the type `genpdf::Document`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:572:12
+    |
+572 | pub struct Document {
+    |            ^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:667:75
+    |
+667 |       pub async fn generate_loan_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  ___________________________________________________________________________^
+668 | |         let loans = self
+669 | |             .loan_repo
+670 | |             .list(1000, 0)
+...   |
+747 | |         Ok(buffer)
+748 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:189:74
+    |
+189 |   pub async fn export_loans_pdf(State(state): State<AppState>) -> Response {
+    |  __________________________________________________________________________^
+190 | |     match state.report_service.generate_loan_report_pdf().await {
+191 | |         Ok(pdf_bytes) => (
+...   |
+204 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_loans_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:188:1
+    |
+188 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:188:1
+    |
+188 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)`
+    = note: required for `std::ptr::Unique<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `std::option::Option<Box<(dyn Fn(usize) -> Box<(dyn genpdf::Element + 'static)> + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/option.rs:600:9
+note: required because it appears within the type `genpdf::SimplePageDecorator`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:804:12
+    |
+804 | pub struct SimplePageDecorator {
+    |            ^^^^^^^^^^^^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:667:75
+    |
+667 |       pub async fn generate_loan_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  ___________________________________________________________________________^
+668 | |         let loans = self
+669 | |             .loan_repo
+670 | |             .list(1000, 0)
+...   |
+747 | |         Ok(buffer)
+748 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:189:74
+    |
+189 |   pub async fn export_loans_pdf(State(state): State<AppState>) -> Response {
+    |  __________________________________________________________________________^
+190 | |     match state.report_service.generate_loan_report_pdf().await {
+191 | |         Ok(pdf_bytes) => (
+...   |
+204 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_loans_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:188:1
+    |
+188 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `(dyn genpdf::Element + 'static)` cannot be sent between threads safely
+   --> crates/api-server/src/api/handlers/report_handler.rs:188:1
+    |
+188 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ `(dyn genpdf::Element + 'static)` cannot be sent between threads safely
+    |
+    = help: the trait `std::marker::Send` is not implemented for `(dyn genpdf::Element + 'static)`
+    = note: required for `std::ptr::Unique<(dyn genpdf::Element + 'static)>` to implement `std::marker::Send`
+note: required because it appears within the type `Box<(dyn genpdf::Element + 'static)>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/boxed.rs:234:11
+note: required because it appears within the type `PhantomData<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/core/src/marker.rs:814:11
+note: required because it appears within the type `alloc::raw_vec::RawVec<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/raw_vec/mod.rs:73:18
+note: required because it appears within the type `Vec<Box<(dyn genpdf::Element + 'static)>>`
+   --> /rustc/59807616e1fa2540724bfbac14d7976d7e4a3860/library/alloc/src/vec/mod.rs:438:11
+note: required because it appears within the type `genpdf::elements::LinearLayout`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/elements.rs:81:12
+    |
+ 81 | pub struct LinearLayout {
+    |            ^^^^^^^^^^^^
+note: required because it appears within the type `genpdf::Document`
+   --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/genpdf-0.2.0/src/lib.rs:572:12
+    |
+572 | pub struct Document {
+    |            ^^^^^^^^
+note: required because it's used within this `async` fn body
+   --> crates/core/src/application/services/report_service.rs:667:75
+    |
+667 |       pub async fn generate_loan_report_pdf(&self) -> DomainResult<Vec<u8>> {
+    |  ___________________________________________________________________________^
+668 | |         let loans = self
+669 | |             .loan_repo
+670 | |             .list(1000, 0)
+...   |
+747 | |         Ok(buffer)
+748 | |     }
+    | |_____^
+note: required because it's used within this `async` fn body
+   --> crates/api-server/src/api/handlers/report_handler.rs:189:74
+    |
+189 |   pub async fn export_loans_pdf(State(state): State<AppState>) -> Response {
+    |  __________________________________________________________________________^
+190 | |     match state.report_service.generate_loan_report_pdf().await {
+191 | |         Ok(pdf_bytes) => (
+...   |
+204 | | }
+    | |_^
+note: required by a bound in `__axum_macros_check_export_loans_pdf_future::check`
+   --> crates/api-server/src/api/handlers/report_handler.rs:188:1
+    |
+188 | #[axum::debug_handler]
+    | ^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check`
+    = note: this error originates in the attribute macro `axum::debug_handler` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `fn(State<api::server::AppState>) -> impl futures_util::Future<Output = axum::http::Response<Body>> {handlers::report_handler::export_fuel_pdf}: Handler<_, _>` is not satisfied
+    --> crates/api-server/src/api/routes/main_router.rs:426:45
+     |
+ 426 |         .route("/api/reports/fuel/pdf", get(report_handler::export_fuel_pdf))
+     |                                         --- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Handler<_, _>` is not implemented for fn item `fn(State<api::server::AppState>) -> impl futures_util::Future<Output = axum::http::Response<Body>> {handlers::report_handler::export_fuel_pdf}`
+     |                                         |
+     |                                         required by a bound introduced by this call
+     |
+     = note: Consider using `#[axum::debug_handler]` to improve the error message
+help: the following other types implement trait `Handler<T, S>`
+    --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/handler/mod.rs:303:1
+     |
+ 303 | / impl<H, S, T, L> Handler<T, S> for Layered<L, H, T, S>
+ 304 | | where
+ 305 | |     L: Layer<HandlerService<H, T, S>> + Clone + Send + 'static,
+ 306 | |     H: Handler<T, S>,
+...    |
+ 310 | |     T: 'static,
+ 311 | |     S: 'static,
+     | |_______________^ `axum::handler::Layered<L, H, T, S>` implements `Handler<T, S>`
+     |
+    ::: /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:1309:1
+     |
+1309 | / impl<S> Handler<(), S> for MethodRouter<S>
+1310 | | where
+1311 | |     S: Clone + 'static,
+     | |_______________________^ `MethodRouter<S>` implements `Handler<(), S>`
+note: required by a bound in `axum::routing::get`
+    --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:166:16
+     |
+ 166 |             H: Handler<T, S>,
+     |                ^^^^^^^^^^^^^ required by this bound in `get`
+...
+ 439 | top_level_handler_fn!(get, GET);
+     | -------------------------------
+     | |                     |
+     | |                     required by a bound in this function
+     | in this macro invocation
+     = note: this error originates in the macro `top_level_handler_fn` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `fn(State<api::server::AppState>) -> impl futures_util::Future<Output = axum::http::Response<Body>> {handlers::report_handler::export_work_orders_pdf}: Handler<_, _>` is not satisfied
+    --> crates/api-server/src/api/routes/main_router.rs:433:17
+     |
+ 433 |             get(report_handler::export_work_orders_pdf),
+     |             --- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Handler<_, _>` is not implemented for fn item `fn(State<api::server::AppState>) -> impl futures_util::Future<Output = axum::http::Response<Body>> {handlers::report_handler::export_work_orders_pdf}`
+     |             |
+     |             required by a bound introduced by this call
+     |
+     = note: Consider using `#[axum::debug_handler]` to improve the error message
+help: the following other types implement trait `Handler<T, S>`
+    --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/handler/mod.rs:303:1
+     |
+ 303 | / impl<H, S, T, L> Handler<T, S> for Layered<L, H, T, S>
+ 304 | | where
+ 305 | |     L: Layer<HandlerService<H, T, S>> + Clone + Send + 'static,
+ 306 | |     H: Handler<T, S>,
+...    |
+ 310 | |     T: 'static,
+ 311 | |     S: 'static,
+     | |_______________^ `axum::handler::Layered<L, H, T, S>` implements `Handler<T, S>`
+     |
+    ::: /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:1309:1
+     |
+1309 | / impl<S> Handler<(), S> for MethodRouter<S>
+1310 | | where
+1311 | |     S: Clone + 'static,
+     | |_______________________^ `MethodRouter<S>` implements `Handler<(), S>`
+note: required by a bound in `axum::routing::get`
+    --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:166:16
+     |
+ 166 |             H: Handler<T, S>,
+     |                ^^^^^^^^^^^^^ required by this bound in `get`
+...
+ 439 | top_level_handler_fn!(get, GET);
+     | -------------------------------
+     | |                     |
+     | |                     required by a bound in this function
+     | in this macro invocation
+     = note: this error originates in the macro `top_level_handler_fn` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `fn(State<api::server::AppState>) -> impl futures_util::Future<Output = axum::http::Response<Body>> {handlers::report_handler::export_loans_pdf}: Handler<_, _>` is not satisfied
+    --> crates/api-server/src/api/routes/main_router.rs:436:46
+     |
+ 436 |         .route("/api/reports/loans/pdf", get(report_handler::export_loans_pdf))
+     |                                          --- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Handler<_, _>` is not implemented for fn item `fn(State<api::server::AppState>) -> impl futures_util::Future<Output = axum::http::Response<Body>> {handlers::report_handler::export_loans_pdf}`
+     |                                          |
+     |                                          required by a bound introduced by this call
+     |
+     = note: Consider using `#[axum::debug_handler]` to improve the error message
+help: the following other types implement trait `Handler<T, S>`
+    --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/handler/mod.rs:303:1
+     |
+ 303 | / impl<H, S, T, L> Handler<T, S> for Layered<L, H, T, S>
+ 304 | | where
+ 305 | |     L: Layer<HandlerService<H, T, S>> + Clone + Send + 'static,
+ 306 | |     H: Handler<T, S>,
+...    |
+ 310 | |     T: 'static,
+ 311 | |     S: 'static,
+     | |_______________^ `axum::handler::Layered<L, H, T, S>` implements `Handler<T, S>`
+     |
+    ::: /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:1309:1
+     |
+1309 | / impl<S> Handler<(), S> for MethodRouter<S>
+1310 | | where
+1311 | |     S: Clone + 'static,
+     | |_______________________^ `MethodRouter<S>` implements `Handler<(), S>`
+note: required by a bound in `axum::routing::get`
+    --> /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:166:16
+     |
+ 166 |             H: Handler<T, S>,
+     |                ^^^^^^^^^^^^^ required by this bound in `get`
+...
+ 439 | top_level_handler_fn!(get, GET);
+     | -------------------------------
+     | |                     |
+     | |                     required by a bound in this function
+     | in this macro invocation
+     = note: this error originates in the macro `top_level_handler_fn` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `api-server` (bin "management-system") due to 12 previous errors

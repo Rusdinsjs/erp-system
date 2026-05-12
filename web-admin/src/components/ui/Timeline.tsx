@@ -40,8 +40,8 @@ export function TimelineItem({
             {!isLast && (
                 <div
                     className={`
-                        absolute top-8 left-[15px] w-0.5 h-[calc(100%-8px)] bg-slate-800
-                        ${lineVariant === 'dashed' ? 'border-l-2 border-dashed border-slate-800 bg-transparent' : ''}
+                        absolute top-8 left-[15px] w-0.5 h-[calc(100%-8px)] bg-border
+                        ${lineVariant === 'dashed' ? 'border-l-2 border-dashed border-border bg-transparent' : ''}
                     `}
                 />
             )}
@@ -51,8 +51,8 @@ export function TimelineItem({
                 className={`
                     relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2 
                     ${bulletClassName ? bulletClassName : (active
-                        ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400'
-                        : 'bg-slate-900 border-slate-700 text-slate-500')
+                        ? 'bg-primary/20 border-primary text-primary'
+                        : 'bg-card border-border text-muted-foreground')
                     }
                 `}
             >
@@ -61,10 +61,10 @@ export function TimelineItem({
 
             {/* Content */}
             <div className="flex-1 pt-1">
-                <div className="font-medium text-white mb-1">
+                <div className="font-medium text-foreground mb-1">
                     {title}
                 </div>
-                <div className="text-sm text-slate-400">
+                <div className="text-sm text-muted-foreground">
                     {children}
                 </div>
             </div>

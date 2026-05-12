@@ -34,28 +34,28 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         return (
             <div className="space-y-1.5">
                 {label && (
-                    <label className="block text-sm font-medium text-gray-300">
+                    <label className="block text-sm font-medium text-muted-foreground">
                         {label}
-                        {props.required && <span className="text-red-400 ml-1">*</span>}
+                        {props.required && <span className="text-destructive ml-1">*</span>}
                     </label>
                 )}
                 <div className="relative">
                     <select
                         ref={ref}
                         className={`
-                            w-full px-4 py-3 pr-10 bg-gray-900 border rounded-xl
-                            text-white appearance-none cursor-pointer
-                            focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:bg-gray-900
+                            w-full px-4 py-3 pr-10 bg-background border rounded-xl
+                            text-foreground appearance-none cursor-pointer
+                            focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background
                             disabled:opacity-50 disabled:cursor-not-allowed
                             transition-all duration-200 outline-none
-                            ${error ? 'border-red-500 focus:ring-red-500/50' : 'border-gray-700'}
+                            ${error ? 'border-destructive focus:ring-destructive/20' : 'border-border'}
                             ${className}
                         `}
                         onChange={handleChange}
                         {...props}
                     >
                         {placeholder && (
-                            <option value="" disabled className="bg-gray-800 text-gray-500">
+                            <option value="" disabled className="bg-card text-muted-foreground">
                                 {placeholder}
                             </option>
                         )}
@@ -64,27 +64,27 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                                 key={option.value}
                                 value={option.value}
                                 disabled={option.disabled}
-                                className="bg-gray-800 text-white"
+                                className="bg-card text-foreground"
                             >
                                 {option.label}
                             </option>
                         ))}
                         {onCreate && (
-                            <option value="__CREATE_NEW__" className="bg-gray-800 text-blue-400 font-semibold">
+                            <option value="__CREATE_NEW__" className="bg-card text-primary font-semibold">
                                 + Add New Item...
                             </option>
                         )}
                     </select>
                     <ChevronDown
                         size={18}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                     />
                 </div>
                 {hint && !error && (
-                    <p className="text-xs text-gray-500">{hint}</p>
+                    <p className="text-xs text-muted-foreground">{hint}</p>
                 )}
                 {error && (
-                    <p className="text-xs text-red-400">{error}</p>
+                    <p className="text-xs text-destructive">{error}</p>
                 )}
             </div>
         );

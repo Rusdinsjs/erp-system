@@ -8,12 +8,13 @@ import {
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, TrendingUp,
     Wallet, ShoppingCart, Receipt, History, Wrench, Fuel, Shield, Layers,
-    CheckSquare, Box
+    CheckSquare, Box, Sun, Moon
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Import all views
 const DashboardView = lazy(() => import('./Dashboard'));
@@ -301,7 +302,12 @@ const navItems: NavEntry[] = [
 ];
 
 export default function AdminDashboard() {
+    const { theme, setTheme } = useTheme();
     const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+
+    const toggleTheme = () => {
+        setTheme(theme === 'light' ? 'dark' : 'light');
+    };
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
         asset_operations: false,
@@ -870,6 +876,15 @@ export default function AdminDashboard() {
 
                     <div className="flex-1" /> {/* Spacer */}
 
+                    {/* Theme Toggle */}
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
+                        title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                    >
+                        {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
+                    </button>
+
                     {/* Notification Bell */}
                     <div className="relative">
                         <button
@@ -913,8 +928,8 @@ export default function AdminDashboard() {
                             )}
                         </div>
                         <div className="hidden sm:block text-left">
-                            <p className="text-sm font-medium text-white leading-none mb-1">{user?.name}</p>
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wider leading-none">
+                            <p className="text-sm font-medium text-foreground leading-none mb-1">{user?.name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none">
                                 {user?.role}
                             </p>
                         </div>

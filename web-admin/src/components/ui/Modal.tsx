@@ -64,27 +64,27 @@ export function Modal({
             <div
                 className={`
                     relative w-full ${sizes[size] || sizes.md}
-                    bg-gray-800 rounded-2xl shadow-2xl border border-white/5 overflow-hidden
+                    bg-card rounded-2xl shadow-2xl border border-border overflow-hidden
                     transform transition-all duration-300 ease-out
                     animate-in fade-in zoom-in-95 slide-in-from-bottom-4
                     group flex flex-col max-h-[90vh]
                 `}
             >
                 {/* Subtle Visual Flourish */}
-                <div className="absolute -top-32 -left-32 w-64 h-64 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-500/10 transition-colors duration-700" />
+                <div className="absolute -top-32 -left-32 w-64 h-64 bg-primary/5 rounded-full blur-[100px] pointer-events-none group-hover:bg-primary/10 transition-colors duration-700" />
 
                 {/* Header */}
                 {(title || showCloseButton) && (
-                    <div className="relative flex-none flex items-center justify-between p-6 border-b border-white/5 bg-white/[0.02]">
+                    <div className="relative flex-none flex items-center justify-between p-6 border-b border-border bg-muted/30">
                         {title && (
-                            <h3 className="text-xl font-bold text-white tracking-tight">
+                            <h3 className="text-xl font-bold text-foreground tracking-tight">
                                 {title}
                             </h3>
                         )}
                         {showCloseButton && (
                             <button
                                 onClick={onClose}
-                                className="p-2 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all duration-300 ml-auto flex items-center justify-center group/close"
+                                className="p-2 hover:bg-accent rounded-xl text-muted-foreground hover:text-foreground transition-all duration-300 ml-auto flex items-center justify-center group/close"
                             >
                                 <X size={20} className="group-hover/close:rotate-90 transition-transform duration-300" />
                             </button>

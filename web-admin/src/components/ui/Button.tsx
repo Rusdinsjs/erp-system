@@ -24,14 +24,14 @@ export function Button({
     disabled,
     ...props
 }: ButtonProps) {
-    const baseStyles = 'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.95]';
+    const baseStyles = 'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.95]';
 
     const variants = {
-        primary: 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 focus:ring-blue-500',
-        secondary: 'bg-gray-700 hover:bg-gray-600 text-white focus:ring-gray-500',
-        outline: 'border border-gray-700 hover:bg-gray-800 text-gray-300 hover:text-white focus:ring-gray-500',
-        ghost: 'hover:bg-gray-800 text-gray-400 hover:text-white focus:ring-gray-500',
-        danger: 'bg-red-600 hover:bg-red-500 text-white focus:ring-red-500 shadow-lg shadow-red-500/20',
+        primary: 'bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/10 focus:ring-primary',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary',
+        outline: 'border border-border hover:bg-accent text-foreground focus:ring-border',
+        ghost: 'hover:bg-accent text-muted-foreground hover:text-foreground focus:ring-accent',
+        danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive shadow-lg shadow-destructive/20',
     };
 
     const sizes = {

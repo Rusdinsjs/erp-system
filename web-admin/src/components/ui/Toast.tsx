@@ -139,7 +139,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
         <div
             className={`
                 flex items-start gap-3 p-4 
-                bg-slate-900 border border-slate-800 border-l-4 ${borders[toast.type]}
+                bg-card border border-border border-l-4 ${borders[toast.type]}
                 rounded-xl shadow-xl
                 animate-in slide-in-from-right fade-in duration-300
             `}
@@ -147,13 +147,13 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
             {icons[toast.type]}
             <div className="flex-1 min-w-0">
                 {toast.title && (
-                    <p className="font-medium text-white text-sm">{toast.title}</p>
+                    <p className="font-medium text-foreground text-sm">{toast.title}</p>
                 )}
-                <p className="text-sm text-slate-400">{toast.message}</p>
+                <p className="text-sm text-muted-foreground">{toast.message}</p>
             </div>
             <button
                 onClick={onClose}
-                className="p-1 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors"
+                className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
             >
                 <X size={16} />
             </button>

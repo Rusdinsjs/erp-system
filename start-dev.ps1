@@ -6,30 +6,55 @@ function Write-Blue ($text) { Write-Host $text -ForegroundColor Cyan }
 
 Write-Blue ">>> Memulai Management System..."
 
-# 1. Pastikan Docker Containers (DB & Redis) berjalan
+# 1. Pastikan Container Engine (Docker/Podman) berjalan
 Write-Green "1. Menjalankan Docker Service (DB & Redis)..."
 
-$dockerCmd = "docker"
-if (-not (Get-Command "docker" -ErrorAction SilentlyContinue)) {
-    if (Get-Command "podman" -ErrorAction SilentlyContinue) {
-        $dockerCmd = "podman"
-        Write-Host "Docker not found. Using Podman..." -ForegroundColor Cyan
-    }
-    elseif (Test-Path "C:\Program Files\RedHat\Podman\podman.exe") {
-        $dockerCmd = "& 'C:\Program Files\RedHat\Podman\podman.exe'"
-        Write-Host "Docker not found. Using Podman (full path)..." -ForegroundColor Cyan
-    }
-    elseif (Get-Command "wsl" -ErrorAction SilentlyContinue) {
+$dockerCmd = ""
+if (Get-Command "docker" -ErrorAction SilentlyContinue) {
+    $dockerCmd = "docker"
+}
+elseif (Get-Command "podman" -ErrorAction SilentlyContinue) {
+    $dockerCmd = "podman"
+    Write-Host "Docker not found. Using Podman..." -ForegroundColor Cyan
+}
+elseif (Get-Command "wsl" -ErrorAction SilentlyContinue) {
+    # Check if docker or podman is in WSL using a more reliable check
+    $hasWslDocker = (wsl -d archlinux sh -c "command -v docker" 2>$null) -ne $null
+    $hasWslPodman = (wsl -d archlinux sh -c "command -v podman" 2>$null) -ne $null
+    
+    if ($hasWslDocker) {
         $dockerCmd = "wsl -d archlinux docker"
-        Write-Host "Docker command not found. Using wsl docker..." -ForegroundColor Yellow
+        Write-Host "Docker found in WSL. Using wsl docker..." -ForegroundColor Yellow
+    }
+    elseif ($hasWslPodman) {
+        $dockerCmd = "wsl -d archlinux podman"
+        Write-Host "Podman found in WSL. Using wsl podman..." -ForegroundColor Yellow
     }
     else {
-        Write-Error "Container engine (Docker/Podman) tidak ditemukan. Harap install Docker atau Podman."
+        Write-Error "Container engine (Docker/Podman) tidak ditemukan di Windows maupun WSL."
+        return
     }
+}
+else {
+    Write-Error "Container engine tidak ditemukan. Harap install Docker atau Podman."
+    return
 }
 
 Write-Green "1. Menjalankan Service (DB & Redis) menggunakan $dockerCmd..."
-Invoke-Expression "$dockerCmd compose up -d postgres redis"
+# Try 'compose' then 'podman-compose' fallback
+try {
+    Invoke-Expression "$dockerCmd compose up -d postgres redis"
+}
+catch {
+    if ($dockerCmd -like "*podman*") {
+        Write-Host "Trying podman-compose..." -ForegroundColor Cyan
+        Invoke-Expression "$dockerCmd-compose up -d postgres redis"
+    }
+    else { 
+        Write-Host "⚠️ Gagal menjalankan Docker Compose. Jika menggunakan Podman di WSL, pastikan firewall_driver set ke iptables di ~/.config/containers/containers.conf" -ForegroundColor Yellow
+        throw $_ 
+    }
+}
 
 Write-Green "2. Menunggu Database Siap..."
 Start-Sleep -Seconds 3
@@ -37,25 +62,57 @@ Start-Sleep -Seconds 3
 # 2a. Jalankan Migrasi Database
 Write-Green "2a. Menjalankan Migrasi Database..."
 try {
-    # Check if sqlx is installed
     if (Get-Command "sqlx" -ErrorAction SilentlyContinue) {
         sqlx migrate run
         Write-Green "Migrasi Database Selesai."
     }
+    elseif (Get-Command "wsl" -ErrorAction SilentlyContinue) {
+        $wslSqlxPath = wsl -d archlinux sh -c "command -v sqlx || { [ -f ~/.cargo/bin/sqlx ] && echo ~/.cargo/bin/sqlx; }" 2>$null
+        if ($wslSqlxPath) {
+            $wslSqlxPath = $wslSqlxPath.Trim()
+            Write-Host "sqlx not found in Windows. Using WSL sqlx ($wslSqlxPath)..." -ForegroundColor Yellow
+            wsl -d archlinux sh -c "$wslSqlxPath migrate run"
+            Write-Green "Migrasi Database Selesai (via WSL)."
+        }
+        else {
+            Write-Host "⚠️ sqlx CLI tidak ditemukan di Windows maupun WSL." -ForegroundColor Yellow
+            Write-Host "Tips: Jalankan 'cargo install sqlx-cli --no-default-features --features postgres' di WSL." -ForegroundColor Cyan
+        }
+    }
     else {
         Write-Host "⚠️ sqlx CLI tidak ditemukan. Melewati migrasi." -ForegroundColor Yellow
-        Write-Host "   Install dengan: cargo install sqlx-cli --no-default-features --features rustls,postgres" -ForegroundColor Gray
     }
 }
 catch {
     Write-Host "⚠️ Gagal menjalankan migrasi: $_" -ForegroundColor Red
-    # We continue even if migration fails, though backend might error out
 }
 
 
-# 2. Jalankan Backend (Cargo) di background
+# 2. Jalankan Backend (Cargo)
 Write-Green "3. Menjalankan Backend (Rust)..."
-$backendProcess = Start-Process -FilePath "cargo" -ArgumentList "run", "--release" -RedirectStandardOutput "backend.out.log" -RedirectStandardError "backend.err.log" -PassThru -NoNewWindow
+
+$cargoPath = ""
+$cargoArgs = @()
+
+if (Get-Command "cargo" -ErrorAction SilentlyContinue) {
+    $cargoPath = "cargo"
+    $cargoArgs = @("run", "--release")
+}
+elseif (Get-Command "wsl" -ErrorAction SilentlyContinue) {
+    $hasWslCargo = (wsl -d archlinux sh -c "command -v cargo" 2>$null) -ne $null
+    if ($hasWslCargo) {
+        Write-Host "Cargo not found in Windows. Using WSL Cargo..." -ForegroundColor Yellow
+        $cargoPath = "wsl"
+        $cargoArgs = @("-d", "archlinux", "cargo", "run", "--release")
+    }
+}
+
+if (-not $cargoPath) {
+    Write-Error "Cargo tidak ditemukan di Windows maupun WSL."
+    return
+}
+
+$backendProcess = Start-Process -FilePath $cargoPath -ArgumentList $cargoArgs -RedirectStandardOutput "backend.out.log" -RedirectStandardError "backend.err.log" -PassThru -NoNewWindow
 Write-Host "Backend running with PID: $($backendProcess.Id)"
 
 # 3. Jalankan Frontend (Bun/Npm) di background
@@ -69,10 +126,8 @@ if (Get-Command "bun" -ErrorAction SilentlyContinue) {
 }
 else {
     Write-Host "Bun not found, using NPM..."
-    # npm is usually a cmd file on Windows
     $npmCmd = Get-Command "npm" -CommandType Application, Cmdlet, ExternalScript | Select-Object -First 1
     if ($npmCmd) {
-        # Wrap in cmd /c to ensure it executes properly as a background process
         $frontendProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run dev" -RedirectStandardOutput "frontend.out.log" -RedirectStandardError "frontend.err.log" -PassThru -NoNewWindow
     }
     else {
@@ -91,7 +146,6 @@ Write-Blue "Tekan CTRL+C untuk menghentikan semua service."
 try {
     while ($true) {
         Start-Sleep -Seconds 1
-        
         if ($backendProcess.HasExited) {
             Write-Host "⚠️ Backend process exited unexpectedly!" -ForegroundColor Red
             break
@@ -103,13 +157,11 @@ finally {
     
     if ($backendProcess -and -not $backendProcess.HasExited) {
         Write-Host "  Stopping Backend (PID: $($backendProcess.Id))..."
-        # Use taskkill to ensure the whole tree (cargo + app) is killed
         taskkill /F /T /PID $backendProcess.Id | Out-Null
     }
     
     if ($frontendProcess -and -not $frontendProcess.HasExited) {
         Write-Host "  Stopping Frontend (PID: $($frontendProcess.Id))..."
-        # Use taskkill to ensure the whole tree (cmd + node/bun) is killed
         taskkill /F /T /PID $frontendProcess.Id | Out-Null
     }
 

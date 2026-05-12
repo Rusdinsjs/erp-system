@@ -34,7 +34,51 @@
 /* Custom theme tokens */
 @layer base {
   :root {
-    /* Default (Dark) Theme Variables */
+    /* Default (Light) Theme Variables */
+    --background: #f8fafc;
+    /* slate-50 */
+    --foreground: #0f172a;
+    /* slate-900 */
+
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+
+    --primary: #1e293b;
+    /* slate-800 */
+    --primary-foreground: #f8fafc;
+
+    --secondary: #f1f5f9;
+    /* slate-100 */
+    --secondary-foreground: #1e293b;
+
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    /* slate-500 */
+
+    --accent: #f1f5f9;
+    --accent-foreground: #0f172a;
+
+    --destructive: #ef4444;
+    --destructive-foreground: #f8fafc;
+
+    --border: #e2e8f0;
+    /* slate-200 */
+    --input: #e2e8f0;
+    --ring: #0f172a;
+
+    /* Custom brand colors */
+    --brand-primary: #0F172A;
+    --brand-accent: #06B6D4;
+    --brand-success: #10B981;
+    --brand-warning: #F59E0B;
+    --brand-error: #EF4444;
+  }
+
+  /* Dark Theme */
+  [data-theme='dark'] {
     --background: #020617;
     /* slate-950 */
     --foreground: #e2e8f0;
@@ -43,91 +87,30 @@
     --card: #0f172a;
     /* slate-900 */
     --card-foreground: #e2e8f0;
-    /* slate-200 */
 
     --popover: #0f172a;
-    /* slate-900 */
     --popover-foreground: #e2e8f0;
-    /* slate-200 */
 
-    --primary: #0f172a;
-    /* slate-900 - kept for compatibility, but consider changing */
-    --primary-foreground: #f8fafc;
+    --primary: #f8fafc;
     /* slate-50 */
+    --primary-foreground: #0f172a;
 
     --secondary: #1e293b;
     /* slate-800 */
     --secondary-foreground: #f8fafc;
-    /* slate-50 */
 
     --muted: #1e293b;
-    /* slate-800 */
     --muted-foreground: #94a3b8;
-    /* slate-400 */
 
     --accent: #1e293b;
-    /* slate-800 */
     --accent-foreground: #f8fafc;
-    /* slate-50 */
 
     --destructive: #7f1d1d;
-    /* red-900 */
     --destructive-foreground: #f8fafc;
-    /* slate-50 */
 
     --border: #1e293b;
-    /* slate-800 */
     --input: #1e293b;
-    /* slate-800 */
     --ring: #cbd5e1;
-    /* slate-300 */
-
-    /* Custom brand colors to keep */
-    --brand-primary: #0F172A;
-    --brand-accent: #06B6D4;
-    --brand-success: #10B981;
-    --brand-warning: #F59E0B;
-    --brand-error: #EF4444;
-  }
-
-  /* Light Theme */
-  [data-theme='light'] {
-    --background: #ffffff;
-    --foreground: #0f172a;
-    /* slate-950 */
-
-    --card: #ffffff;
-    --card-foreground: #0f172a;
-
-    --popover: #ffffff;
-    --popover-foreground: #0f172a;
-
-    --primary: #0f172a;
-    --primary-foreground: #f8fafc;
-
-    --secondary: #f1f5f9;
-    /* slate-100 */
-    --secondary-foreground: #0f172a;
-
-    --muted: #f1f5f9;
-    /* slate-100 */
-    --muted-foreground: #64748b;
-    /* slate-500 */
-
-    --accent: #f1f5f9;
-    /* slate-100 */
-    --accent-foreground: #0f172a;
-
-    --destructive: #ef4444;
-    /* red-500 */
-    --destructive-foreground: #f8fafc;
-
-    --border: #e2e8f0;
-    /* slate-200 */
-    --input: #e2e8f0;
-    /* slate-200 */
-    --ring: #0f172a;
-    /* slate-950 */
   }
 
   /* Blue Theme */

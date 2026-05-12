@@ -41,7 +41,7 @@ function HomeRedirect() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <WebSocketProvider>
           <BrowserRouter>
             <Suspense fallback={<PageLoading />}>

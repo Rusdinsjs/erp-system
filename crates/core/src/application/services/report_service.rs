@@ -413,6 +413,13 @@ impl ReportService {
             .await
             .map_err(|e| DomainError::internal(e.to_string()))?;
 
+        // Fetch settings
+        let settings = self
+            .settings_repo
+            .list()
+            .await
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
         let font_family = genpdf::fonts::from_files("./assets/fonts", "Roboto", None)
             .map_err(|e| DomainError::internal(e.to_string()))?;
         let mut doc = genpdf::Document::new(font_family);
@@ -420,13 +427,6 @@ impl ReportService {
         let mut decorator = genpdf::SimplePageDecorator::new();
         decorator.set_margins(20);
         doc.set_page_decorator(decorator);
-
-        // Fetch settings
-        let settings = self
-            .settings_repo
-            .list()
-            .await
-            .map_err(|e| DomainError::internal(e.to_string()))?;
 
         // Header
         self.add_dynamic_header(&mut doc, &settings)?;
@@ -543,6 +543,13 @@ impl ReportService {
             .await
             .map_err(|e| DomainError::internal(e.to_string()))?;
 
+        // Fetch settings
+        let settings = self
+            .settings_repo
+            .list()
+            .await
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
         let font_family = genpdf::fonts::from_files("./assets/fonts", "Roboto", None)
             .map_err(|e| DomainError::internal(e.to_string()))?;
         let mut doc = genpdf::Document::new(font_family);
@@ -550,13 +557,6 @@ impl ReportService {
         let mut decorator = genpdf::SimplePageDecorator::new();
         decorator.set_margins(20);
         doc.set_page_decorator(decorator);
-
-        // Fetch settings
-        let settings = self
-            .settings_repo
-            .list()
-            .await
-            .map_err(|e| DomainError::internal(e.to_string()))?;
 
         // Header
         self.add_dynamic_header(&mut doc, &settings)?;
@@ -671,6 +671,13 @@ impl ReportService {
             .await
             .map_err(|e| DomainError::internal(e.to_string()))?;
 
+        // Fetch settings
+        let settings = self
+            .settings_repo
+            .list()
+            .await
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
         let font_family = genpdf::fonts::from_files("./assets/fonts", "Roboto", None)
             .map_err(|e| DomainError::internal(e.to_string()))?;
         let mut doc = genpdf::Document::new(font_family);
@@ -678,13 +685,6 @@ impl ReportService {
         let mut decorator = genpdf::SimplePageDecorator::new();
         decorator.set_margins(20);
         doc.set_page_decorator(decorator);
-
-        // Fetch settings
-        let settings = self
-            .settings_repo
-            .list()
-            .await
-            .map_err(|e| DomainError::internal(e.to_string()))?;
 
         // Header
         self.add_dynamic_header(&mut doc, &settings)?;

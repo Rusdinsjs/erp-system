@@ -39,7 +39,7 @@ export function Progress({
                     </span>
                 )}
             </div>
-            <div className={`w-full bg-slate-800 rounded-full overflow-hidden ${sizeClasses[size]}`}>
+            <div className={`w-full bg-muted rounded-full overflow-hidden ${sizeClasses[size]}`}>
                 <div
                     className={`${colorClasses[color]} h-full rounded-full transition-all duration-500 ease-out shadow-sm`}
                     style={{ width: `${clampedValue}%` }}

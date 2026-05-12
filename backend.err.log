@@ -1,8 +1,4 @@
 warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
-package:   D:\Ngoding\management-system\crates\api-server\Cargo.toml
-workspace: D:\Ngoding\management-system\Cargo.toml
-    Finished `release` profile [optimized] target(s) in 1.77s
-warning: the following packages contain code that will be rejected by a future version of Rust: sqlx-postgres v0.7.4
-note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 2`
-     Running `target\release\management-system.exe`
-error: process didn't exit successfully: `target\release\management-system.exe` (exit code: 0xc000013a, STATUS_CONTROL_C_EXIT)
+package:   /mnt/d/Ngoding/management-system/crates/api-server/Cargo.toml
+workspace: /mnt/d/Ngoding/management-system/Cargo.toml
+   Compiling sqlx-postgres v0.7.4

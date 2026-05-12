@@ -9,7 +9,7 @@ interface TableProps {
 
 export function Table({ children, className = '' }: TableProps) {
     return (
-        <div className="overflow-x-auto rounded-xl border border-gray-700/50 shadow-md">
+        <div className="overflow-x-auto rounded-xl border border-border shadow-md">
             <table className={`w-full text-sm ${className}`}>
                 {children}
             </table>
@@ -24,7 +24,7 @@ interface TableHeadProps {
 
 export function TableHead({ children }: TableHeadProps) {
     return (
-        <thead className="bg-gray-900/50 border-b border-gray-700/50">
+        <thead className="bg-muted/50 border-b border-border">
             {children}
         </thead>
     );
@@ -36,7 +36,7 @@ interface TableBodyProps {
 }
 
 export function TableBody({ children }: TableBodyProps) {
-    return <tbody className="divide-y divide-gray-700/50">{children}</tbody>;
+    return <tbody className="divide-y divide-border/50">{children}</tbody>;
 }
 
 // Table Row
@@ -50,7 +50,7 @@ export function TableRow({ children, onClick, className = '' }: TableRowProps) {
     return (
         <tr
             className={`
-                bg-gray-800/30 hover:bg-gray-700/30 transition-colors
+                bg-card/30 hover:bg-muted/50 transition-colors
                 ${onClick ? 'cursor-pointer' : ''}
                 ${className}
             `}
@@ -78,7 +78,7 @@ export function TableTh({ children, className = '', align = 'left', onClick }: T
 
     return (
         <th
-            className={`px-4 py-3 font-semibold text-gray-400 uppercase tracking-wider text-xs ${alignClass[align]} ${className} ${onClick ? 'cursor-pointer' : ''}`}
+            className={`px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-xs ${alignClass[align]} ${className} ${onClick ? 'cursor-pointer' : ''}`}
             onClick={onClick}
         >
             {children}
@@ -103,7 +103,7 @@ export function TableTd({ children, className = '', align = 'left', colSpan }: T
 
     return (
         <td
-            className={`px-4 py-3 text-gray-200 ${alignClass[align]} ${className}`}
+            className={`px-4 py-3 text-foreground ${alignClass[align]} ${className}`}
             colSpan={colSpan}
         >
             {children}
@@ -120,7 +120,7 @@ interface TableEmptyProps {
 export function TableEmpty({ colSpan, message = 'No data found' }: TableEmptyProps) {
     return (
         <tr>
-            <td colSpan={colSpan} className="px-4 py-12 text-center text-gray-500">
+            <td colSpan={colSpan} className="px-4 py-12 text-center text-muted-foreground">
                 {message}
             </td>
         </tr>

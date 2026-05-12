@@ -21,7 +21,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             <div className={`relative ${className}`}>
                 <Search
                     size={18}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 />
                 <input
                     ref={ref}
@@ -30,16 +30,16 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
                     className="
-                        w-full pl-10 pr-10 py-2.5 bg-slate-950/50 border border-slate-700 rounded-xl
-                        text-white placeholder-slate-500
-                        focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 focus:bg-slate-950
+                        w-full pl-10 pr-10 py-2.5 bg-background border border-border rounded-xl
+                        text-foreground placeholder-muted-foreground/50
+                        focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background
                         transition-all duration-200 outline-none
                     "
                 />
                 {value && (
                     <button
                         onClick={handleClear}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-white transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <X size={16} />
                     </button>

@@ -100,14 +100,14 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         return (
             <div className="space-y-1.5">
                 {label && (
-                    <label className="block text-sm font-medium text-slate-300">
+                    <label className="block text-sm font-medium text-muted-foreground">
                         {label}
-                        {props.required && <span className="text-red-400 ml-1">*</span>}
+                        {props.required && <span className="text-destructive ml-1">*</span>}
                     </label>
                 )}
                 <div className="relative flex">
                     {prefix && (
-                        <span className="inline-flex items-center px-3 bg-slate-800 border border-r-0 border-slate-700 rounded-l-xl text-slate-400 text-sm">
+                        <span className="inline-flex items-center px-3 bg-muted border border-r-0 border-border rounded-l-xl text-muted-foreground text-sm">
                             {prefix}
                         </span>
                     )}
@@ -119,20 +119,20 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
                         onChange={handleChange}
                         onBlur={handleBlur}
                         className={`
-                            flex-1 w-full px-4 py-2.5 bg-slate-950/50 border text-white 
-                            placeholder-slate-500 outline-none
-                            focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 focus:bg-slate-950
+                            flex-1 w-full px-4 py-2.5 bg-background border text-foreground 
+                            placeholder-muted-foreground/50 outline-none
+                            focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background
                             disabled:opacity-50 disabled:cursor-not-allowed
                             transition-all duration-200
                             ${prefix ? 'rounded-l-none' : 'rounded-l-xl'}
                             ${suffix ? 'rounded-r-none' : 'rounded-r-xl'}
-                            ${error ? 'border-red-500 focus:ring-red-500/50' : 'border-slate-700'}
+                            ${error ? 'border-destructive focus:ring-destructive/20' : 'border-border'}
                             ${className}
                         `}
                         {...props}
                     />
                     {suffix && (
-                        <span className="inline-flex items-center px-3 bg-slate-800 border border-l-0 border-slate-700 rounded-r-xl text-slate-400 text-sm">
+                        <span className="inline-flex items-center px-3 bg-muted border border-l-0 border-border rounded-r-xl text-muted-foreground text-sm">
                             {suffix}
                         </span>
                     )}
@@ -141,14 +141,14 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
                             <button
                                 type="button"
                                 onClick={increment}
-                                className="px-2 h-1/2 bg-slate-800 border border-l-0 border-slate-700 rounded-tr-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                                className="px-2 h-1/2 bg-muted border border-l-0 border-border rounded-tr-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                             >
                                 <Plus size={12} />
                             </button>
                             <button
                                 type="button"
                                 onClick={decrement}
-                                className="px-2 h-1/2 bg-slate-800 border border-l-0 border-t-0 border-slate-700 rounded-br-xl text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                                className="px-2 h-1/2 bg-muted border border-l-0 border-t-0 border-border rounded-br-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                             >
                                 <Minus size={12} />
                             </button>
@@ -156,10 +156,10 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
                     )}
                 </div>
                 {hint && !error && (
-                    <p className="text-xs text-slate-500">{hint}</p>
+                    <p className="text-xs text-muted-foreground">{hint}</p>
                 )}
                 {error && (
-                    <p className="text-xs text-red-400">{error}</p>
+                    <p className="text-xs text-destructive">{error}</p>
                 )}
             </div>
         );

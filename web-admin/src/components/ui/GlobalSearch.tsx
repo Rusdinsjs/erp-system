@@ -40,19 +40,19 @@ export function GlobalSearch({
 
     return (
         <div className={`relative group ${className}`}>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-cyan-400 transition-colors">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                 <Search size={18} />
             </div>
             <Input
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder={placeholder}
-                className="pl-10 pr-10 py-2 bg-slate-800/50 border-slate-700/50 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 transition-all rounded-xl w-full"
+                className="pl-10 pr-10 py-2 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all rounded-xl w-full"
             />
             {value && (
                 <button
                     onClick={handleClear}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-all"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all"
                 >
                     <X size={14} />
                 </button>

@@ -189,7 +189,7 @@ impl AppState {
         );
         let contract_template_service =
             ContractTemplateService::new(contract_template_repo.clone());
-        let loan_service = LoanService::new(loan_repo, asset_repo.clone(), event_bus.clone());
+        let loan_service = LoanService::new(loan_repo.clone(), asset_repo.clone(), event_bus.clone());
         let maintenance_service = MaintenanceService::new(
             maintenance_repo.clone(),
             asset_repo.clone(),

@@ -63,18 +63,18 @@ export function Drawer({
                 className={`
                     absolute top-0 bottom-0 ${positionClasses}
                     w-full ${sizes[size]}
-                    bg-slate-900 border-l border-slate-800 shadow-2xl
+                    bg-card border-l border-border shadow-2xl
                     flex flex-col
                 `}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-800 flex-shrink-0">
+                <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
                     {title && (
-                        <h3 className="text-lg font-semibold text-white">{title}</h3>
+                        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
                     )}
                     <button
                         onClick={onClose}
-                        className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors ml-auto"
+                        className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors ml-auto"
                     >
                         <X size={20} />
                     </button>

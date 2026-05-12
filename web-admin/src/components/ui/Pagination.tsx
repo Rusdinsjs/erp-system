@@ -43,14 +43,14 @@ export function Pagination({ currentPage, totalPages, onPageChange, className = 
             <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
                 <ChevronLeft size={18} />
             </button>
 
             {pages.map((page, idx) => (
                 page === '...' ? (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-slate-500">...</span>
+                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground/50">...</span>
                 ) : (
                     <button
                         key={page}
@@ -59,8 +59,8 @@ export function Pagination({ currentPage, totalPages, onPageChange, className = 
                             min-w-[36px] h-9 px-3 rounded-lg text-sm font-medium
                             transition-colors duration-200
                             ${currentPage === page
-                                ? 'bg-cyan-500/20 text-cyan-400'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }
                         `}
                     >
@@ -72,7 +72,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className = 
             <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
                 <ChevronRight size={18} />
             </button>

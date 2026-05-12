@@ -36,12 +36,33 @@ fi
 
 # 1. Pastikan Docker Containers (DB & Redis) berjalan
 echo -e "${GREEN}1. Menjalankan Docker Service (DB & Redis)...${NC}"
-# Hanya jalankan postgres dan redis, jangan build backend/frontend
-# Kita paksa recreate container jika ada isu port
-docker compose up -d postgres redis
+
+# Detection logic for docker/podman
+DOCKER_CMD="docker"
+if ! command -v docker &> /dev/null; then
+    if command -v podman &> /dev/null; then
+        DOCKER_CMD="podman"
+        echo -e "${BLUE}Docker not found. Using Podman...${NC}"
+    else
+        echo -e "${GREEN}Neither docker nor podman found!${NC}"
+        exit 1
+    fi
+fi
+
+# Try compose up
+if ! $DOCKER_CMD compose up -d postgres redis &> /dev/null; then
+    if [[ "$DOCKER_CMD" == "podman" ]]; then
+        echo -e "${BLUE}Trying podman-compose...${NC}"
+        podman-compose up -d postgres redis
+    else
+        echo -e "Failed to start containers."
+        exit 1
+    fi
+fi
 
 echo -e "${GREEN}2. Menunggu Database Siap...${NC}"
 sleep 5 # Tunggu sebentar agar port binding ready
+
 
 # 2. Setup & Jalankan Frontend (Bun) di background
 echo -e "${GREEN}3. Menyiapkan Frontend Web Admin...${NC}"

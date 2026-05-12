@@ -17,12 +17,12 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
                         className="sr-only peer"
                         {...props}
                     />
-                    <div className="w-5 h-5 border-2 border-slate-600 rounded bg-slate-950/50 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 transition-colors">
-                        <Check size={14} className="text-white opacity-0 peer-checked:opacity-100 m-0.5" />
+                    <div className="w-5 h-5 border-2 border-border rounded bg-background peer-checked:bg-primary peer-checked:border-primary transition-colors">
+                        <Check size={14} className="text-primary-foreground opacity-0 peer-checked:opacity-100 m-0.5" />
                     </div>
                 </div>
                 {label && (
-                    <span className="text-sm text-slate-300">{label}</span>
+                    <span className="text-sm text-muted-foreground">{label}</span>
                 )}
             </label>
         );

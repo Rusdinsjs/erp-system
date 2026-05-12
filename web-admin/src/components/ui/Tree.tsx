@@ -31,8 +31,8 @@ export function TreeItem({
                 className={`
                     group flex items-center justify-between py-1.5 pr-2 rounded-lg cursor-pointer transition-colors
                     ${isActive
-                        ? 'bg-cyan-500/10 text-cyan-400'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     }
                 `}
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
@@ -42,7 +42,7 @@ export function TreeItem({
                     <button
                         onClick={onToggle}
                         className={`
-                            p-0.5 rounded-md hover:bg-slate-700/50 transition-colors
+                            p-0.5 rounded-md hover:bg-accent transition-colors
                             ${!hasChildren ? 'opacity-0 pointer-events-none' : ''}
                         `}
                     >
@@ -53,7 +53,7 @@ export function TreeItem({
                         )}
                     </button>
 
-                    <div className="text-slate-500">
+                    <div className="text-muted-foreground/70">
                         {isExpanded ? <FolderOpen size={16} /> : <Folder size={16} />}
                     </div>
 

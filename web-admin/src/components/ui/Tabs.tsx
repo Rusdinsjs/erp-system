@@ -50,7 +50,7 @@ export function TabsList({ children, className = '' }: TabsListProps) {
     return (
         <div
             className={`
-                flex gap-1 p-1 bg-slate-900/50 border border-slate-800 rounded-xl
+                flex gap-1 p-1 bg-muted border border-border rounded-xl
                 ${className}
             `}
         >
@@ -82,8 +82,8 @@ export function TabsTrigger({ children, value, icon, className = '' }: TabsTrigg
                 flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
                 transition-all duration-200
                 ${isActive
-                    ? 'bg-cyan-500/20 text-cyan-400'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-background text-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                 }
                 ${className}
             `}
