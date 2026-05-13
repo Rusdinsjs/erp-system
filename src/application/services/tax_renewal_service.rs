@@ -65,6 +65,35 @@ impl TaxRenewalService {
             .map_err(|e| DomainError::Database(e.to_string()))
     }
 
+    pub async fn create_renewal(
+        &self,
+        asset_id: Uuid,
+        document_type: String,
+        current_expiry: chrono::NaiveDate,
+        notes: Option<String>,
+    ) -> Result<TaxRenewal, DomainError> {
+        let renewal = TaxRenewal {
+            id: Uuid::new_v4(),
+            asset_id,
+            document_type,
+            current_expiry,
+            renewal_cost: None,
+            status: "PENDING_INPUT".to_string(),
+            invoice_id: None,
+            notes,
+            payment_destination: None,
+            invoice_attachment: None,
+            payment_date: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            asset_name: None,
+        };
+        self.repository
+            .create(renewal)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
     async fn create_pending_if_needed(
         &self,
         asset_id: Uuid,

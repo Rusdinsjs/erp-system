@@ -1,7 +1,8 @@
 use crate::api::responses::ApiResponse;
 use crate::api::server::AppState;
 use crate::application::dto::{
-    ApproveTaxRenewalRequest, CompleteTaxRenewalRequest, TaxRenewalDto, UpdateTaxRenewalCostRequest,
+    ApproveTaxRenewalRequest, CompleteTaxRenewalRequest, CreateTaxRenewalRequest, TaxRenewalDto,
+    UpdateTaxRenewalCostRequest,
 };
 use crate::domain::errors::DomainError;
 use axum::{
@@ -145,6 +146,31 @@ pub async fn complete_renewal(
         id: renewal.id,
         asset_id: renewal.asset_id,
         asset_name: None, // Frontend can fetch or we enhance later
+        license_plate: None,
+        document_type: renewal.document_type,
+        current_expiry: renewal.current_expiry,
+        renewal_cost: renewal.renewal_cost,
+        status: renewal.status,
+        notes: renewal.notes,
+        payment_destination: renewal.payment_destination,
+        invoice_attachment: renewal.invoice_attachment,
+        created_at: renewal.created_at,
+        updated_at: renewal.updated_at,
+    })))
+}
+pub async fn create_renewal(
+    State(state): State<AppState>,
+    Json(req): Json<CreateTaxRenewalRequest>,
+) -> Result<Json<ApiResponse<TaxRenewalDto>>, DomainError> {
+    let renewal = state
+        .tax_renewal_service
+        .create_renewal(req.asset_id, req.document_type, req.current_expiry, req.notes)
+        .await?;
+
+    Ok(Json(ApiResponse::success(TaxRenewalDto {
+        id: renewal.id,
+        asset_id: renewal.asset_id,
+        asset_name: renewal.asset_name,
         license_plate: None,
         document_type: renewal.document_type,
         current_expiry: renewal.current_expiry,

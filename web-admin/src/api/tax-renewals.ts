@@ -30,10 +30,22 @@ export interface CompleteTaxRenewalRequest {
     new_expiry_date: string; // YYYY-MM-DD
 }
 
+export interface CreateTaxRenewalRequest {
+    asset_id: string;
+    document_type: string;
+    current_expiry: string; // YYYY-MM-DD
+    notes?: string;
+}
+
 export const taxRenewalApi = {
     list: async (status?: string) => {
         const response = await api.get<{ data: TaxRenewal[] }>('/tax-renewals', { params: { status } });
         return response.data.data;
+    },
+
+    create: async (data: CreateTaxRenewalRequest) => {
+        const response = await api.post<TaxRenewal>('/tax-renewals', data);
+        return response.data;
     },
 
     submitCost: async (id: string, data: UpdateRenewalCostRequest) => {

@@ -38,3 +38,11 @@ pub struct CompleteTaxRenewalRequest {
 pub struct ApproveTaxRenewalRequest {
     pub notes: Option<String>,
 }
+
+#[derive(Deserialize)]
+pub struct CreateTaxRenewalRequest {
+    pub asset_id: Uuid,
+    pub document_type: String,
+    pub current_expiry: chrono::NaiveDate,
+    pub notes: Option<String>,
+}

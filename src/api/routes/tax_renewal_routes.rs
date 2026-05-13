@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, put},
+    routing::{get, post, put},
     Router,
 };
 
@@ -8,7 +8,8 @@ use crate::api::server::AppState;
 
 pub fn tax_renewal_routes(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/api/tax-renewals", get(tax_renewal_handler::list_renewals))
+        .route("/api/tax-renewals", get(tax_renewal_handler::list_renewals)
+            .post(tax_renewal_handler::create_renewal))
         .route(
             "/api/tax-renewals/:id/cost",
             put(tax_renewal_handler::submit_cost),
