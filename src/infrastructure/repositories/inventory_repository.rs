@@ -132,4 +132,44 @@ impl InventoryRepository {
         .fetch_one(&self.pool)
         .await
     }
+
+    // --- Documents ---
+
+    pub async fn create_document(
+        &self,
+        document: &crate::domain::entities::inventory::InventoryDocument,
+    ) -> Result<crate::domain::entities::inventory::InventoryDocument, sqlx::Error> {
+        sqlx::query_as::<_, crate::domain::entities::inventory::InventoryDocument>(
+            r#"
+            INSERT INTO inventory_documents (id, item_id, name, type, file_path, mime_type, size_bytes, expiry_date, notes, uploaded_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING *
+            "#,
+        )
+        .bind(document.id)
+        .bind(document.item_id)
+        .bind(&document.name)
+        .bind(&document.type_)
+        .bind(&document.file_path)
+        .bind(&document.mime_type)
+        .bind(document.size_bytes)
+        .bind(document.expiry_date)
+        .bind(&document.notes)
+        .bind(document.uploaded_by)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn find_documents_by_item_id(
+        &self,
+        item_id: Uuid,
+    ) -> Result<Vec<crate::domain::entities::inventory::InventoryDocument>, sqlx::Error> {
+        sqlx::query_as::<_, crate::domain::entities::inventory::InventoryDocument>(
+            "SELECT * FROM inventory_documents WHERE item_id = $1 ORDER BY created_at DESC",
+        )
+        .bind(item_id)
+        .fetch_all(&self.pool)
+        .await
+    }
+}
 }

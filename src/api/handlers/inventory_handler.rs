@@ -1,7 +1,7 @@
 use crate::api::server::AppState;
 use crate::application::dto::{
-    ApiResponse, CreateInventoryCategoryRequest, CreateInventoryItemRequest,
-    InventoryAdjustmentRequest,
+    ApiResponse, CreateInventoryCategoryRequest, CreateInventoryDocumentRequest,
+    CreateInventoryItemRequest, InventoryAdjustmentRequest,
 };
 use crate::domain::entities::UserClaims as Claims;
 use crate::shared::errors::AppError;
@@ -69,4 +69,42 @@ pub async fn batch_adjust_stock(
         .adjust_stock_batch(payload, Some(claims.user_id()))
         .await?;
     Ok(Json(ApiResponse::success(success)))
+}
+
+pub async fn bulk_create_items(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::application::dto::BulkCreateInventoryItemRequest>,
+) -> Result<Json<ApiResponse<usize>>, AppError> {
+    let count = state.inventory_service.create_item_bulk(payload.items).await?;
+    Ok(Json(ApiResponse::success(count)))
+}
+
+pub async fn get_item(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiResponse<Option<crate::domain::entities::inventory::InventoryItem>>>, AppError> {
+    let item = state.inventory_service.get_item(id).await?;
+    Ok(Json(ApiResponse::success(item)))
+}
+
+pub async fn create_document(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<CreateInventoryDocumentRequest>,
+) -> Result<Json<ApiResponse<crate::domain::entities::inventory::InventoryDocument>>, AppError> {
+    let document = state
+        .inventory_service
+        .create_document(id, payload, Some(claims.user_id()))
+        .await?;
+    Ok(Json(ApiResponse::success(document)))
+}
+
+pub async fn list_documents(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiResponse<Vec<crate::domain::entities::inventory::InventoryDocument>>>, AppError>
+{
+    let documents = state.inventory_service.list_documents(id).await?;
+    Ok(Json(ApiResponse::success(documents)))
 }

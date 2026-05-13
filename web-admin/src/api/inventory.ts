@@ -99,7 +99,45 @@ export const inventoryApi = {
         const response = await api.post('/inventory/adjust/batch', data);
         return response.data.data;
     },
+
+    bulkCreate: async (data: { items: any[] }) => {
+        const response = await api.post('/inventory/items/bulk', data);
+        return response.data.data;
+    },
+
+    // Documents
+    listDocuments: async (id: string) => {
+        const response = await api.get(`/inventory/items/${id}/documents`);
+        return response.data.data;
+    },
+    addDocument: async (id: string, data: any) => {
+        const response = await api.post(`/inventory/items/${id}/documents`, data);
+        return response.data.data;
+    },
+    uploadFile: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
 };
+
+export interface InventoryDocument {
+    id: string;
+    item_id: string;
+    name: string;
+    type: string;
+    file_path: string;
+    mime_type: string | null;
+    size_bytes: number | null;
+    expiry_date: string | null;
+    notes: string | null;
+    uploaded_by: string | null;
+    created_at: string;
+    updated_at: string;
+}
 
 export interface InventoryMovement {
     id: string;

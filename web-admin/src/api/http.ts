@@ -23,6 +23,9 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             useAuthStore.getState().logout();
             showToast('Session expired. Please login again.', 'error', 'Authentication Error');
+        } else if (error.response?.status === 404 && error.config?.url?.includes('/audit-sessions/active')) {
+            // Ignore 404 for active session check - it just means no session is active
+            return Promise.resolve({ data: null });
         } else if (error.response?.status >= 400) {
             // General API errors
             showToast(message, 'error', 'Error');

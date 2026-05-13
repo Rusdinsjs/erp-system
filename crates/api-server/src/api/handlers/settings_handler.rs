@@ -1,7 +1,7 @@
 use crate::api::server::AppState;
 use management_system_core::application::dto::common::ApiResponse;
 use management_system_core::domain::entities::setting::{Setting, UpdateSettingRequest};
-use management_system_core::domain::entities::user::User;
+use management_system_core::domain::entities::UserClaims;
 use management_system_core::shared::errors::AppError;
 use axum::{
     extract::{Path, State},
@@ -50,13 +50,16 @@ pub async fn get_all_settings(
 )]
 pub async fn update_setting(
     State(state): State<AppState>,
-    Extension(user): Extension<User>,
+    Extension(claims): Extension<UserClaims>,
     Path(key): Path<String>,
     Json(payload): Json<UpdateSettingRequest>,
 ) -> Result<Json<ApiResponse<Setting>>, AppError> {
+    let user_id = uuid::Uuid::parse_str(&claims.sub)
+        .map_err(|_| AppError::BadRequest("Invalid user ID in token".to_string()))?;
+
     let setting = state
         .settings_service
-        .update_setting(&key, payload.value, payload.description, user.id)
+        .update_setting(&key, payload.value, payload.description, user_id)
         .await?;
 
     Ok(Json(ApiResponse {

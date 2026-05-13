@@ -71,6 +71,7 @@ const MaintenanceSchedulesView = lazy(() => import('./Maintenance/MaintenanceSch
 const ApprovalWorkflowSettingsView = lazy(() => import('./ApprovalWorkflowSettings'));
 const SettingsView = lazy(() => import('./Settings'));
 const InventoryItemsView = lazy(() => import('./Inventory/InventoryItems'));
+const InventoryDetailView = lazy(() => import('./Inventory/InventoryDetail'));
 const InventoryCategoriesView = lazy(() => import('./Inventory/InventoryCategories'));
 const StockOpnameView = lazy(() => import('./Inventory/StockOpname'));
 const TaxRenewalsView = lazy(() => import('./TaxRenewals/TaxRenewals'));
@@ -106,6 +107,7 @@ type TabId =
     | 'users'
     | 'roles'
     | 'audit'
+    | 'asset-audit'
     | 'system-audit'
     | 'departments'
     | 'finance'
@@ -184,7 +186,7 @@ const navItems: NavEntry[] = [
     { type: 'header', label: 'ASSET MANAGEMENT', minLevel: 5, context: 'assets' },
     {
         id: 'asset_operations',
-        label: 'Assets & Inventory',
+        label: 'Assets',
         icon: Box,
         minLevel: 5,
         context: 'assets',
@@ -193,11 +195,12 @@ const navItems: NavEntry[] = [
             { id: 'asset-lifecycle', icon: History, label: 'Asset Lifecycle', minLevel: 4 },
             { id: 'categories', icon: FolderTree, label: 'Categories', minLevel: 4 },
             { id: 'locations', icon: MapPin, label: 'Locations', minLevel: 4 },
+            { id: 'asset-audit', icon: Scan, label: 'Asset Audit', minLevel: 4 },
         ]
     },
     {
         id: 'inventory_group',
-        label: 'Parts & Inventory',
+        label: 'Inventory',
         icon: Package,
         minLevel: 4,
         context: 'ops',
@@ -294,7 +297,7 @@ const navItems: NavEntry[] = [
             { id: 'users', icon: Users, label: 'User Operations', minLevel: 2 },
             { id: 'roles', icon: Shield, label: 'Access Rights', minLevel: 1 },
             { id: 'approval-workflow-settings', icon: Layers, label: 'Workflows', minLevel: 1 },
-            { id: 'audit', icon: Scan, label: 'Audit Logs', minLevel: 2 },
+            { id: 'audit', icon: History, label: 'Audit Logs', minLevel: 2 },
             { id: 'settings', icon: Settings, label: 'App Settings', minLevel: 2 },
             { id: 'profile', icon: UserCircle, label: 'My Profile', minLevel: 5 },
         ]
@@ -325,6 +328,7 @@ export default function AdminDashboard() {
     // For sub-views that need parameters
     const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<string | null>(null);
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+    const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
     const [assetViewMode, setAssetViewMode] = useState<'list' | 'lifecycle' | 'details'>('list');
     const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
     const [selectedContractId] = useState<string | null>(null);
@@ -394,7 +398,18 @@ export default function AdminDashboard() {
             setActiveTab('work-orders');
             setSelectedWorkOrderId(woMatch.params.id);
             setSelectedAssetId(null);
+            setSelectedInventoryId(null);
             setOpenGroups(prev => ({ ...prev, asset_operations: true }));
+            return;
+        }
+
+        const invMatch = matchPath('/inventory-items/:id', path);
+        if (invMatch?.params.id) {
+            setActiveTab('inventory-items');
+            setSelectedInventoryId(invMatch.params.id);
+            setSelectedAssetId(null);
+            setSelectedWorkOrderId(null);
+            setOpenGroups(prev => ({ ...prev, inventory_group: true }));
             return;
         }
 
@@ -693,7 +708,9 @@ export default function AdminDashboard() {
             case 'assets': return <AssetsView />;
             case 'categories': return <CategoriesView />;
             case 'inventory-categories': return <InventoryCategoriesView />;
-            case 'inventory-items': return <InventoryItemsView />;
+            case 'inventory-items': 
+                if (selectedInventoryId) return <InventoryDetailView itemId={selectedInventoryId} />;
+                return <InventoryItemsView />;
             case 'stock-opname': return <StockOpnameView />;
             case 'locations': return <LocationsView />;
             case 'work-orders': return <WorkOrdersView />;
@@ -724,7 +741,8 @@ export default function AdminDashboard() {
             case 'reports': return <ReportsView />;
             case 'users': return <UsersView />;
             case 'roles': return <RolesView />;
-            case 'audit': return <AuditModeView />;
+            case 'audit': return <AuditLogsView />;
+            case 'asset-audit': return <AuditModeView />;
             case 'system-audit': return <AuditLogsView />;
             case 'departments': return <DepartmentsView />;
             case 'finance': return <ChartOfAccountsView />;

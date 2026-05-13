@@ -1,6 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Building2, Tag, Calendar, Truck, Printer, BarChart3 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+    ArrowLeft, MapPin, Building2, Tag, Calendar, 
+    Truck, Printer, BarChart3, Camera, 
+    Upload, Loader2, Info
+} from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { assetApi } from '../../api/assets';
 
@@ -15,6 +19,7 @@ import {
     LoadingOverlay,
     Tabs, TabsContent, TabsList, TabsTrigger,
 } from '../../components/ui';
+import { AssetVisuals } from '../../components/Assets/AssetVisuals';
 
 export default function AssetDetails({ assetId }: { assetId?: string }) {
     const { id: paramId } = useParams<{ id: string }>();
@@ -124,6 +129,7 @@ export default function AssetDetails({ assetId }: { assetId?: string }) {
             <Tabs defaultValue="details" className="w-full">
                 <TabsList className="mb-4 w-full justify-start overflow-x-auto global-scrollbar pb-1">
                     <TabsTrigger value="details" className="flex-shrink-0">General Info</TabsTrigger>
+                    <TabsTrigger value="visuals" className="flex-shrink-0">Visuals (4-Sided)</TabsTrigger>
                     <TabsTrigger value="expenses" className="flex-shrink-0">Expenses (OPEX)</TabsTrigger>
                     <TabsTrigger value="capex" className="flex-shrink-0">Expenses (CAPEX)</TabsTrigger>
                     <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
@@ -159,6 +165,10 @@ export default function AssetDetails({ assetId }: { assetId?: string }) {
                             </div>
                         </Card>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="visuals">
+                    <AssetVisuals assetId={id!} readOnly={true} />
                 </TabsContent>
 
                 <TabsContent value="documents">

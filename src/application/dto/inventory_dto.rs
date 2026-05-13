@@ -52,3 +52,19 @@ pub struct InventoryAdjustmentItem {
     pub quantity: Decimal, // The adjustment amount (can be positive or negative)
     pub unit_price: Option<Decimal>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct BulkCreateInventoryItemRequest {
+    pub items: Vec<CreateInventoryItemRequest>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateInventoryDocumentRequest {
+    pub name: String,
+    pub type_: String,
+    pub file_path: String,
+    pub mime_type: Option<String>,
+    pub size_bytes: Option<i64>,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub notes: Option<String>,
+}

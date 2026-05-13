@@ -419,6 +419,10 @@ pub fn create_router(state: AppState) -> Router {
             get(report_handler::export_assets_pdf),
         )
         .route(
+            "/api/reports/inventory/pdf",
+            get(report_handler::export_inventory_pdf),
+        )
+        .route(
             "/api/reports/maintenance",
             get(report_handler::export_maintenance),
         )

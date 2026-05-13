@@ -15,6 +15,7 @@ pub struct ReportService {
     asset_repo: AssetRepository,
     maintenance_repo: MaintenanceRepository,
     finance_repo: FinanceRepository,
+    inventory_repo: std::sync::Arc<InventoryRepository>,
 }
 
 impl ReportService {
@@ -22,11 +23,13 @@ impl ReportService {
         asset_repo: AssetRepository,
         maintenance_repo: MaintenanceRepository,
         finance_repo: FinanceRepository,
+        inventory_repo: std::sync::Arc<InventoryRepository>,
     ) -> Self {
         Self {
             asset_repo,
             maintenance_repo,
             finance_repo,
+            inventory_repo,
         }
     }
 
@@ -266,6 +269,110 @@ impl ReportService {
             );
             row.push()
                 .map_err(|e| DomainError::internal(e.to_string()))?;
+        }
+
+        doc.push(table);
+
+        // Render to buffer
+        let mut buffer = Cursor::new(Vec::new());
+        doc.render(&mut buffer)
+            .map_err(|e| DomainError::internal(format!("Failed to render PDF: {}", e)))?;
+
+        Ok(buffer.into_inner())
+    }
+
+    pub async fn generate_inventory_pdf(&self) -> DomainResult<Vec<u8>> {
+        let items = self
+            .inventory_repo
+            .list_items(None)
+            .await
+            .map_err(|e| DomainError::internal(e.to_string()))?;
+
+        // Create a new PDF document
+        let font_dir = "assets/fonts";
+        let font_family = genpdf::fonts::from_files(font_dir, "Roboto", None).map_err(|e| {
+            let cwd = std::env::current_dir().unwrap_or_default();
+            DomainError::internal(format!(
+                "Failed to load fonts from '{}' (CWD: {:?}): {}",
+                font_dir, cwd, e
+            ))
+        })?;
+
+        let mut doc = genpdf::Document::new(font_family);
+        doc.set_title("Inventory Stock Report");
+
+        // Decorator
+        let mut decorator = genpdf::SimplePageDecorator::new();
+        decorator.set_margins(20);
+        doc.set_page_decorator(decorator);
+
+        // --- Header Section ---
+        let mut header_table = elements::TableLayout::new(vec![3, 7]);
+        header_table.set_cell_decorator(elements::FrameCellDecorator::new(false, false, false));
+
+        let mut row = header_table.row();
+        let logo_path = "assets/logo.png";
+        if let Ok(image) = elements::Image::from_path(logo_path) {
+            row.push_element(image.with_alignment(genpdf::Alignment::Left));
+        } else {
+            row.push_element(elements::Break::new(1.0));
+        }
+
+        let mut info_column = elements::LinearLayout::vertical();
+        info_column.push(
+            elements::Paragraph::new("PT. SARANA JAYA SERBAGUNA")
+                .styled(style::Style::new().bold().with_font_size(16)),
+        );
+        info_column.push(
+            elements::Paragraph::new("General Contractor, Supplier & Heavy Equipment Rental")
+                .styled(style::Style::new().italic().with_font_size(10)),
+        );
+        row.push_element(info_column);
+        row.push().map_err(|e| DomainError::internal(e.to_string()))?;
+        doc.push(header_table);
+
+        doc.push(elements::Break::new(2.0));
+        doc.push(elements::Paragraph::new("____________________________________________________________________________________________________").aligned(genpdf::Alignment::Center));
+        doc.push(elements::Break::new(2.0));
+
+        doc.push(
+            elements::Paragraph::new("Inventory Stock Report")
+                .aligned(genpdf::Alignment::Center)
+                .styled(style::Style::new().bold().with_font_size(18)),
+        );
+        let date_str = chrono::Utc::now().format("%Y-%m-%d %H:%M").to_string();
+        doc.push(
+            elements::Paragraph::new(format!("Generated on: {}", date_str))
+                .aligned(genpdf::Alignment::Center)
+                .styled(style::Style::new().italic().with_font_size(10)),
+        );
+        doc.push(elements::Break::new(2.0));
+
+        // Table
+        let mut table = elements::TableLayout::new(vec![3, 4, 2, 2, 3]);
+        table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
+
+        // Table Header
+        let mut header_row = table.row();
+        for header in ["SKU", "Name", "Qty", "Min", "Value"] {
+            header_row.push_element(
+                elements::Paragraph::new(header)
+                    .styled(style::Style::new().bold())
+                    .padded(2),
+            );
+        }
+        header_row.push().map_err(|e| DomainError::internal(e.to_string()))?;
+
+        // Table Body
+        for item in items {
+            let mut row = table.row();
+            row.push_element(elements::Paragraph::new(item.sku).padded(2));
+            row.push_element(elements::Paragraph::new(item.name).padded(2));
+            row.push_element(elements::Paragraph::new(item.current_quantity.to_string()).padded(2));
+            row.push_element(elements::Paragraph::new(item.min_stock.to_string()).padded(2));
+            let total_val = item.current_quantity * item.average_cost;
+            row.push_element(elements::Paragraph::new(format!("Rp {}", total_val)).padded(2));
+            row.push().map_err(|e| DomainError::internal(e.to_string()))?;
         }
 
         doc.push(table);

@@ -61,3 +61,20 @@ pub struct InventoryMovement {
     pub created_by: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct InventoryDocument {
+    pub id: Uuid,
+    pub item_id: Uuid,
+    pub name: String,
+    #[sqlx(rename = "type")]
+    pub type_: String,
+    pub file_path: String,
+    pub mime_type: Option<String>,
+    pub size_bytes: Option<i64>,
+    pub expiry_date: Option<chrono::NaiveDate>,
+    pub notes: Option<String>,
+    pub uploaded_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

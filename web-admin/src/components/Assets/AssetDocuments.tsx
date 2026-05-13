@@ -153,12 +153,12 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {documents?.map((doc: AssetDocument) => (
+                    {documents?.filter((d: any) => !['FRONT', 'BACK', 'LEFT', 'RIGHT'].includes(d.type)).map((doc: AssetDocument) => (
                         <div key={doc.id} className="group relative bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-colors">
                             <div className="flex items-start justify-between mb-3">
                                 <div className="p-2 bg-muted rounded-lg text-primary">
                                     {doc.mime_type?.startsWith('image/') ? (
-                                        <img src={`http://localhost:8080${doc.file_path}`} alt={doc.name} className="w-10 h-10 object-cover rounded" />
+                                        <img src={doc.file_path} alt={doc.name} className="w-10 h-10 object-cover rounded" />
                                     ) : (
                                         <FileText size={24} />
                                     )}
@@ -173,7 +173,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                                 <span>{(doc.size_bytes ? (doc.size_bytes / 1024).toFixed(1) : 0)} KB</span>
                                 <div className="flex gap-2">
                                     <a
-                                        href={`http://localhost:8080${doc.file_path}`}
+                                        href={doc.file_path}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="p-1.5 hover:bg-muted rounded text-primary"

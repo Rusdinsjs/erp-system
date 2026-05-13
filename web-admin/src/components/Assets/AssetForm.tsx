@@ -1,7 +1,7 @@
 // AssetForm - Pure Tailwind Version
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2 } from 'lucide-react';
+import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera } from 'lucide-react';
 import type { Asset, CreateAssetRequest } from '../../api/assets';
 import { departmentApi } from '../../api/departments';
 import { usersApi } from '../../api/users';
@@ -19,6 +19,7 @@ import {
 } from '../ui';
 import { CreateCategoryModal } from './CreateCategoryModal';
 import { AssetDocuments } from './AssetDocuments';
+import { AssetVisuals } from './AssetVisuals';
 
 interface Category {
     id: string;
@@ -457,6 +458,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         >
                             Documents
                         </TabsTrigger>
+                        {initialValues && (
+                            <TabsTrigger
+                                value="visuals"
+                                icon={<Camera size={18} />}
+                                className="px-6 py-2.5 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-300"
+                            >
+                                Visuals (4-Sided)
+                            </TabsTrigger>
+                        )}
                     </TabsList>
                 </div>
 
@@ -1020,6 +1030,12 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                 </div>
                             </div>
                         )}
+                    </div>
+                </TabsContent>
+                <TabsContent value="visuals" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-card backdrop-blur-md border border-border rounded-[3rem] p-10 shadow-xl relative overflow-hidden min-h-[400px]">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
+                        {initialValues && <AssetVisuals assetId={initialValues.id} />}
                     </div>
                 </TabsContent>
             </Tabs>

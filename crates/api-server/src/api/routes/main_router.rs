@@ -550,7 +550,7 @@ pub fn create_router(state: AppState) -> Router {
         .merge(public_routes)
         .merge(lookup_routes)
         .merge(protected_routes)
-        .merge(crate::api::routes::settings_routes::settings_routes())
+        .merge(crate::api::routes::settings_routes::settings_routes(state.clone()))
         .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes(
             state.clone(),
         ))

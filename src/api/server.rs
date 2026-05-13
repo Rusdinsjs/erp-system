@@ -295,6 +295,7 @@ impl AppState {
             asset_repo.clone(),
             maintenance_repo.clone(),
             finance_repo.clone(),
+            inventory_repo.clone(),
         );
         let lifecycle_service = LifecycleService::new(lifecycle_repo.clone());
         let timesheet_service = TimesheetService::new(

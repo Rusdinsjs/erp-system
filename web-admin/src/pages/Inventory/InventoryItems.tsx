@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Package, Search, Plus, Filter, MoreVertical,
     ArrowUpRight, ArrowDownRight, AlertTriangle,
     History, Edit2, Trash2, Box, BarChart2, Loader2, X,
-    ExternalLink
+    ExternalLink, Upload, FileText
 } from 'lucide-react';
 import { inventoryApi } from '../../api/inventory';
 import type { InventoryItem, InventoryCategory, InventoryMovement } from '../../api/inventory';
@@ -13,8 +14,14 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { format } from 'date-fns';
+import { ImportInventoryModal } from '../../components/Inventory/ImportInventoryModal';
+import { api } from '../../api/http';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
+import { InventoryVisuals } from '../../components/Inventory/InventoryVisuals';
+
 
 export default function InventoryItems() {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -22,6 +29,7 @@ export default function InventoryItems() {
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [selectedItemForHistory, setSelectedItemForHistory] = useState<InventoryItem | null>(null);
+    const [importModalOpen, setImportModalOpen] = useState(false);
 
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
@@ -203,6 +211,44 @@ export default function InventoryItems() {
                     <p className="text-slate-400 mt-1">Kelola stok suku cadang dan persediaan operasional.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={async () => {
+                            try {
+                                const response = await api.get('/reports/inventory/pdf', {
+                                    responseType: 'blob'
+                                });
+                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.setAttribute('download', `Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+                                document.body.appendChild(link);
+                                link.click();
+                                link.remove();
+                                success('Inventory PDF downloaded successfully');
+                            } catch (err: any) {
+                                let errorMessage = 'Failed to export PDF';
+                                if (err.response && err.response.data instanceof Blob) {
+                                    try {
+                                        const text = await err.response.data.text();
+                                        const json = JSON.parse(text);
+                                        errorMessage = json.error || errorMessage;
+                                    } catch (e) { }
+                                }
+                                showError(errorMessage);
+                            }
+                        }}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all border border-slate-700"
+                    >
+                        <FileText size={18} />
+                        <span>Export PDF</span>
+                    </button>
+                    <button 
+                        onClick={() => setImportModalOpen(true)}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all border border-slate-700"
+                    >
+                        <Upload size={18} />
+                        <span>Import</span>
+                    </button>
                     <button 
                         onClick={() => handleOpenHistory()}
                         className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all border border-slate-700"
@@ -320,8 +366,11 @@ export default function InventoryItems() {
                                                 <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 border border-slate-700/50 group-hover:border-cyan-500/30 transition-colors">
                                                     <Package size={20} />
                                                 </div>
-                                                <div>
-                                                    <div className="text-white font-medium">{item.name}</div>
+                                                <div 
+                                                    onClick={() => navigate(`/inventory-items/${item.id}`)}
+                                                    className="cursor-pointer group/name"
+                                                >
+                                                    <div className="text-white font-medium group-hover/name:text-cyan-400 transition-colors">{item.name}</div>
                                                     <div className="text-xs text-slate-500 font-mono mt-0.5">{item.sku}</div>
                                                 </div>
                                             </div>
@@ -393,102 +442,120 @@ export default function InventoryItems() {
             {modalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                            <h2 className="text-xl font-bold text-white">
-                                {editingItem ? 'Edit Barang Inventory' : 'Tambah Barang Baru'}
-                            </h2>
-                            <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    label="SKU / Part Number"
-                                    placeholder="e.g. SP-FIL-001"
-                                    value={formData.sku}
-                                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                                    disabled={!!editingItem}
-                                />
-                                <div className="space-y-1.5">
-                                    <label className="text-sm font-medium text-slate-400">Kategori</label>
-                                    <select
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:ring-2 focus:ring-cyan-500/50"
-                                        value={formData.category_id}
-                                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                        disabled={!!editingItem}
-                                    >
-                                        <option value="">Pilih Kategori...</option>
-                                        {categories.map((cat: InventoryCategory) => (
-                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                        ))}
-                                    </select>
+                        <Tabs defaultValue="general">
+                            <div className="flex items-center justify-between p-6 border-b border-slate-800">
+                                <div className="flex items-center gap-4">
+                                    <h2 className="text-xl font-bold text-white">
+                                        {editingItem ? 'Edit Barang Inventory' : 'Tambah Barang Baru'}
+                                    </h2>
+                                    <TabsList className="bg-slate-950/50 p-1 rounded-xl border border-slate-800">
+                                        <TabsTrigger value="general" className="px-4 py-1.5 text-xs rounded-lg data-[state=active]:bg-cyan-600 data-[state=active]:text-white transition-all">General</TabsTrigger>
+                                        {editingItem && <TabsTrigger value="visuals" className="px-4 py-1.5 text-xs rounded-lg data-[state=active]:bg-cyan-600 data-[state=active]:text-white transition-all">Visuals (4-Sisi)</TabsTrigger>}
+                                    </TabsList>
                                 </div>
+                                <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                                    <X size={24} />
+                                </button>
                             </div>
 
-                            <Input
-                                label="Nama Barang"
-                                placeholder="e.g. Oil Filter Caterpillar 320D"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            />
+                            <TabsContent value="general">
+                                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="SKU / Part Number"
+                                            placeholder="e.g. SP-FIL-001"
+                                            value={formData.sku}
+                                            onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                                            disabled={!!editingItem}
+                                        />
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-400">Kategori</label>
+                                            <select
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:ring-2 focus:ring-cyan-500/50"
+                                                value={formData.category_id}
+                                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                                disabled={!!editingItem}
+                                            >
+                                                <option value="">Pilih Kategori...</option>
+                                                {categories.map((cat: InventoryCategory) => (
+                                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1.5">Deskripsi</label>
-                                <textarea
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 min-h-[80px]"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    label="Min Stock"
-                                    type="number"
-                                    value={formData.min_stock}
-                                    onChange={(e) => setFormData({ ...formData, min_stock: Number(e.target.value) })}
-                                />
-                                <Input
-                                    label="Max Stock"
-                                    type="number"
-                                    value={formData.max_stock}
-                                    onChange={(e) => setFormData({ ...formData, max_stock: Number(e.target.value) })}
-                                />
-                            </div>
-
-                            {!editingItem && (
-                                <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-4">
                                     <Input
-                                        label="Stok Awal"
-                                        type="number"
-                                        value={formData.initial_quantity}
-                                        onChange={(e) => setFormData({ ...formData, initial_quantity: Number(e.target.value) })}
+                                        label="Nama Barang"
+                                        placeholder="e.g. Oil Filter Caterpillar 320D"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     />
-                                    <Input
-                                        label="Harga Beli (Satuan)"
-                                        type="number"
-                                        value={formData.purchase_price}
-                                        onChange={(e) => setFormData({ ...formData, purchase_price: Number(e.target.value) })}
-                                    />
-                                </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-400 mb-1.5">Deskripsi</label>
+                                        <textarea
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 min-h-[80px]"
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="Min Stock"
+                                            type="number"
+                                            value={formData.min_stock}
+                                            onChange={(e) => setFormData({ ...formData, min_stock: Number(e.target.value) })}
+                                        />
+                                        <Input
+                                            label="Max Stock"
+                                            type="number"
+                                            value={formData.max_stock}
+                                            onChange={(e) => setFormData({ ...formData, max_stock: Number(e.target.value) })}
+                                        />
+                                    </div>
+
+                                    {!editingItem && (
+                                        <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-4">
+                                            <Input
+                                                label="Stok Awal"
+                                                type="number"
+                                                value={formData.initial_quantity}
+                                                onChange={(e) => setFormData({ ...formData, initial_quantity: Number(e.target.value) })}
+                                            />
+                                            <Input
+                                                label="Harga Beli (Satuan)"
+                                                type="number"
+                                                value={formData.purchase_price}
+                                                onChange={(e) => setFormData({ ...formData, purchase_price: Number(e.target.value) })}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                                        <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
+                                            Batal
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            variant="primary"
+                                            className="bg-cyan-600 hover:bg-cyan-500"
+                                            loading={createMutation.isPending || updateMutation.isPending}
+                                        >
+                                            {editingItem ? 'Simpan Perubahan' : 'Tambah Barang'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </TabsContent>
+
+                            {editingItem && (
+                                <TabsContent value="visuals">
+                                    <div className="p-6">
+                                        <InventoryVisuals itemId={editingItem.id} />
+                                    </div>
+                                </TabsContent>
                             )}
-
-                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                                <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-                                    Batal
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    variant="primary"
-                                    className="bg-cyan-600 hover:bg-cyan-500"
-                                    loading={createMutation.isPending || updateMutation.isPending}
-                                >
-                                    {editingItem ? 'Simpan Perubahan' : 'Tambah Barang'}
-                                </Button>
-                            </div>
-                        </form>
+                        </Tabs>
                     </div>
                 </div>
             )}
@@ -593,6 +660,16 @@ export default function InventoryItems() {
                     </div>
                 </div>
             )}
+            {/* Import Modal */}
+            <ImportInventoryModal
+                opened={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+                    setImportModalOpen(false);
+                }}
+                categories={categories}
+            />
         </div>
     );
 }

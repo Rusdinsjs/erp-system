@@ -525,13 +525,23 @@ export default function Assets() {
                                                 onChange={() => toggleSelect(asset.id)}
                                             />
                                         </TableTd>
-                                        <TableTd>
-                                            <span className="font-mono text-sm text-blue-400 font-medium group-hover:text-blue-300 transition-colors">
+                                         <TableTd>
+                                            <span 
+                                                onClick={() => navigate(`/assets/${asset.id}`)}
+                                                className="font-mono text-sm text-blue-400 font-medium group-hover:text-blue-300 transition-colors cursor-pointer hover:underline"
+                                            >
                                                 {asset.asset_code}
                                             </span>
                                         </TableTd>
                                         <TableTd>{asset.category_name || '-'}</TableTd>
-                                        <TableTd className="font-medium">{asset.name}</TableTd>
+                                        <TableTd>
+                                            <span 
+                                                onClick={() => navigate(`/assets/${asset.id}`)}
+                                                className="font-medium cursor-pointer hover:text-blue-400 transition-colors hover:underline"
+                                            >
+                                                {asset.name}
+                                            </span>
+                                        </TableTd>
                                         <TableTd>
                                             <div className="text-sm">
                                                 <span className="text-foreground">{asset.brand}</span>

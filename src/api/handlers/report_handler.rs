@@ -47,6 +47,22 @@ pub async fn export_assets_pdf(State(state): State<AppState>) -> Result<Response
         .into_response())
 }
 
+pub async fn export_inventory_pdf(State(state): State<AppState>) -> Result<Response, AppError> {
+    let pdf_bytes = state.report_service.generate_inventory_pdf().await?;
+
+    Ok((
+        [
+            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=\"inventory_report.pdf\"",
+            ),
+        ],
+        pdf_bytes,
+    )
+        .into_response())
+}
+
 pub async fn export_maintenance(
     State(state): State<AppState>,
     Query(params): Query<MaintenanceReportParams>,

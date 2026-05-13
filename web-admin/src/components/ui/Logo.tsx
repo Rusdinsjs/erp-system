@@ -15,7 +15,7 @@ export const Logo: React.FC<LogoProps> = ({ collapsed, className = "" }) => {
 
     const appName = publicSettings?.app_name || 'Management System';
     const companyLogo = publicSettings?.company_logo;
-    const companyName = publicSettings?.company_name || 'SJS Group';
+    const companyName = publicSettings?.company_name || appName;
 
     return (
         <div className={`flex items-center gap-3 transition-all duration-300 ${className}`}>

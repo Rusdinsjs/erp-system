@@ -1,9 +1,10 @@
 use crate::application::dto::{
-    CreateInventoryCategoryRequest, CreateInventoryItemRequest, InventoryAdjustmentRequest,
+    CreateInventoryCategoryRequest, CreateInventoryDocumentRequest, CreateInventoryItemRequest,
+    InventoryAdjustmentRequest,
 };
 use crate::application::services::{JournalService, NotificationService};
 use crate::domain::entities::inventory::{
-    InventoryCategory, InventoryItem, InventoryMovement, InventoryMovementType,
+    InventoryCategory, InventoryDocument, InventoryItem, InventoryMovement, InventoryMovementType,
 };
 use crate::domain::entities::journal::{CreateJournalEntryRequest, CreateJournalLineRequest};
 use crate::domain::errors::DomainError;
@@ -113,6 +114,19 @@ impl InventoryService {
         Ok(created)
     }
 
+    pub async fn create_item_bulk(
+        &self,
+        items: Vec<CreateInventoryItemRequest>,
+    ) -> DomainResult<usize> {
+        let mut count = 0;
+        for req in items {
+            if let Ok(_) = self.create_item(req).await {
+                count += 1;
+            }
+        }
+        Ok(count)
+    }
+
     pub async fn adjust_stock(
         &self,
         id: Uuid,
@@ -206,6 +220,47 @@ impl InventoryService {
     pub async fn list_items(&self, category_id: Option<Uuid>) -> DomainResult<Vec<InventoryItem>> {
         self.repository
             .list_items(category_id)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn get_item(&self, id: Uuid) -> DomainResult<Option<InventoryItem>> {
+        self.repository
+            .get_item(id)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn create_document(
+        &self,
+        item_id: Uuid,
+        req: CreateInventoryDocumentRequest,
+        user_id: Option<Uuid>,
+    ) -> DomainResult<InventoryDocument> {
+        let document = InventoryDocument {
+            id: Uuid::new_v4(),
+            item_id,
+            name: req.name,
+            type_: req.type_,
+            file_path: req.file_path,
+            mime_type: req.mime_type,
+            size_bytes: req.size_bytes,
+            expiry_date: req.expiry_date,
+            notes: req.notes,
+            uploaded_by: user_id,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        self.repository
+            .create_document(&document)
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))
+    }
+
+    pub async fn list_documents(&self, item_id: Uuid) -> DomainResult<Vec<InventoryDocument>> {
+        self.repository
+            .find_documents_by_item_id(item_id)
             .await
             .map_err(|e| DomainError::Database(e.to_string()))
     }

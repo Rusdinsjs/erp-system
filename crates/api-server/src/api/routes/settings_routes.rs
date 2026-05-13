@@ -1,4 +1,5 @@
 use crate::api::handlers::settings_handler;
+use crate::api::middleware::auth::auth_middleware;
 use crate::api::middleware::rbac::admin_only_middleware;
 use crate::api::server::AppState;
 use axum::middleware as axum_middleware;
@@ -7,7 +8,7 @@ use axum::{
     Router,
 };
 
-pub fn settings_routes() -> Router<AppState> {
+pub fn settings_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route(
             "/api/public-settings",
@@ -16,11 +17,19 @@ pub fn settings_routes() -> Router<AppState> {
         .route(
             "/api/settings",
             get(settings_handler::get_all_settings)
-                .layer(axum_middleware::from_fn(admin_only_middleware)),
+                .layer(axum_middleware::from_fn(admin_only_middleware))
+                .layer(axum_middleware::from_fn_with_state(
+                    state.clone(),
+                    auth_middleware,
+                )),
         )
         .route(
             "/api/settings/:key",
             put(settings_handler::update_setting)
-                .layer(axum_middleware::from_fn(admin_only_middleware)),
+                .layer(axum_middleware::from_fn(admin_only_middleware))
+                .layer(axum_middleware::from_fn_with_state(
+                    state.clone(),
+                    auth_middleware,
+                )),
         )
 }
