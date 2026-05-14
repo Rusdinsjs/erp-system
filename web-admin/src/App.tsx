@@ -26,15 +26,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-// Redirect based on role: Super Admin goes to dashboard, others to launchpad
+// Redirect everyone to the Launchpad Portal first
 function HomeRedirect() {
-  const user = useAuthStore((state) => state.user);
-
-  // Super Admin (role_level 1) or admin bypasses launchpad
-  if (user?.role === 'super_admin' || user?.role_level === 1) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return <Navigate to="/launchpad" replace />;
 }
 

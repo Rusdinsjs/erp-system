@@ -212,8 +212,14 @@ export default function Launchpad() {
                 </div>
 
                 {/* Cards Grid */}
-                <div className="flex-1 px-6 pb-12">
-                    <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                <div className="flex-1 px-6 pb-12 flex items-start justify-center">
+                    <div className={clsx(
+                        "grid gap-4 md:gap-6 w-full",
+                        visibleCards.length === 1 ? "max-w-md grid-cols-1" :
+                        visibleCards.length === 2 ? "max-w-3xl grid-cols-1 sm:grid-cols-2" :
+                        visibleCards.length === 3 ? "max-w-5xl grid-cols-1 sm:grid-cols-2 md:grid-cols-3" :
+                        "max-w-6xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                    )}>
                         {visibleCards.map((card, index) => (
                             <button
                                 key={card.id}
