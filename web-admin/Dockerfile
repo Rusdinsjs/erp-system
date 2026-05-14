@@ -47,6 +47,9 @@ RUN echo 'server { \
     location /ollama/ { \
     proxy_pass http://ms-ai-ollama:11434/; \
     proxy_set_header Host $host; \
+    proxy_read_timeout 300s; \
+    proxy_connect_timeout 300s; \
+    proxy_send_timeout 300s; \
     } \
     }' > /etc/nginx/conf.d/default.conf
 
