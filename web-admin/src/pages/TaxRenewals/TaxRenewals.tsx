@@ -58,7 +58,6 @@ const AddRenewalModal = ({
         { value: 'KIR', label: 'KIR (Uji Kelayakan)' },
         { value: 'HEAVY_EQUIPMENT_TAX', label: 'Heavy Equipment Tax (Pajak Alat Berat)' },
         { value: 'LAPOR_TIBA', label: 'Lapor Tiba (Kendaraan Luar Daerah)' },
-        { value: 'BPKB', label: 'BPKB (Balik Nama / Perpanjangan)' },
         { value: 'OTHER', label: 'Dokumen Lainnya' },
     ];
 
@@ -280,6 +279,101 @@ const CompleteModal = ({
     );
 };
 
+// ── Upload Document Modal (Auto-open after complete) ──────────────────────────
+const UploadRenewalDocumentModal = ({
+    isOpen, onClose, assetId, initialType
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    assetId: string;
+    initialType: string;
+}) => {
+    const [name, setName] = useState('');
+    const [type, setType] = useState(initialType);
+    const [file, setFile] = useState<File | null>(null);
+    const [notes, setNotes] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        if (isOpen) {
+            setType(initialType);
+            setName(`${initialType} Baru - ${dayjs().format('YYYY')}`);
+        }
+    }, [isOpen, initialType]);
+
+    const handleUpload = async () => {
+        if (!file) { toast.error("Pilih file terlebih dahulu"); return; }
+        setIsUploading(true);
+        try {
+            const fileData = await assetApi.uploadFile(file);
+            await assetApi.addDocument(assetId, {
+                name: name || fileData.original_name,
+                type: type,
+                file_path: fileData.url,
+                mime_type: fileData.content_type,
+                size_bytes: fileData.size,
+                notes: notes
+            });
+            toast.success("Dokumen berhasil diunggah");
+            queryClient.invalidateQueries({ queryKey: ['asset-documents', assetId] });
+            onClose();
+        } catch (error) {
+            toast.error("Gagal mengunggah dokumen");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Upload Dokumen Baru">
+            <div className="space-y-4">
+                <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-xs text-cyan-300">
+                    Satu langkah lagi! Silakan unggah hasil scan/foto dokumen terbaru untuk arsip digital aset ini.
+                </div>
+                <Input
+                    label="File Dokumen *"
+                    type="file"
+                    onChange={(e: any) => setFile(e.target.files?.[0] || null)}
+                    required
+                />
+                <div className="grid grid-cols-2 gap-4">
+                    <Input
+                        label="Nama Dokumen"
+                        value={name}
+                        onChange={(e: any) => setName(e.target.value)}
+                        placeholder="Contoh: STNK 2024-2025"
+                    />
+                    <Select
+                        label="Tipe Dokumen"
+                        value={type}
+                        onChange={setType}
+                        options={[
+                            { value: 'STNK', label: 'STNK' },
+                            { value: 'KIR', label: 'KIR' },
+                            { value: 'TAX', label: 'TAX / Pajak' },
+                            { value: 'INVOICE', label: 'Invoice' },
+                            { value: 'OTHER', label: 'Lainnya' }
+                        ]}
+                    />
+                </div>
+                <Textarea
+                    label="Catatan"
+                    value={notes}
+                    onChange={(e: any) => setNotes(e.target.value)}
+                    placeholder="Contoh: Dokumen asli disimpan di brankas..."
+                />
+                <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={onClose} disabled={isUploading}>Nanti Saja</Button>
+                    <Button onClick={handleUpload} loading={isUploading} leftIcon={<Upload size={16} />}>
+                        Simpan Dokumen
+                    </Button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function TaxRenewals() {
     const [activeTab, setActiveTab] = useState('Needs Attention');
@@ -288,7 +382,10 @@ export default function TaxRenewals() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isCostModalOpen, setIsCostModalOpen] = useState(false);
     const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedRenewal, setSelectedRenewal] = useState<TaxRenewal | null>(null);
+    const [targetAssetId, setTargetAssetId] = useState('');
+    const [targetDocType, setTargetDocType] = useState('OTHER');
 
     const statusMap: Record<string, string | undefined> = {
         'Needs Attention': 'PENDING_INPUT',
@@ -316,7 +413,17 @@ export default function TaxRenewals() {
     const completeMutation = useMutation({
         mutationFn: ({ id, date }: { id: string; date: string }) =>
             taxRenewalApi.complete(id, { new_expiry_date: date }),
-        onSuccess: () => { toast.success('Renewal selesai'); queryClient.invalidateQueries({ queryKey: ['tax-renewals'] }); },
+        onSuccess: (_, variables) => { 
+            toast.success('Renewal selesai'); 
+            queryClient.invalidateQueries({ queryKey: ['tax-renewals'] });
+            
+            // Auto-open upload modal
+            if (selectedRenewal) {
+                setTargetAssetId(selectedRenewal.asset_id);
+                setTargetDocType(selectedRenewal.document_type);
+                setIsUploadModalOpen(true);
+            }
+        },
     });
 
     const [filterType, setFilterType] = useState('ALL');
@@ -381,7 +488,6 @@ export default function TaxRenewals() {
                             <option value="KIR">KIR</option>
                             <option value="HEAVY_EQUIPMENT_TAX">Pajak Alat Berat</option>
                             <option value="LAPOR_TIBA">Lapor Tiba</option>
-                            <option value="BPKB">BPKB</option>
                             <option value="OTHER">Lainnya</option>
                         </select>
                         <button
@@ -498,6 +604,12 @@ export default function TaxRenewals() {
                 onClose={() => setIsCompleteModalOpen(false)}
                 renewal={selectedRenewal}
                 onSubmit={(date) => { if (selectedRenewal) completeMutation.mutate({ id: selectedRenewal.id, date }); }}
+            />
+            <UploadRenewalDocumentModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                assetId={targetAssetId}
+                initialType={targetDocType}
             />
         </div>
     );

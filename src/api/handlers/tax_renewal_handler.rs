@@ -11,6 +11,17 @@ use axum::{
 };
 use uuid::Uuid;
 
+#[utoipa::path(
+    get,
+    path = "/api/renewals",
+    params(
+        ("status" = Option<String>, Query, description = "Filter by status (PENDING_INPUT, PENDING_APPROVAL, etc)")
+    ),
+    responses(
+        (status = 200, description = "List tax renewals", body = ApiResponse<Vec<TaxRenewalDto>>),
+    ),
+    tag = "renewals"
+)]
 pub async fn list_renewals(
     State(state): State<AppState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
@@ -45,6 +56,18 @@ pub async fn list_renewals(
     Ok(Json(ApiResponse::success(dtos)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/renewals/{id}/cost",
+    params(
+        ("id" = Uuid, Path, description = "Renewal ID")
+    ),
+    request_body = UpdateTaxRenewalCostRequest,
+    responses(
+        (status = 200, description = "Cost submitted", body = ApiResponse<TaxRenewalDto>),
+    ),
+    tag = "renewals"
+)]
 pub async fn submit_cost(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -78,6 +101,18 @@ pub async fn submit_cost(
     })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/renewals/{id}/approve",
+    params(
+        ("id" = Uuid, Path, description = "Renewal ID")
+    ),
+    request_body = ApproveTaxRenewalRequest,
+    responses(
+        (status = 200, description = "Renewal approved", body = ApiResponse<TaxRenewalDto>),
+    ),
+    tag = "renewals"
+)]
 pub async fn approve_renewal(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -105,6 +140,18 @@ pub async fn approve_renewal(
     })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/renewals/{id}/reject",
+    params(
+        ("id" = Uuid, Path, description = "Renewal ID")
+    ),
+    request_body = ApproveTaxRenewalRequest,
+    responses(
+        (status = 200, description = "Renewal rejected", body = ApiResponse<TaxRenewalDto>),
+    ),
+    tag = "renewals"
+)]
 pub async fn reject_renewal(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -132,6 +179,18 @@ pub async fn reject_renewal(
     })))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/renewals/{id}/complete",
+    params(
+        ("id" = Uuid, Path, description = "Renewal ID")
+    ),
+    request_body = CompleteTaxRenewalRequest,
+    responses(
+        (status = 200, description = "Renewal completed", body = ApiResponse<TaxRenewalDto>),
+    ),
+    tag = "renewals"
+)]
 pub async fn complete_renewal(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,

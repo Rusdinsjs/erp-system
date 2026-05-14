@@ -21,7 +21,7 @@ pub struct TaxRenewalDto {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateTaxRenewalCostRequest {
     pub renewal_cost: Decimal,
     pub notes: Option<String>,
@@ -29,17 +29,17 @@ pub struct UpdateTaxRenewalCostRequest {
     pub invoice_attachment: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CompleteTaxRenewalRequest {
     pub new_expiry_date: chrono::NaiveDate,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ApproveTaxRenewalRequest {
     pub notes: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateTaxRenewalRequest {
     pub asset_id: Uuid,
     pub document_type: String,

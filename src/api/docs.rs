@@ -11,6 +11,19 @@ use utoipa::OpenApi;
         crate::api::handlers::asset_handler::create_asset,
         crate::api::handlers::asset_handler::update_asset,
         crate::api::handlers::asset_handler::delete_asset,
+        
+        crate::api::handlers::tax_renewal_handler::list_renewals,
+        crate::api::handlers::tax_renewal_handler::submit_cost,
+        crate::api::handlers::tax_renewal_handler::approve_renewal,
+        crate::api::handlers::tax_renewal_handler::reject_renewal,
+        crate::api::handlers::tax_renewal_handler::complete_renewal,
+        
+        crate::api::handlers::loan_handler::list_loans,
+        crate::api::handlers::loan_handler::get_loan,
+        crate::api::handlers::loan_handler::create_loan,
+        
+        crate::api::handlers::maintenance_handler::list_schedules,
+        crate::api::handlers::maintenance_handler::create_schedule,
     ),
     components(
         schemas(
@@ -33,12 +46,29 @@ use utoipa::OpenApi;
             // Generic Aliases (must match #[aliases(...)] in structs)
             crate::application::dto::common::PaginatedResponseAssetSummary,
             crate::application::dto::common::ApiResponseAsset,
-            // crate::application::dto::common::ApiResponseApprovalRequest, // Need to annotate ApprovalRequest first if we use it
+            
+            crate::application::dto::tax_renewal_dto::TaxRenewalDto,
+            crate::application::dto::tax_renewal_dto::CreateTaxRenewalRequest,
+            crate::application::dto::tax_renewal_dto::UpdateTaxRenewalCostRequest,
+            crate::application::dto::tax_renewal_dto::ApproveTaxRenewalRequest,
+            crate::application::dto::tax_renewal_dto::CompleteTaxRenewalRequest,
+            
+            // Loan
+            crate::domain::entities::loan::Loan,
+            crate::application::dto::loan_dto::CreateLoanRequest,
+            crate::application::dto::loan_dto::ApproveLoanRequest,
+            
+            // Maintenance
+            crate::domain::entities::maintenance::MaintenanceSchedule,
+            crate::domain::entities::maintenance::CreateMaintenanceScheduleRequest,
         )
     ),
     tags(
         (name = "auth", description = "Authentication endpoints"),
-        (name = "assets", description = "Asset Management endpoints")
+        (name = "assets", description = "Asset Management endpoints"),
+        (name = "renewals", description = "Tax & Document Renewal endpoints"),
+        (name = "loans", description = "Asset Loan/Peminjaman endpoints"),
+        (name = "maintenance", description = "Maintenance/Servis endpoints")
     ),
     modifiers(&SecurityAddon)
 )]

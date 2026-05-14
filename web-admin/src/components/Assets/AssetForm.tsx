@@ -1,7 +1,7 @@
 // AssetForm - Pure Tailwind Version
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera } from 'lucide-react';
+import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera, Receipt } from 'lucide-react';
 import type { Asset, CreateAssetRequest } from '../../api/assets';
 import { departmentApi } from '../../api/departments';
 import { usersApi } from '../../api/users';
@@ -84,12 +84,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         vehicle_color: initialValues?.vehicle_details?.color || '',
         vehicle_bpkb_number: initialValues?.vehicle_details?.bpkb_number || '',
         vehicle_stnk_expiry: initialValues?.vehicle_details?.stnk_expiry ? new Date(initialValues.vehicle_details.stnk_expiry) : null,
+        vehicle_tax_expiry: initialValues?.vehicle_details?.tax_expiry ? new Date(initialValues.vehicle_details.tax_expiry) : null,
         vehicle_kir_expiry: initialValues?.vehicle_details?.kir_expiry ? new Date(initialValues.vehicle_details.kir_expiry) : null,
+        vehicle_heavy_equipment_tax_expiry: initialValues?.vehicle_details?.heavy_equipment_tax_expiry ? new Date(initialValues.vehicle_details.heavy_equipment_tax_expiry) : null,
+        vehicle_lapor_tiba_expiry: initialValues?.vehicle_details?.lapor_tiba_expiry ? new Date(initialValues.vehicle_details.lapor_tiba_expiry) : null,
+        vehicle_invoice_number: initialValues?.vehicle_details?.invoice_number || '',
         vehicle_fuel_type: initialValues?.vehicle_details?.fuel_type || '',
         vehicle_transmission: initialValues?.vehicle_details?.transmission || '',
         vehicle_capacity: initialValues?.vehicle_details?.capacity || '',
         vehicle_odometer: initialValues?.vehicle_details?.odometer_last,
-        vehicle_heavy_equipment_tax_expiry: initialValues?.vehicle_details?.heavy_equipment_tax_expiry ? new Date(initialValues.vehicle_details.heavy_equipment_tax_expiry) : null,
         // Building Details
         building_address: initialValues?.specifications?.address || '',
         building_city: initialValues?.specifications?.city || '',
@@ -98,6 +101,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         building_certificate_number: initialValues?.specifications?.certificate_number || '',
         building_pbb_number: initialValues?.specifications?.pbb_number || '',
         building_certificate_expiry: initialValues?.specifications?.certificate_expiry ? new Date(initialValues.specifications.certificate_expiry) : null,
+        machine_receipt_number: initialValues?.specifications?.receipt_number || '',
     });
 
     // Sync state when initialValues changes (e.g. opening edit modal)
@@ -130,12 +134,16 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 vehicle_color: initialValues.vehicle_details?.color || '',
                 vehicle_bpkb_number: initialValues.vehicle_details?.bpkb_number || '',
                 vehicle_stnk_expiry: initialValues.vehicle_details?.stnk_expiry ? new Date(initialValues.vehicle_details.stnk_expiry) : null,
+                vehicle_tax_expiry: initialValues.vehicle_details?.tax_expiry ? new Date(initialValues.vehicle_details.tax_expiry) : null,
                 vehicle_kir_expiry: initialValues.vehicle_details?.kir_expiry ? new Date(initialValues.vehicle_details.kir_expiry) : null,
+                vehicle_heavy_equipment_tax_expiry: initialValues.vehicle_details?.heavy_equipment_tax_expiry ? new Date(initialValues.vehicle_details.heavy_equipment_tax_expiry) : null,
+                vehicle_lapor_tiba_expiry: initialValues.vehicle_details?.lapor_tiba_expiry ? new Date(initialValues.vehicle_details.lapor_tiba_expiry) : null,
+                vehicle_invoice_number: initialValues.vehicle_details?.invoice_number || '',
+                machine_receipt_number: initialValues.specifications?.receipt_number || '',
                 vehicle_fuel_type: initialValues.vehicle_details?.fuel_type || '',
                 vehicle_transmission: initialValues.vehicle_details?.transmission || '',
                 vehicle_capacity: initialValues.vehicle_details?.capacity || '',
                 vehicle_odometer: initialValues.vehicle_details?.odometer_last,
-                vehicle_heavy_equipment_tax_expiry: initialValues.vehicle_details?.heavy_equipment_tax_expiry ? new Date(initialValues.vehicle_details.heavy_equipment_tax_expiry) : null,
                 // Building Details
                 building_address: initialValues.specifications?.address || '',
                 building_city: initialValues.specifications?.city || '',
@@ -184,12 +192,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 vehicle_color: '',
                 vehicle_bpkb_number: '',
                 vehicle_stnk_expiry: null,
+                vehicle_tax_expiry: null,
                 vehicle_kir_expiry: null,
+                vehicle_heavy_equipment_tax_expiry: null,
+                vehicle_lapor_tiba_expiry: null,
+                vehicle_invoice_number: '',
                 vehicle_fuel_type: '',
                 vehicle_transmission: '',
                 vehicle_capacity: '',
                 vehicle_odometer: undefined,
-                vehicle_heavy_equipment_tax_expiry: null,
                 building_address: '',
                 building_city: '',
                 building_land_area: undefined,
@@ -197,6 +208,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 building_certificate_number: '',
                 building_pbb_number: '',
                 building_certificate_expiry: null,
+                machine_receipt_number: '',
             });
             setCustomSpecs([]);
             setPendingDocs([]);
@@ -293,16 +305,55 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
 
     const isVehicle = useMemo(() => {
         if (!selectedCategory) return false;
-        const code = selectedCategory.code || '';
-        const main = selectedCategory.main_category || '';
-        return code.includes('ALAT-BERAT') || code.includes('TRUK') || code.includes('KENDARAAN') || code.includes('RINGAN') || main.includes('RENTAL') || main.includes('OPERASIONAL');
+        const code = (selectedCategory.code || '').toUpperCase();
+        const name = (selectedCategory.name || '').toUpperCase();
+        const main = (selectedCategory.main_category || '').toUpperCase();
+        return code.includes('KENDARAAN') || code.includes('TRUK') || code.includes('ALAT-BERAT') || 
+               name.includes('KENDARAAN') || name.includes('MOBIL') || name.includes('MOTOR') ||
+               main.includes('RENTAL') || main.includes('OPERASIONAL');
     }, [selectedCategory]);
 
     const isBuilding = useMemo(() => {
         if (!selectedCategory) return false;
-        const code = selectedCategory.code || '';
-        return code.includes('BANGUNAN') || code.includes('TANAH') || code.includes('INFRA');
+        const code = (selectedCategory.code || '').toUpperCase();
+        const name = (selectedCategory.name || '').toUpperCase();
+        return code.includes('BANGUNAN') || code.includes('TANAH') || code.includes('INFRA') || 
+               name.includes('BANGUNAN') || name.includes('TANAH') || name.includes('PROPERTI') || name.includes('LAND');
     }, [selectedCategory]);
+    
+    const isHeavyEquipment = useMemo(() => {
+        if (!selectedCategory) return false;
+        const code = (selectedCategory.code || '').toUpperCase();
+        const name = (selectedCategory.name || '').toUpperCase();
+        return code.includes('ALAT-BERAT') || code.includes('HEAVY') || 
+               name.includes('ALAT BERAT') || name.includes('EXCAVATOR') || name.includes('BULLDOZER');
+    }, [selectedCategory]);
+
+    const isRegularVehicle = useMemo(() => {
+        return isVehicle && !isHeavyEquipment;
+    }, [isVehicle, isHeavyEquipment]);
+
+    const isMachine = useMemo(() => {
+        if (!selectedCategory) return false;
+        const code = selectedCategory.code || '';
+        return code.includes('MESIN') || code.includes('MACHINE') || code.includes('EQUIPMENT') && !isHeavyEquipment && !isVehicle;
+    }, [selectedCategory, isHeavyEquipment, isVehicle]);
+
+    const ownershipLabel = useMemo(() => {
+        if (isBuilding) return 'SHM/SHGB/SHGU';
+        if (isHeavyEquipment) return 'No. Invoice';
+        if (isRegularVehicle) return 'No. BPKB';
+        if (isMachine) return 'No. Kwitansi';
+        return 'Bukti Kepemilikan';
+    }, [isBuilding, isHeavyEquipment, isRegularVehicle, isMachine]);
+
+    const ownershipField = useMemo(() => {
+        if (isBuilding) return 'building_certificate_number';
+        if (isHeavyEquipment) return 'vehicle_invoice_number';
+        if (isRegularVehicle) return 'vehicle_bpkb_number';
+        if (isMachine) return 'machine_receipt_number';
+        return 'serial_number'; // Fallback
+    }, [isBuilding, isHeavyEquipment, isRegularVehicle, isMachine]);
 
     // Template Pre-fill Logic (Dynamic from DB)
     useEffect(() => {
@@ -382,12 +433,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 color: formData.vehicle_color,
                 bpkb_number: formData.vehicle_bpkb_number,
                 stnk_expiry: formData.vehicle_stnk_expiry?.toISOString().split('T')[0],
+                tax_expiry: formData.vehicle_tax_expiry?.toISOString().split('T')[0],
                 kir_expiry: formData.vehicle_kir_expiry?.toISOString().split('T')[0],
+                heavy_equipment_tax_expiry: formData.vehicle_heavy_equipment_tax_expiry?.toISOString().split('T')[0],
+                lapor_tiba_expiry: formData.vehicle_lapor_tiba_expiry?.toISOString().split('T')[0],
+                invoice_number: formData.vehicle_invoice_number || undefined,
                 fuel_type: formData.vehicle_fuel_type,
                 transmission: formData.vehicle_transmission,
                 capacity: formData.vehicle_capacity,
                 odometer_last: formData.vehicle_odometer,
-                heavy_equipment_tax_expiry: formData.vehicle_heavy_equipment_tax_expiry?.toISOString().split('T')[0],
             };
         }
 
@@ -404,8 +458,18 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             };
         }
 
-        // Generic / Custom Specs
-        if (!isVehicle && !isBuilding && customSpecs.length > 0) {
+        // Machine / Other specs
+        if (isMachine) {
+            const specObj: Record<string, any> = {
+                receipt_number: formData.machine_receipt_number
+            };
+            customSpecs.forEach(spec => {
+                if (spec.key.trim()) {
+                    specObj[spec.key.trim()] = spec.value.trim();
+                }
+            });
+            payload.specifications = specObj;
+        } else if (!isVehicle && !isBuilding && customSpecs.length > 0) {
             const specObj: Record<string, string> = {};
             customSpecs.forEach(spec => {
                 if (spec.key.trim()) {
@@ -437,6 +501,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         >
                             General
                         </TabsTrigger>
+                        {(isVehicle || isBuilding) && (
+                            <TabsTrigger
+                                value="renewals"
+                                icon={<Receipt size={18} />}
+                                className="px-6 py-2.5 rounded-xl data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-300"
+                            >
+                                Tax & Renewals
+                            </TabsTrigger>
+                        )}
                         <TabsTrigger
                             value="details"
                             icon={isVehicle ? <Car size={18} /> : isBuilding ? <Building2 size={18} /> : <FileText size={18} />}
@@ -532,13 +605,30 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         required
                                         onCreate={() => setShowCategoryModal(true)}
                                     />
-                                    <Select
-                                        label="Location"
-                                        value={formData.location_id}
-                                        onChange={(val) => updateField('location_id', val)}
-                                        options={locationOptions}
-                                        placeholder="Select location..."
-                                        onCreate={() => window.open('/locations', '_blank')}
+                                    {isBuilding ? (
+                                        <Textarea
+                                            label="Address/Alamat"
+                                            value={formData.building_address}
+                                            onChange={(e) => updateField('building_address', e.target.value)}
+                                            placeholder="Enter full building/land address..."
+                                            rows={3}
+                                        />
+                                    ) : (
+                                        <Select
+                                            label="Location"
+                                            value={formData.location_id}
+                                            onChange={(val) => updateField('location_id', val)}
+                                            options={locationOptions}
+                                            placeholder="Select location..."
+                                            onCreate={() => window.open('/locations', '_blank')}
+                                        />
+                                    )}
+                                    <Input
+                                        label={ownershipLabel}
+                                        value={formData[ownershipField as keyof typeof formData] as string}
+                                        onChange={(e) => updateField(ownershipField as any, e.target.value)}
+                                        placeholder={`Enter ${ownershipLabel}...`}
+                                        className="bg-muted/30 border-border"
                                     />
                                     <Select
                                         label="Penanggung Jawab (PIC)"
@@ -654,6 +744,84 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         </div>
                     </div>
                 </TabsContent>
+                
+                {/* Renewals Tab */}
+                <TabsContent value="renewals" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-card backdrop-blur-md border border-border rounded-[3rem] p-10 shadow-xl relative overflow-hidden min-h-[400px]">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
+                        
+                        <div className="space-y-8 relative">
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 bg-cyan-500/20 rounded-3xl flex items-center justify-center text-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.2)]">
+                                    <Receipt size={32} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-bold text-foreground">Tax & Document Renewals</h3>
+                                    <p className="text-muted-foreground">Manage expiry dates and registration documents</p>
+                                </div>
+                            </div>
+
+                            {isHeavyEquipment && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <DateInput
+                                        label="Heavy Equipment Tax Expiry"
+                                        value={formData.vehicle_heavy_equipment_tax_expiry}
+                                        onChange={(date) => updateField('vehicle_heavy_equipment_tax_expiry', date)}
+                                    />
+                                    <Input
+                                        label="No. Invoice"
+                                        value={formData.vehicle_invoice_number}
+                                        onChange={(e) => updateField('vehicle_invoice_number', e.target.value)}
+                                        placeholder="Enter invoice number..."
+                                    />
+                                </div>
+                            )}
+
+                            {isRegularVehicle && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <DateInput
+                                        label="STNK Expiry"
+                                        value={formData.vehicle_stnk_expiry}
+                                        onChange={(date) => updateField('vehicle_stnk_expiry', date)}
+                                    />
+                                    <DateInput
+                                        label="KIR Expiry"
+                                        value={formData.vehicle_kir_expiry}
+                                        onChange={(date) => updateField('vehicle_kir_expiry', date)}
+                                    />
+                                    <DateInput
+                                        label="Lapor Tiba Expiry"
+                                        value={formData.vehicle_lapor_tiba_expiry}
+                                        onChange={(date) => updateField('vehicle_lapor_tiba_expiry', date)}
+                                    />
+                                </div>
+                            )}
+
+                            {isBuilding && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <DateInput
+                                        label="PBB (Tax) Expiry"
+                                        value={formData.building_certificate_expiry}
+                                        onChange={(date) => updateField('building_certificate_expiry', date)}
+                                    />
+                                    <Input
+                                        label="No. Sertifikat (SHM/SHGB/SHGU)"
+                                        value={formData.building_certificate_number}
+                                        onChange={(e) => updateField('building_certificate_number', e.target.value)}
+                                        placeholder="Enter certificate number..."
+                                    />
+                                </div>
+                            )}
+
+                            {!isVehicle && !isBuilding && (
+                                <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-3xl border border-dashed border-border">
+                                    <Info size={40} className="mx-auto mb-4 opacity-20" />
+                                    <p>Select a vehicle or building category to manage document renewals.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </TabsContent>
 
                 {/* Details Tab */}
                 <TabsContent value="details" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -703,21 +871,6 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         label="Current Odometer (KM)"
                                         value={formData.vehicle_odometer}
                                         onChange={(val) => updateField('vehicle_odometer', val)}
-                                    />
-                                    <DateInput
-                                        label="STNK Expiry"
-                                        value={formData.vehicle_stnk_expiry}
-                                        onChange={(date) => updateField('vehicle_stnk_expiry', date)}
-                                    />
-                                    <DateInput
-                                        label="KIR Expiry"
-                                        value={formData.vehicle_kir_expiry}
-                                        onChange={(date) => updateField('vehicle_kir_expiry', date)}
-                                    />
-                                    <DateInput
-                                        label="Heavy Equipment Tax Expiry"
-                                        value={formData.vehicle_heavy_equipment_tax_expiry}
-                                        onChange={(date) => updateField('vehicle_heavy_equipment_tax_expiry', date)}
                                     />
                                     <Select
                                         label="Fuel Type"
@@ -991,7 +1144,6 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                                 { value: 'INVOICE', label: 'Purchase Invoice' },
                                                 { value: 'WARRANTY', label: 'Warranty Card' },
                                                 { value: 'STNK', label: 'STNK' },
-                                                { value: 'BPKB', label: 'BPKB' },
                                                 { value: 'PHOTO', label: 'Asset Photo' },
                                                 { value: 'OTHER', label: 'Other' },
                                             ]}

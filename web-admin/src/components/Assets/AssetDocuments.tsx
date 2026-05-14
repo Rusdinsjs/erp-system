@@ -72,7 +72,6 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
         { value: 'INVOICE', label: 'Purchase Invoice' },
         { value: 'WARRANTY', label: 'Warranty Card' },
         { value: 'STNK', label: 'STNK' },
-        { value: 'BPKB', label: 'BPKB' },
         { value: 'PHOTO', label: 'Asset Photo' },
         { value: 'MAINTENANCE_REPORT', label: 'Maintenance Report' },
         { value: 'TEST_ASSET', label: 'Test Asset Document' },

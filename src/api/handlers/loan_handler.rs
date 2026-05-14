@@ -20,6 +20,17 @@ pub struct LoanQueryParams {
     pub asset_id: Option<Uuid>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/loans",
+    params(
+        ("asset_id" = Option<Uuid>, Query, description = "Filter by asset")
+    ),
+    responses(
+        (status = 200, description = "List loans", body = Vec<Loan>),
+    ),
+    tag = "loans"
+)]
 pub async fn list_loans(
     State(state): State<AppState>,
     Query(params): Query<LoanQueryParams>,
@@ -38,6 +49,18 @@ pub async fn list_loans(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/loans/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Loan ID")
+    ),
+    responses(
+        (status = 200, description = "Loan details", body = Loan),
+        (status = 404, description = "Loan not found")
+    ),
+    tag = "loans"
+)]
 pub async fn get_loan(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -46,6 +69,15 @@ pub async fn get_loan(
     Ok(Json(loan))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/loans",
+    request_body = CreateLoanRequest,
+    responses(
+        (status = 201, description = "Loan created", body = ApiResponse<Loan>),
+    ),
+    tag = "loans"
+)]
 pub async fn create_loan(
     State(state): State<AppState>,
     Json(payload): Json<CreateLoanRequest>,

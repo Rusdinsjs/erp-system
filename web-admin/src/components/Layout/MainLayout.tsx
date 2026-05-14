@@ -137,20 +137,20 @@ export function MainLayout() {
     });
 
     return (
-        <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden">
+        <div className="flex h-screen bg-background text-foreground overflow-hidden">
             {/* Sidebar Desktop */}
             <aside
                 className={`
-                    hidden md:flex flex-col bg-slate-900 border-r border-slate-800 transition-all duration-300
+                    hidden md:flex flex-col bg-card border-r border-border transition-all duration-300
                     ${collapsed ? 'w-20' : 'w-72'}
                 `}
             >
-                <div className="h-16 flex items-center px-6 border-b border-slate-800 shrink-0 overflow-hidden whitespace-nowrap">
+                <div className="h-16 flex items-center px-6 border-b border-border shrink-0 overflow-hidden whitespace-nowrap">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xl shrink-0">
                             A
                         </div>
-                        <span className={`font-bold text-lg transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
+                        <span className={`font-bold text-lg text-foreground transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
                             Management System
                         </span>
                     </div>
@@ -176,8 +176,8 @@ export function MainLayout() {
                                     className={`
                                         w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors
                                         ${active && !hasChildren
-                                            ? 'bg-cyan-500/10 text-cyan-400'
-                                            : active && hasChildren ? 'text-cyan-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                                            ? 'bg-primary/10 text-primary'
+                                            : active && hasChildren ? 'text-primary hover:bg-muted' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                         }
                                         ${collapsed ? 'justify-center' : ''}
                                     `}
@@ -204,7 +204,7 @@ export function MainLayout() {
                                                     onClick={() => navigate(child.path)}
                                                     className={`
                                                         w-full text-left px-3 py-2 rounded-lg text-sm transition-colors
-                                                        ${childActive ? 'text-cyan-400 bg-cyan-500/5' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'}
+                                                        ${childActive ? 'text-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}
                                                     `}
                                                 >
                                                     {child.label}
@@ -218,11 +218,11 @@ export function MainLayout() {
                     })}
                 </div>
 
-                <div className="p-3 border-t border-slate-800 space-y-1">
+                <div className="p-3 border-t border-border space-y-1">
                     <button
                         onClick={() => setCollapsed(!collapsed)}
                         className={`
-                            w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition-colors
+                            w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted transition-colors
                             ${collapsed ? 'justify-center' : ''}
                         `}
                     >
@@ -255,12 +255,12 @@ export function MainLayout() {
             {/* Mobile Sidebar */}
             <aside
                 className={`
-                    fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-800 transform transition-transform duration-300 md:hidden flex flex-col
+                    fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border transform transition-transform duration-300 md:hidden flex flex-col
                     ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
                 `}
             >
-                <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-                    <span className="font-bold text-lg text-white">Asset Manager</span>
+                <div className="h-16 flex items-center justify-between px-6 border-b border-border">
+                    <span className="font-bold text-lg text-foreground">Asset Manager</span>
                     <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400">
                         <ChevronLeft size={24} />
                     </button>
@@ -286,8 +286,8 @@ export function MainLayout() {
                                     className={`
                                         w-full flex items-center justify-between px-3 py-3 rounded-lg transition-colors
                                         ${active
-                                            ? 'bg-cyan-500/10 text-cyan-400'
-                                            : 'text-slate-400 hover:bg-slate-800'
+                                            ? 'bg-primary/10 text-primary'
+                                            : 'text-muted-foreground hover:bg-muted'
                                         }
                                     `}
                                 >
@@ -313,7 +313,7 @@ export function MainLayout() {
                                                     }}
                                                     className={`
                                                         w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors
-                                                        ${childActive ? 'text-cyan-400 bg-cyan-500/5' : 'text-slate-500 hover:bg-slate-800/50'}
+                                                        ${childActive ? 'text-primary bg-primary/5' : 'text-muted-foreground hover:bg-muted/50'}
                                                     `}
                                                 >
                                                     {child.label}
@@ -338,7 +338,7 @@ export function MainLayout() {
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col h-full min-w-0">
                 {/* Header */}
-                <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-slate-800 bg-slate-900/50 backdrop-blur shrink-0">
+                <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-border bg-card/50 backdrop-blur shrink-0">
                     <div className="flex items-center gap-4">
                         <button
                             className="md:hidden text-slate-400 hover:text-white"
@@ -346,7 +346,7 @@ export function MainLayout() {
                         >
                             <Menu size={24} />
                         </button>
-                        <h2 className="text-lg font-semibold text-white md:hidden">Asset Manager</h2>
+                        <h2 className="text-lg font-semibold text-foreground md:hidden">Asset Manager</h2>
                         {/* Breadcrumbs or Page Title could go here */}
                     </div>
 
@@ -355,8 +355,8 @@ export function MainLayout() {
 
                         <div className="flex items-center gap-3 text-sm">
                             <div className="text-right hidden sm:block">
-                                <p className="text-white font-medium">{user?.name}</p>
-                                <p className="text-slate-500 text-xs text-right capitalize">{(user as any)?.role_name || user?.role}</p>
+                                <p className="text-foreground font-medium">{user?.name}</p>
+                                <p className="text-muted-foreground text-xs text-right capitalize">{(user as any)?.role_name || user?.role}</p>
                             </div>
                             <AvatarUpload size="sm" />
                         </div>

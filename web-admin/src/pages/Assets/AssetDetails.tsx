@@ -1,9 +1,8 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { 
     ArrowLeft, MapPin, Building2, Tag, Calendar, 
-    Truck, Printer, BarChart3, Camera, 
-    Upload, Loader2, Info
+    Truck, Printer, BarChart3, FileText
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { assetApi } from '../../api/assets';
@@ -154,16 +153,64 @@ export default function AssetDetails({ assetId }: { assetId?: string }) {
                         </Card>
 
                         {/* Location & Department */}
-                        <Card padding="lg">
-                            <CardHeader>
-                                <CardTitle>Assignment</CardTitle>
-                            </CardHeader>
-                            <div className="space-y-4">
-                                <DetailItem icon={<MapPin size={18} />} label="Current Location" value={asset.location_name || 'Unassigned'} />
-                                <DetailItem icon={<Building2 size={18} />} label="Department" value={asset.department_name || 'No Dept'} />
-                                <DetailItem icon={<Truck size={18} />} label="Assigned To" value={asset.assigned_to_name || '-'} />
-                            </div>
-                        </Card>
+                        <div className="space-y-6">
+                            <Card padding="lg">
+                                <CardHeader>
+                                    <CardTitle>Assignment</CardTitle>
+                                </CardHeader>
+                                <div className="space-y-4">
+                                    <DetailItem icon={<MapPin size={18} />} label="Current Location" value={asset.location_name || 'Unassigned'} />
+                                    <DetailItem icon={<Building2 size={18} />} label="Department" value={asset.department_name || 'No Dept'} />
+                                    <DetailItem icon={<Truck size={18} />} label="Assigned To" value={asset.assigned_to_name || '-'} />
+                                </div>
+                            </Card>
+
+                            {/* Tax & Renewals Section */}
+                            {asset.vehicle_details && (
+                                <Card padding="lg" className="border-cyan-500/20 bg-cyan-500/5">
+                                    <CardHeader>
+                                        <CardTitle className="text-cyan-400 flex items-center gap-2">
+                                            <Calendar size={20} />
+                                            Tax & Documents
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <DetailItem 
+                                            icon={<Calendar size={18} />}
+                                            label="STNK Expiry" 
+                                            value={asset.vehicle_details.stnk_expiry ? new Date(asset.vehicle_details.stnk_expiry).toLocaleDateString() : '-'} 
+                                        />
+                                        <DetailItem 
+                                            icon={<Calendar size={18} />}
+                                            label="Tax Expiry" 
+                                            value={asset.vehicle_details.tax_expiry ? new Date(asset.vehicle_details.tax_expiry).toLocaleDateString() : '-'} 
+                                        />
+                                        <DetailItem 
+                                            icon={<Calendar size={18} />}
+                                            label="KIR Expiry" 
+                                            value={asset.vehicle_details.kir_expiry ? new Date(asset.vehicle_details.kir_expiry).toLocaleDateString() : '-'} 
+                                        />
+                                        <DetailItem 
+                                            icon={<Calendar size={18} />}
+                                            label="Lapor Tiba" 
+                                            value={asset.vehicle_details.lapor_tiba_expiry ? new Date(asset.vehicle_details.lapor_tiba_expiry).toLocaleDateString() : '-'} 
+                                        />
+                                        <DetailItem 
+                                            icon={<FileText size={18} />}
+                                            label="Bukti Kepemilikan" 
+                                            value={(() => {
+                                                const cat = asset.category_name?.toLowerCase() || '';
+                                                let label = 'BPKB';
+                                                if (cat.includes('tanah') || cat.includes('bangunan')) label = 'SHM/SHGB';
+                                                if (cat.includes('berat')) label = 'Invoice';
+                                                if (cat.includes('mesin')) label = 'Kwitansi';
+                                                return `${label}: ${asset.vehicle_details.bpkb_number || '-'}`;
+                                            })()} 
+                                        />
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
                     </div>
                 </TabsContent>
 
@@ -268,10 +315,10 @@ export default function AssetDetails({ assetId }: { assetId?: string }) {
     );
 }
 
-function DetailItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+function DetailItem({ icon, label, value }: { icon?: React.ReactNode, label: string, value: string }) {
     return (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-            <div className="text-muted-foreground">{icon}</div>
+            {icon && <div className="text-muted-foreground">{icon}</div>}
             <div>
                 <p className="text-xs text-muted-foreground/70 font-medium uppercase tracking-wider">{label}</p>
                 <p className="text-foreground font-medium">{value}</p>

@@ -13,6 +13,14 @@ pub struct ListSchedulesParams {
     pub asset_id: Option<Uuid>,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/maintenance/schedules",
+    responses(
+        (status = 200, description = "List maintenance schedules", body = ApiResponse<Vec<MaintenanceSchedule>>),
+    ),
+    tag = "maintenance"
+)]
 pub async fn list_schedules(
     State(state): State<AppState>,
 ) -> Result<Json<ApiResponse<Vec<MaintenanceSchedule>>>, AppError> {
@@ -20,6 +28,15 @@ pub async fn list_schedules(
     Ok(Json(ApiResponse::success(schedules)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/maintenance/schedules",
+    request_body = CreateMaintenanceScheduleRequest,
+    responses(
+        (status = 200, description = "Schedule created", body = ApiResponse<MaintenanceSchedule>),
+    ),
+    tag = "maintenance"
+)]
 pub async fn create_schedule(
     State(state): State<AppState>,
     Json(payload): Json<CreateMaintenanceScheduleRequest>,

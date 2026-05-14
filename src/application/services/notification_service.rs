@@ -18,13 +18,19 @@ use crate::infrastructure::repositories::NotificationRepository;
 pub struct NotificationService {
     repository: NotificationRepository,
     ws_manager: Arc<WebSocketManager>,
+    whatsapp_service: crate::application::services::WhatsAppService,
 }
 
 impl NotificationService {
-    pub fn new(repository: NotificationRepository, ws_manager: Arc<WebSocketManager>) -> Self {
+    pub fn new(
+        repository: NotificationRepository,
+        ws_manager: Arc<WebSocketManager>,
+        whatsapp_service: crate::application::services::WhatsAppService,
+    ) -> Self {
         Self {
             repository,
             ws_manager,
+            whatsapp_service,
         }
     }
 
@@ -67,6 +73,12 @@ impl NotificationService {
                 payload: json!(created),
             })
             .await;
+
+        // NEW: Send WhatsApp if user has phone
+        if let Ok(Some(phone)) = self.repository.find_user_phone(user_id).await {
+            let wa_message = format!("🔔 *{}*\n\n{}", title, message);
+            let _ = self.whatsapp_service.send_message(phone, wa_message).await;
+        }
 
         Ok(created)
     }
@@ -138,6 +150,13 @@ impl NotificationService {
                 payload: json!(created),
             })
             .await;
+
+        // NEW: Send WhatsApp if user has phone and template allows it
+        // (For now we send if phone exists)
+        if let Ok(Some(phone)) = self.repository.find_user_phone(user_id).await {
+            let wa_message = format!("🔔 *{}*\n\n{}", title, message);
+            let _ = self.whatsapp_service.send_message(phone, wa_message).await;
+        }
 
         Ok(created)
     }
@@ -316,6 +335,10 @@ impl NotificationService {
                 )
                 .await;
         }
+
+        // NEW: Also send to WhatsApp Admin numbers configured in settings
+        let wa_message = format!("📢 *ADMIN ALERT: {}*\nData: {}", template_code.to_uppercase(), template_data);
+        let _ = self.whatsapp_service.notify_admins(wa_message).await;
 
         Ok(())
     }

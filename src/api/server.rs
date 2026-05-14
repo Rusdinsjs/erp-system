@@ -40,9 +40,8 @@ use crate::application::services::{
     SchedulerService,
     SensorService,
     SettingsService,
-    TaxRenewalService,
-    TimesheetService,
     UserService,
+    WhatsAppService,
     WorkOrderService,
 };
 use crate::infrastructure::bus::EventBus;
@@ -103,6 +102,7 @@ pub struct AppState {
     pub pdf_service: crate::application::services::PDFService, // Added
     pub email_service: crate::application::services::EmailService, // Added
     pub tax_renewal_service: TaxRenewalService, // Added
+    pub whatsapp_service: WhatsAppService,
     pub approval_workflow_service: crate::application::services::ApprovalWorkflowService,
     pub file_storage: Arc<FileStorage>,
     pub contract_document_repo: Arc<ContractDocumentRepository>,
@@ -164,7 +164,9 @@ impl AppState {
 
         // WebSocket & Notification Service first
         let ws_manager = Arc::new(crate::api::handlers::notification_ws::WebSocketManager::new());
-        let notification_service = NotificationService::new(notification_repo, ws_manager.clone());
+        let settings_service = SettingsService::new(settings_repo.clone());
+        let whatsapp_service = WhatsAppService::new(settings_service.clone());
+        let notification_service = NotificationService::new(notification_repo, ws_manager.clone(), whatsapp_service.clone());
 
         let audit_service = AuditService::new(audit_repo.clone());
 
@@ -280,7 +282,9 @@ impl AppState {
             asset_repo.clone(),
             finance_service.clone(),
             vendor_repo.clone(),
-        ); // Instantiate with finance and vendor repo
+            settings_service.clone(),
+            whatsapp_service.clone(),
+        ); // Instantiate with finance, vendor repo, settings, and whatsapp
         let scheduler_service = SchedulerService::new(
             loan_service.clone(),
             maintenance_service.clone(),
@@ -317,8 +321,6 @@ impl AppState {
 
         let fuel_repo = FuelRepository::new(pool.clone());
         let fuel_service = FuelService::new(fuel_repo, event_bus.clone());
-
-        let settings_service = SettingsService::new(settings_repo);
 
         // File storage and contract document repository
         let file_storage = Arc::new(FileStorage::new("uploads/contracts"));
@@ -369,6 +371,7 @@ impl AppState {
             journal_service,
             settings_service,
             tax_renewal_service,
+            whatsapp_service,
             depreciation_service, // Added & Moved to end
             jwt_config: jwt_config.clone(),
             event_bus,

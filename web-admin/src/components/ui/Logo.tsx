@@ -41,7 +41,7 @@ export const Logo: React.FC<LogoProps> = ({ collapsed, className = "" }) => {
             {/* Branding Text - only shown if not collapsed */}
             {!collapsed && (
                 <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-500">
-                    <span className="text-xl font-black text-white leading-none tracking-tight">
+                    <span className="text-xl font-black text-foreground leading-none tracking-tight">
                         {companyName}
                     </span>
                     <span className="text-[10px] uppercase font-bold text-blue-400 tracking-[0.2em] mt-0.5 whitespace-nowrap">

@@ -16,6 +16,8 @@ pub struct TaxRenewalService {
     asset_repository: AssetRepository,
     finance_service: FinanceService,
     vendor_repository: VendorRepository,
+    settings_service: crate::application::services::SettingsService,
+    whatsapp_service: crate::application::services::WhatsAppService,
 }
 
 impl TaxRenewalService {
@@ -24,12 +26,16 @@ impl TaxRenewalService {
         asset_repository: AssetRepository,
         finance_service: FinanceService,
         vendor_repository: VendorRepository,
+        settings_service: crate::application::services::SettingsService,
+        whatsapp_service: crate::application::services::WhatsAppService,
     ) -> Self {
         Self {
             repository,
             asset_repository,
             finance_service,
             vendor_repository,
+            settings_service,
+            whatsapp_service,
         }
     }
 
@@ -138,34 +144,73 @@ impl TaxRenewalService {
     }
 
     pub async fn detect_expiring_assets(&self) -> Result<usize, DomainError> {
-        // Find assets expiring in 30 days
+        // Fetch warning config from settings
+        let warning_config = match self.settings_service.get_setting("tax_renewal_warning_days").await {
+            Ok(setting) => setting.value,
+            Err(_) => serde_json::json!({ "DEFAULT": 30 }),
+        };
+
+        let get_days = |dtype: &str| -> i64 {
+            warning_config.get(dtype)
+                .or_else(|| warning_config.get("DEFAULT"))
+                .and_then(|v| v.as_i64())
+                .unwrap_or(30)
+        };
+
+        // We need to check for each type with its specific warning days
+        // To optimize, we find the max days to fetch a broad list of assets once, 
+        // then filter each asset specifically.
+        let max_days = [
+            get_days("STNK"),
+            get_days("TAX"),
+            get_days("KIR"),
+            get_days("LAPOR_TIBA"),
+            get_days("HEAVY_EQUIPMENT_TAX")
+        ].iter().cloned().max().unwrap_or(30);
+
         let expiring_assets = self
             .asset_repository
-            .find_expiring_vehicles(30)
+            .find_expiring_vehicles(max_days as i32)
             .await
             .map_err(|e| DomainError::Database(e.to_string()))?;
+        
         let mut count = 0;
+        let today = Utc::now().date_naive();
 
         for (asset, details) in expiring_assets {
-            count += self
-                .create_pending_if_needed(asset.id, details.stnk_expiry, "STNK")
-                .await?;
-            count += self
-                .create_pending_if_needed(asset.id, details.tax_expiry, "TAX")
-                .await?;
-            count += self
-                .create_pending_if_needed(asset.id, details.kir_expiry, "KIR")
-                .await?;
-            count += self
-                .create_pending_if_needed(asset.id, details.lapor_tiba_expiry, "LAPOR_TIBA")
-                .await?;
-            count += self
-                .create_pending_if_needed(
-                    asset.id,
-                    details.heavy_equipment_tax_expiry,
-                    "HEAVY_EQUIPMENT_TAX",
-                )
-                .await?;
+            let check_and_create = |date: Option<NaiveDate>, dtype: &str| -> bool {
+                if let Some(d) = date {
+                    let days_to_expiry = (d - today).num_days();
+                    if days_to_expiry <= get_days(dtype) {
+                        return true;
+                    }
+                }
+                false
+            };
+
+            if check_and_create(details.stnk_expiry, "STNK") {
+                count += self.create_pending_if_needed(asset.id, details.stnk_expiry, "STNK").await?;
+            }
+            if check_and_create(details.tax_expiry, "TAX") {
+                count += self.create_pending_if_needed(asset.id, details.tax_expiry, "TAX").await?;
+            }
+            if check_and_create(details.kir_expiry, "KIR") {
+                count += self.create_pending_if_needed(asset.id, details.kir_expiry, "KIR").await?;
+            }
+            if check_and_create(details.lapor_tiba_expiry, "LAPOR_TIBA") {
+                count += self.create_pending_if_needed(asset.id, details.lapor_tiba_expiry, "LAPOR_TIBA").await?;
+            }
+            if check_and_create(details.heavy_equipment_tax_expiry, "HEAVY_EQUIPMENT_TAX") {
+                count += self.create_pending_if_needed(asset.id, details.heavy_equipment_tax_expiry, "HEAVY_EQUIPMENT_TAX").await?;
+            }
+        }
+
+        if count > 0 {
+            let message = format!(
+                "📢 *NOTIFIKASI SYSTEM*\n\nTerdeteksi *{}* dokumen aset yang akan segera kadaluarsa.\n\nMohon segera cek menu *Tax & Document Renewals* pada Dashboard untuk memproses perpanjangan.",
+                count
+            );
+            let _ = self.whatsapp_service.notify_admins(message).await;
         }
 
         Ok(count)

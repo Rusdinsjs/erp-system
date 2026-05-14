@@ -87,3 +87,5 @@ pub mod asset_expense_service;
 pub use asset_expense_service::*;
 pub mod tax_renewal_service;
 pub use tax_renewal_service::*;
+pub mod whatsapp_service;
+pub use whatsapp_service::*;

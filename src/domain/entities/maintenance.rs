@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+use utoipa::ToSchema;
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct MaintenanceType {
     pub id: i32,
     pub code: String,
@@ -12,7 +14,7 @@ pub struct MaintenanceType {
     pub is_preventive: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct MaintenanceRecord {
     pub id: Uuid,
     pub asset_id: Uuid,
@@ -74,7 +76,7 @@ impl MaintenanceRecord {
 }
 
 // Summary struct for lists
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct MaintenanceSummary {
     pub id: Uuid,
     pub asset_id: Uuid,
@@ -90,7 +92,7 @@ pub struct MaintenanceSummary {
     pub type_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct MaintenanceSchedule {
     pub id: Uuid,
     pub asset_id: Uuid,
@@ -112,7 +114,7 @@ pub struct MaintenanceSchedule {
     pub asset_name: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateMaintenanceScheduleRequest {
     pub asset_id: Uuid,
     pub title: String,

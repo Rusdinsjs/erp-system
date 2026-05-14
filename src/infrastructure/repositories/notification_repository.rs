@@ -155,4 +155,12 @@ impl NotificationRepository {
         .await?;
         Ok(result.into_iter().map(|(id,)| id).collect())
     }
+
+    pub async fn find_user_phone(&self, user_id: Uuid) -> Result<Option<String>, sqlx::Error> {
+        let result: Option<(Option<String>,)> = sqlx::query_as("SELECT phone FROM users WHERE id = $1")
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(result.and_then(|(phone,)| phone))
+    }
 }

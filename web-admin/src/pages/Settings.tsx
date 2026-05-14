@@ -121,6 +121,13 @@ export default function Settings() {
                             >
                                 Finance
                             </TabsTrigger>
+                            <TabsTrigger
+                                value="assets"
+                                icon={<Monitor size={16} />}
+                                className="w-full justify-start px-4 py-3 data-[state=active]:bg-cyan-600/10 data-[state=active]:text-cyan-400"
+                            >
+                                Asset Monitoring
+                            </TabsTrigger>
                         </TabsList>
                     </div>
 
@@ -318,6 +325,91 @@ export default function Settings() {
                                             placeholder="e.g. DD/MM/YYYY"
                                         />
                                     </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="assets" className="mt-0 space-y-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-foreground mb-1">Asset Monitoring & Renewals</h3>
+                                <p className="text-sm text-muted-foreground mb-6">Configure thresholds for automated alerts and workflows.</p>
+
+                                <div className="space-y-6 max-w-xl">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="STNK (Days)"
+                                            type="number"
+                                            value={formData['tax_renewal_warning_days']?.['STNK'] ?? 30}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                const current = formData['tax_renewal_warning_days'] || {};
+                                                handleChange('tax_renewal_warning_days', { ...current, 'STNK': val });
+                                            }}
+                                            placeholder="30"
+                                        />
+                                        <Input
+                                            label="Pajak / TAX (Days)"
+                                            type="number"
+                                            value={formData['tax_renewal_warning_days']?.['TAX'] ?? 30}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                const current = formData['tax_renewal_warning_days'] || {};
+                                                handleChange('tax_renewal_warning_days', { ...current, 'TAX': val });
+                                            }}
+                                            placeholder="30"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="KIR (Days)"
+                                            type="number"
+                                            value={formData['tax_renewal_warning_days']?.['KIR'] ?? 30}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                const current = formData['tax_renewal_warning_days'] || {};
+                                                handleChange('tax_renewal_warning_days', { ...current, 'KIR': val });
+                                            }}
+                                            placeholder="30"
+                                        />
+                                        <Input
+                                            label="Lapor Tiba (Days)"
+                                            type="number"
+                                            value={formData['tax_renewal_warning_days']?.['LAPOR_TIBA'] ?? 30}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                const current = formData['tax_renewal_warning_days'] || {};
+                                                handleChange('tax_renewal_warning_days', { ...current, 'LAPOR_TIBA': val });
+                                            }}
+                                            placeholder="30"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input
+                                            label="Pajak Alat Berat (Days)"
+                                            type="number"
+                                            value={formData['tax_renewal_warning_days']?.['HEAVY_EQUIPMENT_TAX'] ?? 30}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                const current = formData['tax_renewal_warning_days'] || {};
+                                                handleChange('tax_renewal_warning_days', { ...current, 'HEAVY_EQUIPMENT_TAX': val });
+                                            }}
+                                            placeholder="30"
+                                        />
+                                        <Input
+                                            label="Lainnya / Default (Days)"
+                                            type="number"
+                                            value={formData['tax_renewal_warning_days']?.['DEFAULT'] ?? 30}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                const current = formData['tax_renewal_warning_days'] || {};
+                                                handleChange('tax_renewal_warning_days', { ...current, 'DEFAULT': val });
+                                            }}
+                                            placeholder="30"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
+                                        <strong>Tip:</strong> Jumlah hari sebelum jatuh tempo untuk secara otomatis memunculkan tugas perpanjangan di tab "Needs Attention".
+                                    </p>
                                 </div>
                             </div>
                         </TabsContent>

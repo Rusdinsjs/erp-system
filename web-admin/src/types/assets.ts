@@ -12,10 +12,12 @@ export interface VehicleDetails {
     kir_expiry?: string;
     tax_expiry?: string;
     heavy_equipment_tax_expiry?: string;
+    lapor_tiba_expiry?: string;
     fuel_type?: string;
     transmission?: string;
     capacity?: string;
     odometer_last?: number;
+    invoice_number?: string;
 }
 
 export interface Asset {
