@@ -16,6 +16,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          timeout: 60m
           script: |
             cd ~/management-system
             
@@ -24,12 +25,12 @@ jobs:
             git reset --hard origin/master || git reset --hard origin/main
             git pull
             
-            # Restart Nginx di VPS untuk memastikan tidak ada cache
-            # (opsional, tapi berguna jika ada perubahan di nginx.conf)
+            # Restart Nginx di VPS
             sudo systemctl reload nginx || true
             
-            # Build ulang dan jalankan kontainer Docker (Backend & Frontend)
-            sudo docker compose up -d --build
+            # Build ulang Frontend (karena perubahan hanya di frontend)
+            # Jika ada perubahan backend, Anda bisa ganti menjadi: sudo docker compose up -d --build
+            sudo docker compose up -d --build frontend
             
-            # Bersihkan image yang tidak terpakai untuk hemat ruang harddisk
+            # Bersihkan image yang tidak terpakai
             sudo docker image prune -f
