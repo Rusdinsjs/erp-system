@@ -18,6 +18,7 @@ import clsx from 'clsx';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings';
 import { Logo } from '../components/ui';
+import { AIChatWidget } from '../components/AI/AIChatWidget';
 
 interface DomainCard {
     id: string;
@@ -292,6 +293,7 @@ export default function Launchpad() {
                     </div>
                 </footer>
             </div>
+            <AIChatWidget />
         </div>
     );
 }

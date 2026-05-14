@@ -15,6 +15,7 @@ import { PageLoading, Logo } from '../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings';
 import { useTheme } from '../contexts/ThemeContext';
+import { AIChatWidget } from '../components/AI/AIChatWidget';
 
 // Import all views
 const DashboardView = lazy(() => import('./Dashboard'));
@@ -986,6 +987,7 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+            <AIChatWidget />
         </div>
     );
 }
