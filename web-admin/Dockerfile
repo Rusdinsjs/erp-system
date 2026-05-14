@@ -44,6 +44,10 @@ RUN echo 'server { \
     proxy_set_header Connection "upgrade"; \
     proxy_set_header Host $host; \
     } \
+    location /ollama/ { \
+    proxy_pass http://ms-ai-ollama:11434/; \
+    proxy_set_header Host $host; \
+    } \
     }' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
