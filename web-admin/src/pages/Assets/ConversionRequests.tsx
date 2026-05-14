@@ -1,7 +1,7 @@
 // ConversionRequests Page - Pure Tailwind
 import { useState, useEffect } from 'react';
 import { Check, X, Play } from 'lucide-react';
-import { conversionApi, type AssetConversion } from '../api/conversion';
+import { conversionApi, type AssetConversion } from '../../api/conversion';
 import {
     Button,
     Card,
@@ -11,7 +11,7 @@ import {
     Textarea,
     LoadingOverlay,
     useToast,
-} from '../components/ui';
+} from '../../components/ui';
 
 export default function ConversionRequests() {
     const [requests, setRequests] = useState<AssetConversion[]>([]);
