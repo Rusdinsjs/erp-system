@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '../../store/useAuthStore';
 import { NotificationBell } from '../Header/NotificationBell';
 import { AvatarUpload } from '../AvatarUpload';
+import { AIChatWidget } from '../AI/AIChatWidget';
 
 export function MainLayout() {
     const [collapsed, setCollapsed] = useState(false);
@@ -367,6 +368,7 @@ export function MainLayout() {
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
                     <Outlet />
                 </main>
+                <AIChatWidget />
             </div>
         </div>
     );
