@@ -4,7 +4,7 @@ import { taxRenewalApi, type TaxRenewal } from '../../api/tax-renewals';
 import { assetApi } from '../../api/assets';
 import { uploadApi } from '../../api/upload';
 import { Card, Button, Badge, Modal, NumberInput, Input, Textarea, Pagination, SearchInput, Select, TableSkeleton, DateInput } from '../../components/ui';
-import { CheckCircle, Plus, FileText } from 'lucide-react';
+import { CheckCircle, Plus, FileText, Upload } from 'lucide-react';
 import dayjs from 'dayjs';
 import { toast } from 'sonner';
 
@@ -413,7 +413,7 @@ export default function TaxRenewals() {
     const completeMutation = useMutation({
         mutationFn: ({ id, date }: { id: string; date: string }) =>
             taxRenewalApi.complete(id, { new_expiry_date: date }),
-        onSuccess: (_, variables) => { 
+        onSuccess: (_data, _variables) => { 
             toast.success('Renewal selesai'); 
             queryClient.invalidateQueries({ queryKey: ['tax-renewals'] });
             

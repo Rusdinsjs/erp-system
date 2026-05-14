@@ -192,7 +192,7 @@ export default function ConversionRequests() {
                             label="Execution Notes"
                             placeholder="Details about the execution..."
                             value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
                         />
                     )}
                     {modalTitle.includes('Reject') && (
@@ -200,7 +200,7 @@ export default function ConversionRequests() {
                             label="Rejection Reason (Internal Note)"
                             placeholder="Why is it rejected?"
                             value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
                         />
                     )}
                     {modalTitle.includes('Approve') && (

@@ -7,7 +7,6 @@ import {
     FileDown,
     Loader2
 } from 'lucide-react';
-import { api } from '../../api/http';
 import { useToast } from '../../components/ui';
 import { reportsApi } from '../../api/reports';
 import OverviewTab from './OverviewTab';
