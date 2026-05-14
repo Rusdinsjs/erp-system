@@ -88,10 +88,20 @@ services:
     profiles:
       - migrate
 
+  # AI Service (Ollama)
+  ms-ai-ollama:
+    image: ollama/ollama:latest
+    container_name: ms-ai-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    expose:
+      - "11434"
+
 volumes:
   postgres_data:
   redis_data:
-
+  ollama_data:
 
 networks:
   default:
