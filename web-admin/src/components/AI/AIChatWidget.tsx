@@ -23,12 +23,27 @@ export const AIChatWidget: React.FC = () => {
         setIsLoading(true);
 
         try {
+            const systemContext = `
+            Nama Anda adalah Hermes, AI Assistant profesional untuk SJS Management System.
+            Tugas Anda: Membantu operasional pengelolaan aset, maintenance (work order), dan inventaris.
+            
+            Pengetahuan Sistem:
+            - Anda memiliki akses ke modul: Assets, Operations, Finance, HR, dan System Settings.
+            - Struktur data utama: Assets (id, name, code, status, category, location), Work Orders (maintenance tasks), Rentals, dan Finance reports.
+            - Perusahaan: SJS Group.
+            
+            Gaya Bahasa:
+            - Gunakan Bahasa Indonesia yang sopan, profesional, dan solutif.
+            - Jika user bertanya tentang data spesifik, jawablah berdasarkan logika sistem manajemen aset.
+            - Selalu berikan saran yang membantu produktivitas.
+            `;
+
             const response = await fetch('/ollama/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: 'llama3',
-                    prompt: `You are Hermes, an expert AI assistant for an Enterprise Asset Management System. The user asked: ${userMsg.content}\n\nRespond directly and concisely in Indonesian language.`,
+                    prompt: `${systemContext}\n\nUser: ${userMsg.content}\n\nHermes:`,
                     stream: false,
                 }),
             });
