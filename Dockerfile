@@ -1,36 +1,38 @@
-# --- Build Stage ---
-FROM rust:slim-bookworm as builder
-
-# Install build dependencies
+# --- Chef Stage ---
+FROM lukemathwalker/cargo-chef:latest-rust-latest AS chef
+WORKDIR /app
+# Install system dependencies needed for compilation
 RUN apt-get update && apt-get install -y pkg-config libssl-dev protobuf-compiler && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-
-# Copy all files
+# --- Planner Stage ---
+FROM chef AS planner
 COPY . .
+# Compute a recipe file from the Cargo workspace
+RUN cargo chef prepare --recipe-path recipe.json
 
+# --- Builder Stage ---
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build our project dependencies, not our application!
+# This is the layer that Docker will cache!
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Now copy the actual source code
+COPY . .
 # Set SQLX_OFFLINE to true for builds without a live DB
 ENV SQLX_OFFLINE=true
-
 # Build the application
-# Note: We use --release for production optimization
 RUN cargo build --release
 
 # --- Runtime Stage ---
 FROM debian:bookworm-slim
-
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y libssl3 ca-certificates curl && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
-# Copy the binary from the builder
+# Copy the binary and migrations
 COPY --from=builder /app/target/release/management-system /app/management-system
-# Copy migrations for startup auto-migration
 COPY --from=builder /app/migrations /app/migrations
 
-# Expose the API port
 EXPOSE 8080
-
-# Run the app
 CMD ["./management-system"]
