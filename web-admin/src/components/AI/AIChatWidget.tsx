@@ -31,7 +31,7 @@ export const AIChatWidget: React.FC = () => {
             
             Pengetahuan Sistem:
             - Modul: Assets, Operations, Finance, HR, dan System Settings.
-            - SJS Group adalah perusahaan Anda.
+            - SJS Group adalah perusahaan tempat sistem ini diimplementasikan.
             
             Aturan Gaya Bahasa:
             1. SELALU gunakan Bahasa Indonesia yang sopan dan santun.
@@ -41,12 +41,19 @@ export const AIChatWidget: React.FC = () => {
             [PENTING: JAWABLAH HANYA DALAM BAHASA INDONESIA]
             `;
 
+            // Build history string (last 6 messages)
+            const history = messages.slice(-6).map(m => 
+                `${m.role === 'user' ? 'User' : 'Hermes'}: ${m.content}`
+            ).join('\n');
+
+            const fullPrompt = `${systemContext}\n\nHistory:\n${history}\n\nUser: ${userMsg.content}\n\nHermes:`;
+
             const response = await fetch('/ollama/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: 'llama3',
-                    prompt: `${systemContext}\n\nUser: ${userMsg.content}\n\nHermes:`,
+                    prompt: fullPrompt,
                     stream: false,
                 }),
             });
@@ -54,7 +61,7 @@ export const AIChatWidget: React.FC = () => {
             const data = await response.json();
             setMessages(prev => [...prev, { id: (Date.now()+1).toString(), role: 'assistant', content: data.response, timestamp: new Date() }]);
         } catch (error) {
-            setMessages(prev => [...prev, { id: (Date.now()+1).toString(), role: 'assistant', content: 'Koneksi ke Mesin AI gagal.', timestamp: new Date() }]);
+            setMessages(prev => [...prev, { id: (Date.now()+1).toString(), role: 'assistant', content: 'Koneksi ke Mesin AI gagal. Pastikan Ollama berjalan.', timestamp: new Date() }]);
         } finally {
             setIsLoading(false);
         }
