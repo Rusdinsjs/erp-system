@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, Loader2, Maximize2 } from 'lucide-react';
+import { assetApi } from '../../api/assets';
 
 export const AIChatWidget: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -11,9 +12,23 @@ export const AIChatWidget: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const [systemData, setSystemData] = useState<string>('');
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Fetch system context data when chat is opened
+    useEffect(() => {
+        if (isOpen && !systemData) {
+            assetApi.list({ page: 1, per_page: 20 }).then(res => {
+                const summary = res.data.map((a: any) => 
+                    `- ${a.asset_code}: ${a.name} (${a.brand || ''} ${a.model || ''})`
+                ).join('\n');
+                setSystemData(summary);
+            }).catch(err => console.error('Failed to fetch AI context:', err));
+        }
+    }, [isOpen, systemData]);
 
     const handleSend = async () => {
         if (!input.trim() || isLoading) return;
@@ -29,6 +44,9 @@ export const AIChatWidget: React.FC = () => {
             Nama Anda adalah Hermes, AI Assistant profesional untuk SJS Management System.
             Tugas Anda: Membantu operasional pengelolaan aset, maintenance (work order), dan inventaris di SJS Group.
             
+            Data Real-time Sistem (20 Aset Terbaru):
+            ${systemData || 'Sedang memuat data...'}
+            
             Pengetahuan Sistem:
             - Modul: Assets, Operations, Finance, HR, dan System Settings.
             - SJS Group adalah perusahaan tempat sistem ini diimplementasikan.
@@ -36,7 +54,7 @@ export const AIChatWidget: React.FC = () => {
             Aturan Gaya Bahasa:
             1. SELALU gunakan Bahasa Indonesia yang sopan dan santun.
             2. JANGAN PERNAH menjawab dalam Bahasa Inggris.
-            3. Berikan saran teknis yang praktis dan membantu.
+            3. Berikan jawaban yang spesifik berdasarkan Data Real-time jika ditanya tentang nama atau kode aset.
             
             [PENTING: JAWABLAH HANYA DALAM BAHASA INDONESIA]
             `;
