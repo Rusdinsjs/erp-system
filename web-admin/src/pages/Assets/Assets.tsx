@@ -27,6 +27,7 @@ import {
     Select,
 } from '../../components/ui';
 import { BulkActionToolbar } from '../../components/Assets/BulkActionToolbar';
+import { AssetPreviewModal } from '../../components/Assets/AssetPreviewModal';
 
 // Helper to flatten category tree
 const flattenCategories = (nodes: any[], prefix = ''): any[] => {
@@ -68,6 +69,8 @@ export default function Assets() {
     const [bulkActionType, setBulkActionType] = useState<'status' | 'location' | 'department' | null>(null);
     const [bulkModalOpen, setBulkModalOpen] = useState(false);
     const [bulkValue, setBulkValue] = useState<string>('');
+    const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     // Fetch Assets
     const { data: assetsData, isLoading: assetsLoading } = useQuery({
@@ -527,7 +530,10 @@ export default function Assets() {
                                         </TableTd>
                                          <TableTd>
                                             <span 
-                                                onClick={() => navigate(`/assets/${asset.id}`)}
+                                                onClick={() => {
+                                                    setPreviewAsset(asset);
+                                                    setIsPreviewOpen(true);
+                                                }}
                                                 className="font-mono text-sm text-blue-400 font-medium group-hover:text-blue-300 transition-colors cursor-pointer hover:underline"
                                             >
                                                 {asset.asset_code}
@@ -536,7 +542,10 @@ export default function Assets() {
                                         <TableTd>{asset.category_name || '-'}</TableTd>
                                         <TableTd>
                                             <span 
-                                                onClick={() => navigate(`/assets/${asset.id}`)}
+                                                onClick={() => {
+                                                    setPreviewAsset(asset);
+                                                    setIsPreviewOpen(true);
+                                                }}
                                                 className="font-medium cursor-pointer hover:text-blue-400 transition-colors hover:underline"
                                             >
                                                 {asset.name}
@@ -564,11 +573,21 @@ export default function Assets() {
                                         <TableTd align="center">
                                             <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <ActionIcon
-                                                    onClick={() => navigate(`/assets/${asset.id}`)}
-                                                    title="View Details"
-                                                    className="hover:bg-blue-500/20 text-blue-400"
+                                                    onClick={() => {
+                                                        setPreviewAsset(asset);
+                                                        setIsPreviewOpen(true);
+                                                    }}
+                                                    title="Quick Preview"
+                                                    className="hover:bg-cyan-500/20 text-cyan-400"
                                                 >
                                                     <Eye size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    onClick={() => navigate(`/assets/${asset.id}`)}
+                                                    title="View Full Details"
+                                                    className="hover:bg-blue-500/20 text-blue-400"
+                                                >
+                                                    <FileText size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}
@@ -827,6 +846,12 @@ export default function Assets() {
                     </div>
                 </div>
             </Modal>
+
+            <AssetPreviewModal
+                isOpen={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                asset={previewAsset}
+            />
         </div>
     );
 }

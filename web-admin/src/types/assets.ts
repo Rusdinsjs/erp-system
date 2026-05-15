@@ -60,6 +60,13 @@ export interface Asset {
     vendor_name?: string;
     total_maintenance_cost?: number;
     total_rental_income?: number;
+    photos?: {
+        front?: string;
+        back?: string;
+        left?: string;
+        right?: string;
+        [key: string]: string | undefined;
+    };
     version: number;
 }
 

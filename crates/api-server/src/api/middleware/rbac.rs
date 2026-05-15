@@ -65,7 +65,19 @@ pub fn require_permission(
                     permission,
                     claims.permissions
                 );
-                Err(StatusCode::FORBIDDEN)
+                
+                let body = serde_json::json!({
+                    "error": format!("Permission denied: {}", permission),
+                    "code": "FORBIDDEN"
+                });
+                
+                let response = axum::response::Response::builder()
+                    .status(StatusCode::FORBIDDEN)
+                    .header(axum::http::header::CONTENT_TYPE, "application/json")
+                    .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                    .unwrap();
+                
+                Ok(response)
             }
         })
     }
@@ -78,6 +90,17 @@ pub async fn admin_only_middleware(request: Request, next: Next) -> Result<Respo
     if claims.role == "admin" || claims.role == "super_admin" {
         Ok(next.run(request).await)
     } else {
-        Err(StatusCode::FORBIDDEN)
+        let body = serde_json::json!({
+            "error": "Admin access required",
+            "code": "FORBIDDEN_ADMIN"
+        });
+        
+        let response = axum::response::Response::builder()
+            .status(StatusCode::FORBIDDEN)
+            .header(axum::http::header::CONTENT_TYPE, "application/json")
+            .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+            .unwrap();
+        
+        Ok(response)
     }
 }

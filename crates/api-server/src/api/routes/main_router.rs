@@ -551,9 +551,10 @@ pub fn create_router(state: AppState) -> Router {
         .merge(lookup_routes)
         .merge(protected_routes)
         .merge(crate::api::routes::settings_routes::settings_routes(state.clone()))
-        .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes(
-            state.clone(),
-        ))
+        .nest(
+            "/api/tax-renewals",
+            crate::api::routes::tax_renewal_routes::tax_renewal_routes(state.clone()),
+        )
         .route(
             "/api/test/email",
             axum::routing::post(crate::api::handlers::test_handler::send_test_email),
