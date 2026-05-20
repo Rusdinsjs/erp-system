@@ -81,3 +81,111 @@ pub struct AssetDocument {
 
 // Renaming for SQLx mapping if needed, usually type needs rename
 // but sqlx generic rename is per struct field
+
+/// Land Details (1:1 with Asset)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct LandDetails {
+    #[serde(default = "default_uuid")]
+    pub asset_id: Uuid,
+    pub certificate_number: Option<String>,
+    pub land_area: Option<Decimal>,
+    pub address: Option<String>,
+    pub zoning: Option<String>,
+    pub rights_status: Option<String>,
+    pub rights_expiry: Option<NaiveDate>,
+    pub pbb_number: Option<String>,
+    pub njop_value: Option<Decimal>,
+    pub gps_coordinates: Option<String>,
+    pub boundaries: Option<String>,
+    #[serde(default = "default_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(default = "default_datetime")]
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Building Details (1:1 with Asset)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct BuildingDetails {
+    #[serde(default = "default_uuid")]
+    pub asset_id: Uuid,
+    pub land_asset_id: Option<Uuid>,
+    pub building_area: Option<Decimal>,
+    pub floor_count: Option<i32>,
+    pub build_year: Option<i32>,
+    pub renovation_year: Option<i32>,
+    pub construction_type: Option<String>,
+    pub building_function: Option<String>,
+    pub capacity: Option<i32>,
+    pub imb_number: Option<String>,
+    pub slf_number: Option<String>,
+    pub slf_expiry: Option<NaiveDate>,
+    #[serde(default = "default_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(default = "default_datetime")]
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Heavy Equipment Details (1:1 with Asset)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct HeavyEquipmentDetails {
+    #[serde(default = "default_uuid")]
+    pub asset_id: Uuid,
+    pub equipment_type: Option<String>,
+    pub operating_weight: Option<Decimal>,
+    pub capacity: Option<String>,
+    pub engine_model: Option<String>,
+    pub hour_meter: Option<Decimal>,
+    pub certification_number: Option<String>,
+    pub certification_expiry: Option<NaiveDate>,
+    #[serde(default = "default_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(default = "default_datetime")]
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Machine Details (1:1 with Asset)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct MachineDetails {
+    #[serde(default = "default_uuid")]
+    pub asset_id: Uuid,
+    pub machine_type: Option<String>,
+    pub technical_specs: Option<String>,
+    pub installation_year: Option<i32>,
+    pub operating_hours: Option<Decimal>,
+    pub energy_source: Option<String>,
+    #[serde(default = "default_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(default = "default_datetime")]
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Inventory Details (1:1 with Asset)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct InventoryDetails {
+    #[serde(default = "default_uuid")]
+    pub asset_id: Uuid,
+    pub inventory_type: Option<String>,
+    pub warranty_expiry: Option<NaiveDate>,
+    pub os_license: Option<String>,
+    pub mac_address: Option<String>,
+    #[serde(default = "default_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(default = "default_datetime")]
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Furniture Details (1:1 with Asset)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct FurnitureDetails {
+    #[serde(default = "default_uuid")]
+    pub asset_id: Uuid,
+    pub furniture_type: Option<String>,
+    pub material: Option<String>,
+    pub dimensions: Option<String>,
+    pub color: Option<String>,
+    pub capacity: Option<String>,
+    #[serde(default = "default_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(default = "default_datetime")]
+    pub updated_at: DateTime<Utc>,
+}

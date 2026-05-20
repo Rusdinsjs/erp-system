@@ -230,6 +230,12 @@ impl AssetService {
                     vendor_name: None,
                     condition_name: None,
                     vehicle_details: Some(details),
+                    land_details: None,
+                    building_details: None,
+                    heavy_equipment_details: None,
+                    machine_details: None,
+                    inventory_details: None,
+                    furniture_details: None,
                     total_maintenance_cost: None,
                     total_rental_income: None,
                 },
@@ -244,34 +250,14 @@ impl AssetService {
         &self,
         id: Uuid,
     ) -> DomainResult<management_system_core::domain::entities::asset::AssetDetail> {
-        use management_system_core::domain::entities::asset::AssetDetail;
-
-        let detail = self
-            .repository
+        self.repository
             .find_detail_by_id(id)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?
-            .ok_or_else(|| DomainError::not_found("Asset", id))?;
-
-        let (asset, cat, loc, dept, manager, assigned, vendor, vehicle, maint_cost, rental_inc) =
-            detail;
-
-        Ok(AssetDetail {
-            asset,
-            category_name: cat,
-            location_name: loc,
-            department_name: dept,
-            department_manager_name: manager,
-            assigned_to_name: assigned,
-            vendor_name: vendor,
-            condition_name: None, // Could be joined if needed
-            vehicle_details: vehicle,
-            total_maintenance_cost: maint_cost,
-            total_rental_income: rental_inc,
-        })
+            .ok_or_else(|| DomainError::not_found("Asset", id))
     }
 
     /// Get asset by Code
@@ -458,6 +444,9 @@ impl AssetService {
         asset.model = request.model;
         asset.year_manufacture = request.year_manufacture;
         asset.specifications = request.specifications;
+        asset.description = request.description;
+        asset.acquisition_method = request.acquisition_method;
+        asset.funding_source = request.funding_source;
         asset.purchase_date = request.purchase_date;
         asset.purchase_price = request.purchase_price;
         asset.currency_id = request.currency_id;
@@ -509,6 +498,108 @@ impl AssetService {
                     service: "database".to_string(),
                     message: format!("Failed to save vehicle details: {}", e),
                 })?;
+        }
+
+        // Handle Land Details
+        if let Some(d) = request.land_details {
+            let details = management_system_core::domain::entities::asset_details::LandDetails {
+                asset_id: created_asset.id,
+                certificate_number: d.certificate_number,
+                land_area: d.land_area,
+                address: d.address,
+                zoning: d.zoning,
+                rights_status: d.rights_status,
+                rights_expiry: d.rights_expiry,
+                pbb_number: d.pbb_number,
+                njop_value: d.njop_value,
+                gps_coordinates: d.gps_coordinates,
+                boundaries: d.boundaries,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_land_details_with_executor(executor, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Building Details
+        if let Some(d) = request.building_details {
+            let details = management_system_core::domain::entities::asset_details::BuildingDetails {
+                asset_id: created_asset.id,
+                land_asset_id: d.land_asset_id,
+                building_area: d.building_area,
+                floor_count: d.floor_count,
+                build_year: d.build_year,
+                renovation_year: d.renovation_year,
+                construction_type: d.construction_type,
+                building_function: d.building_function,
+                capacity: d.capacity,
+                imb_number: d.imb_number,
+                slf_number: d.slf_number,
+                slf_expiry: d.slf_expiry,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_building_details_with_executor(executor, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Heavy Equipment Details
+        if let Some(d) = request.heavy_equipment_details {
+            let details = management_system_core::domain::entities::asset_details::HeavyEquipmentDetails {
+                asset_id: created_asset.id,
+                equipment_type: d.equipment_type,
+                operating_weight: d.operating_weight,
+                capacity: d.capacity,
+                engine_model: d.engine_model,
+                hour_meter: d.hour_meter,
+                certification_number: d.certification_number,
+                certification_expiry: d.certification_expiry,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_heavy_equipment_details_with_executor(executor, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Machine Details
+        if let Some(d) = request.machine_details {
+            let details = management_system_core::domain::entities::asset_details::MachineDetails {
+                asset_id: created_asset.id,
+                machine_type: d.machine_type,
+                technical_specs: d.technical_specs,
+                installation_year: d.installation_year,
+                operating_hours: d.operating_hours,
+                energy_source: d.energy_source,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_machine_details_with_executor(executor, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Inventory Details
+        if let Some(d) = request.inventory_details {
+            let details = management_system_core::domain::entities::asset_details::InventoryDetails {
+                asset_id: created_asset.id,
+                inventory_type: d.inventory_type,
+                warranty_expiry: d.warranty_expiry,
+                os_license: d.os_license,
+                mac_address: d.mac_address,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_inventory_details_with_executor(executor, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Furniture Details
+        if let Some(d) = request.furniture_details {
+            let details = management_system_core::domain::entities::asset_details::FurnitureDetails {
+                asset_id: created_asset.id,
+                furniture_type: d.furniture_type,
+                material: d.material,
+                dimensions: d.dimensions,
+                color: d.color,
+                capacity: d.capacity,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_furniture_details_with_executor(executor, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
         }
 
         let created_asset = Box::new(created_asset);
@@ -638,6 +729,15 @@ impl AssetService {
         if let Some(s) = request.specifications {
             asset.specifications = Some(s);
         }
+        if let Some(d) = request.description {
+            asset.description = Some(d);
+        }
+        if let Some(am) = request.acquisition_method {
+            asset.acquisition_method = Some(am);
+        }
+        if let Some(fs) = request.funding_source {
+            asset.funding_source = Some(fs);
+        }
         if let Some(d) = request.purchase_date {
             asset.purchase_date = Some(d);
         }
@@ -716,6 +816,116 @@ impl AssetService {
                     message: format!("Failed to update vehicle details: {}", e),
                 })?;
         }
+
+        // We use a transaction to upsert other details
+        let mut tx = self.repository.pool().begin().await.map_err(|e| DomainError::ExternalServiceError {
+            service: "database".to_string(),
+            message: e.to_string(),
+        })?;
+
+        // Handle Land Details
+        if let Some(d) = request.land_details {
+            let details = management_system_core::domain::entities::asset_details::LandDetails {
+                asset_id: asset.id,
+                certificate_number: d.certificate_number,
+                land_area: d.land_area,
+                address: d.address,
+                zoning: d.zoning,
+                rights_status: d.rights_status,
+                rights_expiry: d.rights_expiry,
+                pbb_number: d.pbb_number,
+                njop_value: d.njop_value,
+                gps_coordinates: d.gps_coordinates,
+                boundaries: d.boundaries,
+                created_at: asset.created_at,
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_land_details_with_executor(&mut tx, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Building Details
+        if let Some(d) = request.building_details {
+            let details = management_system_core::domain::entities::asset_details::BuildingDetails {
+                asset_id: asset.id,
+                land_asset_id: d.land_asset_id,
+                building_area: d.building_area,
+                floor_count: d.floor_count,
+                build_year: d.build_year,
+                renovation_year: d.renovation_year,
+                construction_type: d.construction_type,
+                building_function: d.building_function,
+                capacity: d.capacity,
+                imb_number: d.imb_number,
+                slf_number: d.slf_number,
+                slf_expiry: d.slf_expiry,
+                created_at: asset.created_at,
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_building_details_with_executor(&mut tx, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Heavy Equipment Details
+        if let Some(d) = request.heavy_equipment_details {
+            let details = management_system_core::domain::entities::asset_details::HeavyEquipmentDetails {
+                asset_id: asset.id,
+                equipment_type: d.equipment_type,
+                operating_weight: d.operating_weight,
+                capacity: d.capacity,
+                engine_model: d.engine_model,
+                hour_meter: d.hour_meter,
+                certification_number: d.certification_number,
+                certification_expiry: d.certification_expiry,
+                created_at: asset.created_at,
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_heavy_equipment_details_with_executor(&mut tx, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Machine Details
+        if let Some(d) = request.machine_details {
+            let details = management_system_core::domain::entities::asset_details::MachineDetails {
+                asset_id: asset.id,
+                machine_type: d.machine_type,
+                technical_specs: d.technical_specs,
+                installation_year: d.installation_year,
+                operating_hours: d.operating_hours,
+                energy_source: d.energy_source,
+                created_at: asset.created_at,
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_machine_details_with_executor(&mut tx, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Inventory Details
+        if let Some(d) = request.inventory_details {
+            let details = management_system_core::domain::entities::asset_details::InventoryDetails {
+                asset_id: asset.id,
+                inventory_type: d.inventory_type,
+                warranty_expiry: d.warranty_expiry,
+                os_license: d.os_license,
+                mac_address: d.mac_address,
+                created_at: asset.created_at,
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_inventory_details_with_executor(&mut tx, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        // Handle Furniture Details
+        if let Some(d) = request.furniture_details {
+            let details = management_system_core::domain::entities::asset_details::FurnitureDetails {
+                asset_id: asset.id,
+                furniture_type: d.furniture_type,
+                material: d.material,
+                dimensions: d.dimensions,
+                color: d.color,
+                capacity: d.capacity,
+                created_at: asset.created_at,
+                updated_at: Utc::now(),
+            };
+            self.repository.upsert_furniture_details_with_executor(&mut tx, &details).await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
+        }
+
+        tx.commit().await.map_err(|e| DomainError::ExternalServiceError { service: "database".to_string(), message: e.to_string() })?;
 
         // Invalidate cache
         let _ = self.cache.delete(&CacheKey::asset(&id)).await;

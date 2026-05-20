@@ -36,6 +36,76 @@ pub struct VehicleDetailsDto {
     pub odometer_last: Option<i64>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct LandDetailsDto {
+    pub certificate_number: Option<String>,
+    pub land_area: Option<Decimal>,
+    pub address: Option<String>,
+    pub zoning: Option<String>,
+    pub rights_status: Option<String>,
+    #[schema(value_type = Option<String>, format = Date)]
+    pub rights_expiry: Option<NaiveDate>,
+    pub pbb_number: Option<String>,
+    pub njop_value: Option<Decimal>,
+    pub gps_coordinates: Option<String>,
+    pub boundaries: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct BuildingDetailsDto {
+    pub land_asset_id: Option<Uuid>,
+    pub building_area: Option<Decimal>,
+    pub floor_count: Option<i32>,
+    pub build_year: Option<i32>,
+    pub renovation_year: Option<i32>,
+    pub construction_type: Option<String>,
+    pub building_function: Option<String>,
+    pub capacity: Option<i32>,
+    pub imb_number: Option<String>,
+    pub slf_number: Option<String>,
+    #[schema(value_type = Option<String>, format = Date)]
+    pub slf_expiry: Option<NaiveDate>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct HeavyEquipmentDetailsDto {
+    pub equipment_type: Option<String>,
+    pub operating_weight: Option<Decimal>,
+    pub capacity: Option<String>,
+    pub engine_model: Option<String>,
+    pub hour_meter: Option<Decimal>,
+    pub certification_number: Option<String>,
+    #[schema(value_type = Option<String>, format = Date)]
+    pub certification_expiry: Option<NaiveDate>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct MachineDetailsDto {
+    pub machine_type: Option<String>,
+    pub technical_specs: Option<String>,
+    pub installation_year: Option<i32>,
+    pub operating_hours: Option<Decimal>,
+    pub energy_source: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct InventoryDetailsDto {
+    pub inventory_type: Option<String>,
+    #[schema(value_type = Option<String>, format = Date)]
+    pub warranty_expiry: Option<NaiveDate>,
+    pub os_license: Option<String>,
+    pub mac_address: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct FurnitureDetailsDto {
+    pub furniture_type: Option<String>,
+    pub material: Option<String>,
+    pub dimensions: Option<String>,
+    pub color: Option<String>,
+    pub capacity: Option<String>,
+}
+
 /// Create asset request
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
 pub struct CreateAssetRequest {
@@ -72,7 +142,19 @@ pub struct CreateAssetRequest {
     pub residual_value: Option<Decimal>,
     pub useful_life_months: Option<i32>,
     pub notes: Option<String>,
+    
+    // General Details (assets.txt additions)
+    pub description: Option<String>,
+    pub acquisition_method: Option<String>,
+    pub funding_source: Option<String>,
+
     pub vehicle_details: Option<VehicleDetailsDto>,
+    pub land_details: Option<LandDetailsDto>,
+    pub building_details: Option<BuildingDetailsDto>,
+    pub heavy_equipment_details: Option<HeavyEquipmentDetailsDto>,
+    pub machine_details: Option<MachineDetailsDto>,
+    pub inventory_details: Option<InventoryDetailsDto>,
+    pub furniture_details: Option<FurnitureDetailsDto>,
 }
 
 /// Bulk create asset request
@@ -115,7 +197,20 @@ pub struct UpdateAssetRequest {
     pub residual_value: Option<Decimal>,
     pub useful_life_months: Option<i32>,
     pub notes: Option<String>,
+
+    // General Details (assets.txt additions)
+    pub description: Option<String>,
+    pub acquisition_method: Option<String>,
+    pub funding_source: Option<String>,
+
     pub vehicle_details: Option<VehicleDetailsDto>,
+    pub land_details: Option<LandDetailsDto>,
+    pub building_details: Option<BuildingDetailsDto>,
+    pub heavy_equipment_details: Option<HeavyEquipmentDetailsDto>,
+    pub machine_details: Option<MachineDetailsDto>,
+    pub inventory_details: Option<InventoryDetailsDto>,
+    pub furniture_details: Option<FurnitureDetailsDto>,
+
     pub version: Option<i32>,
 }
 

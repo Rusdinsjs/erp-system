@@ -20,6 +20,75 @@ export interface VehicleDetails {
     invoice_number?: string;
 }
 
+export interface LandDetails {
+    asset_id?: string;
+    certificate_number?: string;
+    land_area?: number;
+    address?: string;
+    zoning?: string;
+    rights_status?: string;
+    rights_expiry?: string;
+    pbb_number?: string;
+    njop_value?: number;
+    gps_coordinates?: string;
+    boundaries?: string;
+}
+
+export interface BuildingDetails {
+    asset_id?: string;
+    land_asset_id?: string;
+    building_area?: number;
+    floor_count?: number;
+    build_year?: number;
+    renovation_year?: number;
+    construction_type?: string;
+    building_function?: string;
+    capacity?: number;
+    imb_number?: string;
+    slf_number?: string;
+    slf_expiry?: string;
+}
+
+export interface HeavyEquipmentDetails {
+    asset_id?: string;
+    equipment_type?: string;
+    operating_weight?: number;
+    capacity?: string;
+    engine_model?: string;
+    hour_meter?: number;
+    certification_number?: string;
+    certification_expiry?: string;
+}
+
+export interface MachineDetails {
+    asset_id?: string;
+    machine_type?: string;
+    technical_specs?: string;
+    installation_year?: number;
+    operating_hours?: number;
+    energy_source?: string;
+}
+
+export interface InventoryDetails {
+    asset_id?: string;
+    warranty_expiry?: string;
+    os?: string;
+    mac_address?: string;
+    processor?: string;
+    ram_gb?: number;
+    storage_gb?: number;
+}
+
+export interface FurnitureDetails {
+    asset_id?: string;
+    material?: string;
+    width_cm?: number;
+    height_cm?: number;
+    depth_cm?: number;
+    capacity?: number;
+    color?: string;
+}
+
 export interface Asset {
     id: string;
     asset_code: string;
@@ -39,8 +108,17 @@ export interface Asset {
     brand?: string;
     model?: string;
     year_manufacture?: number;
+    description?: string;
+    acquisition_method?: string;
+    funding_source?: string;
     specifications?: any;
     vehicle_details?: VehicleDetails;
+    land_details?: LandDetails;
+    building_details?: BuildingDetails;
+    heavy_equipment_details?: HeavyEquipmentDetails;
+    machine_details?: MachineDetails;
+    inventory_details?: InventoryDetails;
+    furniture_details?: FurnitureDetails;
     purchase_date?: string;
     purchase_price?: number;
     currency_id?: number;
@@ -164,6 +242,12 @@ export interface UpdateAssetRequest extends Partial<CreateAssetRequest> {
 export interface CreateAssetRequest extends Omit<Asset, 'id' | 'created_at' | 'updated_at' | 'status'> {
     status?: string;
     vehicle_details?: VehicleDetails;
+    land_details?: LandDetails;
+    building_details?: BuildingDetails;
+    heavy_equipment_details?: HeavyEquipmentDetails;
+    machine_details?: MachineDetails;
+    inventory_details?: InventoryDetails;
+    furniture_details?: FurnitureDetails;
 }
 
 export interface AssetSearchParams {

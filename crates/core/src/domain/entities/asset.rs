@@ -48,6 +48,11 @@ pub struct Asset {
     #[schema(value_type = Option<Object>)]
     pub specifications: Option<JsonValue>,
 
+    // General Details (assets.txt additions)
+    pub description: Option<String>,
+    pub acquisition_method: Option<String>,
+    pub funding_source: Option<String>,
+
     // Financial data
     #[schema(value_type = Option<String>, example = "2023-01-01")]
     pub purchase_date: Option<NaiveDate>,
@@ -105,6 +110,9 @@ impl Asset {
             model: None,
             year_manufacture: None,
             specifications: None,
+            description: None,
+            acquisition_method: None,
+            funding_source: None,
             purchase_date: None,
             purchase_price: None,
             currency_id: None,
@@ -201,6 +209,18 @@ pub struct AssetDetail {
     // JSONB or complex types might need value_type override if they don't impl ToSchema
     #[schema(value_type = Option<Object>)]
     pub vehicle_details: Option<super::asset_details::VehicleDetails>,
+    #[schema(value_type = Option<Object>)]
+    pub land_details: Option<super::asset_details::LandDetails>,
+    #[schema(value_type = Option<Object>)]
+    pub building_details: Option<super::asset_details::BuildingDetails>,
+    #[schema(value_type = Option<Object>)]
+    pub heavy_equipment_details: Option<super::asset_details::HeavyEquipmentDetails>,
+    #[schema(value_type = Option<Object>)]
+    pub machine_details: Option<super::asset_details::MachineDetails>,
+    #[schema(value_type = Option<Object>)]
+    pub inventory_details: Option<super::asset_details::InventoryDetails>,
+    #[schema(value_type = Option<Object>)]
+    pub furniture_details: Option<super::asset_details::FurnitureDetails>,
     #[schema(value_type = Option<f64>)]
     pub total_maintenance_cost: Option<Decimal>,
     #[schema(value_type = Option<f64>)]

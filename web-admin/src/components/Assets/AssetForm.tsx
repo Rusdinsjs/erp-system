@@ -1,7 +1,7 @@
 // AssetForm - Pure Tailwind Version
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera, Receipt } from 'lucide-react';
+import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera, Receipt, Cpu, Package, Armchair, Mountain, Cog } from 'lucide-react';
 import type { Asset, CreateAssetRequest } from '../../api/assets';
 import { departmentApi } from '../../api/departments';
 import { usersApi } from '../../api/users';
@@ -77,6 +77,10 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         is_rental: initialValues?.is_rental || false,
         is_fuel: initialValues?.is_fuel || false,
         is_loan: initialValues?.is_loan || false,
+        // General new fields
+        description: initialValues?.description || '',
+        acquisition_method: initialValues?.acquisition_method || '',
+        funding_source: initialValues?.funding_source || '',
         // Vehicle Details
         vehicle_license_plate: initialValues?.vehicle_details?.license_plate || '',
         vehicle_vin: initialValues?.vehicle_details?.vin || '',
@@ -93,7 +97,30 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         vehicle_transmission: initialValues?.vehicle_details?.transmission || '',
         vehicle_capacity: initialValues?.vehicle_details?.capacity || '',
         vehicle_odometer: initialValues?.vehicle_details?.odometer_last,
+        // Land Details
+        land_certificate_number: initialValues?.land_details?.certificate_number || '',
+        land_area: initialValues?.land_details?.land_area,
+        land_address: initialValues?.land_details?.address || '',
+        land_zoning: initialValues?.land_details?.zoning || '',
+        land_rights_status: initialValues?.land_details?.rights_status || '',
+        land_rights_expiry: initialValues?.land_details?.rights_expiry ? new Date(initialValues.land_details.rights_expiry) : null,
+        land_pbb_number: initialValues?.land_details?.pbb_number || '',
+        land_njop_value: initialValues?.land_details?.njop_value,
+        land_gps_coordinates: initialValues?.land_details?.gps_coordinates || '',
+        land_boundaries: initialValues?.land_details?.boundaries || '',
         // Building Details
+        building_land_asset_id: initialValues?.building_details?.land_asset_id || '',
+        building_area: initialValues?.building_details?.building_area,
+        building_floor_count: initialValues?.building_details?.floor_count,
+        building_build_year: initialValues?.building_details?.build_year,
+        building_renovation_year: initialValues?.building_details?.renovation_year,
+        building_construction_type: initialValues?.building_details?.construction_type || '',
+        building_function: initialValues?.building_details?.building_function || '',
+        building_capacity: initialValues?.building_details?.capacity,
+        building_imb_number: initialValues?.building_details?.imb_number || '',
+        building_slf_number: initialValues?.building_details?.slf_number || '',
+        building_slf_expiry: initialValues?.building_details?.slf_expiry ? new Date(initialValues.building_details.slf_expiry) : null,
+        // Legacy building fields from specifications
         building_address: initialValues?.specifications?.address || '',
         building_city: initialValues?.specifications?.city || '',
         building_land_area: initialValues?.specifications?.land_area,
@@ -101,7 +128,35 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         building_certificate_number: initialValues?.specifications?.certificate_number || '',
         building_pbb_number: initialValues?.specifications?.pbb_number || '',
         building_certificate_expiry: initialValues?.specifications?.certificate_expiry ? new Date(initialValues.specifications.certificate_expiry) : null,
+        // Heavy Equipment Details
+        heavy_equipment_type: initialValues?.heavy_equipment_details?.equipment_type || '',
+        heavy_operating_weight: initialValues?.heavy_equipment_details?.operating_weight,
+        heavy_capacity: initialValues?.heavy_equipment_details?.capacity || '',
+        heavy_engine_model: initialValues?.heavy_equipment_details?.engine_model || '',
+        heavy_hour_meter: initialValues?.heavy_equipment_details?.hour_meter,
+        heavy_certification_number: initialValues?.heavy_equipment_details?.certification_number || '',
+        heavy_certification_expiry: initialValues?.heavy_equipment_details?.certification_expiry ? new Date(initialValues.heavy_equipment_details.certification_expiry) : null,
+        // Machine Details
+        machine_type: initialValues?.machine_details?.machine_type || '',
+        machine_technical_specs: initialValues?.machine_details?.technical_specs || '',
+        machine_installation_year: initialValues?.machine_details?.installation_year,
+        machine_operating_hours: initialValues?.machine_details?.operating_hours,
+        machine_energy_source: initialValues?.machine_details?.energy_source || '',
         machine_receipt_number: initialValues?.specifications?.receipt_number || '',
+        // Inventory Details
+        inventory_warranty_expiry: initialValues?.inventory_details?.warranty_expiry ? new Date(initialValues.inventory_details.warranty_expiry) : null,
+        inventory_os: initialValues?.inventory_details?.os || '',
+        inventory_mac_address: initialValues?.inventory_details?.mac_address || '',
+        inventory_processor: initialValues?.inventory_details?.processor || '',
+        inventory_ram_gb: initialValues?.inventory_details?.ram_gb,
+        inventory_storage_gb: initialValues?.inventory_details?.storage_gb,
+        // Furniture Details
+        furniture_material: initialValues?.furniture_details?.material || '',
+        furniture_width_cm: initialValues?.furniture_details?.width_cm,
+        furniture_height_cm: initialValues?.furniture_details?.height_cm,
+        furniture_depth_cm: initialValues?.furniture_details?.depth_cm,
+        furniture_capacity: initialValues?.furniture_details?.capacity,
+        furniture_color: initialValues?.furniture_details?.color || '',
     });
 
     // Sync state when initialValues changes (e.g. opening edit modal)
@@ -127,6 +182,10 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 is_rental: initialValues.is_rental || false,
                 is_fuel: initialValues.is_fuel || false,
                 is_loan: initialValues.is_loan || false,
+                // General new fields
+                description: initialValues.description || '',
+                acquisition_method: initialValues.acquisition_method || '',
+                funding_source: initialValues.funding_source || '',
                 // Vehicle Details
                 vehicle_license_plate: initialValues.vehicle_details?.license_plate || '',
                 vehicle_vin: initialValues.vehicle_details?.vin || '',
@@ -144,7 +203,29 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 vehicle_transmission: initialValues.vehicle_details?.transmission || '',
                 vehicle_capacity: initialValues.vehicle_details?.capacity || '',
                 vehicle_odometer: initialValues.vehicle_details?.odometer_last,
+                // Land Details
+                land_certificate_number: initialValues.land_details?.certificate_number || '',
+                land_area: initialValues.land_details?.land_area,
+                land_address: initialValues.land_details?.address || '',
+                land_zoning: initialValues.land_details?.zoning || '',
+                land_rights_status: initialValues.land_details?.rights_status || '',
+                land_rights_expiry: initialValues.land_details?.rights_expiry ? new Date(initialValues.land_details.rights_expiry) : null,
+                land_pbb_number: initialValues.land_details?.pbb_number || '',
+                land_njop_value: initialValues.land_details?.njop_value,
+                land_gps_coordinates: initialValues.land_details?.gps_coordinates || '',
+                land_boundaries: initialValues.land_details?.boundaries || '',
                 // Building Details
+                building_land_asset_id: initialValues.building_details?.land_asset_id || '',
+                building_area: initialValues.building_details?.building_area,
+                building_floor_count: initialValues.building_details?.floor_count,
+                building_build_year: initialValues.building_details?.build_year,
+                building_renovation_year: initialValues.building_details?.renovation_year,
+                building_construction_type: initialValues.building_details?.construction_type || '',
+                building_function: initialValues.building_details?.building_function || '',
+                building_capacity: initialValues.building_details?.capacity,
+                building_imb_number: initialValues.building_details?.imb_number || '',
+                building_slf_number: initialValues.building_details?.slf_number || '',
+                building_slf_expiry: initialValues.building_details?.slf_expiry ? new Date(initialValues.building_details.slf_expiry) : null,
                 building_address: initialValues.specifications?.address || '',
                 building_city: initialValues.specifications?.city || '',
                 building_land_area: initialValues.specifications?.land_area,
@@ -152,6 +233,34 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 building_certificate_number: initialValues.specifications?.certificate_number || '',
                 building_pbb_number: initialValues.specifications?.pbb_number || '',
                 building_certificate_expiry: initialValues.specifications?.certificate_expiry ? new Date(initialValues.specifications.certificate_expiry) : null,
+                // Heavy Equipment Details
+                heavy_equipment_type: initialValues.heavy_equipment_details?.equipment_type || '',
+                heavy_operating_weight: initialValues.heavy_equipment_details?.operating_weight,
+                heavy_capacity: initialValues.heavy_equipment_details?.capacity || '',
+                heavy_engine_model: initialValues.heavy_equipment_details?.engine_model || '',
+                heavy_hour_meter: initialValues.heavy_equipment_details?.hour_meter,
+                heavy_certification_number: initialValues.heavy_equipment_details?.certification_number || '',
+                heavy_certification_expiry: initialValues.heavy_equipment_details?.certification_expiry ? new Date(initialValues.heavy_equipment_details.certification_expiry) : null,
+                // Machine Details
+                machine_type: initialValues.machine_details?.machine_type || '',
+                machine_technical_specs: initialValues.machine_details?.technical_specs || '',
+                machine_installation_year: initialValues.machine_details?.installation_year,
+                machine_operating_hours: initialValues.machine_details?.operating_hours,
+                machine_energy_source: initialValues.machine_details?.energy_source || '',
+                // Inventory Details
+                inventory_warranty_expiry: initialValues.inventory_details?.warranty_expiry ? new Date(initialValues.inventory_details.warranty_expiry) : null,
+                inventory_os: initialValues.inventory_details?.os || '',
+                inventory_mac_address: initialValues.inventory_details?.mac_address || '',
+                inventory_processor: initialValues.inventory_details?.processor || '',
+                inventory_ram_gb: initialValues.inventory_details?.ram_gb,
+                inventory_storage_gb: initialValues.inventory_details?.storage_gb,
+                // Furniture Details
+                furniture_material: initialValues.furniture_details?.material || '',
+                furniture_width_cm: initialValues.furniture_details?.width_cm,
+                furniture_height_cm: initialValues.furniture_details?.height_cm,
+                furniture_depth_cm: initialValues.furniture_details?.depth_cm,
+                furniture_capacity: initialValues.furniture_details?.capacity,
+                furniture_color: initialValues.furniture_details?.color || '',
             });
 
             // Sync custom specs
@@ -165,7 +274,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 setCustomSpecs([]);
             }
         } else {
-            // Reset to defaults if creating new (optional, but good practice if modal doesn't unmount)
+            // Reset to defaults if creating new
             setFormData({
                 asset_code: '',
                 name: '',
@@ -177,7 +286,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 serial_number: '',
                 brand: '',
                 model: '',
-                year_manufacture: undefined, // undefined for number inputs usually better than empty string
+                year_manufacture: undefined,
                 purchase_date: null,
                 purchase_price: undefined,
                 residual_value: undefined,
@@ -186,6 +295,9 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 is_rental: false,
                 is_fuel: false,
                 is_loan: false,
+                description: '',
+                acquisition_method: '',
+                funding_source: '',
                 vehicle_license_plate: '',
                 vehicle_vin: '',
                 vehicle_engine_number: '',
@@ -201,6 +313,27 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 vehicle_transmission: '',
                 vehicle_capacity: '',
                 vehicle_odometer: undefined,
+                land_certificate_number: '',
+                land_area: undefined,
+                land_address: '',
+                land_zoning: '',
+                land_rights_status: '',
+                land_rights_expiry: null,
+                land_pbb_number: '',
+                land_njop_value: undefined,
+                land_gps_coordinates: '',
+                land_boundaries: '',
+                building_land_asset_id: '',
+                building_area: undefined,
+                building_floor_count: undefined,
+                building_build_year: undefined,
+                building_renovation_year: undefined,
+                building_construction_type: '',
+                building_function: '',
+                building_capacity: undefined,
+                building_imb_number: '',
+                building_slf_number: '',
+                building_slf_expiry: null,
                 building_address: '',
                 building_city: '',
                 building_land_area: undefined,
@@ -208,7 +341,31 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 building_certificate_number: '',
                 building_pbb_number: '',
                 building_certificate_expiry: null,
+                heavy_equipment_type: '',
+                heavy_operating_weight: undefined,
+                heavy_capacity: '',
+                heavy_engine_model: '',
+                heavy_hour_meter: undefined,
+                heavy_certification_number: '',
+                heavy_certification_expiry: null,
+                machine_type: '',
+                machine_technical_specs: '',
+                machine_installation_year: undefined,
+                machine_operating_hours: undefined,
+                machine_energy_source: '',
                 machine_receipt_number: '',
+                inventory_warranty_expiry: null,
+                inventory_os: '',
+                inventory_mac_address: '',
+                inventory_processor: '',
+                inventory_ram_gb: undefined,
+                inventory_storage_gb: undefined,
+                furniture_material: '',
+                furniture_width_cm: undefined,
+                furniture_height_cm: undefined,
+                furniture_depth_cm: undefined,
+                furniture_capacity: undefined,
+                furniture_color: '',
             });
             setCustomSpecs([]);
             setPendingDocs([]);
@@ -317,8 +474,16 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         if (!selectedCategory) return false;
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
-        return code.includes('BANGUNAN') || code.includes('TANAH') || code.includes('INFRA') || 
-               name.includes('BANGUNAN') || name.includes('TANAH') || name.includes('PROPERTI') || name.includes('LAND');
+        return (code.includes('BANGUNAN') || code.includes('INFRA') ||
+               name.includes('BANGUNAN') || name.includes('PROPERTI')) &&
+               !code.includes('TANAH') && !name.includes('TANAH');
+    }, [selectedCategory]);
+
+    const isLand = useMemo(() => {
+        if (!selectedCategory) return false;
+        const code = (selectedCategory.code || '').toUpperCase();
+        const name = (selectedCategory.name || '').toUpperCase();
+        return code.includes('TANAH') || name.includes('TANAH') || name.includes('LAND');
     }, [selectedCategory]);
     
     const isHeavyEquipment = useMemo(() => {
@@ -335,25 +500,46 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
 
     const isMachine = useMemo(() => {
         if (!selectedCategory) return false;
-        const code = selectedCategory.code || '';
-        return code.includes('MESIN') || code.includes('MACHINE') || code.includes('EQUIPMENT') && !isHeavyEquipment && !isVehicle;
+        const code = (selectedCategory.code || '').toUpperCase();
+        const name = (selectedCategory.name || '').toUpperCase();
+        return (code.includes('MESIN') || code.includes('MACHINE') || name.includes('MESIN') || name.includes('POMPA')) 
+            && !isHeavyEquipment && !isVehicle;
     }, [selectedCategory, isHeavyEquipment, isVehicle]);
 
+    const isInventory = useMemo(() => {
+        if (!selectedCategory) return false;
+        const code = (selectedCategory.code || '').toUpperCase();
+        const name = (selectedCategory.name || '').toUpperCase();
+        return code.includes('INVENTARIS') || code.includes('KOMPUTER') || code.includes('IT') ||
+               name.includes('INVENTARIS') || name.includes('KOMPUTER') || name.includes('LAPTOP') || name.includes('PRINTER');
+    }, [selectedCategory]);
+
+    const isFurniture = useMemo(() => {
+        if (!selectedCategory) return false;
+        const code = (selectedCategory.code || '').toUpperCase();
+        const name = (selectedCategory.name || '').toUpperCase();
+        return code.includes('MEUBELAIR') || code.includes('FURNITURE') || code.includes('PERABOT') ||
+               name.includes('MEUBELAIR') || name.includes('MEJA') || name.includes('KURSI') || name.includes('LEMARI');
+    }, [selectedCategory]);
+
     const ownershipLabel = useMemo(() => {
-        if (isBuilding) return 'SHM/SHGB/SHGU';
+        if (isLand) return 'No. Sertifikat (SHM/SHGB)';
+        if (isBuilding) return 'No. IMB';
         if (isHeavyEquipment) return 'No. Invoice';
         if (isRegularVehicle) return 'No. BPKB';
         if (isMachine) return 'No. Kwitansi';
         return 'Bukti Kepemilikan';
-    }, [isBuilding, isHeavyEquipment, isRegularVehicle, isMachine]);
+    }, [isLand, isBuilding, isHeavyEquipment, isRegularVehicle, isMachine]);
 
     const ownershipField = useMemo(() => {
-        if (isBuilding) return 'building_certificate_number';
+        if (isLand) return 'land_certificate_number';
+        if (isBuilding) return 'building_imb_number';
         if (isHeavyEquipment) return 'vehicle_invoice_number';
         if (isRegularVehicle) return 'vehicle_bpkb_number';
         if (isMachine) return 'machine_receipt_number';
-        return 'serial_number'; // Fallback
-    }, [isBuilding, isHeavyEquipment, isRegularVehicle, isMachine]);
+        return 'serial_number';
+    }, [isLand, isBuilding, isHeavyEquipment, isRegularVehicle, isMachine]);
+
 
     // Template Pre-fill Logic (Dynamic from DB)
     useEffect(() => {
@@ -422,6 +608,10 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             is_rental: formData.is_rental,
             is_fuel: formData.is_fuel,
             is_loan: formData.is_loan,
+            // New general fields
+            description: formData.description || undefined,
+            acquisition_method: formData.acquisition_method || undefined,
+            funding_source: formData.funding_source || undefined,
         };
 
         // Vehicle details
@@ -445,40 +635,93 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             };
         }
 
-        // Building details
-        if (isBuilding) {
-            payload.specifications = {
-                address: formData.building_address,
-                city: formData.building_city,
-                land_area: formData.building_land_area,
-                building_area: formData.building_building_area,
-                certificate_number: formData.building_certificate_number,
-                pbb_number: formData.building_pbb_number,
-                certificate_expiry: formData.building_certificate_expiry?.toISOString().split('T')[0],
+        // Land details
+        if (isLand) {
+            payload.land_details = {
+                certificate_number: formData.land_certificate_number || undefined,
+                land_area: formData.land_area,
+                address: formData.land_address || undefined,
+                zoning: formData.land_zoning || undefined,
+                rights_status: formData.land_rights_status || undefined,
+                rights_expiry: formData.land_rights_expiry?.toISOString().split('T')[0],
+                pbb_number: formData.land_pbb_number || undefined,
+                njop_value: formData.land_njop_value,
+                gps_coordinates: formData.land_gps_coordinates || undefined,
+                boundaries: formData.land_boundaries || undefined,
             };
         }
 
-        // Machine / Other specs
-        if (isMachine) {
-            const specObj: Record<string, any> = {
-                receipt_number: formData.machine_receipt_number
+        // Heavy Equipment details (also uses vehicle_details for some fields)
+        if (isHeavyEquipment) {
+            payload.heavy_equipment_details = {
+                equipment_type: formData.heavy_equipment_type || undefined,
+                operating_weight: formData.heavy_operating_weight,
+                capacity: formData.heavy_capacity || undefined,
+                engine_model: formData.heavy_engine_model || undefined,
+                hour_meter: formData.heavy_hour_meter,
+                certification_number: formData.heavy_certification_number || undefined,
+                certification_expiry: formData.heavy_certification_expiry?.toISOString().split('T')[0],
             };
-            customSpecs.forEach(spec => {
-                if (spec.key.trim()) {
-                    specObj[spec.key.trim()] = spec.value.trim();
-                }
-            });
-            payload.specifications = specObj;
-        } else if (!isVehicle && !isBuilding && customSpecs.length > 0) {
+        }
+
+        // Building details (relational)
+        if (isBuilding) {
+            payload.building_details = {
+                building_area: formData.building_area,
+                floor_count: formData.building_floor_count,
+                build_year: formData.building_build_year,
+                renovation_year: formData.building_renovation_year,
+                construction_type: formData.building_construction_type || undefined,
+                building_function: formData.building_function || undefined,
+                capacity: formData.building_capacity,
+                imb_number: formData.building_imb_number || undefined,
+                slf_number: formData.building_slf_number || undefined,
+                slf_expiry: formData.building_slf_expiry?.toISOString().split('T')[0],
+            };
+        }
+
+        // Machine details
+        if (isMachine) {
+            payload.machine_details = {
+                machine_type: formData.machine_type || undefined,
+                technical_specs: formData.machine_technical_specs || undefined,
+                installation_year: formData.machine_installation_year,
+                operating_hours: formData.machine_operating_hours,
+                energy_source: formData.machine_energy_source || undefined,
+            };
+        }
+
+        // Inventory details
+        if (isInventory) {
+            payload.inventory_details = {
+                warranty_expiry: formData.inventory_warranty_expiry?.toISOString().split('T')[0],
+                os: formData.inventory_os || undefined,
+                mac_address: formData.inventory_mac_address || undefined,
+                processor: formData.inventory_processor || undefined,
+                ram_gb: formData.inventory_ram_gb,
+                storage_gb: formData.inventory_storage_gb,
+            };
+        }
+
+        // Furniture details
+        if (isFurniture) {
+            payload.furniture_details = {
+                material: formData.furniture_material || undefined,
+                width_cm: formData.furniture_width_cm,
+                height_cm: formData.furniture_height_cm,
+                depth_cm: formData.furniture_depth_cm,
+                capacity: formData.furniture_capacity,
+                color: formData.furniture_color || undefined,
+            };
+        }
+
+        // Custom specs fallback for uncategorized assets
+        if (!isVehicle && !isLand && !isBuilding && !isHeavyEquipment && !isMachine && !isInventory && !isFurniture && customSpecs.length > 0) {
             const specObj: Record<string, string> = {};
             customSpecs.forEach(spec => {
-                if (spec.key.trim()) {
-                    specObj[spec.key.trim()] = spec.value.trim();
-                }
+                if (spec.key.trim()) specObj[spec.key.trim()] = spec.value.trim();
             });
-            if (Object.keys(specObj).length > 0) {
-                payload.specifications = specObj;
-            }
+            if (Object.keys(specObj).length > 0) payload.specifications = specObj;
         }
 
         // Include pending documents if any
@@ -501,7 +744,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         >
                             General
                         </TabsTrigger>
-                        {(isVehicle || isBuilding) && (
+                        {(isVehicle || isBuilding || isLand) && (
                             <TabsTrigger
                                 value="renewals"
                                 icon={<Receipt size={18} />}
@@ -512,10 +755,19 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         )}
                         <TabsTrigger
                             value="details"
-                            icon={isVehicle ? <Car size={18} /> : isBuilding ? <Building2 size={18} /> : <FileText size={18} />}
+                            icon={
+                                isVehicle ? <Car size={18} /> :
+                                isLand ? <Mountain size={18} /> :
+                                isBuilding ? <Building2 size={18} /> :
+                                isHeavyEquipment ? <Cog size={18} /> :
+                                isMachine ? <Cog size={18} /> :
+                                isInventory ? <Cpu size={18} /> :
+                                isFurniture ? <Armchair size={18} /> :
+                                <FileText size={18} />
+                            }
                             className="px-6 py-2.5 rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300"
                         >
-                            {isVehicle ? 'Vehicle' : isBuilding ? 'Property' : 'Specifications'}
+                            {isVehicle ? 'Kendaraan' : isLand ? 'Data Tanah' : isBuilding ? 'Data Bangunan' : isHeavyEquipment ? 'Alat Berat' : isMachine ? 'Mesin' : isInventory ? 'Inventaris IT' : isFurniture ? 'Meubelair' : 'Spesifikasi'}
                         </TabsTrigger>
                         <TabsTrigger
                             value="financial"
@@ -637,6 +889,15 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         options={userOptions}
                                         placeholder="Select person in charge..."
                                     />
+                                    <Select
+                                        label="Department"
+                                        value={formData.department_id}
+                                        onChange={(val) => updateField('department_id', val)}
+                                        options={departmentOptions}
+                                        placeholder="Select department..."
+                                        onCreate={() => window.open('/departments', '_blank')}
+                                        disabled={!!user?.department && user.role !== 'super_admin'}
+                                    />
                                 </div>
                             </div>
 
@@ -672,15 +933,54 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                             className="bg-black/20 border-white/5"
                                         />
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Acquisition Info Card */}
+                            <div className="bg-card backdrop-blur-md border border-border rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
+                                <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                                    <div className="w-1.5 h-6 bg-violet-500 rounded-full" />
+                                    Informasi Perolehan
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <Select
-                                        label="Department"
-                                        value={formData.department_id}
-                                        onChange={(val) => updateField('department_id', val)}
-                                        options={departmentOptions}
-                                        placeholder="Select department..."
-                                        onCreate={() => window.open('/departments', '_blank')}
-                                        disabled={!!user?.department && user.role !== 'super_admin'}
+                                        label="Metode Perolehan"
+                                        value={formData.acquisition_method}
+                                        onChange={(val) => updateField('acquisition_method', val)}
+                                        options={[
+                                            { value: 'Pembelian', label: 'Pembelian' },
+                                            { value: 'Hibah', label: 'Hibah / Donasi' },
+                                            { value: 'Sewa', label: 'Sewa' },
+                                            { value: 'Pembangunan Sendiri', label: 'Pembangunan Sendiri' },
+                                            { value: 'Tukar Tambah', label: 'Tukar Tambah' },
+                                            { value: 'Lainnya', label: 'Lainnya' },
+                                        ]}
+                                        placeholder="Pilih metode perolehan..."
                                     />
+                                    <Select
+                                        label="Sumber Dana"
+                                        value={formData.funding_source}
+                                        onChange={(val) => updateField('funding_source', val)}
+                                        options={[
+                                            { value: 'APBN', label: 'APBN' },
+                                            { value: 'APBD', label: 'APBD' },
+                                            { value: 'Hibah', label: 'Hibah / Grant' },
+                                            { value: 'Pinjaman', label: 'Pinjaman / Loan' },
+                                            { value: 'Dana Sendiri', label: 'Dana Sendiri / Internal' },
+                                            { value: 'Lainnya', label: 'Lainnya' },
+                                        ]}
+                                        placeholder="Pilih sumber dana..."
+                                    />
+                                    <div className="md:col-span-2">
+                                        <Textarea
+                                            label="Deskripsi"
+                                            placeholder="Deskripsi singkat aset ini..."
+                                            value={formData.description}
+                                            onChange={(e) => updateField('description', e.target.value)}
+                                            rows={3}
+                                            className="bg-muted/30 border-border"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -828,7 +1128,162 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                     <div className="bg-card backdrop-blur-md border border-border rounded-[3rem] p-10 shadow-xl relative overflow-hidden min-h-[400px]">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
 
-                        {isVehicle ? (
+                        {isLand ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-amber-700/20 rounded-3xl flex items-center justify-center text-amber-700 shadow-[0_0_30px_rgba(120,53,15,0.2)]">
+                                        <Mountain size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-foreground">Data Tanah</h3>
+                                        <p className="text-muted-foreground">Informasi detail aset tanah dan lahan</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <Input label="No. Sertifikat (SHM/SHGB)" value={formData.land_certificate_number} onChange={(e) => updateField('land_certificate_number', e.target.value)} />
+                                    <NumberInput label="Luas Tanah (m²)" value={formData.land_area} onChange={(val) => updateField('land_area', val)} />
+                                    <Input label="No. PBB (NOP)" value={formData.land_pbb_number} onChange={(e) => updateField('land_pbb_number', e.target.value)} />
+                                    <NumberInput label="NJOP (Rp)" prefix="Rp " value={formData.land_njop_value} onChange={(val) => updateField('land_njop_value', val)} thousandSeparator />
+                                    <Select label="Status Hak" value={formData.land_rights_status} onChange={(val) => updateField('land_rights_status', val)}
+                                        options={[
+                                            { value: 'SHM', label: 'SHM (Sertifikat Hak Milik)' },
+                                            { value: 'SHGB', label: 'SHGB (Sertifikat Hak Guna Bangunan)' },
+                                            { value: 'SHGU', label: 'SHGU (Sertifikat Hak Guna Usaha)' },
+                                            { value: 'HGB', label: 'HGB (Hak Guna Bangunan)' },
+                                            { value: 'Lainnya', label: 'Lainnya' },
+                                        ]} placeholder="Pilih status hak..." />
+                                    <DateInput label="Kadaluarsa Hak" value={formData.land_rights_expiry} onChange={(date) => updateField('land_rights_expiry', date)} />
+                                    <Select label="Zonasi" value={formData.land_zoning} onChange={(val) => updateField('land_zoning', val)}
+                                        options={[
+                                            { value: 'Perumahan', label: 'Perumahan' },
+                                            { value: 'Komersial', label: 'Komersial' },
+                                            { value: 'Industri', label: 'Industri' },
+                                            { value: 'Pertanian', label: 'Pertanian' },
+                                            { value: 'Perkantoran', label: 'Perkantoran' },
+                                        ]} placeholder="Pilih zonasi..." />
+                                    <Input label="Koordinat GPS" value={formData.land_gps_coordinates} onChange={(e) => updateField('land_gps_coordinates', e.target.value)} placeholder="-6.123456, 106.654321" />
+                                    <div className="md:col-span-2"><Input label="Alamat Tanah" value={formData.land_address} onChange={(e) => updateField('land_address', e.target.value)} /></div>
+                                    <div className="md:col-span-3"><Textarea label="Batas-batas Tanah" value={formData.land_boundaries} onChange={(e) => updateField('land_boundaries', e.target.value)} rows={2} placeholder="Utara: ..., Selatan: ..., Timur: ..., Barat: ..." /></div>
+                                </div>
+                            </div>
+                        ) : isBuilding ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-blue-500/20 rounded-3xl flex items-center justify-center text-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                                        <Building2 size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-foreground">Data Bangunan</h3>
+                                        <p className="text-muted-foreground">Informasi teknis dan legal bangunan</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <NumberInput label="Luas Bangunan (m²)" value={formData.building_area} onChange={(val) => updateField('building_area', val)} />
+                                    <NumberInput label="Jumlah Lantai" value={formData.building_floor_count} onChange={(val) => updateField('building_floor_count', val)} />
+                                    <NumberInput label="Tahun Pembangunan" value={formData.building_build_year} onChange={(val) => updateField('building_build_year', val)} />
+                                    <NumberInput label="Tahun Renovasi Terakhir" value={formData.building_renovation_year} onChange={(val) => updateField('building_renovation_year', val)} />
+                                    <Select label="Tipe Konstruksi" value={formData.building_construction_type} onChange={(val) => updateField('building_construction_type', val)}
+                                        options={[
+                                            { value: 'Permanen', label: 'Permanen' },
+                                            { value: 'Semi Permanen', label: 'Semi Permanen' },
+                                            { value: 'Sementara', label: 'Sementara' },
+                                        ]} placeholder="Tipe konstruksi..." />
+                                    <Input label="Fungsi Bangunan" value={formData.building_function} onChange={(e) => updateField('building_function', e.target.value)} placeholder="Kantor, Gudang, Pabrik..." />
+                                    <NumberInput label="Kapasitas (orang/unit)" value={formData.building_capacity} onChange={(val) => updateField('building_capacity', val)} />
+                                    <Input label="No. IMB / PBG" value={formData.building_imb_number} onChange={(e) => updateField('building_imb_number', e.target.value)} />
+                                    <Input label="No. SLF" value={formData.building_slf_number} onChange={(e) => updateField('building_slf_number', e.target.value)} />
+                                    <DateInput label="Kadaluarsa SLF" value={formData.building_slf_expiry} onChange={(date) => updateField('building_slf_expiry', date)} />
+                                </div>
+                            </div>
+                        ) : isHeavyEquipment ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-orange-500/20 rounded-3xl flex items-center justify-center text-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.2)]">
+                                        <Cog size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-foreground">Data Alat Berat</h3>
+                                        <p className="text-muted-foreground">Spesifikasi teknis dan sertifikasi alat berat</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <Input label="Jenis Alat Berat" value={formData.heavy_equipment_type} onChange={(e) => updateField('heavy_equipment_type', e.target.value)} placeholder="Excavator, Bulldozer, Crane..." />
+                                    <NumberInput label="Berat Operasi (ton)" value={formData.heavy_operating_weight} onChange={(val) => updateField('heavy_operating_weight', val)} />
+                                    <Input label="Kapasitas" value={formData.heavy_capacity} onChange={(e) => updateField('heavy_capacity', e.target.value)} placeholder="m³, ton, dll" />
+                                    <Input label="Model Mesin" value={formData.heavy_engine_model} onChange={(e) => updateField('heavy_engine_model', e.target.value)} />
+                                    <NumberInput label="Hour Meter (jam)" value={formData.heavy_hour_meter} onChange={(val) => updateField('heavy_hour_meter', val)} />
+                                    <Input label="No. Sertifikasi" value={formData.heavy_certification_number} onChange={(e) => updateField('heavy_certification_number', e.target.value)} />
+                                    <DateInput label="Kadaluarsa Sertifikasi" value={formData.heavy_certification_expiry} onChange={(date) => updateField('heavy_certification_expiry', date)} />
+                                    <Input label="No. Invoice" value={formData.vehicle_invoice_number} onChange={(e) => updateField('vehicle_invoice_number', e.target.value)} />
+                                </div>
+                            </div>
+                        ) : isMachine ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-purple-500/20 rounded-3xl flex items-center justify-center text-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                                        <Cog size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-foreground">Data Mesin</h3>
+                                        <p className="text-muted-foreground">Spesifikasi teknis mesin dan peralatan</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <Input label="Jenis Mesin" value={formData.machine_type} onChange={(e) => updateField('machine_type', e.target.value)} placeholder="Pompa, Genset, Kompresor..." />
+                                    <NumberInput label="Tahun Instalasi" value={formData.machine_installation_year} onChange={(val) => updateField('machine_installation_year', val)} />
+                                    <NumberInput label="Jam Operasi" value={formData.machine_operating_hours} onChange={(val) => updateField('machine_operating_hours', val)} />
+                                    <Select label="Sumber Energi" value={formData.machine_energy_source} onChange={(val) => updateField('machine_energy_source', val)}
+                                        options={[
+                                            { value: 'Listrik', label: 'Listrik' },
+                                            { value: 'Solar', label: 'Solar / Diesel' },
+                                            { value: 'Gas', label: 'Gas' },
+                                            { value: 'Angin', label: 'Angin' },
+                                            { value: 'Lainnya', label: 'Lainnya' },
+                                        ]} placeholder="Pilih sumber energi..." />
+                                    <div className="md:col-span-2"><Textarea label="Spesifikasi Teknis" value={formData.machine_technical_specs} onChange={(e) => updateField('machine_technical_specs', e.target.value)} rows={3} placeholder="Daya, kapasitas, tekanan, dll..." /></div>
+                                </div>
+                            </div>
+                        ) : isInventory ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-cyan-500/20 rounded-3xl flex items-center justify-center text-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.2)]">
+                                        <Cpu size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-foreground">Data Inventaris IT</h3>
+                                        <p className="text-muted-foreground">Spesifikasi perangkat komputer dan elektronik</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <Input label="Processor" value={formData.inventory_processor} onChange={(e) => updateField('inventory_processor', e.target.value)} placeholder="Intel Core i7, AMD Ryzen..." />
+                                    <NumberInput label="RAM (GB)" value={formData.inventory_ram_gb} onChange={(val) => updateField('inventory_ram_gb', val)} />
+                                    <NumberInput label="Storage (GB)" value={formData.inventory_storage_gb} onChange={(val) => updateField('inventory_storage_gb', val)} />
+                                    <Input label="Sistem Operasi (OS)" value={formData.inventory_os} onChange={(e) => updateField('inventory_os', e.target.value)} placeholder="Windows 11, Ubuntu 22.04..." />
+                                    <Input label="MAC Address" value={formData.inventory_mac_address} onChange={(e) => updateField('inventory_mac_address', e.target.value)} placeholder="XX:XX:XX:XX:XX:XX" />
+                                    <DateInput label="Kadaluarsa Garansi" value={formData.inventory_warranty_expiry} onChange={(date) => updateField('inventory_warranty_expiry', date)} />
+                                </div>
+                            </div>
+                        ) : isFurniture ? (
+                            <div className="space-y-8 relative">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-rose-500/20 rounded-3xl flex items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(244,63,94,0.2)]">
+                                        <Armchair size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-foreground">Data Meubelair</h3>
+                                        <p className="text-muted-foreground">Spesifikasi mebel dan perabot kantor</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    <Input label="Material" value={formData.furniture_material} onChange={(e) => updateField('furniture_material', e.target.value)} placeholder="Kayu, Besi, Plastik, Kain..." />
+                                    <Input label="Warna" value={formData.furniture_color} onChange={(e) => updateField('furniture_color', e.target.value)} placeholder="Hitam, Cokelat, Abu-abu..." />
+                                    <NumberInput label="Kapasitas (orang/unit)" value={formData.furniture_capacity} onChange={(val) => updateField('furniture_capacity', val)} />
+                                    <NumberInput label="Lebar (cm)" value={formData.furniture_width_cm} onChange={(val) => updateField('furniture_width_cm', val)} />
+                                    <NumberInput label="Tinggi (cm)" value={formData.furniture_height_cm} onChange={(val) => updateField('furniture_height_cm', val)} />
+                                    <NumberInput label="Kedalaman (cm)" value={formData.furniture_depth_cm} onChange={(val) => updateField('furniture_depth_cm', val)} />
+                                </div>
+                            </div>
+                        ) : isVehicle ? (
                             <div className="space-y-8 relative">
                                 <div className="flex items-center gap-4">
                                     <div className="w-16 h-16 bg-emerald-500/20 rounded-3xl flex items-center justify-center text-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
@@ -896,58 +1351,6 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         label="Capacity (CC/Ton)"
                                         value={formData.vehicle_capacity}
                                         onChange={(e) => updateField('vehicle_capacity', e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        ) : isBuilding ? (
-                            <div className="space-y-8 relative">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 bg-blue-500/20 rounded-3xl flex items-center justify-center text-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-                                        <Building2 size={32} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-foreground">Property Details</h3>
-                                        <p className="text-muted-foreground">Land, buildings, and infrastructure information</p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    <div className="md:col-span-2">
-                                        <Input
-                                            label="Address"
-                                            value={formData.building_address}
-                                            onChange={(e) => updateField('building_address', e.target.value)}
-                                        />
-                                    </div>
-                                    <Input
-                                        label="City / Region"
-                                        value={formData.building_city}
-                                        onChange={(e) => updateField('building_city', e.target.value)}
-                                    />
-                                    <Input
-                                        label="Certificate Number (SHM/HGB)"
-                                        value={formData.building_certificate_number}
-                                        onChange={(e) => updateField('building_certificate_number', e.target.value)}
-                                    />
-                                    <NumberInput
-                                        label="Land Area (m²)"
-                                        value={formData.building_land_area}
-                                        onChange={(val) => updateField('building_land_area', val)}
-                                    />
-                                    <NumberInput
-                                        label="Building Area (m²)"
-                                        value={formData.building_building_area}
-                                        onChange={(val) => updateField('building_building_area', val)}
-                                    />
-                                    <Input
-                                        label="PBB Number (NOP)"
-                                        value={formData.building_pbb_number}
-                                        onChange={(e) => updateField('building_pbb_number', e.target.value)}
-                                    />
-                                    <DateInput
-                                        label="Certificate Expiry"
-                                        value={formData.building_certificate_expiry}
-                                        onChange={(date) => updateField('building_certificate_expiry', date)}
                                     />
                                 </div>
                             </div>

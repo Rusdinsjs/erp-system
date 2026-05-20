@@ -33,7 +33,7 @@ impl AssetRepository {
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
-                specifications,
+                specifications, description, acquisition_method, funding_source,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
@@ -52,21 +52,7 @@ impl AssetRepository {
     pub async fn find_detail_by_id(
         &self,
         id: Uuid,
-    ) -> Result<
-        Option<(
-            Asset,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<VehicleDetails>,
-            Option<rust_decimal::Decimal>,
-            Option<rust_decimal::Decimal>,
-        )>,
-        sqlx::Error,
-    > {
+    ) -> Result<Option<crate::domain::entities::asset::AssetDetail>, sqlx::Error> {
         use sqlx::Row;
 
         // 1. Fetch Asset Details (SAFE Joins Only)
@@ -149,11 +135,13 @@ impl AssetRepository {
                 model: r.get("model"),
                 year_manufacture: r.get("year_manufacture"),
 
-                // Sale info
-                sale_date: r.get("sale_date"),
                 sale_price: r.get("sale_price"),
+                sale_date: r.get("sale_date"),
                 sold_to: r.get("sold_to"),
                 specifications: r.get("specifications"),
+                description: r.get("description"),
+                acquisition_method: r.get("acquisition_method"),
+                funding_source: r.get("funding_source"),
                 purchase_date: r.get("purchase_date"),
                 purchase_price: r.get("purchase_price"),
                 currency_id: r.get("currency_id"),
@@ -185,18 +173,56 @@ impl AssetRepository {
             let assigned_to_name: Option<String> = r.get("assigned_to_name");
             let vendor_name: Option<String> = r.get("vendor_name");
 
-            Ok(Some((
+            // Fetch additional details
+            let land_details = sqlx::query_as::<_, crate::domain::entities::asset_details::LandDetails>("SELECT * FROM land_details WHERE asset_id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
+
+            let building_details = sqlx::query_as::<_, crate::domain::entities::asset_details::BuildingDetails>("SELECT * FROM building_details WHERE asset_id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
+
+            let heavy_equipment_details = sqlx::query_as::<_, crate::domain::entities::asset_details::HeavyEquipmentDetails>("SELECT * FROM heavy_equipment_details WHERE asset_id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
+
+            let machine_details = sqlx::query_as::<_, crate::domain::entities::asset_details::MachineDetails>("SELECT * FROM machine_details WHERE asset_id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
+
+            let inventory_details = sqlx::query_as::<_, crate::domain::entities::asset_details::InventoryDetails>("SELECT * FROM inventory_details WHERE asset_id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
+
+            let furniture_details = sqlx::query_as::<_, crate::domain::entities::asset_details::FurnitureDetails>("SELECT * FROM furniture_details WHERE asset_id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
+
+            Ok(Some(crate::domain::entities::asset::AssetDetail {
                 asset,
                 category_name,
                 location_name,
                 department_name,
-                None, // department_manager_name - removed for now
+                department_manager_name: None, // department_manager_name - removed for now
                 assigned_to_name,
                 vendor_name,
-                vehicle,
-                Some(total_maintenance_cost),
-                Some(total_rental_income),
-            )))
+                condition_name: None,
+                vehicle_details: vehicle,
+                land_details,
+                building_details,
+                heavy_equipment_details,
+                machine_details,
+                inventory_details,
+                furniture_details,
+                total_maintenance_cost: Some(total_maintenance_cost),
+                total_rental_income: Some(total_rental_income),
+            }))
         } else {
             Ok(None)
         }
@@ -210,7 +236,7 @@ impl AssetRepository {
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
-                specifications,
+                specifications, description, acquisition_method, funding_source,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
@@ -263,7 +289,7 @@ impl AssetRepository {
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
-                specifications,
+                specifications, description, acquisition_method, funding_source,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
@@ -390,12 +416,13 @@ impl AssetRepository {
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
+                description, acquisition_method, funding_source,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
                 sale_price, sale_date, sold_to
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
             RETURNING *
             "#,
         )
@@ -419,6 +446,9 @@ impl AssetRepository {
         .bind(&asset.model)
         .bind(asset.year_manufacture)
         .bind(&asset.specifications)
+        .bind(&asset.description)
+        .bind(&asset.acquisition_method)
+        .bind(&asset.funding_source)
         .bind(asset.purchase_date)
         .bind(asset.purchase_price)
         .bind(asset.currency_id)
@@ -445,13 +475,14 @@ impl AssetRepository {
                 is_rental = $10, is_fuel = $11, is_loan = $12, asset_class = $13, status = $14, condition_id = $15,
                 serial_number = $16, brand = $17, model = $18, year_manufacture = $19,
                 specifications = $20,
-                purchase_date = $21, purchase_price = $22, currency_id = $23, unit_id = $24, quantity = $25,
-                residual_value = $26, useful_life_months = $27,
-                qr_code_url = $28, notes = $29,
-                sale_price = $30, sale_date = $31, sold_to = $32,
+                description = $21, acquisition_method = $22, funding_source = $23,
+                purchase_date = $24, purchase_price = $25, currency_id = $26, unit_id = $27, quantity = $28,
+                residual_value = $29, useful_life_months = $30,
+                qr_code_url = $31, notes = $32,
+                sale_price = $33, sale_date = $34, sold_to = $35,
                 updated_at = NOW(),
                 version = version + 1
-            WHERE id = $1 AND version = $33
+            WHERE id = $1 AND version = $36
             RETURNING *
             "#,
         )
@@ -475,6 +506,9 @@ impl AssetRepository {
         .bind(&asset.model)
         .bind(asset.year_manufacture)
         .bind(&asset.specifications)
+        .bind(&asset.description)
+        .bind(&asset.acquisition_method)
+        .bind(&asset.funding_source)
         .bind(asset.purchase_date)
         .bind(asset.purchase_price)
         .bind(asset.currency_id)
@@ -618,6 +652,209 @@ impl AssetRepository {
             .await?;
 
         Ok(details.clone())
+    }
+
+    pub async fn upsert_land_details_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        details: &crate::domain::entities::asset_details::LandDetails,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO land_details (
+                asset_id, certificate_number, land_area, address, zoning, 
+                rights_status, rights_expiry, pbb_number, njop_value, gps_coordinates, boundaries
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (asset_id) DO UPDATE SET
+                certificate_number = EXCLUDED.certificate_number,
+                land_area = EXCLUDED.land_area,
+                address = EXCLUDED.address,
+                zoning = EXCLUDED.zoning,
+                rights_status = EXCLUDED.rights_status,
+                rights_expiry = EXCLUDED.rights_expiry,
+                pbb_number = EXCLUDED.pbb_number,
+                njop_value = EXCLUDED.njop_value,
+                gps_coordinates = EXCLUDED.gps_coordinates,
+                boundaries = EXCLUDED.boundaries
+            "#
+        )
+        .bind(details.asset_id)
+        .bind(&details.certificate_number)
+        .bind(details.land_area)
+        .bind(&details.address)
+        .bind(&details.zoning)
+        .bind(&details.rights_status)
+        .bind(details.rights_expiry)
+        .bind(&details.pbb_number)
+        .bind(details.njop_value)
+        .bind(&details.gps_coordinates)
+        .bind(&details.boundaries)
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_building_details_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        details: &crate::domain::entities::asset_details::BuildingDetails,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO building_details (
+                asset_id, land_asset_id, building_area, floor_count, build_year,
+                renovation_year, construction_type, building_function, capacity,
+                imb_number, slf_number, slf_expiry
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (asset_id) DO UPDATE SET
+                land_asset_id = EXCLUDED.land_asset_id,
+                building_area = EXCLUDED.building_area,
+                floor_count = EXCLUDED.floor_count,
+                build_year = EXCLUDED.build_year,
+                renovation_year = EXCLUDED.renovation_year,
+                construction_type = EXCLUDED.construction_type,
+                building_function = EXCLUDED.building_function,
+                capacity = EXCLUDED.capacity,
+                imb_number = EXCLUDED.imb_number,
+                slf_number = EXCLUDED.slf_number,
+                slf_expiry = EXCLUDED.slf_expiry
+            "#
+        )
+        .bind(details.asset_id)
+        .bind(details.land_asset_id)
+        .bind(details.building_area)
+        .bind(details.floor_count)
+        .bind(details.build_year)
+        .bind(details.renovation_year)
+        .bind(&details.construction_type)
+        .bind(&details.building_function)
+        .bind(details.capacity)
+        .bind(&details.imb_number)
+        .bind(&details.slf_number)
+        .bind(details.slf_expiry)
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_heavy_equipment_details_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        details: &crate::domain::entities::asset_details::HeavyEquipmentDetails,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO heavy_equipment_details (
+                asset_id, equipment_type, operating_weight, capacity,
+                engine_model, hour_meter, certification_number, certification_expiry
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (asset_id) DO UPDATE SET
+                equipment_type = EXCLUDED.equipment_type,
+                operating_weight = EXCLUDED.operating_weight,
+                capacity = EXCLUDED.capacity,
+                engine_model = EXCLUDED.engine_model,
+                hour_meter = EXCLUDED.hour_meter,
+                certification_number = EXCLUDED.certification_number,
+                certification_expiry = EXCLUDED.certification_expiry
+            "#
+        )
+        .bind(details.asset_id)
+        .bind(&details.equipment_type)
+        .bind(details.operating_weight)
+        .bind(&details.capacity)
+        .bind(&details.engine_model)
+        .bind(details.hour_meter)
+        .bind(&details.certification_number)
+        .bind(details.certification_expiry)
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_machine_details_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        details: &crate::domain::entities::asset_details::MachineDetails,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO machine_details (
+                asset_id, machine_type, technical_specs, installation_year,
+                operating_hours, energy_source
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (asset_id) DO UPDATE SET
+                machine_type = EXCLUDED.machine_type,
+                technical_specs = EXCLUDED.technical_specs,
+                installation_year = EXCLUDED.installation_year,
+                operating_hours = EXCLUDED.operating_hours,
+                energy_source = EXCLUDED.energy_source
+            "#
+        )
+        .bind(details.asset_id)
+        .bind(&details.machine_type)
+        .bind(&details.technical_specs)
+        .bind(details.installation_year)
+        .bind(details.operating_hours)
+        .bind(&details.energy_source)
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_inventory_details_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        details: &crate::domain::entities::asset_details::InventoryDetails,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO inventory_details (
+                asset_id, inventory_type, warranty_expiry, os_license, mac_address
+            ) VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (asset_id) DO UPDATE SET
+                inventory_type = EXCLUDED.inventory_type,
+                warranty_expiry = EXCLUDED.warranty_expiry,
+                os_license = EXCLUDED.os_license,
+                mac_address = EXCLUDED.mac_address
+            "#
+        )
+        .bind(details.asset_id)
+        .bind(&details.inventory_type)
+        .bind(details.warranty_expiry)
+        .bind(&details.os_license)
+        .bind(&details.mac_address)
+        .execute(executor)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_furniture_details_with_executor(
+        &self,
+        executor: &mut sqlx::PgConnection,
+        details: &crate::domain::entities::asset_details::FurnitureDetails,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO furniture_details (
+                asset_id, furniture_type, material, dimensions, color, capacity
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (asset_id) DO UPDATE SET
+                furniture_type = EXCLUDED.furniture_type,
+                material = EXCLUDED.material,
+                dimensions = EXCLUDED.dimensions,
+                color = EXCLUDED.color,
+                capacity = EXCLUDED.capacity
+            "#
+        )
+        .bind(details.asset_id)
+        .bind(&details.furniture_type)
+        .bind(&details.material)
+        .bind(&details.dimensions)
+        .bind(&details.color)
+        .bind(&details.capacity)
+        .execute(executor)
+        .await?;
+        Ok(())
     }
 
     /// Get vehicle details
@@ -803,7 +1040,7 @@ impl AssetRepository {
                 id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
-                specifications,
+                specifications, description, acquisition_method, funding_source,
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
@@ -852,6 +1089,9 @@ impl AssetRepository {
                 model: r.get("model"),
                 year_manufacture: r.get("year_manufacture"),
                 specifications: r.get("specifications"),
+                description: r.get("description"),
+                acquisition_method: r.get("acquisition_method"),
+                funding_source: r.get("funding_source"),
                 purchase_date: r.get("purchase_date"),
                 purchase_price: r.get("purchase_price"),
                 currency_id: r.get("currency_id"),

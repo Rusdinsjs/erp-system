@@ -1,0 +1,137 @@
+DEEPSEEK
+Berikut adalah data-data yang perlu dikelola dalam Aplikasi Asset Management, dikelompokkan berdasarkan jenis aset (Tanah, Bangunan, Kendaraan, Alat Berat, Mesin, Inventaris, dan Meubelair Kantor). Data ini mencakup informasi umum, spesifik, administratif, hingga historis.
+
+### A. Data Umum (Semua Jenis Aset)
+Data ini wajib ada untuk setiap aset, apapun jenisnya.
+- **Kode Aset / Barcode / QR Code** (Unique identifier)
+- **Nama Aset**
+- **Kategori / Jenis Aset** (pilihan: Tanah, Bangunan, dll.)
+- **Sub Kategori** (misal untuk Kendaraan: Sedan, Truck, Motor)
+- **Deskripsi** (spesifikasi singkat)
+- **Foto / Dokumen Digital** (sertifikat, STNK, invoice, dll.)
+- **Status Aset** (Aktif, Rusak, Perbaikan, Dihapuskan, Disewakan)
+- **Lokasi** (Alamat, Gedung, Lantai, Ruangan – bisa menggunakan struktur hierarki)
+- **Penanggung Jawab / Pengguna** (Nama karyawan, departemen)
+- **Tanggal Perolehan**
+- **Metode Perolehan** (Pembelian, Hibah, Sewa, Pembangunan sendiri)
+- **Nilai Perolehan** (Harga beli / biaya pembangunan)
+- **Nilai Buku / Nilai Sisa** (setelah depresiasi)
+- **Sumber Dana** (APBN/APBD, Hibah, Pinjaman, dll.)
+- **Masa Manfaat** (dalam tahun)
+- **Metode Depresiasi** (Garis lurus, saldo menurun, dll.)
+- **Kondisi Terakhir** (Baik, Rusak Ringan, Rusak Berat)
+- **Catatan / Keterangan**
+
+### B. Data Khusus per Jenis Aset
+#### 1. Data Tanah
+- **Nomor Sertifikat Tanah** (SHM, HGB, dll.)
+- **Luas Tanah** (m²)
+- **Letak / Alamat Lengkap** (Kelurahan, Kecamatan, Kab/Kota, Provinsi)
+- **Kode Wilayah** (sesuai administrasi)
+- **Koordinat GPS** (poligon atau titik)
+- **Batas Tanah** (Utara, Timur, Selatan, Barat)
+- **Peruntukan** (Zona: perumahan, komersial, industri)
+- **Status Hak** (Milik sendiri, Sewa, Pakai)
+- **Tanggal Jatuh Tempo Hak** (jika sewa atau HGB)
+- **Nomor PBB** (Pajak Bumi dan Bangunan)
+- **Nilai NJOP** (Nilai Jual Objek Pajak)
+- **Ada Bangunan di Atasnya?** (Ya/Tidak, referensi ke aset Bangunan)
+
+#### 2. Data Bangunan
+- **Referensi ke Aset Tanah** (jika berdiri di atas tanah milik)
+- **Luas Bangunan** (m² per lantai)
+- **Jumlah Lantai**
+- **Tahun Dibangun**
+- **Tahun Renovasi Terakhir**
+- **Jenis Konstruksi** (Beton, Baja, Kayu, dll.)
+- **Fungsi Bangunan** (Kantor, Gudang, Rumah Dinas, dll.)
+- **Kapasitas / Daya Tampung**
+- **Fasilitas Pendukung** (Listrik (KVA), Air, Lift, Genset, CCTV, dll.)
+- **Nomor IMB / PBG** (Izin Mendirikan Bangunan / Persetujuan Bangunan Gedung)
+- **Sertifikat Laik Fungsi (SLF)**
+- **Nilai Asuransi** (jika diasuransikan)
+
+#### 3. Data Kendaraan
+- **Jenis Kendaraan** (Roda 2, Roda 4, Truk, Bus, dll.)
+- **Merek / Model / Tahun**
+- **Nomor Polisi**
+- **Nomor Rangka**
+- **Nomor Mesin**
+- **Warna**
+- **Kapasitas Penumpang / Muatan** (kg atau orang)
+- **Bahan Bakar** (Bensin, Solar, Listrik)
+- **Nomor STNK** (dan masa berlaku)
+- **Nomor BPKB**
+- **Atas Nama** (Perusahaan / Orang)
+- **Kilometer / Jam Tempuh Saat Ini**
+- **Jadwal Servis Berkala** (kilometer atau waktu)
+- **Nomor Uji Kir** (untuk kendaraan angkutan umum / berat)
+
+#### 4. Data Alat Berat (Excavator, Bulldozer, Crane, dll.)
+- **Tipe / Model**
+- **Merek**
+- **Tahun Pembuatan**
+- **Nomor Seri / S/N** (penting untuk suku cadang)
+- **Kapasitas / Daya** (misal: 200 HP, 1 ton bucket)
+- **Berat Operasional** (kg)
+- **Jam Operasi (Hour Meter)** (untuk perawatan terjadwal)
+- **Lokasi Terakhir** (bisa berupa proyek atau depo)
+- **Operator Default** (jika ada)
+- **Sertifikasi Uji Kelayakan** (K3 / KemenPUPR)
+- **Sistem Penggerak** (Rantai, Roda, dll.)
+
+#### 5. Data Mesin (Mesin Produksi, Genset, Pompa, dll.)
+- **Jenis Mesin** (Mesin Bubut, Genset, Boiler, dll.)
+- **Merek / Model**
+- **Nomor Seri**
+- **Spesifikasi Teknis** (Voltase, Ampere, RPM, Kapasitas, dll.)
+- **Tahun Instalasi**
+- **Lokasi Pemasangan** (ruang, lantai, bangunan)
+- **Jam Operasi** (jika ada hour meter)
+- **Frekuensi Perawatan** (setiap X jam / X bulan)
+- **Kebutuhan Pelumas / Filter** (untuk stok suku cadang)
+- **Sumber Energi** (Listrik, Solar, Gas)
+
+#### 6. Data Inventaris (IT, Elektronik, Peralatan Kantor - selain meubelair)
+*Contoh: komputer, printer, proyektor, kamera, telepon, AC, dll.*
+- **Tipe / Merek**
+- **Model**
+- **Nomor Seri**
+- **Spesifikasi** (RAM, Storage, Processor untuk IT; ukuran untuk AC)
+- **Tahun Pembelian**
+- **Garansi** (masa berlaku, jenis garansi)
+- **Kelengkapan** (kabel, remote, baterai, dll.)
+- **Sistem Operasi / Lisensi** (untuk perangkat lunak jika perlu)
+- **Alamat MAC / IP** (untuk perangkat jaringan)
+
+#### 7. Data Meubelair Kantor & Lainnya
+*Contoh: meja, kursi, lemari, filling cabinet, sofa, rak, papan tulis, brankas, dispenser.*
+- **Jenis Meubelair** (Meja, Kursi, Lemari, dll.)
+- **Material** (Kayu, Besi, Kaca, Plastik)
+- **Dimensi** (Panjang x Lebar x Tinggi)
+- **Warna**
+- **Merek** (jika ada - misal: IKEA, Olympic)
+- **Jumlah Unit** (karena seringkali dalam satu lot, bisa dibuat per item atau lot)
+- **Konfigurasi / Bentuk** (misal: meja tipe L, laci 3, dll.)
+- **Ketahanan / Kapasitas Beban** (untuk rak, lemari)
+- **Sertifikasi Ramah Lingkungan** (jika ada)
+
+### C. Data Historis & Pelengkap (Wajib untuk Semua Aset)
+- **Riwayat Mutasi** (perpindahan lokasi atau penanggung jawab)
+- **Riwayat Perbaikan / Pemeliharaan** (tanggal, jenis, biaya, vendor)
+- **Riwayat Depresiasi** (nilai per tahun)
+- **Riwayat Asuransi** (polis, premi, masa berlaku, klaim)
+- **Riwayat Penghapusan / Pemusnahan** (tanggal, metode, persetujuan)
+- **Dokumen Pendukung** (foto, scan sertifikat, invoice, kontrak sewa, BAST)
+- **Audit Trail** (siapa, kapan, mengubah data apa)
+
+### D. Tips Implementasi dalam Aplikasi
+1. **Gunakan Tabel Relasi** – Pisahkan tabel `aset_master`, `aset_tanah`, `aset_bangunan`, dll. dengan foreign key ke `aset_master`.
+2. **Attribute Sparse** – Tidak semua jenis aset memiliki semua field. Gunakan pendekatan EAV (Entity-Attribute-Value) atau JSON field di database jika diperlukan fleksibilitas.
+3. **Barcode/QR Code** – Setiap aset fisik harus dicetak label tempel dengan kode unik.
+4. **Validasi Input** – Khusus data nomor sertifikat, BPKB, STNK, dan plat nomor harus unik.
+5. **Level Pengguna** – Admin, Supervisor, User (peminjam/pengguna), dan Auditor (hanya baca).
+6. **Integrasi Foto** – Upload multiple foto dengan geotag (untuk tanah dan bangunan) sangat disarankan.
+7. **Pengingat** – Fitur reminder untuk STNK, PBB, SLF, servis kendaraan, kalibrasi alat berat, dan masa garansi.
+
+Dengan data di atas, aplikasi asset management Anda akan komprehensif dan sesuai praktik standar akuntansi aset tetap (seperti PSAK atau IFRS). Apakah Anda ingin saya bantu merancang skema database (tabel-tabel dan relasinya) dari data-data ini?
