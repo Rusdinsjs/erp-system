@@ -465,8 +465,14 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
         const main = (selectedCategory.main_category || '').toUpperCase();
-        return code.includes('KENDARAAN') || code.includes('TRUK') || code.includes('ALAT-BERAT') || 
-               name.includes('KENDARAAN') || name.includes('MOBIL') || name.includes('MOTOR') ||
+        // Exclude heavy equipment from vehicle detection
+        const codeAndName = code + ' ' + name;
+        if (codeAndName.includes('ALAT BERAT') || codeAndName.includes('ALAT-BERAT') ||
+            codeAndName.includes('HEAVY') || codeAndName.includes('EXCAVATOR') ||
+            codeAndName.includes('BULLDOZER') || codeAndName.includes('CRANE') ||
+            codeAndName.includes('FORKLIFT')) return false;
+        return code.includes('KENDARAAN') || code.includes('TRUK') ||
+               name.includes('KENDARAAN') || name.includes('MOBIL') || name.includes('MOTOR') || name.includes('TRUK') ||
                main.includes('RENTAL') || main.includes('OPERASIONAL');
     }, [selectedCategory]);
 
@@ -490,8 +496,11 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         if (!selectedCategory) return false;
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
-        return code.includes('ALAT-BERAT') || code.includes('HEAVY') || 
-               name.includes('ALAT BERAT') || name.includes('EXCAVATOR') || name.includes('BULLDOZER');
+        return code.includes('ALAT-BERAT') || code.includes('ALAT_BERAT') || code.includes('ALATBERAT') ||
+               code.includes('HEAVY') || code.includes('HVY') ||
+               name.includes('ALAT BERAT') || name.includes('ALAT-BERAT') ||
+               name.includes('EXCAVATOR') || name.includes('BULLDOZER') ||
+               name.includes('CRANE') || name.includes('FORKLIFT') || name.includes('LOADER');
     }, [selectedCategory]);
 
     const isRegularVehicle = useMemo(() => {
@@ -744,7 +753,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         >
                             General
                         </TabsTrigger>
-                        {(isVehicle || isBuilding || isLand) && (
+                        {(isVehicle || isBuilding || isLand || isHeavyEquipment) && (
                             <TabsTrigger
                                 value="renewals"
                                 icon={<Receipt size={18} />}
@@ -756,10 +765,10 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         <TabsTrigger
                             value="details"
                             icon={
+                                isHeavyEquipment ? <Cog size={18} /> :
                                 isVehicle ? <Car size={18} /> :
                                 isLand ? <Mountain size={18} /> :
                                 isBuilding ? <Building2 size={18} /> :
-                                isHeavyEquipment ? <Cog size={18} /> :
                                 isMachine ? <Cog size={18} /> :
                                 isInventory ? <Cpu size={18} /> :
                                 isFurniture ? <Armchair size={18} /> :
@@ -767,7 +776,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                             }
                             className="px-6 py-2.5 rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300"
                         >
-                            {isVehicle ? 'Kendaraan' : isLand ? 'Data Tanah' : isBuilding ? 'Data Bangunan' : isHeavyEquipment ? 'Alat Berat' : isMachine ? 'Mesin' : isInventory ? 'Inventaris IT' : isFurniture ? 'Meubelair' : 'Spesifikasi'}
+                            {isHeavyEquipment ? 'Alat Berat' : isVehicle ? 'Kendaraan' : isLand ? 'Data Tanah' : isBuilding ? 'Data Bangunan' : isMachine ? 'Mesin' : isInventory ? 'Inventaris IT' : isFurniture ? 'Meubelair' : 'Spesifikasi'}
                         </TabsTrigger>
                         <TabsTrigger
                             value="financial"
