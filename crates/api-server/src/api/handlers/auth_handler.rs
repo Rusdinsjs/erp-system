@@ -29,6 +29,8 @@ pub struct UserInfo {
     pub email: String,
     pub name: String,
     pub role: String,
+    pub phone: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 #[utoipa::path(
@@ -58,6 +60,8 @@ pub async fn login(
             email: user.email,
             name: user.name,
             role: user.role,
+            phone: user.phone,
+            avatar_url: user.avatar_url,
         },
     }))
 }
