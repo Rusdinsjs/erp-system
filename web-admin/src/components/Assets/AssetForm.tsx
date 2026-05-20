@@ -1,7 +1,7 @@
 // AssetForm - Pure Tailwind Version
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera, Receipt, Cpu, Package, Armchair, Mountain, Cog } from 'lucide-react';
+import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera, Receipt, Cpu, Armchair, Mountain, Cog } from 'lucide-react';
 import type { Asset, CreateAssetRequest } from '../../api/assets';
 import { departmentApi } from '../../api/departments';
 import { usersApi } from '../../api/users';
@@ -472,8 +472,8 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             codeAndName.includes('BULLDOZER') || codeAndName.includes('CRANE') ||
             codeAndName.includes('FORKLIFT')) return false;
         return code.includes('KENDARAAN') || code.includes('TRUK') ||
-               name.includes('KENDARAAN') || name.includes('MOBIL') || name.includes('MOTOR') || name.includes('TRUK') ||
-               main.includes('RENTAL') || main.includes('OPERASIONAL');
+            name.includes('KENDARAAN') || name.includes('MOBIL') || name.includes('MOTOR') || name.includes('TRUK') ||
+            main.includes('RENTAL') || main.includes('OPERASIONAL');
     }, [selectedCategory]);
 
     const isBuilding = useMemo(() => {
@@ -481,8 +481,8 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
         return (code.includes('BANGUNAN') || code.includes('INFRA') ||
-               name.includes('BANGUNAN') || name.includes('PROPERTI')) &&
-               !code.includes('TANAH') && !name.includes('TANAH');
+            name.includes('BANGUNAN') || name.includes('PROPERTI')) &&
+            !code.includes('TANAH') && !name.includes('TANAH');
     }, [selectedCategory]);
 
     const isLand = useMemo(() => {
@@ -491,16 +491,16 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         const name = (selectedCategory.name || '').toUpperCase();
         return code.includes('TANAH') || name.includes('TANAH') || name.includes('LAND');
     }, [selectedCategory]);
-    
+
     const isHeavyEquipment = useMemo(() => {
         if (!selectedCategory) return false;
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
         return code.includes('ALAT-BERAT') || code.includes('ALAT_BERAT') || code.includes('ALATBERAT') ||
-               code.includes('HEAVY') || code.includes('HVY') ||
-               name.includes('ALAT BERAT') || name.includes('ALAT-BERAT') ||
-               name.includes('EXCAVATOR') || name.includes('BULLDOZER') ||
-               name.includes('CRANE') || name.includes('FORKLIFT') || name.includes('LOADER');
+            code.includes('HEAVY') || code.includes('HVY') ||
+            name.includes('ALAT BERAT') || name.includes('ALAT-BERAT') ||
+            name.includes('EXCAVATOR') || name.includes('BULLDOZER') ||
+            name.includes('CRANE') || name.includes('FORKLIFT') || name.includes('LOADER');
     }, [selectedCategory]);
 
     const isRegularVehicle = useMemo(() => {
@@ -511,7 +511,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         if (!selectedCategory) return false;
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
-        return (code.includes('MESIN') || code.includes('MACHINE') || name.includes('MESIN') || name.includes('POMPA')) 
+        return (code.includes('MESIN') || code.includes('MACHINE') || name.includes('MESIN') || name.includes('POMPA'))
             && !isHeavyEquipment && !isVehicle;
     }, [selectedCategory, isHeavyEquipment, isVehicle]);
 
@@ -520,7 +520,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
         return code.includes('INVENTARIS') || code.includes('KOMPUTER') || code.includes('IT') ||
-               name.includes('INVENTARIS') || name.includes('KOMPUTER') || name.includes('LAPTOP') || name.includes('PRINTER');
+            name.includes('INVENTARIS') || name.includes('KOMPUTER') || name.includes('LAPTOP') || name.includes('PRINTER');
     }, [selectedCategory]);
 
     const isFurniture = useMemo(() => {
@@ -528,7 +528,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
         return code.includes('MEUBELAIR') || code.includes('FURNITURE') || code.includes('PERABOT') ||
-               name.includes('MEUBELAIR') || name.includes('MEJA') || name.includes('KURSI') || name.includes('LEMARI');
+            name.includes('MEUBELAIR') || name.includes('MEJA') || name.includes('KURSI') || name.includes('LEMARI');
     }, [selectedCategory]);
 
     const ownershipLabel = useMemo(() => {
@@ -766,13 +766,13 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                             value="details"
                             icon={
                                 isHeavyEquipment ? <Cog size={18} /> :
-                                isVehicle ? <Car size={18} /> :
-                                isLand ? <Mountain size={18} /> :
-                                isBuilding ? <Building2 size={18} /> :
-                                isMachine ? <Cog size={18} /> :
-                                isInventory ? <Cpu size={18} /> :
-                                isFurniture ? <Armchair size={18} /> :
-                                <FileText size={18} />
+                                    isVehicle ? <Car size={18} /> :
+                                        isLand ? <Mountain size={18} /> :
+                                            isBuilding ? <Building2 size={18} /> :
+                                                isMachine ? <Cog size={18} /> :
+                                                    isInventory ? <Cpu size={18} /> :
+                                                        isFurniture ? <Armchair size={18} /> :
+                                                            <FileText size={18} />
                             }
                             className="px-6 py-2.5 rounded-xl data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300"
                         >
@@ -1053,12 +1053,12 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                         </div>
                     </div>
                 </TabsContent>
-                
+
                 {/* Renewals Tab */}
                 <TabsContent value="renewals" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="bg-card backdrop-blur-md border border-border rounded-[3rem] p-10 shadow-xl relative overflow-hidden min-h-[400px]">
                         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] -mr-48 -mt-48" />
-                        
+
                         <div className="space-y-8 relative">
                             <div className="flex items-center gap-4">
                                 <div className="w-16 h-16 bg-cyan-500/20 rounded-3xl flex items-center justify-center text-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.2)]">
