@@ -464,6 +464,9 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         if (!selectedCategory) return false;
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
+        const fullPath = (selectedCategory.full_path || '').toUpperCase();
+        // Jika full_path mengandung "Kendaraan", langsung true (child dari Kendaraan)
+        if (fullPath.includes('KENDARAAN')) return true;
         // Exclude heavy equipment — codes starting with HE-, HEAVY, ALAT-BERAT, dll
         if (code.includes('HE-') || code.includes('HEAVY') ||
             code.includes('ALAT-BERAT') || code.includes('ALAT_BERAT') || code.includes('INTI-ALAT') ||
@@ -476,7 +479,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                code.includes('VEHICLE') || code.includes('DUMP') ||
                name.includes('KENDARAAN') || name.includes('MOBIL') ||
                name.includes('MOTOR') || name.includes('TRUK') || name.includes('TRUCK') ||
-               name.includes('DUMP TRUCK') || name.includes('BUS');
+               name.includes('DUMP TRUCK') || name.includes('BUS') || name.includes('ANGKUTAN');
     }, [selectedCategory]);
 
     const isBuilding = useMemo(() => {
@@ -499,6 +502,9 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         if (!selectedCategory) return false;
         const code = (selectedCategory.code || '').toUpperCase();
         const name = (selectedCategory.name || '').toUpperCase();
+        const fullPath = (selectedCategory.full_path || '').toUpperCase();
+        // Jika parent path mengandung "Kendaraan", ini bukan alat berat
+        if (fullPath.includes('KENDARAAN')) return false;
         // Deteksi prefix HE- (HE-EXCAVATOR, HE-DOZER, HE-COMPACTOR, HE-CRUSHER, HE-GRADER, HE-LOADER, dll)
         return code.includes('HE-') || code.includes('HEAVY') ||
                code.includes('ALAT-BERAT') || code.includes('ALAT_BERAT') || code.includes('ALATBERAT') ||
@@ -506,7 +512,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                name.includes('ALAT BERAT') || name.includes('EXCAVATOR') || name.includes('BULLDOZER') ||
                name.includes('CRANE') || name.includes('FORKLIFT') || name.includes('WHEEL LOADER') ||
                name.includes('GRADER') || name.includes('COMPACTOR') || name.includes('CRUSHER') ||
-               name.includes('MOTOR GRADER') || name.includes('DUMP TRUCK');
+               name.includes('MOTOR GRADER');
     }, [selectedCategory]);
 
     const isRegularVehicle = useMemo(() => {

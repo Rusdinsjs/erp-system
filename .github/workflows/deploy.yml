@@ -31,12 +31,22 @@ jobs:
             # Build dan jalankan SEMUA layanan (termasuk AI Ollama yang baru ditambahkan)
             sudo docker compose up -d --build --remove-orphans
             
-            # Tunggu database siap, lalu sync password agar cocok dengan config
-            sleep 10
-            sudo docker exec mgmt-db psql -U postgres -c "ALTER USER postgres PASSWORD 'postgres';" || true
+            # Tunggu postgres benar-benar siap (retry loop, maks 60 detik)
+            echo "Waiting for postgres to be ready..."
+            for i in $(seq 1 12); do
+              if sudo docker exec mgmt-db pg_isready -U postgres > /dev/null 2>&1; then
+                echo "Postgres is ready!"
+                break
+              fi
+              echo "Waiting... ($i/12)"
+              sleep 5
+            done
             
-            # Restart backend agar koneksi database berhasil
-            sudo docker compose restart backend || true
+            # Sync password agar cocok dengan DATABASE_URL di config
+            sudo docker exec mgmt-db psql -U postgres -c "ALTER USER postgres PASSWORD 'postgres';"
+            
+            # Restart backend agar koneksi database fresh
+            sudo docker compose restart backend
             
             # Bersihkan image yang tidak terpakai
             sudo docker image prune -f
