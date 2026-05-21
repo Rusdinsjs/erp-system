@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'blue';
+type Theme = 'dark' | 'light';
 
 interface ThemeProviderProps {
     children: React.ReactNode;
@@ -33,7 +33,7 @@ export function ThemeProvider({
         const root = window.document.documentElement;
 
         // Remove old theme classes if any (though we are using data attributes mainly)
-        root.classList.remove('light', 'dark', 'blue');
+        root.classList.remove('light', 'dark');
 
         // If using class-based theming for tailwind
         // root.classList.add(theme);

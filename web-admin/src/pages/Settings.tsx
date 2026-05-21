@@ -189,38 +189,27 @@ export default function Settings() {
                                     {/* Theme Selector */}
                                     <div className="mb-6">
                                         <label className="text-sm font-medium text-foreground block mb-3">Color Theme</label>
-                                        <div className="grid grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-2 gap-4">
                                             <button
                                                 onClick={() => setTheme('dark')}
-                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${theme === 'dark'
-                                                    ? 'border-blue-500 bg-gray-800'
-                                                    : 'border-gray-700 bg-gray-900 hover:border-gray-600'
+                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'dark'
+                                                    ? 'border-primary bg-accent/40 text-foreground'
+                                                    : 'border-border bg-card/20 text-muted-foreground hover:border-muted-foreground/30'
                                                     }`}
                                             >
-                                                <Moon size={24} className={theme === 'dark' ? 'text-blue-400' : 'text-gray-400'} />
-                                                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-400'}`}>Dark</span>
+                                                <Moon size={24} className={theme === 'dark' ? 'text-primary' : 'text-gray-400'} />
+                                                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-foreground' : 'text-gray-400'}`}>Dark</span>
                                             </button>
 
                                             <button
                                                 onClick={() => setTheme('light')}
-                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${theme === 'light'
-                                                    ? 'border-blue-500 bg-white'
-                                                    : 'border-gray-700 bg-gray-900 hover:border-gray-600'
+                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${theme === 'light'
+                                                    ? 'border-primary bg-accent/40 text-foreground'
+                                                    : 'border-border bg-card/20 text-muted-foreground hover:border-muted-foreground/30'
                                                     }`}
                                             >
-                                                <Sun size={24} className={theme === 'light' ? 'text-blue-500' : 'text-gray-400'} />
-                                                <span className={`text-sm font-medium ${theme === 'light' ? 'text-gray-900' : 'text-gray-400'}`}>Light</span>
-                                            </button>
-
-                                            <button
-                                                onClick={() => setTheme('blue')}
-                                                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${theme === 'blue'
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-700 bg-gray-900 hover:border-gray-600'
-                                                    }`}
-                                            >
-                                                <Monitor size={24} className={theme === 'blue' ? 'text-blue-600' : 'text-gray-400'} />
-                                                <span className={`text-sm font-medium ${theme === 'blue' ? 'text-blue-900' : 'text-gray-400'}`}>Blue</span>
+                                                <Sun size={24} className={theme === 'light' ? 'text-primary' : 'text-gray-400'} />
+                                                <span className={`text-sm font-medium ${theme === 'light' ? 'text-foreground' : 'text-gray-400'}`}>Light</span>
                                             </button>
                                         </div>
                                     </div>

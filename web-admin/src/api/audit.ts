@@ -48,32 +48,32 @@ export const auditApi = {
 
     // Session Management
     getActiveSession: async () => {
-        const res = await api.get<AuditSession>('/audit-sessions/active');
-        return res.data;
+        const res = await api.get<any>('/audit/sessions/active');
+        return res.data?.data?.session || null;
     },
 
     startSession: async () => {
-        const res = await api.post<AuditSession>('/audit-sessions/start');
-        return res.data;
+        const res = await api.post<any>('/audit/sessions');
+        return res.data?.data;
     },
 
     closeSession: async (id: string) => {
-        const res = await api.post<AuditSession>(`/audit-sessions/${id}/close`);
-        return res.data;
+        const res = await api.post<any>(`/audit/sessions/${id}/close`);
+        return res.data?.data;
     },
 
     // Progress & Actions
     getProgress: async (sessionId: string) => {
-        const res = await api.get<AuditProgress>(`/audit-sessions/${sessionId}/progress`);
-        return res.data;
+        const res = await api.get<any>(`/audit/sessions/${sessionId}/progress`);
+        return res.data?.data;
     },
 
     submitRecord: async (sessionId: string, assetId: string, status: string, notes?: string) => {
-        const res = await api.post(`/audit-sessions/${sessionId}/records`, {
+        const res = await api.post<any>(`/audit/sessions/${sessionId}/records`, {
             asset_id: assetId,
             status,
             notes
         });
-        return res.data;
+        return res.data?.data;
     }
 };

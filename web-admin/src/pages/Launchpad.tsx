@@ -1,6 +1,6 @@
-// Launchpad Page - Premium Full-Screen Navigation Hub
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { useTheme } from '../contexts/ThemeContext';
 import {
     BarChart3,
     Package,
@@ -11,7 +11,9 @@ import {
     ClipboardCheck,
     Settings,
     ChevronRight,
-    LogOut
+    LogOut,
+    Sun,
+    Moon
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import clsx from 'clsx';
@@ -126,6 +128,7 @@ const domainCards: DomainCard[] = [
 export default function Launchpad() {
     const navigate = useNavigate();
     const { user, logout, hasRoleLevel } = useAuthStore();
+    const { theme, setTheme } = useTheme();
 
     const { data: publicSettings } = useQuery({
         queryKey: ['public-settings'],
@@ -139,6 +142,10 @@ export default function Launchpad() {
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    const toggleTheme = () => {
+        setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
     const getGreeting = () => {
@@ -178,13 +185,24 @@ export default function Launchpad() {
                         <Logo collapsed={false} />
                     </div>
 
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/50 hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-all text-sm"
-                    >
-                        <LogOut size={16} />
-                        <span className="hidden sm:inline">Keluar</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {/* Theme Toggle Button */}
+                        <button
+                            onClick={toggleTheme}
+                            className="p-2.5 rounded-xl bg-card/40 border border-border/60 hover:bg-card hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all duration-300 backdrop-blur-md shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+                            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                        >
+                            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                        </button>
+
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent/50 hover:bg-accent border border-border text-muted-foreground hover:text-foreground transition-all text-sm cursor-pointer"
+                        >
+                            <LogOut size={16} />
+                            <span className="hidden sm:inline">Keluar</span>
+                        </button>
+                    </div>
                 </header>
 
                 {/* Hero Section */}

@@ -110,24 +110,25 @@ const ActivityItem = ({ item }: { item: APIRecentActivity }) => {
     };
 
     const getColor = (action: string) => {
-        if (action.includes('create')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-        if (action.includes('delete')) return 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-        if (action.includes('update')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-        return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+        const actionLower = action.toLowerCase();
+        if (actionLower.includes('create') || actionLower.includes('insert')) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+        if (actionLower.includes('delete')) return 'text-rose-500 bg-rose-500/10 border-rose-500/20';
+        if (actionLower.includes('update')) return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+        return 'text-foreground bg-muted border-border';
     };
 
     return (
-        <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-800/50 transition-colors group cursor-pointer border border-transparent hover:border-slate-800">
+        <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors group cursor-pointer border border-transparent hover:border-border/50">
             <div className={`p-2 rounded-lg border ${getColor(item.action)}`}>
                 {getIcon()}
             </div>
             <div className="flex-1">
-                <h4 className="text-slate-200 text-sm font-medium group-hover:text-white transition-colors">
+                <h4 className="text-foreground text-sm font-medium transition-colors">
                     {item.description}
                 </h4>
-                <p className="text-slate-500 text-xs">{dayjs(item.created_at).fromNow()}</p>
+                <p className="text-muted-foreground text-xs">{dayjs(item.created_at).fromNow()}</p>
             </div>
-            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
+            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground">
                 <ArrowRight size={14} />
             </Button>
         </div>

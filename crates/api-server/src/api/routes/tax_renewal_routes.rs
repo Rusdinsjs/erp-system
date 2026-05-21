@@ -35,5 +35,4 @@ pub fn tax_renewal_routes(state: AppState) -> Router<AppState> {
             put(tax_renewal_handler::complete_renewal)
                 .layer(axum_middleware::from_fn(require_permission("asset.update"))),
         )
-        .with_state(state)
 }

@@ -19,7 +19,6 @@ import { api } from '../api/http';
 import { Card, PageLoading } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../components/ui/Toast';
-import { PendingApprovalsWidget } from '../components/dashboard/PendingApprovalsWidget';
 import { LiveActivityFeed } from '../components/dashboard/LiveActivityFeed';
 import { VehicleLegalityWidget } from '../components/dashboard/VehicleLegalityWidget';
 
@@ -43,16 +42,18 @@ function StatCard({ label, value, icon: Icon, color, description }: StatCardProp
     };
 
     return (
-        <div className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-colors shadow-sm">
+        <div className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-colors shadow-sm min-w-0">
             <div className="flex items-start justify-between mb-3">
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${colors[color]} shadow-lg`}>
                     <Icon size={22} className="text-white" />
                 </div>
             </div>
-            <p className="text-2xl font-bold text-card-foreground mb-1">{value}</p>
-            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-lg sm:text-xl 2xl:text-2xl font-bold text-card-foreground mb-1 tracking-tight">
+                {value}
+            </p>
+            <p className="text-sm text-muted-foreground truncate" title={label}>{label}</p>
             {description && (
-                <p className="text-xs text-muted-foreground/80 mt-2">{description}</p>
+                <p className="text-xs text-muted-foreground/80 mt-2 truncate" title={description}>{description}</p>
             )}
         </div>
     );
@@ -136,6 +137,16 @@ export default function Dashboard() {
             const res = await api.get('/analytics/status');
             return res.data;
         },
+    });
+
+    // 6. Fetch Pending Contracts Count
+    const { data: pendingContracts } = useQuery({
+        queryKey: ['contracts', 'pending-count'],
+        queryFn: async () => {
+            const res = await api.get('/contracts/pending-count');
+            return res.data;
+        },
+        refetchInterval: 30000,
     });
 
     const handleExportPDF = async () => {
@@ -236,11 +247,10 @@ export default function Dashboard() {
             </div>
 
             {/* Top Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${statItems.length} gap-4`}>
                 {statItems.map((item) => (
                     <StatCard key={item.label} {...item} />
                 ))}
-                <PendingApprovalsWidget />
             </div>
 
             {/* Main Content Grid */}
@@ -402,6 +412,15 @@ export default function Dashboard() {
                     <Card padding="lg">
                         <h2 className="text-lg font-semibold text-foreground mb-4">Operational Status</h2>
                         <div className="space-y-4">
+                            {showFinancials && (
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-500/10 rounded-lg">
+                                        <ClipboardCheck size={18} className="text-indigo-400" />
+                                    </div>
+                                    <span className="flex-1 text-sm text-muted-foreground">Pending Approvals</span>
+                                    <span className="font-bold text-foreground">{pendingContracts?.count || 0}</span>
+                                </div>
+                            )}
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-purple-500/10 rounded-lg">
                                     <ClipboardCheck size={18} className="text-purple-400" />

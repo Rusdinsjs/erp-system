@@ -18,7 +18,7 @@ export default function InventoryCategories() {
     const [modalOpen, setModalOpen] = useState(false);
     const [showCoaStructure, setShowCoaStructure] = useState(false); // New state for COA modal
     const [editingCategory, setEditingCategory] = useState<InventoryCategory | null>(null);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // View toggle
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list'); // View toggle
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = viewMode === 'grid' ? 12 : 20;
 

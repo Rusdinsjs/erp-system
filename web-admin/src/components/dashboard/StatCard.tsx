@@ -19,7 +19,7 @@ export function StatCard({ label, value, icon: Icon, color, description, trend }
     return (
         <Card padding="md" className="h-full">
             <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     {label}
                 </span>
                 <div className={`p-1.5 rounded-lg bg-opacity-20 ${color.replace('text-', 'bg-')}`}>
@@ -28,7 +28,7 @@ export function StatCard({ label, value, icon: Icon, color, description, trend }
             </div>
 
             <div className="flex items-end gap-2 mt-2">
-                <span className="text-2xl font-bold text-white leading-none">
+                <span className="text-2xl font-bold text-foreground leading-none">
                     {value}
                 </span>
                 {trend && (
@@ -39,7 +39,7 @@ export function StatCard({ label, value, icon: Icon, color, description, trend }
             </div>
 
             {(description || trend) && (
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                     {trend ? trend.label : description}
                 </p>
             )}

@@ -91,20 +91,26 @@ CREATE TABLE IF NOT EXISTS furniture_details (
 );
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS update_land_details_updated_at ON land_details;
 CREATE TRIGGER update_land_details_updated_at BEFORE UPDATE ON land_details
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_building_details_updated_at ON building_details;
 CREATE TRIGGER update_building_details_updated_at BEFORE UPDATE ON building_details
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_heavy_equip_details_updated_at ON heavy_equipment_details;
 CREATE TRIGGER update_heavy_equip_details_updated_at BEFORE UPDATE ON heavy_equipment_details
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_machine_details_updated_at ON machine_details;
 CREATE TRIGGER update_machine_details_updated_at BEFORE UPDATE ON machine_details
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_inventory_details_updated_at ON inventory_details;
 CREATE TRIGGER update_inventory_details_updated_at BEFORE UPDATE ON inventory_details
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_furniture_details_updated_at ON furniture_details;
 CREATE TRIGGER update_furniture_details_updated_at BEFORE UPDATE ON furniture_details
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

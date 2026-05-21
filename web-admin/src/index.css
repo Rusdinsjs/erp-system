@@ -29,6 +29,32 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Slate overrides for dynamic themes */
+  --color-slate-50: var(--slate-50);
+  --color-slate-100: var(--slate-100);
+  --color-slate-200: var(--slate-200);
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  --color-slate-700: var(--slate-700);
+  --color-slate-800: var(--slate-800);
+  --color-slate-900: var(--slate-900);
+  --color-slate-950: var(--slate-950);
+
+  /* Gray overrides for dynamic themes */
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+  --color-gray-950: var(--gray-950);
 }
 
 /* Custom theme tokens */
@@ -42,6 +68,7 @@
 
     --card: #ffffff;
     --card-foreground: #0f172a;
+    --card-rgb: 255, 255, 255;
 
     --popover: #ffffff;
     --popover-foreground: #0f172a;
@@ -66,6 +93,7 @@
 
     --border: #e2e8f0;
     /* slate-200 */
+    --border-rgb: 226, 232, 240;
     --input: #e2e8f0;
     --ring: #0f172a;
 
@@ -75,6 +103,32 @@
     --brand-success: #10B981;
     --brand-warning: #F59E0B;
     --brand-error: #EF4444;
+
+    /* Slate Theme Variables for Light Mode */
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #334155; /* Inverted for high contrast readability */
+    --slate-400: #475569; /* Inverted for readability */
+    --slate-500: #64748b;
+    --slate-600: #94a3b8;
+    --slate-700: #cbd5e1; /* soft border */
+    --slate-800: #e2e8f0; /* light panel background */
+    --slate-900: #f1f5f9; /* soft light card base */
+    --slate-950: #ffffff; /* pure white card base */
+
+    /* Gray Theme Variables for Light Mode */
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #374151; /* Inverted for readability */
+    --gray-400: #1f2937; /* Inverted for readability */
+    --gray-500: #6b7280;
+    --gray-600: #9ca3af;
+    --gray-700: #d1d5db; /* soft border */
+    --gray-800: #e5e7eb; /* light panel background */
+    --gray-900: #f3f4f6; /* soft light card base */
+    --gray-950: #ffffff; /* pure white card base */
   }
 
   /* Dark Theme */
@@ -87,6 +141,7 @@
     --card: #0f172a;
     /* slate-900 */
     --card-foreground: #e2e8f0;
+    --card-rgb: 15, 23, 42;
 
     --popover: #0f172a;
     --popover-foreground: #e2e8f0;
@@ -109,49 +164,35 @@
     --destructive-foreground: #f8fafc;
 
     --border: #1e293b;
+    --border-rgb: 30, 41, 59;
     --input: #1e293b;
     --ring: #cbd5e1;
-  }
 
-  /* Blue Theme */
-  [data-theme='blue'] {
-    --background: #f0f9ff;
-    /* sky-50 - Very light blue background */
-    --foreground: #0c4a6e;
-    /* sky-900 */
+    /* Slate Theme Variables for Dark Mode */
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --slate-950: #020617;
 
-    --card: #ffffff;
-    --card-foreground: #0c4a6e;
-
-    --popover: #ffffff;
-    --popover-foreground: #0c4a6e;
-
-    --primary: #005eff;
-    /* Requested Blue */
-    --primary-foreground: #ffffff;
-
-    --secondary: #e0f2fe;
-    /* sky-100 */
-    --secondary-foreground: #0369a1;
-    /* sky-700 */
-
-    --muted: #e0f2fe;
-    /* sky-100 */
-    --muted-foreground: #0ea5e9;
-    /* sky-500 */
-
-    --accent: #e0f2fe;
-    /* sky-100 */
-    --accent-foreground: #0c4a6e;
-
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
-
-    --border: #bae6fd;
-    /* sky-200 */
-    --input: #bae6fd;
-    /* sky-200 */
-    --ring: #005eff;
+    /* Gray Theme Variables for Dark Mode */
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --gray-950: #030712;
   }
 }
 
@@ -224,4 +265,68 @@ body {
 
 .animate-slide-in-left {
   animation: slide-in-left 0.2s ease-out;
+}
+
+/* Light mode overrides for hardcoded transparent utilities and dark variables */
+[data-theme='light'] {
+  .border-white\/5 {
+    border-color: rgba(0, 0, 0, 0.05) !important;
+  }
+  .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  .border-white\/20 {
+    border-color: rgba(0, 0, 0, 0.12) !important;
+  }
+  .bg-white\/5 {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+  }
+  .bg-white\/10 {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+  .bg-white\/20 {
+    background-color: rgba(0, 0, 0, 0.06) !important;
+  }
+  .bg-black\/20 {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+  .bg-black\/40 {
+    background-color: rgba(0, 0, 0, 0.06) !important;
+  }
+  .bg-slate-900\/50 {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+  }
+  .bg-slate-950\/50 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+  .bg-slate-800\/50 {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+  }
+  .bg-slate-800\/30 {
+    background-color: rgba(0, 0, 0, 0.015) !important;
+  }
+  .bg-gray-800\/50 {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+  }
+  .bg-gray-800\/40 {
+    background-color: rgba(0, 0, 0, 0.015) !important;
+  }
+  .bg-gray-900\/50 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+  .bg-gray-900\/30 {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+  }
+  .hover\:bg-white\/5:hover {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+  .hover\:bg-white\/10:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+  .text-white {
+    /* Only override text-white inside list items, cards or plain text labels, but allow it on default primary buttons */
+    &:not(.bg-blue-600 *):not(.bg-primary *):not(.bg-red-600 *):not(.bg-emerald-600 *):not(.bg-amber-500 *):not(.bg-purple-600 *):not(button) {
+      color: var(--foreground) !important;
+    }
+  }
 }

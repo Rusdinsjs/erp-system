@@ -32,7 +32,7 @@ export default function InventoryItems() {
     const [importModalOpen, setImportModalOpen] = useState(false);
 
     const queryClient = useQueryClient();
-    const { success, error: showError } = useToast();
+    const { success, error: showError, info } = useToast();
 
     // Queries
     const { data: items = [], isLoading: itemsLoading } = useQuery({
@@ -212,30 +212,8 @@ export default function InventoryItems() {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={async () => {
-                            try {
-                                const response = await api.get('/reports/inventory/pdf', {
-                                    responseType: 'blob'
-                                });
-                                const url = window.URL.createObjectURL(new Blob([response.data]));
-                                const link = document.createElement('a');
-                                link.href = url;
-                                link.setAttribute('download', `Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-                                document.body.appendChild(link);
-                                link.click();
-                                link.remove();
-                                success('Inventory PDF downloaded successfully');
-                            } catch (err: any) {
-                                let errorMessage = 'Failed to export PDF';
-                                if (err.response && err.response.data instanceof Blob) {
-                                    try {
-                                        const text = await err.response.data.text();
-                                        const json = JSON.parse(text);
-                                        errorMessage = json.error || errorMessage;
-                                    } catch (e) { }
-                                }
-                                showError(errorMessage);
-                            }
+                        onClick={() => {
+                            info('Fitur Export PDF untuk Inventory sedang dalam tahap pengembangan.', 'Coming Soon');
                         }}
                         className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all border border-slate-700"
                     >

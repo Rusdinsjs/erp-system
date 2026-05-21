@@ -65,7 +65,7 @@ export function Modal({
             <div
                 className={`
                     relative w-full ${sizes[size] || sizes.md}
-                    bg-card rounded-2xl shadow-2xl border border-border overflow-hidden
+                    bg-card/85 backdrop-blur-2xl rounded-2xl shadow-2xl border border-border/80 overflow-hidden
                     transform transition-all duration-300 ease-out
                     animate-in fade-in zoom-in-95 slide-in-from-bottom-4
                     group flex flex-col max-h-[90vh]

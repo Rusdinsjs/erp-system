@@ -898,10 +898,10 @@ export default function AdminDashboard() {
                     {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
+                        className="p-2 rounded-xl bg-card/40 border border-border/60 hover:bg-card hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all duration-300 backdrop-blur-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
                         title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
                     >
-                        {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
+                        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                     </button>
 
                     {/* Notification Bell */}
@@ -965,21 +965,23 @@ export default function AdminDashboard() {
 
             {/* Logout Modal */}
             {logoutModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    {/* Using Card for Modal consistency */}
-                    <div className="bg-popover/50 backdrop-blur-xl border border-border p-6 rounded-2xl max-w-sm w-full shadow-2xl ring-1 ring-white/10">
-                        <h3 className="text-xl font-bold text-foreground mb-2">Konfirmasi Logout</h3>
-                        <p className="text-muted-foreground mb-6">Apakah Anda yakin ingin keluar dari sistem?</p>
-                        <div className="flex gap-3">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+                    <div className="bg-card/85 backdrop-blur-2xl border border-border/80 p-6 rounded-2xl max-w-sm w-full shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {/* Visual flourish */}
+                        <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+                        
+                        <h3 className="text-xl font-bold text-foreground mb-2 relative z-10">Konfirmasi Logout</h3>
+                        <p className="text-muted-foreground mb-6 relative z-10">Apakah Anda yakin ingin keluar dari sistem?</p>
+                        <div className="flex gap-3 relative z-10">
                             <button
                                 onClick={() => setLogoutModalOpen(false)}
-                                className="flex-1 px-4 py-2 bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-colors border border-border"
+                                className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground rounded-xl hover:bg-muted/80 transition-colors border border-border cursor-pointer"
                             >
                                 Batal
                             </button>
                             <button
                                 onClick={confirmLogout}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-500 shadow-lg shadow-red-500/20 transition-colors"
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-500 shadow-lg shadow-red-500/20 transition-colors cursor-pointer"
                             >
                                 Keluar
                             </button>
