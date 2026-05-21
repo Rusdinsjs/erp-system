@@ -49,7 +49,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@mgmt-db:5432/${DB_NAME:-management_system}
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-management_system}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-management-system-secret-key-change-in-production}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
