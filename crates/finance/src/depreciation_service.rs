@@ -57,11 +57,12 @@ impl DepreciationService {
                     None,                    // dept
                     Some("in_use,deployed"), // status
                     None,                    // is_fuel
-                    batch_size,
-                    offset,
-                    false, // exact
-                    None,  // sort
-                    None,
+                    batch_size,              // limit
+                    offset,                  // offset
+                    false,                   // exact_match
+                    None,                    // sort_by
+                    None,                    // sort_order
+                    None,                    // asset_group
                 )
                 .await
                 .map_err(|e| DomainError::Database(e.to_string()))?;

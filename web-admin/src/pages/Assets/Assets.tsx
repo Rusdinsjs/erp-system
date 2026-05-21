@@ -10,6 +10,7 @@ import { api } from '../../api/http';
 import { AssetForm } from '../../components/Assets/AssetForm';
 import { ImportAssetsModal } from '../../components/Assets/ImportAssetsModal';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/useAuthStore';
 import {
     Button,
     Card,
@@ -47,8 +48,9 @@ export default function Assets() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { success, error: showError } = useToast();
+    const { user } = useAuthStore();
 
-
+    const allowedGroup = user?.role === 'admin_alat_berat' ? 'ALAT_BERAT' : user?.role === 'admin_kendaraan' ? 'KENDARAAN' : user?.role === 'admin_infrastruktur' ? 'INFRASTRUKTUR' : null;
 
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
@@ -92,7 +94,11 @@ export default function Assets() {
     // Fetch Categories for filters (flat list)
     const { data: filterCategories = [] } = useQuery({
         queryKey: ['categories-flat-for-filter'],
-        queryFn: categoryApi.list,
+        queryFn: async () => {
+            const res = await categoryApi.list();
+            if (!allowedGroup) return res;
+            return res.filter(c => c.asset_group === allowedGroup);
+        },
         staleTime: 5 * 60 * 1000
     });
 
@@ -117,7 +123,9 @@ export default function Assets() {
             const res = await api.get('/categories/tree');
             // Backend returns { data: [...] }
             const treeData = res.data.data || res.data;
-            return flattenCategories(Array.isArray(treeData) ? treeData : []);
+            const flattened = flattenCategories(Array.isArray(treeData) ? treeData : []);
+            if (!allowedGroup) return flattened;
+            return flattened.filter(c => c.asset_group === allowedGroup);
         },
         staleTime: 5 * 60 * 1000
     });
@@ -581,13 +589,6 @@ export default function Assets() {
                                                     className="hover:bg-cyan-500/20 text-cyan-400"
                                                 >
                                                     <Eye size={16} />
-                                                </ActionIcon>
-                                                <ActionIcon
-                                                    onClick={() => navigate(`/assets/${asset.id}`)}
-                                                    title="View Full Details"
-                                                    className="hover:bg-blue-500/20 text-blue-400"
-                                                >
-                                                    <FileText size={16} />
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}

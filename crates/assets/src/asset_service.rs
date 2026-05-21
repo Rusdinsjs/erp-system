@@ -68,11 +68,12 @@ impl AssetService {
         page: i64,
         per_page: i64,
         department: Option<&str>,
+        asset_group: Option<&str>,
     ) -> DomainResult<PaginatedResponse<AssetSummary>> {
         let offset = (page - 1) * per_page;
         let assets = self
             .repository
-            .list(per_page, offset, department)
+            .list(per_page, offset, department, asset_group)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -332,6 +333,7 @@ impl AssetService {
                 params.exact_match.unwrap_or(false),
                 params.sort_by.as_deref(),
                 params.sort_order.as_deref(),
+                params.asset_group.as_deref(),
             )
             .await
             .map_err(|e| DomainError::ExternalServiceError {

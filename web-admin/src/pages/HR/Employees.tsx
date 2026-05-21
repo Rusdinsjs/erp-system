@@ -643,6 +643,9 @@ export default function Employees() {
                                                     { value: 'technician', label: 'Technician' },
                                                     { value: 'manager', label: 'Manager' },
                                                     { value: 'admin', label: 'Admin' },
+                                                    { value: 'admin_alat_berat', label: 'Admin Alat Berat' },
+                                                    { value: 'admin_kendaraan', label: 'Admin Kendaraan' },
+                                                    { value: 'admin_infrastruktur', label: 'Admin Infrastruktur' },
                                                 ]}
                                             />
                                         </div>
@@ -696,6 +699,9 @@ export default function Employees() {
                             { value: 'technician', label: 'Technician' },
                             { value: 'manager', label: 'Manager' },
                             { value: 'admin', label: 'Admin' },
+                            { value: 'admin_alat_berat', label: 'Admin Alat Berat' },
+                            { value: 'admin_kendaraan', label: 'Admin Kendaraan' },
+                            { value: 'admin_infrastruktur', label: 'Admin Infrastruktur' },
                         ]}
                     />
                     <Button fullWidth onClick={handleCreateUser} loading={submitting}>

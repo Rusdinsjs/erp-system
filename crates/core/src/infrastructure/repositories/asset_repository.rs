@@ -257,6 +257,7 @@ impl AssetRepository {
         limit: i64,
         offset: i64,
         department: Option<&str>,
+        asset_group: Option<&str>,
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         sqlx::query_as::<_, AssetSummary>(
             r#"
@@ -270,6 +271,7 @@ impl AssetRepository {
             LEFT JOIN users u ON a.assigned_to = u.id
             WHERE a.status != 'archived'
               AND ($3::text IS NULL OR a.department = $3 OR d.name = $3)
+              AND ($4::text IS NULL OR c.asset_group = $4)
             ORDER BY a.created_at DESC
             LIMIT $1 OFFSET $2
             "#,
@@ -277,6 +279,7 @@ impl AssetRepository {
         .bind(limit)
         .bind(offset)
         .bind(department)
+        .bind(asset_group)
         .fetch_all(&self.pool)
         .await
     }
@@ -328,6 +331,7 @@ impl AssetRepository {
         exact_match: bool,
         sort_by: Option<&str>,
         sort_order: Option<&str>,
+        asset_group: Option<&str>,
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         let order_by = match sort_by.unwrap_or("created_at") {
             "name" => "a.name",
@@ -378,6 +382,7 @@ impl AssetRepository {
                     ))
                 )
                 AND ($8::boolean IS NULL OR a.is_fuel = $8)
+                AND ($10::text IS NULL OR c.asset_group = $10)
             ORDER BY {} {}
             LIMIT $6 OFFSET $7
             "#,
@@ -394,6 +399,7 @@ impl AssetRepository {
             .bind(offset)
             .bind(is_fuel)
             .bind(exact_match)
+            .bind(asset_group)
             .fetch_all(&self.pool)
             .await
     }

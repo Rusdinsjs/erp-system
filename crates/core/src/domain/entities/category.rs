@@ -17,6 +17,7 @@ pub struct Category {
     pub name: String,
     pub department: Option<String>,
     pub description: Option<String>,
+    pub asset_group: Option<String>,
 
     // Depreciation settings per category
     pub depreciation_method: Option<String>,
@@ -55,6 +56,7 @@ impl Category {
             name,
             department: None,
             description: None,
+            asset_group: None,
             depreciation_method: Some("straight_line".to_string()),
             depreciation_period: None,
             residual_rate: None,

@@ -43,7 +43,10 @@ jobs:
             done
             
             # Sync password agar cocok dengan DATABASE_URL di config
-            sudo docker exec mgmt-db psql -U postgres -c "ALTER USER postgres PASSWORD 'postgres';"
+            # Ambil password dari .env
+            DB_PASS=$(grep -E "^DB_PASSWORD=" .env | cut -d '=' -f2)
+            if [ -z "$DB_PASS" ]; then DB_PASS="postgres"; fi
+            sudo docker exec mgmt-db psql -U postgres -c "ALTER USER postgres PASSWORD '${DB_PASS}';"
             
             # Restart backend agar koneksi database fresh
             sudo docker compose restart backend

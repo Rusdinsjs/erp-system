@@ -45,7 +45,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
     const handleExportImage = async () => {
         if (!previewRef.current) return;
         try {
-            const dataUrl = await toPng(previewRef.current, { cacheBust: true, backgroundColor: '#0f172a' });
+            const dataUrl = await toPng(previewRef.current, { cacheBust: true });
             const link = document.createElement('a');
             link.download = `asset-preview-${asset.asset_code}.png`;
             link.href = dataUrl;
@@ -58,7 +58,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
     const handleExportPDF = async () => {
         if (!previewRef.current) return;
         try {
-            const dataUrl = await toPng(previewRef.current, { cacheBust: true, backgroundColor: '#0f172a' });
+            const dataUrl = await toPng(previewRef.current, { cacheBust: true });
             const pdf = new jsPDF('p', 'mm', 'a4');
             const imgProps = pdf.getImageProperties(dataUrl);
             const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -84,7 +84,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                 <LoadingOverlay visible={isLoading} />
                 
                 {/* Export Toolbar */}
-                <div className="flex justify-end gap-2 pb-4 border-b border-slate-700">
+                <div className="flex justify-end gap-2 pb-4 border-b border-border">
                     <Button 
                         variant="outline" 
                         size="sm" 
@@ -112,12 +112,12 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                 </div>
 
                 {/* Printable Content Area */}
-                <div ref={previewRef} className="p-6 bg-slate-900 rounded-xl space-y-8">
+                <div ref={previewRef} className="p-6 bg-card border border-border rounded-xl space-y-8">
                     {/* Header */}
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-3xl font-bold text-white mb-1">{asset.name}</h2>
-                            <p className="text-slate-400 font-mono">{asset.asset_code} — {asset.category_name}</p>
+                            <h2 className="text-3xl font-bold text-foreground mb-1">{asset.name}</h2>
+                            <p className="text-muted-foreground font-mono">{asset.asset_code} — {asset.category_name}</p>
                         </div>
                         <Badge variant={asset.status === 'ACTIVE' ? 'success' : 'warning'} className="text-sm px-4 py-1">
                             {asset.status}
@@ -132,13 +132,13 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                             { label: 'LEFT SIDE', url: getPhoto('LEFT') || photos.left },
                             { label: 'RIGHT SIDE', url: getPhoto('RIGHT') || photos.right }
                         ].map((side, idx) => (
-                            <div key={idx} className="relative group overflow-hidden rounded-2xl bg-slate-800 border border-slate-700 aspect-[4/3]">
+                            <div key={idx} className="relative group overflow-hidden rounded-2xl bg-muted border border-border aspect-[4/3]">
                                 <img 
                                     src={side.url || placeholder} 
                                     alt={side.label}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
                                     <span className="text-xs font-bold text-white tracking-widest uppercase">{side.label}</span>
                                 </div>
                             </div>
@@ -148,7 +148,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                     {/* Info Grid - 4 Columns */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         {/* Column 1: General Info */}
-                        <Card className="bg-slate-800/40 border-slate-700/50 backdrop-blur-sm">
+                        <Card className="bg-muted/30 border-border backdrop-blur-sm">
                             <div className="p-4 space-y-4">
                                 <h4 className="flex items-center gap-2 text-blue-400 font-bold text-xs uppercase tracking-wider">
                                     <Info size={14} /> General Info
@@ -164,7 +164,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                         </Card>
 
                         {/* Column 2: Assignment & Location */}
-                        <Card className="bg-slate-800/40 border-slate-700/50 backdrop-blur-sm">
+                        <Card className="bg-muted/30 border-border backdrop-blur-sm">
                             <div className="p-4 space-y-4">
                                 <h4 className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
                                     <MapPin size={14} /> Assignment
@@ -180,7 +180,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                         </Card>
 
                         {/* Column 3: Technical Specs */}
-                        <Card className="bg-slate-800/40 border-slate-700/50 backdrop-blur-sm">
+                        <Card className="bg-muted/30 border-border backdrop-blur-sm">
                             <div className="p-4 space-y-4">
                                 <h4 className="flex items-center gap-2 text-purple-400 font-bold text-xs uppercase tracking-wider">
                                     <Zap size={14} /> Technical
@@ -196,7 +196,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                         </Card>
 
                         {/* Column 4: Compliance & Dates */}
-                        <Card className="bg-slate-800/40 border-slate-700/50 backdrop-blur-sm">
+                        <Card className="bg-muted/30 border-border backdrop-blur-sm">
                             <div className="p-4 space-y-4">
                                 <h4 className="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
                                     <FileText size={14} /> Compliance
@@ -230,8 +230,8 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                     </div>
 
                     {/* Footer / QR */}
-                    <div className="flex justify-between items-center pt-6 border-t border-slate-800">
-                        <div className="text-[10px] text-slate-500 italic">
+                    <div className="flex justify-between items-center pt-6 border-t border-border">
+                        <div className="text-[10px] text-muted-foreground italic">
                             Generated by SJS Asset Management System on {dayjs().format('DD MMM YYYY HH:mm')}
                         </div>
                         {asset.qr_code_url && (
@@ -253,9 +253,9 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
 
 const InfoItem = ({ label, value, icon }: { label: string, value: string, icon?: React.ReactNode }) => (
     <div>
-        <div className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter mb-0.5">{label}</div>
-        <div className="text-sm text-slate-200 font-semibold flex items-center gap-1.5">
-            {icon && <span className="text-slate-500">{icon}</span>}
+        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter mb-0.5">{label}</div>
+        <div className="text-sm text-foreground font-semibold flex items-center gap-1.5">
+            {icon && <span className="text-muted-foreground">{icon}</span>}
             {value}
         </div>
     </div>

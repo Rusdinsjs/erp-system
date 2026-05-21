@@ -6,6 +6,7 @@ export interface Category {
     code: string;
     parent_id?: string;
     description?: string;
+    asset_group?: string;
     attributes?: any;
     children?: Category[];
 }

@@ -233,6 +233,7 @@ pub struct AssetSearchParams {
     pub department: Option<String>,
     pub status: Option<String>,
     pub is_fuel: Option<bool>,
+    pub asset_group: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
     pub exact_match: Option<bool>,

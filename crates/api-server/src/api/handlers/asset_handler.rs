@@ -61,15 +61,22 @@ pub async fn list_assets(
     Extension(claims): Extension<UserClaims>,
     Query(params): Query<PaginationParams>,
 ) -> Result<Json<PaginatedResponse<AssetSummary>>, AppError> {
-    let department_filter = if claims.role == "super_admin" {
+    let department_filter = if claims.role == "super_admin" || claims.role == "admin" {
         None
     } else {
         claims.department.as_deref()
     };
 
+    let asset_group_filter = match claims.role.as_str() {
+        "admin_alat_berat" => Some("ALAT_BERAT"),
+        "admin_kendaraan" => Some("KENDARAAN"),
+        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+
     let result = state
         .asset_service
-        .list(params.page(), params.per_page(), department_filter)
+        .list(params.page(), params.per_page(), department_filter, asset_group_filter)
         .await?;
     Ok(Json(result))
 }
@@ -89,11 +96,19 @@ pub async fn search_assets(
     Extension(claims): Extension<UserClaims>,
     Query(mut params): Query<AssetSearchParams>,
 ) -> Result<Json<PaginatedResponse<AssetSummary>>, AppError> {
-    if claims.role != "super_admin" {
+    if claims.role != "super_admin" && claims.role != "admin" {
         if let Some(dept) = &claims.department {
             params.department = Some(dept.clone());
         }
     }
+
+    match claims.role.as_str() {
+        "admin_alat_berat" => params.asset_group = Some("ALAT_BERAT".to_string()),
+        "admin_kendaraan" => params.asset_group = Some("KENDARAAN".to_string()),
+        "admin_infrastruktur" => params.asset_group = Some("INFRASTRUKTUR".to_string()),
+        _ => {}
+    }
+
     let result = state.asset_service.search(params).await?;
     Ok(Json(result))
 }

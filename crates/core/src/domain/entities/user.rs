@@ -15,6 +15,9 @@ use utoipa::ToSchema;
 pub enum UserRole {
     SuperAdmin,
     Admin,
+    AdminAlatBerat,
+    AdminKendaraan,
+    AdminInfrastruktur,
     Manager,
     Technician,
     Staff,
@@ -26,6 +29,9 @@ impl UserRole {
         match self {
             Self::SuperAdmin => "super_admin",
             Self::Admin => "admin",
+            Self::AdminAlatBerat => "admin_alat_berat",
+            Self::AdminKendaraan => "admin_kendaraan",
+            Self::AdminInfrastruktur => "admin_infrastruktur",
             Self::Manager => "manager",
             Self::Technician => "technician",
             Self::Staff => "staff",
@@ -38,6 +44,9 @@ impl UserRole {
         match self {
             Self::SuperAdmin => vec!["*"],
             Self::Admin => vec!["asset.*", "user.read", "report.*", "maintenance.*"],
+            Self::AdminAlatBerat | Self::AdminKendaraan | Self::AdminInfrastruktur => {
+                vec!["asset.*", "user.read", "report.*", "maintenance.*"]
+            }
             Self::Manager => vec![
                 "asset.read",
                 "asset.update",
@@ -58,6 +67,9 @@ impl std::str::FromStr for UserRole {
         match s.to_lowercase().as_str() {
             "super_admin" => Ok(Self::SuperAdmin),
             "admin" => Ok(Self::Admin),
+            "admin_alat_berat" => Ok(Self::AdminAlatBerat),
+            "admin_kendaraan" => Ok(Self::AdminKendaraan),
+            "admin_infrastruktur" => Ok(Self::AdminInfrastruktur),
             "manager" => Ok(Self::Manager),
             "technician" => Ok(Self::Technician),
             "staff" => Ok(Self::Staff),
@@ -182,7 +194,7 @@ impl User {
     pub fn is_admin(&self) -> bool {
         matches!(
             self.role.parse::<UserRole>(),
-            Ok(UserRole::SuperAdmin) | Ok(UserRole::Admin)
+            Ok(UserRole::SuperAdmin) | Ok(UserRole::Admin) | Ok(UserRole::AdminAlatBerat) | Ok(UserRole::AdminKendaraan) | Ok(UserRole::AdminInfrastruktur)
         )
     }
 }

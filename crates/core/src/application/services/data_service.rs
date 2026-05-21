@@ -43,7 +43,7 @@ impl DataService {
         loop {
             let assets = self
                 .asset_repository
-                .list(batch_size, offset, None)
+                .list(batch_size, offset, None, None)
                 .await
                 .map_err(|e| DomainError::ExternalServiceError {
                     service: "database".to_string(),
