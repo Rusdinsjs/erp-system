@@ -15,7 +15,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { format } from 'date-fns';
 import { ImportInventoryModal } from '../../components/Inventory/ImportInventoryModal';
-import { api } from '../../api/http';
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
 import { InventoryVisuals } from '../../components/Inventory/InventoryVisuals';
 
