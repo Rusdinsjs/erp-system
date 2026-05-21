@@ -541,7 +541,7 @@ pub fn create_router(state: AppState) -> Router {
             "/api/maintenance",
             crate::api::routes::maintenance_routes::maintenance_routes(),
         )
-        .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes(state.clone()))
+        .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes())
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

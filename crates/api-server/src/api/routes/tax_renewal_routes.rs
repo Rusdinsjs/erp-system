@@ -8,7 +8,7 @@ use crate::api::middleware::rbac::require_permission;
 use crate::api::handlers::tax_renewal_handler;
 use crate::api::server::AppState;
 
-pub fn tax_renewal_routes(state: AppState) -> Router<AppState> {
+pub fn tax_renewal_routes() -> Router<AppState> {
     Router::new()
         .route(
             "/api/tax-renewals",
