@@ -31,5 +31,12 @@ jobs:
             # Build dan jalankan SEMUA layanan (termasuk AI Ollama yang baru ditambahkan)
             sudo docker compose up -d --build --remove-orphans
             
+            # Tunggu database siap, lalu sync password agar cocok dengan config
+            sleep 10
+            sudo docker exec mgmt-db psql -U postgres -c "ALTER USER postgres PASSWORD 'postgres';" || true
+            
+            # Restart backend agar koneksi database berhasil
+            sudo docker compose restart backend || true
+            
             # Bersihkan image yang tidak terpakai
             sudo docker image prune -f
