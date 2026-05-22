@@ -33,17 +33,45 @@ async fn main() {
     );
     tracing::info!("Environment: {}", config.environment);
 
-    // Database connection pool
-    let pool = PgPoolOptions::new()
-        .max_connections(50)
-        .min_connections(5)
-        .acquire_timeout(std::time::Duration::from_secs(30))
-        .idle_timeout(std::time::Duration::from_secs(600))
-        .connect(&config.database_url)
-        .await
-        .unwrap_or_else(|_| panic!("Failed to connect to database. Please check your DATABASE_URL environment variable."));
+    // Database connection pool — with retry logic (exponential backoff)
+    // This handles the case where postgres is temporarily unavailable on startup
+    let pool = {
+        let max_retries = 10u32;
+        let mut attempt = 0u32;
+        let mut last_err = String::new();
 
-    tracing::info!("Database connected successfully");
+        loop {
+            attempt += 1;
+            match PgPoolOptions::new()
+                .max_connections(50)
+                .min_connections(2)
+                .acquire_timeout(std::time::Duration::from_secs(10))
+                .idle_timeout(std::time::Duration::from_secs(600))
+                .connect(&config.database_url)
+                .await
+            {
+                Ok(pool) => {
+                    tracing::info!("Database connected successfully (attempt {}/{})", attempt, max_retries);
+                    break pool;
+                }
+                Err(e) => {
+                    last_err = e.to_string();
+                    if attempt >= max_retries {
+                        panic!(
+                            "Failed to connect to database after {} attempts. Last error: {}",
+                            max_retries, last_err
+                        );
+                    }
+                    let wait_secs = std::cmp::min(2u64.pow(attempt - 1), 30);
+                    tracing::warn!(
+                        "DB connection failed (attempt {}/{}): {}. Retrying in {}s...",
+                        attempt, max_retries, last_err, wait_secs
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(wait_secs)).await;
+                }
+            }
+        }
+    };
 
     // Run migrations
     tracing::info!("Running database migrations...");

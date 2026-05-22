@@ -25,96 +25,108 @@ jobs:
             git fetch --all
             git reset --hard origin/master || git reset --hard origin/main
 
-            # ── 2. Buat/update .env dari GitHub Secrets (SUMBER KEBENARAN) ────
-            # Ini memastikan password di .env SELALU sinkron dengan Secrets
-            cat > .env << 'ENVEOF'
-            ENVIRONMENT=production
-            DB_USER=${{ secrets.DB_USER }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_PORT=5432
-            DATABASE_URL=postgres://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@postgres:5432/${{ secrets.DB_NAME }}
-            REDIS_PORT=6379
-            SERVER_HOST=0.0.0.0
-            API_PORT=8080
-            SERVER_PORT=8080
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRATION_HOURS=24
-            RUST_LOG=info
-            ENVEOF
+            # ── 2. Baca kredensial dari .env di VPS ────────────────────────────
+            # File .env di VPS adalah SUMBER KEBENARAN untuk semua credentials.
+            # File ini TIDAK di-commit ke git, dikelola langsung di VPS.
+            if [ ! -f .env ]; then
+              echo "ERROR: File .env tidak ditemukan di VPS!"
+              echo "Buat dulu: cp .env.example .env && nano .env"
+              exit 1
+            fi
 
-            # ── 3. Stop semua container lama (kecuali postgres agar data aman) ─
-            sudo docker compose stop backend frontend migrate ms-ai-ollama redis || true
+            DB_USER=$(grep -E "^DB_USER=" .env | cut -d '=' -f2 | tr -d '\r\n')
+            DB_PASS=$(grep -E "^DB_PASSWORD=" .env | cut -d '=' -f2 | tr -d '\r\n')
+            DB_NAME=$(grep -E "^DB_NAME=" .env | cut -d '=' -f2 | tr -d '\r\n')
+            DB_USER=${DB_USER:-postgres}
+            DB_PASS=${DB_PASS:-postgres}
+            DB_NAME=${DB_NAME:-management_system}
 
-            # ── 4. Pastikan postgres berjalan dengan password yang benar ────────
-            POSTGRES_RUNNING=$(sudo docker ps --filter "name=mgmt-db" --format "{{.Names}}" 2>/dev/null || true)
+            echo ">> Menggunakan DB_USER=${DB_USER}, DB_NAME=${DB_NAME}"
 
-            if [ -z "$POSTGRES_RUNNING" ]; then
-              echo ">> Postgres belum jalan, start postgres dulu..."
+            # ── 3. Stop container lain (postgres TIDAK distop agar data aman) ──
+            sudo docker compose stop backend frontend ms-ai-ollama redis 2>/dev/null || true
+
+            # ── 4. Pastikan postgres berjalan ──────────────────────────────────
+            if ! sudo docker ps --filter "name=mgmt-db" --filter "status=running" \
+                --format "{{.Names}}" | grep -q "mgmt-db"; then
+              echo ">> Postgres belum jalan, start dulu..."
               sudo docker compose up -d postgres
+              sleep 15
             else
               echo ">> Postgres sudah jalan."
             fi
 
-            # Tunggu postgres benar-benar siap (maks 90 detik)
+            # ── 5. Tunggu postgres siap via UNIX SOCKET (tidak butuh password) ─
+            # Menggunakan 'su -c' sebagai OS user postgres → peer auth → bypass scram
             echo ">> Menunggu postgres siap..."
-            RETRIES=18
-            for i in $(seq 1 $RETRIES); do
-              if sudo docker exec mgmt-db pg_isready -U ${{ secrets.DB_USER }} > /dev/null 2>&1; then
-                echo ">> Postgres siap! ($i/$RETRIES)"
+            for i in $(seq 1 18); do
+              if sudo docker exec mgmt-db su -c "pg_isready -q" postgres 2>/dev/null; then
+                echo ">> Postgres siap! ($i/18)"
                 break
               fi
-              if [ $i -eq $RETRIES ]; then
-                echo "ERROR: Postgres tidak siap setelah $((RETRIES * 5)) detik!"
-                sudo docker logs mgmt-db --tail 50
+              if [ "$i" -eq 18 ]; then
+                echo "ERROR: Postgres tidak siap setelah 90 detik!"
+                sudo docker logs mgmt-db --tail 30
                 exit 1
               fi
-              echo "   Menunggu... ($i/$RETRIES)"
+              echo "   Menunggu... ($i/18)"
               sleep 5
             done
 
-            # ── 5. Sinkronkan password postgres agar PASTI cocok dengan .env ───
-            # Ini menyelesaikan masalah "password authentication failed"
-            echo ">> Sinkronisasi password postgres..."
-            sudo docker exec mgmt-db psql -U postgres -c \
-              "ALTER USER ${{ secrets.DB_USER }} WITH PASSWORD '${{ secrets.DB_PASSWORD }}';" || \
-            sudo docker exec mgmt-db psql -U ${{ secrets.DB_USER }} -c \
-              "ALTER USER ${{ secrets.DB_USER }} WITH PASSWORD '${{ secrets.DB_PASSWORD }}';"
+            # ── 6. SINKRONISASI PASSWORD (PERMANEN, TIDAK PERNAH GAGAL) ────────
+            # Teknik: koneksi via Unix socket sebagai OS user 'postgres'
+            # → pg_hba.conf: "local all all trust" → tidak perlu password APAPUN
+            # → Berhasil terlepas dari password postgres yang tersimpan di volume
+            echo ">> Sinkronisasi password (via Unix socket / peer auth)..."
+            sudo docker exec mgmt-db su -c \
+              "psql -U postgres -c \"ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASS}';\"" \
+              postgres
+            echo ">> Password berhasil disinkronkan ke .env!"
 
-            # Juga pastikan database ada
-            sudo docker exec mgmt-db psql -U postgres -tc \
-              "SELECT 1 FROM pg_database WHERE datname='${{ secrets.DB_NAME }}';" | grep -q 1 || \
-            sudo docker exec mgmt-db psql -U postgres -c \
-              "CREATE DATABASE ${{ secrets.DB_NAME }} OWNER ${{ secrets.DB_USER }};"
+            # Pastikan database target ada
+            sudo docker exec mgmt-db su -c "
+              psql -U postgres -tc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}';\" \
+              | grep -q 1 \
+              || psql -U postgres -c \"CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};\"
+            " postgres
 
-            # ── 6. Build semua image ────────────────────────────────────────────
+            # ── 7. Build image (hanya rebuild yang berubah) ────────────────────
             echo ">> Build image docker..."
-            sudo docker compose build --no-cache backend frontend
+            sudo docker compose build backend frontend
 
-            # ── 7. Start semua layanan ──────────────────────────────────────────
+            # ── 8. Start semua layanan ─────────────────────────────────────────
             echo ">> Start semua layanan..."
             sudo docker compose up -d --remove-orphans
 
-            # ── 8. Tunggu backend siap ──────────────────────────────────────────
+            # ── 9. Tunggu backend benar-benar siap ────────────────────────────
             echo ">> Menunggu backend siap..."
-            for i in $(seq 1 12); do
-              if sudo docker exec mgmt-backend curl -sf http://localhost:8080/health > /dev/null 2>&1; then
-                echo ">> Backend siap!"
+            BACKEND_OK=0
+            for i in $(seq 1 24); do
+              if sudo docker exec mgmt-backend curl -sf http://localhost:8080/health \
+                  >/dev/null 2>&1; then
+                echo ">> Backend SIAP! ($i/24)"
+                BACKEND_OK=1
                 break
               fi
-              if [ $i -eq 12 ]; then
-                echo "WARNING: Backend belum merespons setelah 60 detik."
-                echo ">> Log backend:"
-                sudo docker logs mgmt-backend --tail 30
-              fi
-              echo "   Menunggu backend... ($i/12)"
+              echo "   Menunggu backend... ($i/24)"
               sleep 5
             done
 
-            # ── 9. Reload Nginx ─────────────────────────────────────────────────
+            if [ "$BACKEND_OK" -eq 0 ]; then
+              echo ""
+              echo "⚠️  WARNING: Backend tidak merespons setelah 120 detik."
+              echo ">> Log backend (50 baris terakhir):"
+              sudo docker logs mgmt-backend --tail 50
+              echo ""
+              echo ">> Status semua container:"
+              sudo docker compose ps
+              # Tidak exit 1 — Nginx tetap direload, container sudah jalan
+            fi
+
+            # ── 10. Reload Nginx ───────────────────────────────────────────────
             sudo systemctl reload nginx || true
 
-            # ── 10. Bersihkan image lama ────────────────────────────────────────
+            # ── 11. Bersihkan image lama ───────────────────────────────────────
             sudo docker image prune -f
 
             echo ""
