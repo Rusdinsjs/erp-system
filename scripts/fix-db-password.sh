@@ -6,7 +6,10 @@
 # ============================================================
 
 set -e
-cd ~/management-system
+# Pindah ke root project (direktori parent dari folder scripts/)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_ROOT"
+echo ">> Project root: $PROJECT_ROOT"
 
 echo ""
 echo "══════════════════════════════════════════════════"
