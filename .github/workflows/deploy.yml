@@ -18,38 +18,107 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           command_timeout: 60m
           script: |
+            set -e
             cd ~/management-system
-            
-            # Ambil pembaruan terbaru dari GitHub
+
+            # ── 1. Ambil kode terbaru ──────────────────────────────────────────
             git fetch --all
             git reset --hard origin/master || git reset --hard origin/main
-            git pull
-            
-            # Restart Nginx di VPS
-            sudo systemctl reload nginx || true
-            
-            # Build dan jalankan SEMUA layanan (termasuk AI Ollama yang baru ditambahkan)
-            sudo docker compose up -d --build --remove-orphans
-            
-            # Tunggu postgres benar-benar siap (retry loop, maks 60 detik)
-            echo "Waiting for postgres to be ready..."
-            for i in $(seq 1 12); do
-              if sudo docker exec mgmt-db pg_isready -U postgres > /dev/null 2>&1; then
-                echo "Postgres is ready!"
+
+            # ── 2. Buat/update .env dari GitHub Secrets (SUMBER KEBENARAN) ────
+            # Ini memastikan password di .env SELALU sinkron dengan Secrets
+            cat > .env << 'ENVEOF'
+            ENVIRONMENT=production
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_PORT=5432
+            DATABASE_URL=postgres://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@postgres:5432/${{ secrets.DB_NAME }}
+            REDIS_PORT=6379
+            SERVER_HOST=0.0.0.0
+            API_PORT=8080
+            SERVER_PORT=8080
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRATION_HOURS=24
+            RUST_LOG=info
+            ENVEOF
+
+            # ── 3. Stop semua container lama (kecuali postgres agar data aman) ─
+            sudo docker compose stop backend frontend migrate ms-ai-ollama redis || true
+
+            # ── 4. Pastikan postgres berjalan dengan password yang benar ────────
+            POSTGRES_RUNNING=$(sudo docker ps --filter "name=mgmt-db" --format "{{.Names}}" 2>/dev/null || true)
+
+            if [ -z "$POSTGRES_RUNNING" ]; then
+              echo ">> Postgres belum jalan, start postgres dulu..."
+              sudo docker compose up -d postgres
+            else
+              echo ">> Postgres sudah jalan."
+            fi
+
+            # Tunggu postgres benar-benar siap (maks 90 detik)
+            echo ">> Menunggu postgres siap..."
+            RETRIES=18
+            for i in $(seq 1 $RETRIES); do
+              if sudo docker exec mgmt-db pg_isready -U ${{ secrets.DB_USER }} > /dev/null 2>&1; then
+                echo ">> Postgres siap! ($i/$RETRIES)"
                 break
               fi
-              echo "Waiting... ($i/12)"
+              if [ $i -eq $RETRIES ]; then
+                echo "ERROR: Postgres tidak siap setelah $((RETRIES * 5)) detik!"
+                sudo docker logs mgmt-db --tail 50
+                exit 1
+              fi
+              echo "   Menunggu... ($i/$RETRIES)"
               sleep 5
             done
-            
-            # Sync password agar cocok dengan DATABASE_URL di config
-            # Ambil password dari .env
-            DB_PASS=$(grep -E "^DB_PASSWORD=" .env | cut -d '=' -f2)
-            if [ -z "$DB_PASS" ]; then DB_PASS="postgres"; fi
-            sudo docker exec mgmt-db psql -U postgres -c "ALTER USER postgres PASSWORD '${DB_PASS}';"
-            
-            # Restart backend agar koneksi database fresh
-            sudo docker compose restart backend
-            
-            # Bersihkan image yang tidak terpakai
+
+            # ── 5. Sinkronkan password postgres agar PASTI cocok dengan .env ───
+            # Ini menyelesaikan masalah "password authentication failed"
+            echo ">> Sinkronisasi password postgres..."
+            sudo docker exec mgmt-db psql -U postgres -c \
+              "ALTER USER ${{ secrets.DB_USER }} WITH PASSWORD '${{ secrets.DB_PASSWORD }}';" || \
+            sudo docker exec mgmt-db psql -U ${{ secrets.DB_USER }} -c \
+              "ALTER USER ${{ secrets.DB_USER }} WITH PASSWORD '${{ secrets.DB_PASSWORD }}';"
+
+            # Juga pastikan database ada
+            sudo docker exec mgmt-db psql -U postgres -tc \
+              "SELECT 1 FROM pg_database WHERE datname='${{ secrets.DB_NAME }}';" | grep -q 1 || \
+            sudo docker exec mgmt-db psql -U postgres -c \
+              "CREATE DATABASE ${{ secrets.DB_NAME }} OWNER ${{ secrets.DB_USER }};"
+
+            # ── 6. Build semua image ────────────────────────────────────────────
+            echo ">> Build image docker..."
+            sudo docker compose build --no-cache backend frontend
+
+            # ── 7. Start semua layanan ──────────────────────────────────────────
+            echo ">> Start semua layanan..."
+            sudo docker compose up -d --remove-orphans
+
+            # ── 8. Tunggu backend siap ──────────────────────────────────────────
+            echo ">> Menunggu backend siap..."
+            for i in $(seq 1 12); do
+              if sudo docker exec mgmt-backend curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+                echo ">> Backend siap!"
+                break
+              fi
+              if [ $i -eq 12 ]; then
+                echo "WARNING: Backend belum merespons setelah 60 detik."
+                echo ">> Log backend:"
+                sudo docker logs mgmt-backend --tail 30
+              fi
+              echo "   Menunggu backend... ($i/12)"
+              sleep 5
+            done
+
+            # ── 9. Reload Nginx ─────────────────────────────────────────────────
+            sudo systemctl reload nginx || true
+
+            # ── 10. Bersihkan image lama ────────────────────────────────────────
             sudo docker image prune -f
+
+            echo ""
+            echo "════════════════════════════════════════"
+            echo "  ✅ DEPLOY SELESAI!"
+            echo "════════════════════════════════════════"
+            sudo docker compose ps
