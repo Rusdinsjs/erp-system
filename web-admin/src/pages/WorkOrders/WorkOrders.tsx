@@ -12,7 +12,7 @@ import { useWebSocket } from '../../contexts/WebSocketContext';
 import {
     Button,
     Card,
-    Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableEmpty,
+    Table, TableHead, TableBody, TableRow,
     StatusBadge,
     ActionIcon,
     Pagination,
@@ -21,7 +21,6 @@ import {
     Tabs,
     TabsList,
     TabsTrigger,
-    TableSkeleton,
 } from '../../components/ui';
 
 export default function WorkOrders() {
@@ -82,13 +81,6 @@ export default function WorkOrders() {
     const handleCreate = () => {
         setSelectedId(null);
         setDrawerOpen(true);
-    };
-
-    const handleDelete = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (confirm('Are you sure you want to delete this Work Order?')) {
-            deleteMutation.mutate(id);
-        }
     };
 
     return (
@@ -278,7 +270,7 @@ export default function WorkOrders() {
                                                     <div className="text-[10px] uppercase tracking-widest font-bold">Drop Zone Empty</div>
                                                 </div>
                                             ) : (
-                                                colRecords.map((wo) => (
+                                                colRecords.map((wo: any) => (
                                                     <div 
                                                         key={wo.id} 
                                                         onClick={() => navigate(`/work-orders/${wo.id}`)}
@@ -310,8 +302,8 @@ export default function WorkOrders() {
                                                             
                                                             <div className="flex justify-between items-center pt-2 border-t border-border/50">
                                                                 <div className="flex items-center gap-1.5 text-muted-foreground">
-                                                                    <Clock size={12} className={new Date(wo.scheduled_date) < new Date() && wo.status !== 'completed' ? 'text-destructive' : ''} />
-                                                                    <span className={`text-[10px] font-bold uppercase ${new Date(wo.scheduled_date) < new Date() && wo.status !== 'completed' ? 'text-destructive' : ''}`}>
+                                                                    <Clock size={12} className={new Date(wo.scheduled_date || '').getTime() < Date.now() && wo.status !== 'completed' ? 'text-destructive' : ''} />
+                                                                    <span className={`text-[10px] font-bold uppercase ${new Date(wo.scheduled_date || '').getTime() < Date.now() && wo.status !== 'completed' ? 'text-destructive' : ''}`}>
                                                                         {wo.scheduled_date}
                                                                     </span>
                                                                 </div>
