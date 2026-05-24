@@ -169,6 +169,7 @@ export default function JournalEntryForm() {
                             className="w-full bg-background/50 border border-border rounded-2xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary/50 focus:border-transparent outline-none resize-none transition-all hover:border-primary/30"
                         />
                     </div>
+                    </div>
                 </div>
 
                 {/* Lines Section */}

@@ -137,7 +137,6 @@ export default function AnalyticsDashboard() {
                             </ResponsiveContainer>
                         </div>
                     </div>
-                </div>
 
                 {/* Financial Performance */}
                 <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[400px] flex flex-col">
