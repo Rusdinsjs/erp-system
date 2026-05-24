@@ -718,7 +718,6 @@ export default function Assets() {
                         </>
                     )}
                 </div>
-                </div>
 
                 {/* Pagination */}
                 {assetsData?.total_pages > 1 && (
