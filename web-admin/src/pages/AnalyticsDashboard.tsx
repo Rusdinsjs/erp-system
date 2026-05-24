@@ -85,13 +85,17 @@ export default function AnalyticsDashboard() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-8 relative p-8">
+            <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/3 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                 {/* Asset Status Distribution */}
-                <Card className="min-h-[400px] flex flex-col">
-                    <div className="flex items-center gap-2 mb-6">
-                        <PieIcon className="text-cyan-400" size={20} />
-                        <h3 className="font-bold text-lg text-white">Asset Status Distribution</h3>
+                <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[400px] flex flex-col">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="flex items-center gap-3 mb-8 text-foreground font-black uppercase tracking-widest text-sm relative z-10">
+                        <PieIcon className="text-cyan-400" size={24} />
+                        <h3>Asset Status Distribution</h3>
                     </div>
                     <div className="flex-1 w-full h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -121,24 +125,26 @@ export default function AnalyticsDashboard() {
                                         return [value, formatStatusLabel(name)];
                                     }}
                                 />
-                                <Legend
-                                    verticalAlign="bottom"
-                                    height={36}
-                                    formatter={(value?: string) => {
-                                        if (!value) return 'Unknown';
-                                        return formatStatusLabel(value);
-                                    }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
+                                    <Legend
+                                        verticalAlign="bottom"
+                                        height={36}
+                                        formatter={(value?: string) => {
+                                            if (!value) return 'Unknown';
+                                            return <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{formatStatusLabel(value)}</span>;
+                                        }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                </Card>
+                </div>
 
                 {/* Financial Performance */}
-                <Card className="min-h-[400px] flex flex-col">
-                    <div className="flex items-center gap-2 mb-6">
-                        <TrendingUp className="text-emerald-400" size={20} />
-                        <h3 className="font-bold text-lg text-white">Financial Performance (YTD)</h3>
+                <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[400px] flex flex-col">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="flex items-center gap-3 mb-8 text-foreground font-black uppercase tracking-widest text-sm relative z-10">
+                        <TrendingUp className="text-emerald-400" size={24} />
+                        <h3>Financial Performance (YTD)</h3>
                     </div>
                     <div className="flex-1 w-full h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -168,15 +174,16 @@ export default function AnalyticsDashboard() {
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                </Card>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-8 relative z-10">
                 {/* Bar Chart for Net Profit */}
-                <Card className="min-h-[400px]">
-                    <div className="flex items-center gap-2 mb-6">
-                        <DollarSign className="text-amber-400" size={20} />
-                        <h3 className="font-bold text-lg text-white">Net Profit Analysis</h3>
+                <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[400px]">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="flex items-center gap-3 mb-8 text-foreground font-black uppercase tracking-widest text-sm relative z-10">
+                        <DollarSign className="text-amber-400" size={24} />
+                        <h3>Net Profit Analysis</h3>
                     </div>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -194,11 +201,11 @@ export default function AnalyticsDashboard() {
                                     contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }}
                                 />
                                 <Legend />
-                                <Bar dataKey="net_profit" name="Net Profit" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="net_profit" name="Net Profit" fill="#f59e0b" radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                </Card>
+                </div>
             </div>
         </div>
     );

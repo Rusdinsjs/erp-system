@@ -33,12 +33,12 @@ export function BillingList() {
     });
 
     return (
-        <div className="flex flex-col h-full bg-gray-900/10">
+        <div className="flex flex-col h-full bg-background rounded-b-2xl">
             {/* Contextual Header */}
-            <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-gray-950/20 backdrop-blur-sm">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-card/40 backdrop-blur-md">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                        <Receipt size={20} className="text-purple-400" />
+                        <Receipt size={20} className="text-purple-500" />
                     </div>
                     <div className="w-[350px]">
                         <Select
@@ -46,7 +46,7 @@ export function BillingList() {
                             options={rentalOptions}
                             value={selectedRental}
                             onChange={(val) => setSelectedRental(val)}
-                            className="bg-black/40 border-white/5 rounded-xl h-11"
+                            className="bg-background/50 border-border rounded-xl h-11"
                         />
                     </div>
                 </div>
@@ -55,7 +55,7 @@ export function BillingList() {
                     leftIcon={<Plus size={18} />}
                     disabled={!selectedRental}
                     onClick={() => setCreateModalOpen(true)}
-                    className="rounded-xl shadow-lg shadow-purple-500/20 bg-purple-600 hover:bg-purple-500 h-11 px-6 text-[11px] font-black uppercase tracking-widest disabled:opacity-30"
+                    className="rounded-xl shadow-lg shadow-purple-500/20 bg-purple-600 hover:bg-purple-500 h-11 px-6 text-[11px] font-black uppercase tracking-widest disabled:opacity-30 text-white"
                 >
                     Manual Invoice Cycle
                 </Button>
@@ -65,59 +65,59 @@ export function BillingList() {
                 <LoadingOverlay visible={isLoading} />
 
                 {selectedRental ? (
-                    <div className="flex-1 overflow-auto custom-scrollbar">
-                        <table className="w-full text-left text-sm text-gray-300 border-separate border-spacing-0">
-                            <thead className="bg-gray-950/80 sticky top-0 z-20 backdrop-blur-md">
+                    <div className="flex-1 overflow-auto custom-scrollbar p-6">
+                        <table className="w-full text-left text-sm text-foreground border-separate border-spacing-y-2">
+                            <thead className="bg-card/80 sticky top-0 z-20 backdrop-blur-md rounded-xl">
                                 <tr>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Billing Cycle</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Financial Volume</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Lifecycle</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5">Invoice Ref</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest border-b border-white/5 text-center">Actions</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Billing Cycle</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Financial Volume</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Lifecycle</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Invoice Ref</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody>
                                 {billingPeriods && billingPeriods.length > 0 ? (
                                     billingPeriods.map((bP) => (
-                                        <tr key={bP.id} className="group hover:bg-white/[0.03] transition-all duration-300">
-                                            <td className="px-6 py-4">
+                                        <tr key={bP.id} className="group hover:bg-muted/40 transition-all duration-300 bg-card/40 backdrop-blur-sm border border-border shadow-sm">
+                                            <td className="px-6 py-4 rounded-l-xl border-y border-l border-border">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5 group-hover:bg-purple-500/10 transition-colors">
-                                                        <Calendar size={14} className="text-gray-500 group-hover:text-purple-400" />
+                                                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center border border-border group-hover:bg-purple-500/10 transition-colors">
+                                                        <Calendar size={14} className="text-muted-foreground group-hover:text-purple-500" />
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-gray-200 font-bold tracking-tight uppercase">{bP.period_start} - {bP.period_end}</span>
+                                                        <span className="text-foreground font-bold tracking-tight uppercase">{bP.period_start} - {bP.period_end}</span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 border-y border-border">
                                                 <div className="flex flex-col">
-                                                    <span className="text-emerald-400 font-black text-lg tracking-tighter italic">
+                                                    <span className="text-emerald-500 font-black text-lg tracking-tighter italic">
                                                         <span className="text-xs font-normal opacity-50 mr-0.5">Rp</span>
                                                         {bP.total_amount?.toLocaleString('id-ID')}
                                                     </span>
-                                                    <span className="text-[10px] font-bold text-gray-600 uppercase">Settlement Target</span>
+                                                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Settlement Target</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <StatusBadge status={bP.status} className="px-3 py-1 text-[10px] uppercase font-black tracking-widest shadow-lg shadow-black/20" />
+                                            <td className="px-6 py-4 border-y border-border">
+                                                <StatusBadge status={bP.status} className="px-3 py-1 text-[10px] uppercase font-black tracking-widest shadow-sm shadow-black/5" />
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 border-y border-border">
                                                 <div className="flex items-center gap-2">
-                                                    <FileText size={14} className="text-gray-600" />
-                                                    <span className="font-mono text-xs text-gray-400 tracking-wider">
+                                                    <FileText size={14} className="text-muted-foreground" />
+                                                    <span className="font-mono text-xs text-muted-foreground tracking-wider font-medium">
                                                         {bP.invoice_number || 'PENDING GENERATION'}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 rounded-r-xl border-y border-r border-border text-center">
                                                 <div className="flex justify-center">
                                                     <ActionIcon
                                                         onClick={() => setViewingBillingId(bP.id)}
                                                         variant="default"
-                                                        className="w-10 h-10 rounded-xl hover:bg-white/10 w-10 h-10 transform group-hover:scale-110 transition-all"
+                                                        className="w-10 h-10 rounded-xl hover:bg-primary hover:text-white hover:border-primary transform group-hover:scale-110 transition-all shadow-sm"
                                                     >
-                                                        <Eye size={18} className="text-gray-400 group-hover:text-white" />
+                                                        <Eye size={18} className="text-muted-foreground group-hover:text-white" />
                                                     </ActionIcon>
                                                 </div>
                                             </td>
@@ -125,9 +125,9 @@ export function BillingList() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} className="py-24 text-center">
-                                            <div className="flex flex-col items-center justify-center gap-4 text-gray-600">
-                                                <div className="p-6 bg-white/5 rounded-full">
+                                        <td colSpan={5} className="py-24 text-center border border-border rounded-xl bg-card/20 backdrop-blur-sm">
+                                            <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                                                <div className="p-6 bg-muted/50 rounded-full border border-border">
                                                     <Receipt size={48} className="opacity-20" />
                                                 </div>
                                                 <p className="text-sm font-bold uppercase tracking-widest opacity-50">No billing history found for this ledger</p>
@@ -136,7 +136,7 @@ export function BillingList() {
                                                     size="sm"
                                                     disabled={!selectedRental}
                                                     onClick={() => setCreateModalOpen(true)}
-                                                    className="rounded-xl"
+                                                    className="rounded-xl mt-2 hover:scale-105 transition-transform"
                                                 >
                                                     Initialize First Cycle
                                                 </Button>
@@ -149,11 +149,11 @@ export function BillingList() {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
-                        <div className="w-24 h-24 rounded-full bg-purple-500/5 border border-dashed border-purple-500/20 flex items-center justify-center mb-6">
-                            <Receipt size={48} className="text-purple-500/20" />
+                        <div className="w-24 h-24 rounded-full bg-purple-500/10 border border-dashed border-purple-500/30 flex items-center justify-center mb-6 animate-pulse">
+                            <Receipt size={48} className="text-purple-500" />
                         </div>
-                        <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">Ledger Selection Required</h4>
-                        <p className="text-gray-500 max-w-sm font-medium">Select a rental financial stream from the dropdown above to audit billing cycles.</p>
+                        <h4 className="text-xl font-black text-foreground uppercase tracking-tight mb-2">Ledger Selection Required</h4>
+                        <p className="text-muted-foreground max-w-sm font-medium">Select a rental financial stream from the dropdown above to audit billing cycles.</p>
                     </div>
                 )}
             </div>

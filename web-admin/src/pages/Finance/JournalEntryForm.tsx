@@ -117,22 +117,27 @@ export default function JournalEntryForm() {
     };
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto">
-            <div className="flex items-center gap-4">
+        <div className="space-y-6 max-w-5xl mx-auto p-8">
+            <div className="flex items-center gap-4 mb-8">
                 <button
                     onClick={() => navigate('/finance/journals')}
-                    className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-3 bg-card/40 backdrop-blur-xl border border-border hover:bg-muted rounded-2xl text-muted-foreground hover:text-foreground transition-all hover:-translate-x-1"
                 >
                     <ArrowLeft size={20} />
                 </button>
                 <div>
-                    <h2 className="text-2xl font-bold text-foreground">New Journal Entry</h2>
+                    <h2 className="text-3xl font-bold text-foreground tracking-tight">New Journal Entry</h2>
+                    <p className="text-muted-foreground mt-1">Record a manual double-entry transaction</p>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8 relative">
+                <div className="absolute top-1/4 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
+
                 {/* Header Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-xl relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-muted-foreground">Date</label>
                         <input
@@ -154,22 +159,24 @@ export default function JournalEntryForm() {
                         />
                     </div>
                     <div className="space-y-2 md:col-span-3">
-                        <label className="block text-sm font-medium text-muted-foreground">Description</label>
+                        <label className="block text-xs font-black uppercase tracking-widest text-muted-foreground mb-1">Description</label>
                         <textarea
                             required
                             rows={2}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Transaction description"
-                            className="w-full bg-background border border-input rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none"
+                            className="w-full bg-background/50 border border-border rounded-2xl px-4 py-3 text-foreground focus:ring-2 focus:ring-primary/50 focus:border-transparent outline-none resize-none transition-all hover:border-primary/30"
                         />
                     </div>
                 </div>
 
                 {/* Lines Section */}
-                <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 border-b border-border flex justify-between items-center">
-                        <h3 className="font-semibold text-foreground">Journal Lines</h3>
+                <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl overflow-hidden shadow-xl relative z-10">
+                    <div className="p-6 border-b border-border flex justify-between items-center bg-muted/20">
+                        <h3 className="font-bold text-foreground text-sm uppercase tracking-widest flex items-center gap-2">
+                            <Plus size={16} className="text-primary" /> Journal Lines
+                        </h3>
                     </div>
 
                     <div className="p-4">
@@ -257,47 +264,48 @@ export default function JournalEntryForm() {
                     </div>
 
                     {/* Totals Footer */}
-                    <div className={`px-6 py-4 border-t border-border ${isBalanced ? 'bg-card' : 'bg-destructive/10'}`}>
-                        <div className="flex justify-between items-center max-w-2xl ml-auto mr-12">
+                    <div className={`px-8 py-6 border-t border-border transition-colors ${isBalanced ? 'bg-emerald-500/5' : 'bg-destructive/10'}`}>
+                        <div className="flex justify-end gap-16 max-w-2xl ml-auto mr-12">
                             <div className="text-right">
-                                <p className="text-xs text-muted-foreground uppercase font-medium">Total Debit</p>
-                                <p className="text-lg font-bold text-foreground font-mono">{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total Debit</p>
+                                <p className="text-2xl font-black text-foreground font-mono">{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs text-muted-foreground uppercase font-medium">Total Credit</p>
-                                <p className="text-lg font-bold text-foreground font-mono">{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total Credit</p>
+                                <p className="text-2xl font-black text-foreground font-mono">{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs text-muted-foreground uppercase font-medium">Difference</p>
-                                <p className={`text-lg font-bold font-mono ${isBalanced ? 'text-green-500' : 'text-destructive'}`}>
+                                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Difference</p>
+                                <p className={`text-2xl font-black font-mono ${isBalanced ? 'text-emerald-500' : 'text-destructive animate-pulse'}`}>
                                     {Math.abs(difference).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </p>
                             </div>
                         </div>
                         {!isBalanced && (
-                            <div className="flex justify-end mt-2 mr-12 text-destructive text-sm items-center gap-2">
-                                <AlertCircle size={14} />
+                            <div className="flex justify-end mt-4 mr-12 text-destructive text-sm items-center gap-2 font-bold bg-destructive/10 inline-flex px-4 py-2 rounded-lg ml-auto float-right">
+                                <AlertCircle size={16} />
                                 Entry must be balanced to save
                             </div>
                         )}
+                        <div className="clear-both"></div>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <div className="flex justify-end gap-4 pt-4 relative z-10">
                     <button
                         type="button"
                         onClick={() => navigate('/finance/journals')}
-                        className="px-6 py-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
+                        className="px-8 py-3 rounded-2xl border border-border bg-card/50 hover:bg-muted text-foreground transition-all font-bold"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={!isBalanced || submitting || totalDebit === 0}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-primary-foreground font-medium transition-all ${!isBalanced || submitting || totalDebit === 0
-                            ? 'bg-muted cursor-not-allowed opacity-50'
-                            : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20'
+                        className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all ${!isBalanced || submitting || totalDebit === 0
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                            : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20 hover:-translate-y-1'
                             }`}
                     >
                         <Save size={18} />

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { rentalApi } from '../../api/rental';
 import {
     Button,
-    Badge,
     ActionIcon,
     Pagination,
     StatusBadge,
@@ -60,102 +59,101 @@ export function RentalList() {
                         <TableSkeleton rows={10} cols={6} />
                     </div>
                 ) : (
-                    <div className="flex-1 overflow-auto custom-scrollbar">
-                        <table className="w-full text-left text-sm text-foreground/80 border-separate border-spacing-0">
-                            <thead className="bg-card/90 sticky top-0 z-20 backdrop-blur-md">
-                                <tr>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Order Ref</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Client Entity</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Utilization</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Operating Window</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Lifecycle</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {paginatedRentals && paginatedRentals.length > 0 ? (
-                                    paginatedRentals.map((rental) => (
-                                        <tr
-                                            key={rental.id}
-                                            className="group cursor-pointer hover:bg-muted/30 transition-all duration-300"
-                                            onClick={() => navigate(`/rentals/${rental.id}`)}
-                                        >
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                    <span className="font-mono text-sm text-primary font-bold group-hover:text-primary/80 transition-colors">
+                    <div className="flex-1 overflow-auto custom-scrollbar p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            {paginatedRentals && paginatedRentals.length > 0 ? (
+                                paginatedRentals.map((rental) => (
+                                    <div
+                                        key={rental.id}
+                                        onClick={() => navigate(`/rentals/${rental.id}`)}
+                                        className="group cursor-pointer relative bg-card/40 border border-border hover:border-emerald-500/40 rounded-3xl p-6 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 overflow-hidden backdrop-blur-xl flex flex-col"
+                                    >
+                                        {/* Decorative Gradient Blob */}
+                                        <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] group-hover:bg-emerald-500/20 transition-colors duration-500 pointer-events-none" />
+
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            {/* Header */}
+                                            <div className="flex justify-between items-start mb-6 border-b border-border/50 pb-4">
+                                                <div>
+                                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-1">Order Ref</span>
+                                                    <div className="font-mono text-xl font-bold text-foreground group-hover:text-emerald-500 transition-colors uppercase tracking-tight">
                                                         #{rental.rental_number}
-                                                    </span>
-                                                    <span className="text-[10px] text-muted-foreground uppercase font-medium">Record ID: {rental.id.slice(0, 8)}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center border border-border">
-                                                        <User size={14} className="text-muted-foreground" />
-                                                    </div>
-                                                    <span className="text-foreground font-bold tracking-tight group-hover:translate-x-1 transition-transform inline-block">
-                                                        {rental.client_name}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Badge variant="default" className="bg-muted/50 border-border text-muted-foreground font-bold text-[10px] space-x-1">
-                                                    <span className="text-emerald-500">{rental.items?.length || 0}</span>
-                                                    <span className="opacity-50">Assets Deployed</span>
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <div className="flex items-center gap-1.5 text-foreground">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                        <span className="text-xs font-bold">{rental.start_date}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                                                        <span className="text-[10px] font-medium italic">{rental.expected_end_date || 'Ongoing / Indefinite'}</span>
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <StatusBadge status={rental.status} className="px-3 py-1 text-[10px] uppercase font-black tracking-widest shadow-lg shadow-black/5" />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex justify-center">
-                                                    <ActionIcon
-                                                        onClick={(e) => { e.stopPropagation(); navigate(`/rentals/${rental.id}`); }}
-                                                        variant="default"
-                                                        className="w-10 h-10 rounded-xl hover:bg-primary hover:text-primary-foreground transition-all transform group-hover:scale-110"
-                                                    >
-                                                        <Eye size={18} />
-                                                    </ActionIcon>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    !isLoading && (
-                                        <tr>
-                                            <td colSpan={6} className="py-24 text-center">
-                                                <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground">
-                                                    <div className="p-6 bg-muted/20 rounded-full">
-                                                        <Truck size={48} className="opacity-20" />
+                                                <StatusBadge status={rental.status} className="px-3 py-1.5 text-[10px] uppercase font-black tracking-widest shadow-lg shadow-black/5" />
+                                            </div>
+
+                                            {/* Body */}
+                                            <div className="flex-1 space-y-6">
+                                                {/* Client Info */}
+                                                <div className="flex items-center gap-4 bg-muted/20 p-4 rounded-2xl border border-border/50 group-hover:bg-muted/30 transition-colors">
+                                                    <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center border border-border shrink-0">
+                                                        <User size={20} className="text-muted-foreground" />
                                                     </div>
-                                                    <p className="text-sm font-bold uppercase tracking-widest opacity-50">No active rentals found in the system</p>
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        onClick={() => navigate('/rentals/new')}
-                                                        className="rounded-xl"
-                                                    >
-                                                        Initialize New Order
-                                                    </Button>
+                                                    <div>
+                                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Client Entity</span>
+                                                        <span className="text-foreground font-bold tracking-tight inline-block line-clamp-1 group-hover:translate-x-1 transition-transform">
+                                                            {rental.client_name}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    )
-                                )}
-                            </tbody>
-                        </table>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl">
+                                                        <span className="text-[10px] font-bold text-emerald-500/60 uppercase tracking-widest block mb-1">Utilization</span>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <span className="text-2xl font-black text-emerald-500 tracking-tighter">{rental.items?.length || 0}</span>
+                                                            <span className="text-[10px] font-bold text-emerald-500/60 uppercase">Assets</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl flex flex-col justify-center">
+                                                        <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest block mb-1">Operating Window</span>
+                                                        <div className="flex items-center gap-1.5 text-foreground mb-1">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                            <span className="text-xs font-bold">{rental.start_date}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                                                            <span className="text-[10px] font-medium italic line-clamp-1">{rental.expected_end_date || 'Indefinite'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Footer Actions */}
+                                            <div className="mt-6 pt-4 border-t border-border/50 flex justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                                <ActionIcon
+                                                    onClick={(e) => { e.stopPropagation(); navigate(`/rentals/${rental.id}`); }}
+                                                    variant="default"
+                                                    className="rounded-xl hover:bg-emerald-500 hover:text-white hover:border-emerald-500 w-10 h-10 border border-border shadow-lg shadow-black/5"
+                                                >
+                                                    <Eye size={16} />
+                                                </ActionIcon>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                !isLoading && (
+                                    <div className="col-span-full py-24 text-center">
+                                        <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                                            <div className="p-6 bg-muted/20 rounded-full border border-border/50 shadow-inner">
+                                                <Truck size={48} className="opacity-20" />
+                                            </div>
+                                            <p className="text-sm font-bold uppercase tracking-widest opacity-50 mt-4">No active rentals found in the system</p>
+                                            <Button
+                                                variant="secondary"
+                                                onClick={() => navigate('/rentals/new')}
+                                                className="rounded-xl px-8 mt-2 hover:scale-105 transition-transform"
+                                            >
+                                                Initialize New Order
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

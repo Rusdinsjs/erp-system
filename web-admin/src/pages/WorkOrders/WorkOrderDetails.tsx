@@ -462,17 +462,23 @@ export default function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetai
             </div>
 
             {/* Maintenance Journey Stepper */}
-            <div className="mb-10 px-4 py-8 bg-card rounded-3xl border border-border shadow-inner">
-                <div className="flex justify-between items-center relative">
-                    <div className="absolute top-5 left-0 right-0 h-0.5 bg-border z-0" />
+            <div className="mb-10 px-8 py-10 bg-card/40 backdrop-blur-xl rounded-3xl border border-border shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[60px] pointer-events-none" />
+                <div className="flex justify-between items-center relative z-10">
+                    <div className="absolute top-6 left-0 right-0 h-1 bg-muted rounded-full" />
+                    <div 
+                        className="absolute top-6 left-0 h-1 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-1000 ease-in-out" 
+                        style={{ width: `${Math.max(0, ['pending', 'approved', 'assigned', 'in_progress', 'pending_review', 'verified', 'completed'].indexOf(wo.status)) * (100 / 6)}%` }}
+                    />
+                    
                     {[
-                        { label: 'Request', status: 'pending', icon: <Plus size={14} /> },
-                        { label: 'Approved', status: 'approved', icon: <Check size={14} /> },
-                        { label: 'Assigned', status: 'assigned', icon: <UserPlus size={14} /> },
-                        { label: 'Working', status: 'in_progress', icon: <Wrench size={14} /> },
-                        { label: 'Finished', status: 'pending_review', icon: <ClipboardCheck size={14} /> },
-                        { label: 'Verified', status: 'verified', icon: <DollarSign size={14} /> },
-                        { label: 'Finalized', status: 'completed', icon: <CheckSquare size={14} /> },
+                        { label: 'Request', status: 'pending', icon: <Plus size={16} /> },
+                        { label: 'Approved', status: 'approved', icon: <Check size={16} /> },
+                        { label: 'Assigned', status: 'assigned', icon: <UserPlus size={16} /> },
+                        { label: 'Working', status: 'in_progress', icon: <Wrench size={16} /> },
+                        { label: 'Finished', status: 'pending_review', icon: <ClipboardCheck size={16} /> },
+                        { label: 'Verified', status: 'verified', icon: <DollarSign size={16} /> },
+                        { label: 'Finalized', status: 'completed', icon: <CheckSquare size={16} /> },
                     ].map((step, idx, arr) => {
                         const statuses = arr.map(s => s.status);
                         const currentIdx = statuses.indexOf(wo.status);
@@ -480,15 +486,19 @@ export default function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetai
                         const isCurrent = wo.status === step.status;
 
                         return (
-                            <div key={step.status} className="flex flex-col items-center gap-3 relative z-10 flex-1">
-                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 shadow-lg ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/20' :
-                                    isCurrent ? 'bg-blue-600 border-blue-500 text-white animate-pulse shadow-blue-500/30' :
-                                        'bg-card border-border text-muted-foreground'
-                                    }`}>
-                                    {isCompleted ? <Check size={18} /> : step.icon}
+                            <div key={step.status} className="flex flex-col items-center gap-4 relative z-10 flex-1 group cursor-default">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 shadow-xl ${
+                                    isCompleted ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/30 group-hover:scale-110' :
+                                    isCurrent ? 'bg-blue-600 border-blue-400 text-white animate-pulse shadow-blue-500/40 ring-4 ring-blue-500/20' :
+                                    'bg-card border-border text-muted-foreground group-hover:border-muted-foreground/30'
+                                }`}>
+                                    {isCompleted ? <Check size={20} className="animate-in zoom-in" /> : step.icon}
                                 </div>
-                                <span className={`text-[10px] uppercase font-bold tracking-widest transition-colors duration-500 ${isCurrent ? 'text-blue-400' : isCompleted ? 'text-emerald-400' : 'text-gray-500'
-                                    }`}>
+                                <span className={`text-[10px] uppercase font-black tracking-widest transition-colors duration-500 text-center ${
+                                    isCurrent ? 'text-blue-500' : 
+                                    isCompleted ? 'text-emerald-500' : 
+                                    'text-muted-foreground/60'
+                                }`}>
                                     {step.label}
                                 </span>
                             </div>
@@ -581,75 +591,93 @@ export default function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetai
                     <TabsContent value="overview" className="p-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                             <div className="space-y-8">
-                                <div className="p-6 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
-                                    <p className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-3">Problem Description</p>
-                                    <p className="text-foreground leading-relaxed">{wo.problem_description || 'No description provided'}</p>
+                                <div className="p-6 bg-blue-500/5 rounded-3xl border border-blue-500/10 relative overflow-hidden group hover:border-blue-500/30 transition-colors backdrop-blur-md">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[30px] -mr-8 -mt-8 transition-transform group-hover:scale-125" />
+                                    <div className="relative z-10">
+                                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <AlertCircle size={14} /> Problem Description
+                                        </p>
+                                        <p className="text-foreground leading-relaxed font-medium">{wo.problem_description || 'No description provided'}</p>
+                                    </div>
                                 </div>
-                                <div className="p-6 bg-card rounded-2xl border border-border">
-                                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-3">Safety Requirements</p>
-                                    <p className="text-foreground">{Array.isArray(wo.safety_requirements) ? wo.safety_requirements.join(', ') : 'None'}</p>
+                                <div className="p-6 bg-card/60 backdrop-blur-xl rounded-3xl border border-border hover:border-primary/30 transition-colors">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <AlertTriangle size={14} /> Safety Requirements
+                                    </p>
+                                    <p className="text-foreground font-medium">{Array.isArray(wo.safety_requirements) ? wo.safety_requirements.join(', ') : 'None'}</p>
                                 </div>
-                                <div className="p-6 bg-card rounded-2xl border border-border">
-                                    <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">Timestamps</p>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-muted-foreground">Scheduled Date</span>
-                                            <span className="text-foreground font-medium">{wo.scheduled_date || '-'}</span>
+                                <div className="p-6 bg-card/60 backdrop-blur-xl rounded-3xl border border-border">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <Clock size={14} /> Temporal Log
+                                    </p>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center group">
+                                            <span className="text-muted-foreground text-xs uppercase font-bold tracking-widest group-hover:text-foreground transition-colors">Scheduled Date</span>
+                                            <span className="text-foreground font-bold bg-muted px-3 py-1 rounded-lg">{wo.scheduled_date || '-'}</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-muted-foreground">Actual Start</span>
-                                            <span className="text-foreground font-medium">{wo.actual_start_date ? new Date(wo.actual_start_date).toLocaleString() : '-'}</span>
+                                        <div className="flex justify-between items-center group">
+                                            <span className="text-muted-foreground text-xs uppercase font-bold tracking-widest group-hover:text-foreground transition-colors">Actual Start</span>
+                                            <span className="text-foreground font-bold bg-blue-500/10 text-blue-400 px-3 py-1 rounded-lg">
+                                                {wo.actual_start_date ? new Date(wo.actual_start_date).toLocaleString() : '-'}
+                                            </span>
                                         </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-muted-foreground">Completed At</span>
-                                            <span className="text-foreground font-medium">{wo.actual_end_date ? new Date(wo.actual_end_date).toLocaleString() : '-'}</span>
+                                        <div className="flex justify-between items-center group">
+                                            <span className="text-muted-foreground text-xs uppercase font-bold tracking-widest group-hover:text-foreground transition-colors">Completed At</span>
+                                            <span className="text-foreground font-bold bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-lg">
+                                                {wo.actual_end_date ? new Date(wo.actual_end_date).toLocaleString() : '-'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div className="space-y-8">
-                                <div className="p-6 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
-                                    <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-3">Work Performed</p>
-                                    <p className="text-gray-300 leading-relaxed">{wo.work_performed || 'Work pending completion'}</p>
+                                <div className="p-6 bg-emerald-500/5 rounded-3xl border border-emerald-500/10 relative overflow-hidden group hover:border-emerald-500/30 transition-colors backdrop-blur-md">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[30px] -mr-8 -mt-8 transition-transform group-hover:scale-125" />
+                                    <div className="relative z-10">
+                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                            <CheckSquare size={14} /> Work Performed
+                                        </p>
+                                        <p className="text-foreground leading-relaxed font-medium">{wo.work_performed || 'Work pending completion'}</p>
+                                    </div>
                                 </div>
 
-                                <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
-                                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Digital Signatures</p>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold text-center">Technician</p>
+                                <div className="p-6 bg-card/60 backdrop-blur-xl rounded-3xl border border-border">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-6 flex items-center gap-2">
+                                        <FileText size={14} /> Digital Signatures
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest text-center bg-muted/50 py-1 rounded-md">Technician</p>
                                             {wo.technician_signoff ? (
-                                                <div className="h-24 bg-white/5 rounded-lg overflow-hidden border border-white/10 p-2">
-                                                    <img src={getImageUrl(wo.technician_signoff)} alt="Tech" className="w-full h-full object-contain opacity-90" />
+                                                <div className="h-28 bg-background/50 rounded-xl overflow-hidden border border-border p-2 hover:border-primary/30 transition-colors">
+                                                    <img src={getImageUrl(wo.technician_signoff)} alt="Tech" className="w-full h-full object-contain drop-shadow-md" />
                                                 </div>
                                             ) : (
-                                                <div className="h-24 bg-black/20 rounded-lg flex items-center justify-center border border-dashed border-white/10">
-                                                    <span className="text-[10px] text-gray-600 italic">Not signed</span>
+                                                <div className="h-28 bg-muted/20 rounded-xl flex items-center justify-center border border-dashed border-border/50">
+                                                    <span className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">Not signed</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="space-y-2">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold text-center">Supervisor</p>
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest text-center bg-muted/50 py-1 rounded-md">Supervisor</p>
                                             {wo.supervisor_signoff ? (
-                                                <div className="h-24 bg-white/5 rounded-lg overflow-hidden border border-white/10 p-2">
-                                                    <img src={getImageUrl(wo.supervisor_signoff)} alt="Sup" className="w-full h-full object-contain opacity-90" />
+                                                <div className="h-28 bg-background/50 rounded-xl overflow-hidden border border-border p-2 hover:border-primary/30 transition-colors">
+                                                    <img src={getImageUrl(wo.supervisor_signoff)} alt="Sup" className="w-full h-full object-contain drop-shadow-md" />
                                                 </div>
                                             ) : (
-                                                <div className="h-24 bg-black/20 rounded-lg flex items-center justify-center border border-dashed border-white/10">
-                                                    <span className="text-[10px] text-gray-600 italic">Not signed</span>
+                                                <div className="h-28 bg-muted/20 rounded-xl flex items-center justify-center border border-dashed border-border/50">
+                                                    <span className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">Not signed</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="space-y-2 col-span-2">
-                                            <p className="text-[10px] text-gray-500 uppercase font-bold text-center">Operator / Customer (Handover)</p>
+                                        <div className="space-y-3 col-span-2 mt-2">
+                                            <p className="text-[10px] text-primary uppercase font-black tracking-widest text-center bg-primary/10 py-1.5 rounded-md">Operator / Customer (Handover)</p>
                                             {wo.customer_signoff ? (
-                                                <div className="h-28 bg-white/5 rounded-lg overflow-hidden border border-white/10 p-2">
-                                                    <img src={getImageUrl(wo.customer_signoff)} alt="Customer" className="w-full h-full object-contain opacity-90" />
+                                                <div className="h-32 bg-background/50 rounded-2xl overflow-hidden border border-border p-4 hover:border-primary/30 transition-colors">
+                                                    <img src={getImageUrl(wo.customer_signoff)} alt="Customer" className="w-full h-full object-contain drop-shadow-lg" />
                                                 </div>
                                             ) : (
-                                                <div className="bg-black/20 rounded-xl border border-dashed border-white/10 p-4">
+                                                <div className="bg-muted/10 rounded-2xl border border-dashed border-border p-6 transition-colors hover:bg-muted/20 hover:border-primary/30">
                                                     {wo.status === 'completed' ? (
                                                         <SignaturePad
                                                             label="Operator Signature"
@@ -666,9 +694,12 @@ export default function WorkOrderDetails({ workOrderId: propId }: WorkOrderDetai
                                                             }}
                                                         />
                                                     ) : (
-                                                        <div className="flex flex-col items-center justify-center py-4 text-gray-600">
-                                                            <span className="text-xs italic">Pending Handover</span>
-                                                            <p className="text-[10px] mt-1 text-center">Available after work is completed</p>
+                                                        <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+                                                            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+                                                                <FileText size={20} className="opacity-50" />
+                                                            </div>
+                                                            <span className="text-xs font-bold uppercase tracking-widest">Pending Handover</span>
+                                                            <p className="text-[10px] mt-2 text-center opacity-70">Available after physical work is completed</p>
                                                         </div>
                                                     )}
                                                 </div>

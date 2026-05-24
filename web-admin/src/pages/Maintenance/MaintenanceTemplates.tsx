@@ -79,28 +79,40 @@ export default function MaintenanceTemplates() {
     if (templatesLoading) return <LoadingOverlay visible />;
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Maintenance Templates</h1>
-                    <p className="text-gray-400">Manage standard checklist templates for recurring maintenance tasks.</p>
+        <div className="space-y-6 p-8 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
+            <div className="relative mb-8">
+                {/* Decorative background element */}
+                <div className="absolute -top-10 -left-10 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
+
+                <div className="flex justify-between items-end relative z-10">
+                    <div>
+                        <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">
+                            Maintenance <span className="text-primary">Templates</span>
+                        </h1>
+                        <p className="text-muted-foreground mt-2 flex items-center gap-2 font-medium">
+                            <span className="w-8 h-[1px] bg-primary/50"></span>
+                            Manage standard checklist templates for recurring maintenance tasks.
+                        </p>
+                    </div>
+                    <Button
+                        variant="primary"
+                        leftIcon={<Plus size={20} />}
+                        onClick={() => setTemplateModalOpen(true)}
+                        className="rounded-xl shadow-lg shadow-blue-500/20 text-white font-bold tracking-wider"
+                    >
+                        Create Template
+                    </Button>
                 </div>
-                <Button
-                    variant="primary"
-                    leftIcon={<Plus size={20} />}
-                    onClick={() => setTemplateModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-500 rounded-xl"
-                >
-                    Create Template
-                </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Templates List */}
-                <Card className="lg:col-span-1">
-                    <div className="space-y-4">
-                        <h2 className="text-lg font-semibold text-white px-2">Available Templates</h2>
-                        <div className="space-y-2">
+                {/* Templates List */}
+                <Card className="lg:col-span-1 bg-card/60 backdrop-blur-xl border border-border shadow-2xl p-6 rounded-3xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-8 -mt-8 transition-transform duration-700 group-hover:scale-150 pointer-events-none" />
+                    <div className="space-y-6 relative z-10">
+                        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Available Templates</h2>
+                        <div className="space-y-3">
                             {templates?.map((template) => (
                                 <div
                                     key={template.id}
@@ -108,19 +120,19 @@ export default function MaintenanceTemplates() {
                                         setSelectedTemplateId(template.id);
                                         setNewTask(prev => ({ ...prev, task_number: 1 }));
                                     }}
-                                    className={`p-4 rounded-xl cursor-pointer border transition-all ${selectedTemplateId === template.id
-                                        ? 'bg-blue-600/20 border-blue-500/50 text-blue-400'
-                                        : 'bg-black/20 border-white/5 text-gray-400 hover:bg-white/5'
+                                    className={`p-4 rounded-2xl cursor-pointer border transition-all duration-300 ${selectedTemplateId === template.id
+                                        ? 'bg-primary/10 border-primary/30 text-primary shadow-sm'
+                                        : 'bg-muted/20 border-border text-muted-foreground hover:bg-muted/40 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${selectedTemplateId === template.id ? 'bg-blue-500/20' : 'bg-gray-800'}`}>
-                                                <Settings size={18} />
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl transition-colors ${selectedTemplateId === template.id ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground group-hover:text-primary'}`}>
+                                                <Settings size={20} />
                                             </div>
                                             <div>
-                                                <p className="font-medium text-white">{template.name}</p>
-                                                <p className="text-xs text-gray-500 truncate max-w-[150px]">{template.description || 'No description'}</p>
+                                                <p className={`font-bold text-sm tracking-tight ${selectedTemplateId === template.id ? 'text-primary' : 'text-foreground'}`}>{template.name}</p>
+                                                <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground truncate max-w-[150px] mt-1">{template.description || 'No description'}</p>
                                             </div>
                                         </div>
                                         <ActionIcon
@@ -130,7 +142,7 @@ export default function MaintenanceTemplates() {
                                                 e.stopPropagation();
                                                 if (confirm('Delete this template?')) deleteTemplateMutation.mutate(template.id);
                                             }}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive hover:text-white rounded-lg w-8 h-8"
                                         >
                                             <Trash2 size={14} />
                                         </ActionIcon>
@@ -138,78 +150,84 @@ export default function MaintenanceTemplates() {
                                 </div>
                             ))}
                             {templates?.length === 0 && (
-                                <div className="text-center py-8 text-gray-500 italic">No templates yet.</div>
+                                <div className="text-center py-12 text-muted-foreground font-medium text-sm italic">No templates yet.</div>
                             )}
                         </div>
                     </div>
                 </Card>
 
                 {/* Template Detail / Tasks */}
-                <Card className="lg:col-span-2">
+                <Card className="lg:col-span-2 bg-card/60 backdrop-blur-xl border border-border shadow-2xl p-6 rounded-3xl overflow-hidden relative">
                     {selectedTemplateId ? (
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-start">
+                        <div className="space-y-6 relative z-10">
+                            <div className="flex justify-between items-start border-b border-border/50 pb-6">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white mb-1">{selectedTemplate?.name}</h2>
-                                    <p className="text-gray-400 text-sm">{selectedTemplate?.description}</p>
+                                    <h2 className="text-2xl font-black text-foreground tracking-tight mb-2">{selectedTemplate?.name}</h2>
+                                    <p className="text-muted-foreground font-medium text-sm">{selectedTemplate?.description}</p>
                                 </div>
                                 <Button
-                                    variant="ghost"
+                                    variant="primary"
                                     size="sm"
                                     leftIcon={<Plus size={16} />}
                                     onClick={() => {
                                         setNewTask({ task_number: (selectedTemplate?.tasks.length || 0) + 1, description: '' });
                                         setTaskModalOpen(true);
                                     }}
-                                    className="text-blue-400 hover:bg-blue-500/10 rounded-lg"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md font-bold tracking-wider text-xs"
                                 >
                                     Add Task
                                 </Button>
                             </div>
 
                             {templateLoading ? <LoadingOverlay visible /> : (
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableTh className="w-20 text-center">Seq</TableTh>
-                                            <TableTh>Description</TableTh>
-                                            <TableTh className="w-20 text-center">Action</TableTh>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {selectedTemplate?.tasks.map((task: TemplateTask) => (
-                                            <TableRow key={task.id} className="group hover:bg-white/5">
-                                                <TableTd align="center">
-                                                    <Badge variant="default" className="bg-gray-800 text-gray-400">
-                                                        {task.task_number}
-                                                    </Badge>
-                                                </TableTd>
-                                                <TableTd className="text-gray-300 font-medium">{task.description}</TableTd>
-                                                <TableTd align="center">
-                                                    <ActionIcon
-                                                        variant="danger"
-                                                        onClick={() => deleteTaskMutation.mutate(task.id)}
-                                                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </ActionIcon>
-                                                </TableTd>
+                                <div className="overflow-hidden rounded-2xl border border-border">
+                                    <Table className="w-full text-left text-sm text-foreground">
+                                        <TableHead className="bg-muted/30 border-b border-border">
+                                            <TableRow>
+                                                <TableTh className="w-20 text-center px-4 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Seq</TableTh>
+                                                <TableTh className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</TableTh>
+                                                <TableTh className="w-20 text-center px-4 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Action</TableTh>
                                             </TableRow>
-                                        ))}
-                                        {selectedTemplate?.tasks.length === 0 && (
-                                            <TableEmpty colSpan={3} message="Click 'Add Task' to build your checklist template." />
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                        </TableHead>
+                                        <TableBody className="divide-y divide-border/50">
+                                            {selectedTemplate?.tasks.map((task: TemplateTask) => (
+                                                <TableRow key={task.id} className="group hover:bg-muted/20 transition-colors">
+                                                    <TableTd align="center" className="py-4">
+                                                        <Badge variant="default" className="bg-muted text-muted-foreground border border-border font-mono font-bold">
+                                                            {task.task_number}
+                                                        </Badge>
+                                                    </TableTd>
+                                                    <TableTd className="text-foreground font-bold px-6 py-4">{task.description}</TableTd>
+                                                    <TableTd align="center" className="py-4">
+                                                        <ActionIcon
+                                                            variant="danger"
+                                                            onClick={() => deleteTaskMutation.mutate(task.id)}
+                                                            className="opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive hover:text-white rounded-lg w-8 h-8"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </ActionIcon>
+                                                    </TableTd>
+                                                </TableRow>
+                                            ))}
+                                            {selectedTemplate?.tasks.length === 0 && (
+                                                <TableRow>
+                                                    <TableTd colSpan={3}>
+                                                        <TableEmpty message="Click 'Add Task' to build your checklist template." />
+                                                    </TableTd>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             )}
                         </div>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center py-20 text-center">
-                            <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-6 text-gray-600">
-                                <FileText size={40} />
+                        <div className="h-full flex flex-col items-center justify-center py-32 text-center relative z-10">
+                            <div className="w-24 h-24 bg-muted/50 border border-border rounded-full flex items-center justify-center mb-6 text-muted-foreground shadow-inner">
+                                <FileText size={48} className="opacity-50" />
                             </div>
-                            <h3 className="text-xl font-medium text-gray-400">Select a template to view tasks</h3>
-                            <p className="text-gray-500 max-w-sm mt-2">Choose a maintenance template from the list on the left or create a new one to start defining standard checklists.</p>
+                            <h3 className="text-2xl font-black text-foreground tracking-tight">Select a Template</h3>
+                            <p className="text-muted-foreground max-w-sm mt-3 font-medium">Choose a maintenance template from the list on the left or create a new one to start defining standard checklists.</p>
                         </div>
                     )}
                 </Card>

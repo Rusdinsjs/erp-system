@@ -62,7 +62,7 @@ impl AssetRepository {
                 a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.assigned_to, a.vendor_id,
                 a.is_rental, a.is_fuel, a.is_loan, a.asset_class, a.status, a.condition_id,
                 a.serial_number, a.brand, a.model, a.year_manufacture,
-                a.specifications,
+                a.specifications, a.description, a.acquisition_method, a.funding_source,
                 a.purchase_date, a.purchase_price, a.currency_id, a.unit_id, a.quantity,
                 a.residual_value, a.useful_life_months,
                 a.qr_code_url, a.notes,

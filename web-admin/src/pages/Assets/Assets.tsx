@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw, LayoutGrid, List } from 'lucide-react';
 import { assetApi } from '../../api/assets';
 import { categoryApi } from '../../api/category';
 import { locationApi } from '../../api/locations';
@@ -62,6 +62,7 @@ export default function Assets() {
     const [exactMatch, setExactMatch] = useState(false);
     const [sortBy, setSortBy] = useState<string | null>(null);
     const [sortOrder, setSortOrder] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -463,8 +464,8 @@ export default function Assets() {
             {/* Main Content Area */}
             <Card className="overflow-hidden p-0 border border-border">
                 {/* Search & Filters Bar */}
-                <div className="p-4 border-b border-border flex justify-between items-center gap-4 bg-muted/30">
-                    <div className="flex items-center gap-4 flex-1">
+                <div className="p-4 border-b border-border flex flex-col md:flex-row justify-between items-center gap-4 bg-muted/30">
+                    <div className="flex items-center gap-4 flex-1 w-full">
                         <GlobalSearch
                             onSearch={setSearch}
                             initialValue={search}
@@ -472,7 +473,23 @@ export default function Assets() {
                         />
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                        <div className="flex bg-muted/50 p-1 rounded-xl border border-border">
+                            <button 
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-primary/20 text-blue-400 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                                title="Grid View"
+                            >
+                                <LayoutGrid size={18} />
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('table')}
+                                className={`p-2 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-primary/20 text-blue-400 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                                title="Table View"
+                            >
+                                <List size={18} />
+                            </button>
+                        </div>
                         <Button
                             variant="outline"
                             leftIcon={<Filter size={18} />}
@@ -484,144 +501,223 @@ export default function Assets() {
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="relative">
+                {/* Content Area */}
+                <div className="relative bg-muted/5">
                     {assetsLoading ? (
                         <div className="p-4">
-                            <TableSkeleton rows={10} cols={7} />
+                            {viewMode === 'table' ? <TableSkeleton rows={10} cols={7} /> : <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"><div className="h-64 bg-muted/50 rounded-2xl animate-pulse"></div><div className="h-64 bg-muted/50 rounded-2xl animate-pulse"></div><div className="h-64 bg-muted/50 rounded-2xl animate-pulse"></div><div className="h-64 bg-muted/50 rounded-2xl animate-pulse"></div></div>}
                         </div>
                     ) : (
-                        <Table className="border-none rounded-none shadow-none">
-                            <TableHead>
-                                <TableRow className="bg-muted/50 border-border">
-                                    <TableTh className="w-10">
-                                        <Checkbox
-                                            checked={selectedAssetIds.length > 0 && selectedAssetIds.length === assetsData?.data.length}
-                                            onChange={toggleSelectAll}
-                                        />
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('asset_code')}>
-                                        <div className="flex items-center">Asset Code <SortIcon field="asset_code" /></div>
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('category_id')}>
-                                        <div className="flex items-center">Category <SortIcon field="category_id" /></div>
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('name')}>
-                                        <div className="flex items-center">Name <SortIcon field="name" /></div>
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('brand')}>
-                                        <div className="flex items-center">Brand/Model <SortIcon field="brand" /></div>
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('location_id')}>
-                                        <div className="flex items-center">Location <SortIcon field="location_id" /></div>
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('department_id')}>
-                                        <div className="flex items-center">Department <SortIcon field="department_id" /></div>
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('assigned_to')}>
-                                        <div className="flex items-center">Penanggung Jawab <SortIcon field="assigned_to" /></div>
-                                    </TableTh>
-                                    <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('status')}>
-                                        <div className="flex items-center">Status <SortIcon field="status" /></div>
-                                    </TableTh>
-                                    <TableTh align="center">Actions</TableTh>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {assetsData?.data?.map((asset: any) => (
-                                    <TableRow key={asset.id} className={`${selectedAssetIds.includes(asset.id) ? 'bg-primary/10' : 'hover:bg-muted/50'} border-border group transition-all`}>
-                                        <TableTd>
-                                            <Checkbox
-                                                checked={selectedAssetIds.includes(asset.id)}
-                                                onChange={() => toggleSelect(asset.id)}
-                                            />
-                                        </TableTd>
-                                         <TableTd>
-                                            <span 
-                                                onClick={() => {
-                                                    setPreviewAsset(asset);
-                                                    setIsPreviewOpen(true);
-                                                }}
-                                                className="font-mono text-sm text-blue-400 font-medium group-hover:text-blue-300 transition-colors cursor-pointer hover:underline"
-                                            >
-                                                {asset.asset_code}
-                                            </span>
-                                        </TableTd>
-                                        <TableTd>{asset.category_name || '-'}</TableTd>
-                                        <TableTd>
-                                            <span 
-                                                onClick={() => {
-                                                    setPreviewAsset(asset);
-                                                    setIsPreviewOpen(true);
-                                                }}
-                                                className="font-medium cursor-pointer hover:text-blue-400 transition-colors hover:underline"
-                                            >
-                                                {asset.name}
-                                            </span>
-                                        </TableTd>
-                                        <TableTd>
-                                            <div className="text-sm">
-                                                <span className="text-foreground">{asset.brand}</span>
-                                                <span className="text-muted-foreground ml-1">{asset.model}</span>
-                                            </div>
-                                        </TableTd>
-                                        <TableTd>{asset.location_name || '-'}</TableTd>
-                                        <TableTd>{asset.department || '-'}</TableTd>
-                                        <TableTd>
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold border border-blue-500/30">
-                                                    {asset.assigned_to_name?.charAt(0) || '?'}
+                        <>
+                            {viewMode === 'table' ? (
+                                <Table className="border-none rounded-none shadow-none">
+                                    <TableHead>
+                                        <TableRow className="bg-muted/50 border-border">
+                                            <TableTh className="w-10">
+                                                <Checkbox
+                                                    checked={selectedAssetIds.length > 0 && selectedAssetIds.length === assetsData?.data.length}
+                                                    onChange={toggleSelectAll}
+                                                />
+                                            </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('asset_code')}>
+                                                <div className="flex items-center">Asset Code <SortIcon field="asset_code" /></div>
+                                            </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('category_id')}>
+                                                <div className="flex items-center">Category <SortIcon field="category_id" /></div>
+                                            </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('name')}>
+                                                <div className="flex items-center">Name <SortIcon field="name" /></div>
+                                            </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('brand')}>
+                                                <div className="flex items-center">Brand/Model <SortIcon field="brand" /></div>
+                                            </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('location_id')}>
+                                                <div className="flex items-center">Location <SortIcon field="location_id" /></div>
+                                            </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('department_id')}>
+                                                <div className="flex items-center">Department <SortIcon field="department_id" /></div>
+                                            </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('status')}>
+                                                <div className="flex items-center">Status <SortIcon field="status" /></div>
+                                            </TableTh>
+                                            <TableTh align="center">Actions</TableTh>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {assetsData?.data?.map((asset: any) => (
+                                            <TableRow key={asset.id} className={`${selectedAssetIds.includes(asset.id) ? 'bg-primary/10' : 'hover:bg-muted/50'} border-border group transition-all`}>
+                                                <TableTd>
+                                                    <Checkbox
+                                                        checked={selectedAssetIds.includes(asset.id)}
+                                                        onChange={() => toggleSelect(asset.id)}
+                                                    />
+                                                </TableTd>
+                                                <TableTd>
+                                                    <span 
+                                                        onClick={() => {
+                                                            setPreviewAsset(asset);
+                                                            setIsPreviewOpen(true);
+                                                        }}
+                                                        className="font-mono text-sm text-blue-400 font-medium group-hover:text-blue-300 transition-colors cursor-pointer hover:underline"
+                                                    >
+                                                        {asset.asset_code}
+                                                    </span>
+                                                </TableTd>
+                                                <TableTd>{asset.category_name || '-'}</TableTd>
+                                                <TableTd>
+                                                    <span 
+                                                        onClick={() => {
+                                                            setPreviewAsset(asset);
+                                                            setIsPreviewOpen(true);
+                                                        }}
+                                                        className="font-medium cursor-pointer hover:text-blue-400 transition-colors hover:underline truncate max-w-[150px] inline-block"
+                                                    >
+                                                        {asset.name}
+                                                    </span>
+                                                </TableTd>
+                                                <TableTd>
+                                                    <div className="text-sm truncate max-w-[120px]">
+                                                        <span className="text-foreground">{asset.brand}</span>
+                                                        <span className="text-muted-foreground ml-1">{asset.model}</span>
+                                                    </div>
+                                                </TableTd>
+                                                <TableTd className="truncate max-w-[120px]">{asset.location_name || '-'}</TableTd>
+                                                <TableTd className="truncate max-w-[120px]">{asset.department || '-'}</TableTd>
+                                                <TableTd>
+                                                    <StatusBadge status={asset.status || 'active'} />
+                                                </TableTd>
+                                                <TableTd align="center">
+                                                    <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <ActionIcon
+                                                            onClick={() => {
+                                                                setPreviewAsset(asset);
+                                                                setIsPreviewOpen(true);
+                                                            }}
+                                                            title="Quick Preview"
+                                                            className="hover:bg-cyan-500/20 text-cyan-400"
+                                                        >
+                                                            <Eye size={16} />
+                                                        </ActionIcon>
+                                                        <ActionIcon
+                                                            onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}
+                                                            title="Manage Lifecycle"
+                                                            className="hover:bg-emerald-500/20 text-emerald-400"
+                                                        >
+                                                            <RefreshCw size={16} />
+                                                        </ActionIcon>
+                                                        <ActionIcon
+                                                            onClick={() => handleEdit(asset)}
+                                                            title="Edit Asset"
+                                                            className="hover:bg-amber-500/20 text-amber-400"
+                                                        >
+                                                            <Edit size={16} />
+                                                        </ActionIcon>
+                                                        <ActionIcon
+                                                            variant="danger"
+                                                            onClick={() => handleDelete(asset.id)}
+                                                            title="Delete Asset"
+                                                            className="hover:bg-red-500/20 text-red-400"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </ActionIcon>
+                                                    </div>
+                                                </TableTd>
+                                            </TableRow>
+                                        ))}
+                                        {(!assetsData?.data || assetsData.data.length === 0) && !assetsLoading && (
+                                            <TableEmpty colSpan={9} message="No assets found" />
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {assetsData?.data?.map((asset: any) => {
+                                        const imageUrl = asset.photos?.front || asset.photos?.left || asset.photos?.right || asset.photos?.back || null;
+                                        const displayUrl = imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `${import.meta.env.VITE_API_URL || '/api'}${imageUrl}`) : null;
+                                        
+                                        return (
+                                            <div key={asset.id} className="group bg-card/60 backdrop-blur-xl border border-border rounded-3xl overflow-hidden hover:shadow-2xl hover:border-primary/50 transition-all duration-300 relative flex flex-col min-h-[340px]">
+                                                <div className="absolute top-3 left-3 z-20">
+                                                    <Checkbox
+                                                        checked={selectedAssetIds.includes(asset.id)}
+                                                        onChange={() => toggleSelect(asset.id)}
+                                                        className="bg-black/40 backdrop-blur-md border-white/20"
+                                                    />
                                                 </div>
-                                                <span className="text-sm">{asset.assigned_to_name || '-'}</span>
+                                                <div className="absolute top-3 right-3 z-20">
+                                                    <StatusBadge status={asset.status || 'active'} className="shadow-lg backdrop-blur-md bg-background/80" />
+                                                </div>
+                                                
+                                                <div className="h-48 w-full bg-slate-900 flex items-center justify-center relative overflow-hidden cursor-pointer" onClick={() => {
+                                                    setPreviewAsset(asset);
+                                                    setIsPreviewOpen(true);
+                                                }}>
+                                                    {displayUrl ? (
+                                                        <img src={displayUrl} alt={asset.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center text-slate-600 group-hover:text-blue-400 transition-colors">
+                                                            <Package size={48} className="mb-2 opacity-50" />
+                                                            <span className="text-xs font-semibold uppercase tracking-widest opacity-50">No Photo</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />
+                                                    <div className="absolute bottom-3 left-4 right-4">
+                                                        <p className="text-white font-bold truncate text-lg shadow-sm">{asset.name}</p>
+                                                        <p className="text-cyan-400 font-mono text-xs font-bold tracking-wider">{asset.asset_code}</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="p-5 flex-1 flex flex-col justify-between">
+                                                    <div className="space-y-3">
+                                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                                            <div>
+                                                                <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Category</p>
+                                                                <p className="text-foreground truncate">{asset.category_name || '-'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Brand/Model</p>
+                                                                <p className="text-foreground truncate">{asset.brand || '-'} {asset.model}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Location</p>
+                                                                <p className="text-foreground truncate">{asset.location_name || '-'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Department</p>
+                                                                <p className="text-foreground truncate">{asset.department || '-'}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="pt-4 mt-4 border-t border-border flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 max-w-[50%]">
+                                                            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold border border-blue-500/30 flex-shrink-0">
+                                                                {asset.assigned_to_name?.charAt(0) || '?'}
+                                                            </div>
+                                                            <span className="text-xs text-muted-foreground truncate" title={asset.assigned_to_name}>{asset.assigned_to_name || 'Unassigned'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <ActionIcon onClick={() => { setPreviewAsset(asset); setIsPreviewOpen(true); }} className="hover:bg-cyan-500/20 text-cyan-400 w-8 h-8"><Eye size={14} /></ActionIcon>
+                                                            <ActionIcon onClick={() => navigate(`/assets/${asset.id}/lifecycle`)} className="hover:bg-emerald-500/20 text-emerald-400 w-8 h-8"><RefreshCw size={14} /></ActionIcon>
+                                                            <ActionIcon onClick={() => handleEdit(asset)} className="hover:bg-amber-500/20 text-amber-400 w-8 h-8"><Edit size={14} /></ActionIcon>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </TableTd>
-                                        <TableTd>
-                                            <StatusBadge status={asset.status || 'active'} />
-                                        </TableTd>
-                                        <TableTd align="center">
-                                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <ActionIcon
-                                                    onClick={() => {
-                                                        setPreviewAsset(asset);
-                                                        setIsPreviewOpen(true);
-                                                    }}
-                                                    title="Quick Preview"
-                                                    className="hover:bg-cyan-500/20 text-cyan-400"
-                                                >
-                                                    <Eye size={16} />
-                                                </ActionIcon>
-                                                <ActionIcon
-                                                    onClick={() => navigate(`/assets/${asset.id}/lifecycle`)}
-                                                    title="Manage Lifecycle"
-                                                    className="hover:bg-emerald-500/20 text-emerald-400"
-                                                >
-                                                    <RefreshCw size={16} />
-                                                </ActionIcon>
-                                                <ActionIcon
-                                                    onClick={() => handleEdit(asset)}
-                                                    title="Edit Asset"
-                                                    className="hover:bg-amber-500/20 text-amber-400"
-                                                >
-                                                    <Edit size={16} />
-                                                </ActionIcon>
-                                                <ActionIcon
-                                                    variant="danger"
-                                                    onClick={() => handleDelete(asset.id)}
-                                                    title="Delete Asset"
-                                                    className="hover:bg-red-500/20 text-red-400"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </ActionIcon>
-                                            </div>
-                                        </TableTd>
-                                    </TableRow>
-                                ))}
-                                {(!assetsData?.data || assetsData.data.length === 0) && !assetsLoading && (
-                                    <TableEmpty colSpan={7} message="No assets found" />
-                                )}
-                            </TableBody>
-                        </Table>
+                                        );
+                                    })}
+                                    {(!assetsData?.data || assetsData.data.length === 0) && !assetsLoading && (
+                                        <div className="col-span-full py-24 flex flex-col items-center justify-center text-slate-400 bg-muted/20 rounded-3xl border border-dashed border-border">
+                                            <Package size={48} className="mb-4 opacity-30" />
+                                            <p className="text-lg font-medium">No assets found</p>
+                                            <p className="text-sm opacity-60">Try adjusting your filters or search terms</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
+                </div>
                 </div>
 
                 {/* Pagination */}

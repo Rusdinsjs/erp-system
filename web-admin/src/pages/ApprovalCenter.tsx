@@ -286,18 +286,33 @@ function RequestDetails({ request, showDetails = false }: { request: ApprovalReq
 }
 
 function StatCard({ title, value, icon: Icon, iconColor }: { title: string; value: number; icon: any; iconColor: string }) {
+    const glowColorMap: Record<string, string> = {
+        'text-violet-400': 'bg-violet-500/10 shadow-violet-500/20',
+        'text-blue-400': 'bg-blue-500/10 shadow-blue-500/20',
+        'text-orange-400': 'bg-orange-500/10 shadow-orange-500/20',
+        'text-purple-400': 'bg-purple-500/10 shadow-purple-500/20',
+        'text-teal-400': 'bg-teal-500/10 shadow-teal-500/20',
+        'text-green-400': 'bg-green-500/10 shadow-green-500/20',
+        'text-pink-400': 'bg-pink-500/10 shadow-pink-500/20',
+        'text-yellow-400': 'bg-yellow-500/10 shadow-yellow-500/20',
+        'text-rose-400': 'bg-rose-500/10 shadow-rose-500/20',
+    };
+    
+    const bgGlow = glowColorMap[iconColor] || 'bg-slate-500/10 shadow-slate-500/20';
+
     return (
-        <Card padding="md">
-            <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 ${iconColor}`}>
-                    <Icon size={20} />
-                </div>
-                <div>
-                    <p className="text-xs text-slate-400">{title}</p>
-                    <p className="text-xl font-bold text-white">{value}</p>
+        <div className="bg-card/60 backdrop-blur-xl border border-border rounded-3xl p-5 hover:-translate-y-1 transition-all duration-300 shadow-lg group relative overflow-hidden flex flex-col justify-between min-h-[120px]">
+            <div className={`absolute top-0 right-0 w-24 h-24 ${bgGlow.split(' ')[0]} rounded-full blur-[40px] pointer-events-none group-hover:scale-150 transition-transform`} />
+            <div className="flex items-start justify-between relative z-10">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-card/80 border border-border ${iconColor} shadow-lg group-hover:scale-110 transition-transform`}>
+                    <Icon size={24} />
                 </div>
             </div>
-        </Card>
+            <div className="relative z-10 mt-4">
+                <p className="text-3xl font-black text-foreground font-mono tracking-tight">{value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1 truncate">{title}</p>
+            </div>
+        </div>
     );
 }
 
@@ -545,17 +560,22 @@ export default function ApprovalCenter() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-white">Approval Center</h1>
-                <Badge variant="warning" className="text-lg px-3 py-1">
+        <div className="space-y-8 p-8 relative">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+            <div className="flex items-end justify-between relative z-10">
+                <div>
+                    <h1 className="text-4xl font-black text-foreground tracking-tighter">Approval Center</h1>
+                    <p className="text-muted-foreground mt-2 font-medium">Review and manage pending requests</p>
+                </div>
+                <Badge variant="warning" className="text-lg px-4 py-2 shadow-lg shadow-amber-500/20 font-bold uppercase tracking-widest animate-pulse">
                     {pendingRequests.length} Pending
                 </Badge>
             </div>
 
             {/* Stats */}
             {activeTab === 'pending' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 relative z-10">
                     <StatCard title="Lifecycle" value={lifecycleCount} icon={RefreshCw} iconColor="text-violet-400" />
                     <StatCard title="Work Orders" value={workOrderCount} icon={Wrench} iconColor="text-blue-400" />
                     <StatCard title="Rentals" value={rentalCount} icon={Truck} iconColor="text-orange-400" />
@@ -594,77 +614,93 @@ export default function ApprovalCenter() {
             </div>
 
             {/* Table */}
-            <Card padding="lg">
-                <div className="relative">
+            <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl overflow-hidden shadow-2xl relative z-10">
+                <div className="absolute bottom-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+                <div className="relative z-10">
                     <LoadingOverlay visible={isLoading} />
 
                     {filteredData.length === 0 && !isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                            <Info size={32} className="mb-2 opacity-50" />
-                            <p>No {activeTab === 'pending' ? 'pending approvals' : 'requests'} found.</p>
+                        <div className="flex flex-col items-center justify-center py-24 text-slate-400 text-center">
+                            <div className="w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-border">
+                                <Info size={40} className="opacity-50" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground uppercase tracking-widest">Inbox Zero</h3>
+                            <p className="mt-2 text-sm text-muted-foreground">No {activeTab === 'pending' ? 'pending approvals' : 'requests'} found.</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHead>
-                                <TableRow>
-                                    <TableTh>Date</TableTh>
-                                    <TableTh>Type</TableTh>
-                                    <TableTh>Action</TableTh>
-                                    <TableTh>Details</TableTh>
-                                    <TableTh>Level</TableTh>
-                                    <TableTh>Status</TableTh>
-                                    <TableTh>Requester</TableTh>
-                                    <TableTh align="center">Actions</TableTh>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {filteredData.map((req) => {
-                                    const config = resourceTypeConfig[req.resource_type] || { label: req.resource_type, iconColor: 'text-slate-400' };
-                                    return (
-                                        <TableRow key={req.id} onClick={() => openRequest(req)} className="cursor-pointer">
-                                            <TableTd>
-                                                <div className="flex items-center gap-1 text-sm">
-                                                    <Calendar size={14} className="text-slate-500" />
-                                                    {new Date(req.created_at).toLocaleDateString()}
-                                                </div>
-                                            </TableTd>
-                                            <TableTd>
-                                                <Badge variant="default">{config.label}</Badge>
-                                            </TableTd>
-                                            <TableTd>
-                                                <span className="text-sm">{req.action_type.replace(/_/g, ' ')}</span>
-                                            </TableTd>
-                                            <TableTd>
-                                                <RequestDetails request={req} />
-                                            </TableTd>
-                                            <TableTd>
-                                                <Badge variant={req.current_approval_level === 1 ? 'info' : 'success'}>
-                                                    L{req.current_approval_level}
-                                                </Badge>
-                                            </TableTd>
-                                            <TableTd>
-                                                <Badge variant={getStatusBadge(req.status)}>{req.status}</Badge>
-                                            </TableTd>
-                                            <TableTd>
-                                                <span className="text-sm">{req.requester_name || 'Unknown'}</span>
-                                            </TableTd>
-                                            <TableTd align="center">
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    rightIcon={<ArrowRight size={14} />}
-                                                >
-                                                    Review
-                                                </Button>
-                                            </TableTd>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                        <div className="overflow-x-auto">
+                            <Table className="border-none rounded-none shadow-none">
+                                <TableHead>
+                                    <TableRow className="bg-card/90 backdrop-blur-md border-b border-border">
+                                        <TableTh>Date</TableTh>
+                                        <TableTh>Type</TableTh>
+                                        <TableTh>Action</TableTh>
+                                        <TableTh>Details</TableTh>
+                                        <TableTh>Level</TableTh>
+                                        <TableTh>Status</TableTh>
+                                        <TableTh>Requester</TableTh>
+                                        <TableTh align="center">Actions</TableTh>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {filteredData.map((req) => {
+                                        const config = resourceTypeConfig[req.resource_type] || { label: req.resource_type, iconColor: 'text-slate-400' };
+                                        return (
+                                            <TableRow key={req.id} onClick={() => openRequest(req)} className="cursor-pointer hover:bg-muted/40 transition-colors group">
+                                                <TableTd>
+                                                    <div className="flex items-center gap-2 text-sm font-medium">
+                                                        <Calendar size={14} className="text-slate-500" />
+                                                        {new Date(req.created_at).toLocaleDateString()}
+                                                    </div>
+                                                </TableTd>
+                                                <TableTd>
+                                                    <Badge variant="default" className="uppercase tracking-wider text-[10px]">{config.label}</Badge>
+                                                </TableTd>
+                                                <TableTd>
+                                                    <span className="text-sm font-bold tracking-tight capitalize">{req.action_type.replace(/_/g, ' ')}</span>
+                                                </TableTd>
+                                                <TableTd>
+                                                    <div className="bg-background/50 rounded-lg p-2 border border-border group-hover:border-primary/30 transition-colors">
+                                                        <RequestDetails request={req} />
+                                                    </div>
+                                                </TableTd>
+                                                <TableTd>
+                                                    <Badge variant={req.current_approval_level === 1 ? 'info' : 'success'}>
+                                                        L{req.current_approval_level}
+                                                    </Badge>
+                                                </TableTd>
+                                                <TableTd>
+                                                    <Badge variant={getStatusBadge(req.status)} className="animate-pulse">{req.status}</Badge>
+                                                </TableTd>
+                                                <TableTd>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center font-bold text-xs">
+                                                            {req.requester_name ? req.requester_name.charAt(0).toUpperCase() : 'U'}
+                                                        </div>
+                                                        <span className="text-sm font-medium">{req.requester_name || 'Unknown'}</span>
+                                                    </div>
+                                                </TableTd>
+                                                <TableTd align="center">
+                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-center">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="primary"
+                                                            rightIcon={<ArrowRight size={14} />}
+                                                            className="shadow-lg shadow-primary/20 hover:-translate-y-0.5"
+                                                        >
+                                                            Review
+                                                        </Button>
+                                                    </div>
+                                                </TableTd>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
                 </div>
-            </Card>
+            </div>
 
             {/* Unified Detail & Action Modal */}
             <Modal

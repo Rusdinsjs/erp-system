@@ -34,27 +34,30 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, color, description }: StatCardProps) {
     const colors = {
-        blue: 'from-blue-500 to-blue-600 shadow-blue-500/20',
-        green: 'from-emerald-500 to-emerald-600 shadow-emerald-500/20',
-        orange: 'from-amber-500 to-amber-600 shadow-amber-500/20',
-        red: 'from-red-500 to-red-600 shadow-red-500/20',
-        purple: 'from-purple-500 to-purple-600 shadow-purple-500/20',
+        blue: 'from-blue-500 to-cyan-500 shadow-blue-500/20 text-blue-500',
+        green: 'from-emerald-400 to-teal-500 shadow-emerald-500/20 text-emerald-500',
+        orange: 'from-amber-400 to-orange-500 shadow-amber-500/20 text-amber-500',
+        red: 'from-rose-400 to-red-500 shadow-red-500/20 text-red-500',
+        purple: 'from-purple-500 to-indigo-500 shadow-purple-500/20 text-purple-500',
     };
 
     return (
-        <div className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-colors shadow-sm min-w-0">
-            <div className="flex items-start justify-between mb-3">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${colors[color]} shadow-lg`}>
-                    <Icon size={22} className="text-white" />
+        <div className="bg-card/60 backdrop-blur-xl border border-border rounded-3xl p-6 hover:-translate-y-1 hover:border-primary/50 transition-all duration-300 shadow-xl group relative overflow-hidden">
+            <div className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${colors[color]} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
+            <div className="flex items-start justify-between mb-4 relative z-10">
+                <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${colors[color]} shadow-lg group-hover:scale-110 transition-transform`}>
+                    <Icon size={24} className="text-white" />
                 </div>
             </div>
-            <p className="text-lg sm:text-xl 2xl:text-2xl font-bold text-card-foreground mb-1 tracking-tight">
-                {value}
-            </p>
-            <p className="text-sm text-muted-foreground truncate" title={label}>{label}</p>
-            {description && (
-                <p className="text-xs text-muted-foreground/80 mt-2 truncate" title={description}>{description}</p>
-            )}
+            <div className="relative z-10">
+                <p className="text-3xl font-black text-foreground mb-1 tracking-tight font-mono">
+                    {value}
+                </p>
+                <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground truncate mb-1" title={label}>{label}</p>
+                {description && (
+                    <p className="text-xs text-muted-foreground/80 truncate font-medium bg-muted/50 inline-block px-2 py-0.5 rounded-md mt-2" title={description}>{description}</p>
+                )}
+            </div>
         </div>
     );
 }
@@ -233,16 +236,22 @@ export default function Dashboard() {
 
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-foreground">Dashboard Overview</h1>
+        <div className="p-8 space-y-8 relative">
+            <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/3 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="flex justify-between items-end relative z-10">
+                <div>
+                    <h1 className="text-4xl font-black text-foreground tracking-tighter">Executive Dashboard</h1>
+                    <p className="text-muted-foreground mt-2 text-sm font-medium">Real-time overview of assets, maintenance, and financials.</p>
+                </div>
                 <button
                     onClick={handleExportPDF}
                     disabled={isExporting}
-                    className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-secondary-foreground rounded-lg transition-colors border border-border"
+                    className="flex items-center gap-2 px-6 py-3 bg-card/60 backdrop-blur-xl hover:bg-muted disabled:opacity-50 text-foreground rounded-2xl transition-all border border-border font-bold uppercase tracking-widest text-xs hover:-translate-y-1 shadow-lg"
                 >
-                    <DollarSign size={16} />
-                    {isExporting ? 'Generating PDF...' : 'Export Summary (PDF)'}
+                    <DollarSign size={16} className="text-emerald-500" />
+                    {isExporting ? 'Generating PDF...' : 'Export Summary'}
                 </button>
             </div>
 
@@ -254,25 +263,26 @@ export default function Dashboard() {
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
                 {/* Left Column (2/3) */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-8">
                     {/* Maintenance Trend Chart */}
-                    <Card padding="lg">
-                        <div className="flex items-center gap-2 mb-6 text-foreground font-semibold">
+                    <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+                        <div className="flex items-center gap-3 mb-8 text-foreground font-black uppercase tracking-widest text-sm relative z-10">
                             <TrendingUp size={20} className="text-cyan-400" />
                             <h2>Maintenance Cost Trends</h2>
                         </div>
-                        <div className="h-80 w-full">
+                        <div className="h-80 w-full relative z-10">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={trends}>
                                     <defs>
                                         <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.5} />
                                             <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} opacity={0.5} />
                                     <XAxis
                                         dataKey="month"
                                         stroke="#64748b"
@@ -285,48 +295,55 @@ export default function Dashboard() {
                                             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                                             return months[parseInt(m) - 1];
                                         }}
+                                        dy={10}
                                     />
                                     <YAxis
                                         tickFormatter={(val) => `Rp ${val / 1000000}M`}
+                                        stroke="#64748b"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        dx={-10}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-foreground)' }}
+                                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '16px', color: 'var(--color-foreground)', backdropFilter: 'blur(12px)', fontWeight: 'bold' }}
                                         formatter={(val: number | undefined) => [formatCurrency(val ?? 0), 'Total Cost']}
                                     />
-                                    <Area type="monotone" dataKey="total_cost" stroke="#06b6d4" fillOpacity={1} fill="url(#colorCost)" />
+                                    <Area type="monotone" dataKey="total_cost" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorCost)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
-                    </Card>
+                    </div>
 
                     {/* Financial Snapshot & Recent Activity Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {showFinancials && (
-                            <Card padding="lg">
-                                <h2 className="text-lg font-semibold text-foreground mb-4">Financial Snapshot</h2>
-                                <div className="space-y-6">
+                            <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none" />
+                                <h2 className="text-sm font-black uppercase tracking-widest text-foreground mb-6">Financial Snapshot</h2>
+                                <div className="space-y-6 relative z-10">
                                     <div>
-                                        <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Book Value</p>
-                                        <p className="text-2xl font-bold text-cyan-400">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Book Value</p>
+                                        <p className="text-3xl font-black text-emerald-400 font-mono tracking-tight">
                                             {formatCurrency(financials?.total_book_value || 0)}
                                         </p>
                                     </div>
-                                    <div className="pt-4 border-t border-border grid grid-cols-2 gap-4">
+                                    <div className="pt-6 border-t border-border grid grid-cols-2 gap-6">
                                         <div>
-                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-1">Orig. Cost</p>
-                                            <p className="text-sm font-bold text-foreground">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Orig. Cost</p>
+                                            <p className="text-sm font-black text-foreground font-mono">
                                                 {formatCurrency(financials?.total_original_cost || 0)}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-1">Deprec.</p>
-                                            <p className="text-sm font-bold text-red-500">
+                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Deprec.</p>
+                                            <p className="text-sm font-black text-rose-500 font-mono">
                                                 -{formatCurrency(financials?.total_accumulated_depreciation || 0)}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
                         )}
 
                         <LiveActivityFeed />
@@ -336,14 +353,14 @@ export default function Dashboard() {
 
 
                 {/* Right Column (1/3) */}
-                <div className="space-y-6">
+                <div className="space-y-8">
                     {/* Vehicle Legality Widget */}
                     <VehicleLegalityWidget />
 
                     {/* Asset Availability & Condition Distribution */}
-                    <Card padding="lg">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-lg font-semibold text-foreground">Asset Status Distribution</h2>
+                    <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-sm font-black uppercase tracking-widest text-foreground">Status Distribution</h2>
                             <PieChartIcon size={18} className="text-cyan-400" />
                         </div>
 
@@ -359,6 +376,7 @@ export default function Dashboard() {
                                         paddingAngle={5}
                                         dataKey="count"
                                         nameKey="status"
+                                        stroke="none"
                                     >
                                         {statusDist?.map((entry: any, index: number) => {
                                             const colors: Record<string, string> = {
@@ -384,7 +402,7 @@ export default function Dashboard() {
                                         })}
                                     </Pie>
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-foreground)' }}
+                                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '16px', color: 'var(--color-foreground)', backdropFilter: 'blur(12px)', fontWeight: 'bold' }}
                                         formatter={(value: any, name: any) => {
                                             const formattedName = name === 'planning' ? 'Rent Out' : name.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                                             return [value, formattedName];
@@ -392,58 +410,59 @@ export default function Dashboard() {
                                     />
                                     <Legend
                                         iconType="circle"
-                                        wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
+                                        wrapperStyle={{ fontSize: '10px', paddingTop: '20px', fontWeight: 'bold' }}
                                         formatter={(value) => value === 'planning' ? 'Rent Out' : value.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
-                    </Card>
+                    </div>
 
                     {/* Asset Availability Ring */}
-                    <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-foreground mb-6">Availability Rate</h2>
-                        <div className="flex justify-center">
+                    <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
+                        <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
+                        <h2 className="text-sm font-black uppercase tracking-widest text-foreground mb-8 relative z-10">Availability Rate</h2>
+                        <div className="flex justify-center relative z-10">
                             <RingProgress percentage={availablePercentage} />
                         </div>
-                    </Card>
+                    </div>
 
                     {/* Operational Stats */}
-                    <Card padding="lg">
-                        <h2 className="text-lg font-semibold text-foreground mb-4">Operational Status</h2>
-                        <div className="space-y-4">
+                    <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl">
+                        <h2 className="text-sm font-black uppercase tracking-widest text-foreground mb-6">Operational Status</h2>
+                        <div className="space-y-5">
                             {showFinancials && (
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-500/10 rounded-lg">
-                                        <ClipboardCheck size={18} className="text-indigo-400" />
+                                <div className="flex items-center gap-4 group">
+                                    <div className="p-2.5 bg-indigo-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                                        <ClipboardCheck size={20} className="text-indigo-400" />
                                     </div>
-                                    <span className="flex-1 text-sm text-muted-foreground">Pending Approvals</span>
-                                    <span className="font-bold text-foreground">{pendingContracts?.count || 0}</span>
+                                    <span className="flex-1 text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors">Pending Approvals</span>
+                                    <span className="font-black text-xl text-foreground font-mono bg-muted/50 px-3 py-1 rounded-lg">{pendingContracts?.count || 0}</span>
                                 </div>
                             )}
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-500/10 rounded-lg">
-                                    <ClipboardCheck size={18} className="text-purple-400" />
+                            <div className="flex items-center gap-4 group">
+                                <div className="p-2.5 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                                    <ClipboardCheck size={20} className="text-purple-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-muted-foreground">Pending Loans</span>
-                                <span className="font-bold text-foreground">{stats?.loans?.pending_approval || 0}</span>
+                                <span className="flex-1 text-sm font-bold text-muted-foreground group-hover:text-foreground transition-colors">Pending Loans</span>
+                                <span className="font-black text-xl text-foreground font-mono bg-muted/50 px-3 py-1 rounded-lg">{stats?.loans?.pending_approval || 0}</span>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-amber-500/10 rounded-lg">
-                                    <Clock size={18} className="text-amber-400" />
+                            <div className="flex items-center gap-4 group">
+                                <div className="p-2.5 bg-amber-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                                    <Clock size={20} className="text-amber-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-muted-foreground">Overdue Loans</span>
-                                <span className="font-bold text-amber-500">{stats?.loans?.overdue || 0}</span>
+                                <span className="flex-1 text-sm font-bold text-muted-foreground group-hover:text-amber-500 transition-colors">Overdue Loans</span>
+                                <span className="font-black text-xl text-amber-500 font-mono bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">{stats?.loans?.overdue || 0}</span>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-red-500/10 rounded-lg">
-                                    <Wrench size={18} className="text-red-400" />
+                            <div className="flex items-center gap-4 group">
+                                <div className="p-2.5 bg-rose-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                                    <Wrench size={20} className="text-rose-400" />
                                 </div>
-                                <span className="flex-1 text-sm text-muted-foreground">Repair Needs</span>
-                                <span className="font-bold text-red-500">{stats?.maintenance?.overdue || 0}</span>
+                                <span className="flex-1 text-sm font-bold text-muted-foreground group-hover:text-rose-500 transition-colors">Repair Needs</span>
+                                <span className="font-black text-xl text-rose-500 font-mono bg-rose-500/10 px-3 py-1 rounded-lg border border-rose-500/20">{stats?.maintenance?.overdue || 0}</span>
                             </div>
                         </div>
-                    </Card>
+                    </div>
                 </div>
             </div>
         </div>

@@ -264,11 +264,11 @@ impl FinanceService {
 
         // --- Automated Journaling Logic ---
         // 1. Find Accounts (Piutang & Penjualan)
-        let receivable_acc = self.find_by_code("1-1200").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 1-1200 (Piutang) not found")
+        let receivable_acc = self.find_by_code("1-1300").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 1-1300 (Piutang Usaha) not found")
         })?;
-        let sales_acc = self.find_by_code("4-1000").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 4-1000 (Penjualan) not found")
+        let sales_acc = self.find_by_code("4-1100").await?.ok_or_else(|| {
+            DomainError::business_rule("Missing Account", "Account 4-1100 (Pendapatan Penjualan) not found")
         })?;
 
         // 2. Prepare Journal Entry
@@ -671,15 +671,21 @@ impl FinanceService {
             while let Ok(event) = rx.recv().await {
                 match event {
                     management_system_core::domain::events::SystemEvent::FuelLogCompleted(log) => {
-                        let _ = service.handle_fuel_log_completed(log).await;
+                        if let Err(e) = service.handle_fuel_log_completed(log).await {
+                            tracing::error!("Failed to process FuelLogCompleted event: {:?}", e);
+                        }
                     }
                     management_system_core::domain::events::SystemEvent::WorkOrderFinalized(wo) => {
-                        let _ = service.handle_work_order_finalized(wo).await;
+                        if let Err(e) = service.handle_work_order_finalized(wo).await {
+                            tracing::error!("Failed to process WorkOrderFinalized event: {:?}", e);
+                        }
                     }
                     management_system_core::domain::events::SystemEvent::RentalInvoiceGenerated(
                         period,
                     ) => {
-                        let _ = service.handle_rental_invoice_generated(period).await;
+                        if let Err(e) = service.handle_rental_invoice_generated(period).await {
+                            tracing::error!("Failed to process RentalInvoiceGenerated event: {:?}", e);
+                        }
                     }
                     _ => {}
                 }

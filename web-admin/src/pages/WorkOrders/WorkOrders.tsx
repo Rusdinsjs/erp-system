@@ -176,9 +176,9 @@ export default function WorkOrders() {
             </div>
 
             {/* Main Content Area */}
-            <Card className="overflow-hidden p-0 border border-border">
+            <Card className="overflow-hidden p-0 border border-border bg-card/60 backdrop-blur-xl shadow-2xl rounded-3xl">
                 {/* Tabs Bar */}
-                <div className="px-6 py-4 border-b border-border bg-muted/30 flex justify-between items-center">
+                <div className="px-6 py-4 border-b border-border/50 bg-muted/20 flex justify-between items-center backdrop-blur-md">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-0">
                         <TabsList className="bg-muted">
                             <TabsTrigger value="active" className="px-6">Active & Planned</TabsTrigger>
@@ -190,80 +190,145 @@ export default function WorkOrders() {
                     </Tabs>
                 </div>
 
-                {/* Table */}
-                <div className="relative">
-                    <Table className="border-none rounded-none shadow-none">
-                        <TableHead>
-                            <TableRow className="bg-muted/50 border-border">
-                                <TableTh>Asset</TableTh>
-                                <TableTh>Type</TableTh>
-                                <TableTh>Status</TableTh>
-                                <TableTh>Scheduled</TableTh>
-                                <TableTh>Cost</TableTh>
-                                <TableTh align="center">Actions</TableTh>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {isLoading ? (
-                                <TableRow>
-                                    <TableTd colSpan={6} className="p-0">
-                                        <div className="p-4"><TableSkeleton rows={5} cols={6} /></div>
-                                    </TableTd>
-                                </TableRow>
-                            ) : records.length === 0 ? (
-                                <TableEmpty colSpan={6} message="No work orders found" />
-                            ) : (
-                                records.map((record: any) => (
-                                    <TableRow
-                                        key={record.id}
-                                        onClick={() => navigate(`/work-orders/${record.id}`)}
-                                        className="hover:bg-muted/50 border-border group transition-all cursor-pointer"
-                                    >
-                                        <TableTd>
-                                            <span className="font-medium text-foreground group-hover:text-primary transition-colors">
-                                                {record.asset_name || record.asset?.name || record.asset_id}
-                                            </span>
-                                        </TableTd>
-                                        <TableTd className="capitalize">{record.wo_type}</TableTd>
-                                        <TableTd>
-                                            <StatusBadge status={record.status} />
-                                        </TableTd>
-                                        <TableTd className="text-muted-foreground">{record.scheduled_date}</TableTd>
-                                        <TableTd className="font-medium text-foreground">
-                                            {record.status === 'completed' && record.actual_cost
-                                                ? `Rp ${Number(record.actual_cost).toLocaleString('id-ID')}`
-                                                : record.estimated_cost
-                                                    ? `Rp ${Number(record.estimated_cost).toLocaleString('id-ID')}`
-                                                    : '-'}
-                                        </TableTd>
-                                        <TableTd align="center">
-                                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                                                <PermissionGate requiredLevel={3}>
-                                                    <ActionIcon
-                                                        onClick={(e) => { e.stopPropagation(); handleEdit(record.id); }}
-                                                        title="Edit Work Order"
-                                                        className="hover:bg-amber-500/20 text-amber-400"
-                                                    >
-                                                        <Edit size={16} />
-                                                    </ActionIcon>
-                                                </PermissionGate>
-                                                <PermissionGate requiredLevel={2}>
-                                                    <ActionIcon
-                                                        variant="danger"
-                                                        onClick={(e) => handleDelete(record.id, e)}
-                                                        title="Delete Work Order"
-                                                        className="hover:bg-red-500/20 text-red-400"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </ActionIcon>
-                                                </PermissionGate>
+                {/* Kanban Board Area */}
+                <div className="relative bg-background/50 p-6 min-h-[600px] overflow-x-auto custom-scrollbar">
+                    {isLoading ? (
+                        <div className="flex gap-6 h-[500px]">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="min-w-[320px] bg-card/20 rounded-3xl p-4 border border-border/50">
+                                    <div className="h-6 w-24 bg-muted animate-pulse rounded mb-4"></div>
+                                    <div className="space-y-4">
+                                        {[1, 2, 3].map(j => (
+                                            <div key={j} className="h-32 bg-muted animate-pulse rounded-2xl"></div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : records.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+                            <div className="p-6 bg-muted/20 rounded-full mb-4">
+                                <Wrench size={48} className="opacity-20" />
+                            </div>
+                            <p className="text-sm font-bold uppercase tracking-widest opacity-50">No work orders found in this view</p>
+                            <Button variant="secondary" onClick={handleCreate} className="mt-4 rounded-xl px-8">Create New Ticket</Button>
+                        </div>
+                    ) : activeTab === 'history' || activeTab === 'overdue' ? (
+                        /* Fallback to Table for History/Overdue for density */
+                        <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl overflow-hidden">
+                            <table className="w-full text-left text-sm text-foreground/80 border-separate border-spacing-0">
+                                <thead className="bg-card/90 sticky top-0 z-20 backdrop-blur-md">
+                                    <tr>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Ticket Ref</th>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Asset Info</th>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Status</th>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border">Scheduled</th>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {records.map((record: any) => (
+                                        <tr key={record.id} onClick={() => navigate(`/work-orders/${record.id}`)} className="group cursor-pointer hover:bg-muted/30 transition-colors">
+                                            <td className="px-6 py-4 font-mono font-bold text-primary">#{record.id.slice(0, 8)}</td>
+                                            <td className="px-6 py-4 font-medium">{record.asset_name || record.asset?.name || record.asset_id}</td>
+                                            <td className="px-6 py-4"><StatusBadge status={record.status} /></td>
+                                            <td className="px-6 py-4 text-muted-foreground">{record.scheduled_date}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <ActionIcon onClick={(e) => { e.stopPropagation(); navigate(`/work-orders/${record.id}`); }} variant="default" className="rounded-xl hover:bg-primary/20 hover:text-primary w-10 h-10 border border-border"><Edit size={16} /></ActionIcon>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        /* Kanban Board View for Active & Planned */
+                        <div className="flex gap-6 h-full items-start">
+                            {[
+                                { title: 'Pending Approval', status: 'pending', color: 'slate', icon: AlertTriangle, borderClass: 'border-slate-500/10', bgHeader: 'bg-slate-500/5', borderHeader: 'border-slate-500/20', bgIcon: 'bg-slate-500/20', textIcon: 'text-slate-500', bgCount: 'bg-slate-500/20', textCount: 'text-slate-500', hoverBorder: 'hover:border-slate-500/50', ribbon: 'bg-slate-500/30 group-hover:bg-slate-500', hoverIconBg: 'hover:bg-slate-500' },
+                                { title: 'Assigned / Ready', status: 'approved', color: 'blue', icon: Clock, borderClass: 'border-blue-500/10', bgHeader: 'bg-blue-500/5', borderHeader: 'border-blue-500/20', bgIcon: 'bg-blue-500/20', textIcon: 'text-blue-500', bgCount: 'bg-blue-500/20', textCount: 'text-blue-500', hoverBorder: 'hover:border-blue-500/50', ribbon: 'bg-blue-500/30 group-hover:bg-blue-500', hoverIconBg: 'hover:bg-blue-500' },
+                                { title: 'In Progress', status: 'in_progress', color: 'amber', icon: Wrench, borderClass: 'border-amber-500/10', bgHeader: 'bg-amber-500/5', borderHeader: 'border-amber-500/20', bgIcon: 'bg-amber-500/20', textIcon: 'text-amber-500', bgCount: 'bg-amber-500/20', textCount: 'text-amber-500', hoverBorder: 'hover:border-amber-500/50', ribbon: 'bg-amber-500/30 group-hover:bg-amber-500', hoverIconBg: 'hover:bg-amber-500' },
+                                { title: 'Review / Done', status: ['completed', 'verified', 'finalized'], color: 'emerald', icon: CheckCircle, borderClass: 'border-emerald-500/10', bgHeader: 'bg-emerald-500/5', borderHeader: 'border-emerald-500/20', bgIcon: 'bg-emerald-500/20', textIcon: 'text-emerald-500', bgCount: 'bg-emerald-500/20', textCount: 'text-emerald-500', hoverBorder: 'hover:border-emerald-500/50', ribbon: 'bg-emerald-500/30 group-hover:bg-emerald-500', hoverIconBg: 'hover:bg-emerald-500' }
+                            ].map((col) => {
+                                const colRecords = records.filter(r => 
+                                    Array.isArray(col.status) ? col.status.includes(r.status) : r.status === col.status
+                                );
+                                
+                                return (
+                                    <div key={col.title} className={`flex flex-col min-w-[340px] max-w-[340px] bg-card/40 backdrop-blur-xl rounded-[2rem] border ${col.borderClass} overflow-hidden flex-shrink-0 shadow-xl`}>
+                                        {/* Column Header */}
+                                        <div className={`p-5 border-b ${col.borderHeader} ${col.bgHeader} flex justify-between items-center sticky top-0 z-10 backdrop-blur-md`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-xl ${col.bgIcon} ${col.textIcon}`}>
+                                                    <col.icon size={18} />
+                                                </div>
+                                                <h3 className="font-bold text-foreground text-sm uppercase tracking-widest">{col.title}</h3>
                                             </div>
-                                        </TableTd>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                            <span className={`${col.bgCount} ${col.textCount} font-black px-3 py-1 rounded-full text-xs`}>
+                                                {colRecords.length}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Column Body */}
+                                        <div className="p-4 space-y-4 overflow-y-auto max-h-[650px] custom-scrollbar">
+                                            {colRecords.length === 0 ? (
+                                                <div className="py-12 flex flex-col items-center justify-center text-muted-foreground/40 border-2 border-dashed border-border/50 rounded-3xl">
+                                                    <div className="text-[10px] uppercase tracking-widest font-bold">Drop Zone Empty</div>
+                                                </div>
+                                            ) : (
+                                                colRecords.map((wo) => (
+                                                    <div 
+                                                        key={wo.id} 
+                                                        onClick={() => navigate(`/work-orders/${wo.id}`)}
+                                                        className={`group cursor-pointer bg-card/80 hover:bg-muted/80 backdrop-blur-xl border border-border ${col.hoverBorder} rounded-3xl p-5 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 relative overflow-hidden`}
+                                                    >
+                                                        {/* Top Ribbon */}
+                                                        <div className={`absolute top-0 left-0 w-full h-1.5 ${col.ribbon} transition-colors duration-500`} />
+                                                        
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1">Ticket #{wo.id.slice(0, 8)}</span>
+                                                                <span className="text-foreground font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                                                                    {wo.asset_name || wo.asset?.name || `Asset ${wo.asset_id.slice(0, 4)}`}
+                                                                </span>
+                                                            </div>
+                                                            <ActionIcon 
+                                                                onClick={(e) => { e.stopPropagation(); handleEdit(wo.id); }} 
+                                                                className={`opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl ${col.hoverIconBg} hover:text-white w-8 h-8 shrink-0 border border-border shadow-md`}
+                                                            >
+                                                                <Edit size={14} />
+                                                            </ActionIcon>
+                                                        </div>
+                                                        
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center gap-2 bg-background p-2.5 rounded-xl border border-border/50">
+                                                                <Wrench size={14} className="text-muted-foreground shrink-0" />
+                                                                <span className="text-[11px] font-bold uppercase tracking-widest text-foreground truncate">{wo.wo_type.replace('_', ' ')}</span>
+                                                            </div>
+                                                            
+                                                            <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                                                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                                                    <Clock size={12} className={new Date(wo.scheduled_date) < new Date() && wo.status !== 'completed' ? 'text-destructive' : ''} />
+                                                                    <span className={`text-[10px] font-bold uppercase ${new Date(wo.scheduled_date) < new Date() && wo.status !== 'completed' ? 'text-destructive' : ''}`}>
+                                                                        {wo.scheduled_date}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center border border-border/50 shrink-0" title="Assigned To">
+                                                                    <span className="text-[8px] font-black">{wo.assigned_to ? wo.assigned_to.slice(0,2).toUpperCase() : '??'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* Pagination */}

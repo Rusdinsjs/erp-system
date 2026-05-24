@@ -797,8 +797,8 @@ export default function AdminDashboard() {
             <aside
                 className={`
             fixed lg:static inset-y-0 left-0 z-50
-            bg-card border-r border-border text-card-foreground 
-            transition-all duration-300 ease-in-out flex flex-col
+            bg-card/80 backdrop-blur-xl border-r border-border text-card-foreground 
+            transition-all duration-300 ease-in-out flex flex-col shadow-2xl lg:shadow-none
             ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}
         `}
             >
@@ -867,9 +867,16 @@ export default function AdminDashboard() {
             </aside>
 
             {/* Main Content with Header */}
-            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+                {/* Global Ambient Background for Glassmorphism Context */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/5 dark:bg-blue-500/10 blur-[100px]" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-500/5 dark:bg-emerald-500/10 blur-[100px]" />
+                    <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] rounded-full bg-purple-500/5 dark:bg-purple-500/10 blur-[120px]" />
+                </div>
+
                 {/* Header */}
-                <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 gap-4">
+                <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 gap-4 relative z-10 shadow-sm">
 
                     {/* Mobile Toggle Button */}
                     <button
@@ -955,8 +962,8 @@ export default function AdminDashboard() {
                     </button>
                 </header>
 
-                {/* Main Content Area */}
-                <main className="flex-1 overflow-y-auto bg-background p-6 global-scrollbar">
+                {/* Content Area */}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-transparent relative z-10 global-scrollbar">
                     <Suspense fallback={<PageLoading />}>
                         {renderContent()}
                     </Suspense>

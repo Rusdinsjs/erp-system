@@ -1,0 +1,479 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/rus/Ngoding/management-system/crates/api-server/Cargo.toml
+workspace: /home/rus/Ngoding/management-system/Cargo.toml
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s
+warning: the following packages contain code that will be rejected by a future version of Rust: sqlx-postgres v0.7.4
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 2`
+     Running `target/debug/management-system`
+[2m2026-05-24T12:32:06.922941Z[0m [32m INFO[0m [2mmanagement_system[0m[2m:[0m DEBUG: Database Config URL: postgres://postgres:postgres@localhost:5434/management_system
+[2m2026-05-24T12:32:06.922993Z[0m [32m INFO[0m [2mmanagement_system[0m[2m:[0m Starting Management System ERP v0.1.0
+[2m2026-05-24T12:32:06.923005Z[0m [32m INFO[0m [2mmanagement_system[0m[2m:[0m Environment: development
+[2m2026-05-24T12:32:06.939613Z[0m [32m INFO[0m [2mmanagement_system[0m[2m:[0m Database connected successfully
+[2m2026-05-24T12:32:06.939655Z[0m [32m INFO[0m [2mmanagement_system[0m[2m:[0m Running database migrations...
+[2m2026-05-24T12:32:06.940585Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT current_database()" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m659.897µs [3melapsed_secs[0m[2m=[0m0.000659897
+[2m2026-05-24T12:32:06.941090Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT pg_advisory_lock($1)" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m432.733µs [3melapsed_secs[0m[2m=[0m0.000432733
+[2m2026-05-24T12:32:06.941410Z[0m [32m INFO[0m [2msqlx::postgres::notice[0m[2m:[0m relation "_sqlx_migrations" already exists, skipping
+[2m2026-05-24T12:32:06.945044Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"CREATE TABLE IF NOT …" [3mdb.statement[0m[2m=[0m"\n\nCREATE TABLE IF NOT EXISTS _sqlx_migrations (\n  version BIGINT PRIMARY KEY,\n  description TEXT NOT NULL,\n  installed_on TIMESTAMPTZ NOT NULL DEFAULT now(),\n  success BOOLEAN NOT NULL,\n  checksum BYTEA NOT NULL,\n  execution_time BIGINT NOT NULL\n);\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m310.105µs [3melapsed_secs[0m[2m=[0m0.000310105
+[2m2026-05-24T12:32:06.947739Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT version FROM _sqlx_migrations …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  version\nFROM\n  _sqlx_migrations\nWHERE\n  success = false\nORDER BY\n  version\nLIMIT\n  1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m1.786695ms [3melapsed_secs[0m[2m=[0m0.001786695
+[2m2026-05-24T12:32:06.950541Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT version, checksum FROM …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  version,\n  checksum\nFROM\n  _sqlx_migrations\nORDER BY\n  version\n" [3mrows_affected[0m[2m=[0m132 [3mrows_returned[0m[2m=[0m132 [3melapsed[0m[2m=[0m1.770277ms [3melapsed_secs[0m[2m=[0m0.001770277
+[2m2026-05-24T12:32:06.951285Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT current_database()" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m193.493µs [3melapsed_secs[0m[2m=[0m0.000193493
+[2m2026-05-24T12:32:06.951844Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT pg_advisory_unlock($1)" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m477.325µs [3melapsed_secs[0m[2m=[0m0.000477325
+[2m2026-05-24T12:32:06.951968Z[0m [32m INFO[0m [2mmanagement_system[0m[2m:[0m Migrations applied successfully.
+[2m2026-05-24T12:32:06.953476Z[0m [32m INFO[0m [2mmanagement_system_core::application::services::notification_service[0m[2m:[0m Notification Service event listener started
+[2m2026-05-24T12:32:06.953516Z[0m [32m INFO[0m [2mmanagement_system_core::application::services::audit_service[0m[2m:[0m Audit Service event listener started
+[2m2026-05-24T12:32:06.953651Z[0m [32m INFO[0m [2mmanagement_system_finance::finance_service[0m[2m:[0m Finance Service event listener started
+[2m2026-05-24T12:32:06.955491Z[0m [32m INFO[0m [2mmanagement_system::application::services::scheduler_service[0m[2m:[0m Running initial tax renewal detection on startup...
+[2m2026-05-24T12:32:06.984327Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT id, asset_code, name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  id,\n  asset_code,\n  name,\n  category_id,\n  location_id,\n  department_id,\n  department,\n  assigned_to,\n  vendor_id,\n  is_rental,\n  is_fuel,\n  is_loan,\n  asset_class,\n  status,\n  condition_id,\n  serial_number,\n  brand,\n  model,\n  year_manufacture,\n  specifications,\n  description,\n  acquisition_method,\n  funding_source,\n  purchase_date,\n  purchase_price,\n  currency_id,\n  unit_id,\n  quantity,\n  residual_value,\n  useful_life_months,\n  qr_code_url,\n  notes,\n  sale_price,\n  sale_date,\n  sold_to,\n  created_at,\n  updated_at,\n  version,\n  vehicle_details\nFROM\n  assets\nWHERE\n  vehicle_details IS NOT NULL\n  AND (\n    (\n      (vehicle_details ->> 'stnk_expiry') :: date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days') :: interval\n    )\n    OR (\n      (vehicle_details ->> 'tax_expiry') :: date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days') :: interval\n    )\n    OR (\n      (vehicle_details ->> 'kir_expiry') :: date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days') :: interval\n    )\n    OR (\n      (vehicle_details ->> 'heavy_equipment_tax_expiry') :: date BETWEEN CURRENT_DATE AND CURRENT_DATE + ($1 || ' days') :: interval\n    )\n  )\n  AND status != 'archived'\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m6.447406ms [3melapsed_secs[0m[2m=[0m0.006447406
+[2m2026-05-24T12:32:06.984573Z[0m [32m INFO[0m [2mmanagement_system::application::services::scheduler_service[0m[2m:[0m Scheduler started
+[2m2026-05-24T12:32:28.364349Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT u.id, u.email, u.password_hash, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  u.id,\n  u.email,\n  u.password_hash,\n  u.name,\n  u.role_id,\n  COALESCE(r.code, u.role) as role_code,\n  COALESCE(r.role_level, 5) as role_level,\n  u.department,\n  u.department_id,\n  u.organization_id,\n  e.id as employee_id,\n  u.phone,\n  u.avatar_url,\n  u.is_active,\n  false as email_verified,\n  NULL :: timestamptz as last_login_at,\n  u.created_at,\n  u.updated_at\nFROM\n  users u\n  LEFT JOIN roles r ON u.role_id = r.id\n  LEFT JOIN employees e ON u.id = e.user_id\nWHERE\n  u.email = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m9.580378ms [3melapsed_secs[0m[2m=[0m0.009580378
+[2m2026-05-24T12:32:28.952599Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE users SET updated_at …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  users\nSET\n  updated_at = NOW()\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m10.947067ms [3melapsed_secs[0m[2m=[0m0.010947067
+[2m2026-05-24T12:32:28.959788Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT p.code FROM permissions …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  p.code\nFROM\n  permissions p\n  JOIN role_permissions rp ON p.id = rp.permission_id\nWHERE\n  rp.role_id = $1\n" [3mrows_affected[0m[2m=[0m12 [3mrows_returned[0m[2m=[0m12 [3melapsed[0m[2m=[0m4.887805ms [3melapsed_secs[0m[2m=[0m0.004887805
+[2m2026-05-24T12:32:28.959882Z[0m [32m INFO[0m [2mmanagement_system_core::application::services::auth_service[0m[2m:[0m User berat@sjs.com login with permissions: ["asset.create", "asset.read", "asset.update", "asset.delete", "asset.transfer", "asset.dispose", "maintenance.create", "maintenance.read", "maintenance.update", "maintenance.delete", "maintenance.approve", "user.read"]
+[2m2026-05-24T12:32:28.964043Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT * FROM employees …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  *\nFROM\n  employees\nWHERE\n  user_id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m2.986441ms [3melapsed_secs[0m[2m=[0m0.002986441
+[2m2026-05-24T12:32:28.980749Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT u.id, u.email, u.password_hash, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  u.id,\n  u.email,\n  u.password_hash,\n  u.name,\n  u.role_id,\n  COALESCE(r.code, u.role) as role_code,\n  COALESCE(r.role_level, 5) as role_level,\n  u.department,\n  u.department_id,\n  u.organization_id,\n  e.id as employee_id,\n  u.phone,\n  u.avatar_url,\n  u.is_active,\n  false as email_verified,\n  NULL :: timestamptz as last_login_at,\n  u.created_at,\n  u.updated_at\nFROM\n  users u\n  LEFT JOIN roles r ON u.role_id = r.id\n  LEFT JOIN employees e ON u.id = e.user_id\nWHERE\n  u.email = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m5.080163ms [3melapsed_secs[0m[2m=[0m0.005080163
+[2m2026-05-24T12:32:29.559216Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE users SET updated_at …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  users\nSET\n  updated_at = NOW()\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m8.108481ms [3melapsed_secs[0m[2m=[0m0.008108481
+[2m2026-05-24T12:32:29.564276Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT p.code FROM permissions …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  p.code\nFROM\n  permissions p\n  JOIN role_permissions rp ON p.id = rp.permission_id\nWHERE\n  rp.role_id = $1\n" [3mrows_affected[0m[2m=[0m17 [3mrows_returned[0m[2m=[0m17 [3melapsed[0m[2m=[0m2.676363ms [3melapsed_secs[0m[2m=[0m0.002676363
+[2m2026-05-24T12:32:29.564361Z[0m [32m INFO[0m [2mmanagement_system_core::application::services::auth_service[0m[2m:[0m User manager@sjs.com login with permissions: ["asset.create", "asset.read", "asset.update", "asset.delete", "asset.transfer", "asset.dispose", "work_order.create", "work_order.read", "work_order.read_all", "work_order.update", "work_order.delete", "work_order.approve_cost", "work_order.assign", "preventive_schedule.create", "preventive_schedule.read", "preventive_schedule.update", "preventive_schedule.delete"]
+[2m2026-05-24T12:32:29.569184Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT * FROM employees …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  *\nFROM\n  employees\nWHERE\n  user_id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m3.783347ms [3melapsed_secs[0m[2m=[0m0.003783347
+[2m2026-05-24T12:32:29.577959Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT id, client_code, name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  id,\n  client_code,\n  name,\n  company_name,\n  email,\n  phone,\n  address,\n  city,\n  contact_person,\n  tax_id,\n  is_active,\n  notes,\n  created_at,\n  updated_at\nFROM\n  clients\nORDER BY\n  name ASC\nLIMIT\n  $1 OFFSET $2\n" [3mrows_affected[0m[2m=[0m3 [3mrows_returned[0m[2m=[0m3 [3melapsed[0m[2m=[0m2.560383ms [3melapsed_secs[0m[2m=[0m0.002560383
+[2m2026-05-24T12:32:29.580291Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT COUNT(*) as \"count!\" …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  COUNT(*) as \"count!\"\nFROM\n  clients\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m1.463881ms [3melapsed_secs[0m[2m=[0m0.001463881
+[2m2026-05-24T12:32:29.589409Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT id, client_code, name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  id,\n  client_code,\n  name,\n  company_name,\n  email,\n  phone,\n  address,\n  city,\n  contact_person,\n  tax_id,\n  is_active,\n  notes,\n  created_at,\n  updated_at\nFROM\n  clients\nWHERE\n  client_code = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m1.818263ms [3melapsed_secs[0m[2m=[0m0.001818263
+[2m2026-05-24T12:32:29.608363Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"INSERT INTO clients (id, …" [3mdb.statement[0m[2m=[0m"\n\nINSERT INTO\n  clients (\n    id,\n    client_code,\n    name,\n    company_name,\n    email,\n    phone,\n    address,\n    city,\n    contact_person,\n    tax_id,\n    is_active,\n    notes,\n    created_at,\n    updated_at\n  )\nVALUES\n  (\n    $1,\n    $2,\n    $3,\n    $4,\n    $5,\n    $6,\n    $7,\n    $8,\n    $9,\n    $10,\n    $11,\n    $12,\n    $13,\n    $14\n  )\nRETURNING\n  id,\n  client_code,\n  name,\n  company_name,\n  email,\n  phone,\n  address,\n  city,\n  contact_person,\n  tax_id,\n  is_active,\n  notes,\n  created_at,\n  updated_at\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m5.000859ms [3melapsed_secs[0m[2m=[0m0.005000859
+[2m2026-05-24T12:32:29.610317Z[0m [34mDEBUG[0m [2mmanagement_system::api::middleware::rbac[0m[2m:[0m Found claims in extensions: "e01d08ab-649e-4fe7-b735-1e7ec05941d8"
+[2m2026-05-24T12:32:29.641928Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT a.id, a.asset_code, a.name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  a.id,\n  a.asset_code,\n  a.name,\n  a.status,\n  a.asset_class,\n  a.is_rental,\n  a.is_fuel,\n  a.is_loan,\n  a.brand,\n  a.purchase_price,\n  a.category_id,\n  c.name as category_name,\n  a.location_id,\n  l.name as location_name,\n  COALESCE(d.name, a.department) as department,\n  a.department_id,\n  a.model,\n  a.serial_number,\n  a.assigned_to,\n  u.name as assigned_to_name,\n  a.version\nFROM\n  assets a\n  LEFT JOIN categories c ON a.category_id = c.id\n  LEFT JOIN locations l ON a.location_id = l.id\n  LEFT JOIN departments d ON a.department_id = d.id\n  LEFT JOIN users u ON a.assigned_to = u.id\nWHERE\n  a.status != 'archived'\n  AND (\n    $3 :: text IS NULL\n    OR a.department = $3\n    OR d.name = $3\n  )\n  AND (\n    $4 :: text IS NULL\n    OR c.asset_group = $4\n  )\nORDER BY\n  a.created_at DESC\nLIMIT\n  $1 OFFSET $2\n" [3mrows_affected[0m[2m=[0m4 [3mrows_returned[0m[2m=[0m4 [3melapsed[0m[2m=[0m10.293645ms [3melapsed_secs[0m[2m=[0m0.010293645
+[2m2026-05-24T12:32:29.646603Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT COUNT(*) FROM assets …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  COUNT(*)\nFROM\n  assets\nWHERE\n  status != 'archived'\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m3.440396ms [3melapsed_secs[0m[2m=[0m0.003440396
+[2m2026-05-24T12:32:51.032582Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT u.id, u.email, u.password_hash, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  u.id,\n  u.email,\n  u.password_hash,\n  u.name,\n  u.role_id,\n  COALESCE(r.code, u.role) as role_code,\n  COALESCE(r.role_level, 5) as role_level,\n  u.department,\n  u.department_id,\n  u.organization_id,\n  e.id as employee_id,\n  u.phone,\n  u.avatar_url,\n  u.is_active,\n  false as email_verified,\n  NULL :: timestamptz as last_login_at,\n  u.created_at,\n  u.updated_at\nFROM\n  users u\n  LEFT JOIN roles r ON u.role_id = r.id\n  LEFT JOIN employees e ON u.id = e.user_id\nWHERE\n  u.email = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m1.087864ms [3melapsed_secs[0m[2m=[0m0.001087864
+[2m2026-05-24T12:32:51.638485Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE users SET updated_at …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  users\nSET\n  updated_at = NOW()\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m7.942984ms [3melapsed_secs[0m[2m=[0m0.007942984
+[2m2026-05-24T12:32:51.641414Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT p.code FROM permissions …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  p.code\nFROM\n  permissions p\n  JOIN role_permissions rp ON p.id = rp.permission_id\nWHERE\n  rp.role_id = $1\n" [3mrows_affected[0m[2m=[0m12 [3mrows_returned[0m[2m=[0m12 [3melapsed[0m[2m=[0m635.478µs [3melapsed_secs[0m[2m=[0m0.000635478
+[2m2026-05-24T12:32:51.641486Z[0m [32m INFO[0m [2mmanagement_system_core::application::services::auth_service[0m[2m:[0m User berat@sjs.com login with permissions: ["asset.create", "asset.read", "asset.update", "asset.delete", "asset.transfer", "asset.dispose", "maintenance.create", "maintenance.read", "maintenance.update", "maintenance.delete", "maintenance.approve", "user.read"]
+[2m2026-05-24T12:32:51.643328Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT * FROM employees …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  *\nFROM\n  employees\nWHERE\n  user_id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m466.779µs [3melapsed_secs[0m[2m=[0m0.000466779
+[2m2026-05-24T12:32:51.664410Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT u.id, u.email, u.password_hash, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  u.id,\n  u.email,\n  u.password_hash,\n  u.name,\n  u.role_id,\n  COALESCE(r.code, u.role) as role_code,\n  COALESCE(r.role_level, 5) as role_level,\n  u.department,\n  u.department_id,\n  u.organization_id,\n  e.id as employee_id,\n  u.phone,\n  u.avatar_url,\n  u.is_active,\n  false as email_verified,\n  NULL :: timestamptz as last_login_at,\n  u.created_at,\n  u.updated_at\nFROM\n  users u\n  LEFT JOIN roles r ON u.role_id = r.id\n  LEFT JOIN employees e ON u.id = e.user_id\nWHERE\n  u.email = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m4.210774ms [3melapsed_secs[0m[2m=[0m0.004210774
+[2m2026-05-24T12:32:52.263213Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE users SET updated_at …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  users\nSET\n  updated_at = NOW()\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m7.094457ms [3melapsed_secs[0m[2m=[0m0.007094457
+[2m2026-05-24T12:32:52.268236Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT p.code FROM permissions …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  p.code\nFROM\n  permissions p\n  JOIN role_permissions rp ON p.id = rp.permission_id\nWHERE\n  rp.role_id = $1\n" [3mrows_affected[0m[2m=[0m17 [3mrows_returned[0m[2m=[0m17 [3melapsed[0m[2m=[0m2.489879ms [3melapsed_secs[0m[2m=[0m0.002489879
+[2m2026-05-24T12:32:52.268355Z[0m [32m INFO[0m [2mmanagement_system_core::application::services::auth_service[0m[2m:[0m User manager@sjs.com login with permissions: ["asset.create", "asset.read", "asset.update", "asset.delete", "asset.transfer", "asset.dispose", "work_order.create", "work_order.read", "work_order.read_all", "work_order.update", "work_order.delete", "work_order.approve_cost", "work_order.assign", "preventive_schedule.create", "preventive_schedule.read", "preventive_schedule.update", "preventive_schedule.delete"]
+[2m2026-05-24T12:32:52.273221Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT * FROM employees …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  *\nFROM\n  employees\nWHERE\n  user_id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m3.745434ms [3melapsed_secs[0m[2m=[0m0.003745434
+[2m2026-05-24T12:32:52.281337Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT id, client_code, name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  id,\n  client_code,\n  name,\n  company_name,\n  email,\n  phone,\n  address,\n  city,\n  contact_person,\n  tax_id,\n  is_active,\n  notes,\n  created_at,\n  updated_at\nFROM\n  clients\nORDER BY\n  name ASC\nLIMIT\n  $1 OFFSET $2\n" [3mrows_affected[0m[2m=[0m4 [3mrows_returned[0m[2m=[0m4 [3melapsed[0m[2m=[0m2.304975ms [3melapsed_secs[0m[2m=[0m0.002304975
+[2m2026-05-24T12:32:52.282969Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT COUNT(*) as \"count!\" …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  COUNT(*) as \"count!\"\nFROM\n  clients\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m706.686µs [3melapsed_secs[0m[2m=[0m0.000706686
+[2m2026-05-24T12:32:52.288763Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT id, client_code, name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  id,\n  client_code,\n  name,\n  company_name,\n  email,\n  phone,\n  address,\n  city,\n  contact_person,\n  tax_id,\n  is_active,\n  notes,\n  created_at,\n  updated_at\nFROM\n  clients\nWHERE\n  client_code = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m689.886µs [3melapsed_secs[0m[2m=[0m0.000689886
+[2m2026-05-24T12:32:52.302909Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"INSERT INTO clients (id, …" [3mdb.statement[0m[2m=[0m"\n\nINSERT INTO\n  clients (\n    id,\n    client_code,\n    name,\n    company_name,\n    email,\n    phone,\n    address,\n    city,\n    contact_person,\n    tax_id,\n    is_active,\n    notes,\n    created_at,\n    updated_at\n  )\nVALUES\n  (\n    $1,\n    $2,\n    $3,\n    $4,\n    $5,\n    $6,\n    $7,\n    $8,\n    $9,\n    $10,\n    $11,\n    $12,\n    $13,\n    $14\n  )\nRETURNING\n  id,\n  client_code,\n  name,\n  company_name,\n  email,\n  phone,\n  address,\n  city,\n  contact_person,\n  tax_id,\n  is_active,\n  notes,\n  created_at,\n  updated_at\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m4.508844ms [3melapsed_secs[0m[2m=[0m0.004508844
+[2m2026-05-24T12:32:52.304273Z[0m [34mDEBUG[0m [2mmanagement_system::api::middleware::rbac[0m[2m:[0m Found claims in extensions: "e01d08ab-649e-4fe7-b735-1e7ec05941d8"
+[2m2026-05-24T12:32:52.333357Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT a.id, a.asset_code, a.name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  a.id,\n  a.asset_code,\n  a.name,\n  a.status,\n  a.asset_class,\n  a.is_rental,\n  a.is_fuel,\n  a.is_loan,\n  a.brand,\n  a.purchase_price,\n  a.category_id,\n  c.name as category_name,\n  a.location_id,\n  l.name as location_name,\n  COALESCE(d.name, a.department) as department,\n  a.department_id,\n  a.model,\n  a.serial_number,\n  a.assigned_to,\n  u.name as assigned_to_name,\n  a.version\nFROM\n  assets a\n  LEFT JOIN categories c ON a.category_id = c.id\n  LEFT JOIN locations l ON a.location_id = l.id\n  LEFT JOIN departments d ON a.department_id = d.id\n  LEFT JOIN users u ON a.assigned_to = u.id\nWHERE\n  a.status != 'archived'\n  AND (\n    $3 :: text IS NULL\n    OR a.department = $3\n    OR d.name = $3\n  )\n  AND (\n    $4 :: text IS NULL\n    OR c.asset_group = $4\n  )\nORDER BY\n  a.created_at DESC\nLIMIT\n  $1 OFFSET $2\n" [3mrows_affected[0m[2m=[0m4 [3mrows_returned[0m[2m=[0m4 [3melapsed[0m[2m=[0m13.128597ms [3melapsed_secs[0m[2m=[0m0.013128597
+[2m2026-05-24T12:32:52.335345Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT COUNT(*) FROM assets …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  COUNT(*)\nFROM\n  assets\nWHERE\n  status != 'archived'\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m939.501µs [3melapsed_secs[0m[2m=[0m0.000939501
+[2m2026-05-24T12:32:52.353926Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"INSERT INTO rental_rates ( …" [3mdb.statement[0m[2m=[0m"\n\nINSERT INTO\n  rental_rates (\n    id,\n    name,\n    category_id,\n    asset_id,\n    rate_type,\n    rate_amount,\n    currency,\n    minimum_duration,\n    deposit_percentage,\n    ma_threshold,\n    availability_penalty_multiplier,\n    rate_basis,\n    minimum_hours,\n    overtime_multiplier,\n    standby_multiplier,\n    breakdown_penalty_per_day,\n    hours_per_day,\n    days_per_month,\n    late_fee_per_day,\n    is_active,\n    created_at,\n    updated_at\n  )\nVALUES\n  (\n    $1,\n    $2,\n    $3,\n    $4,\n    $5,\n    $6,\n    $7,\n    $8,\n    $9,\n    $10,\n    $11,\n    $12,\n    $13,\n    $14,\n    $15,\n    $16,\n    $17,\n    $18,\n    $19,\n    $20,\n    $21,\n    $22\n  )\nRETURNING\n  *\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m6.661876ms [3melapsed_secs[0m[2m=[0m0.006661876
+[2m2026-05-24T12:32:52.360095Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT id, client_code, name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  id,\n  client_code,\n  name,\n  company_name,\n  email,\n  phone,\n  address,\n  city,\n  contact_person,\n  tax_id,\n  is_active,\n  notes,\n  created_at,\n  updated_at\nFROM\n  clients\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m580.485µs [3melapsed_secs[0m[2m=[0m0.000580485
+[2m2026-05-24T12:32:52.374918Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT id, asset_code, name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  id,\n  asset_code,\n  name,\n  category_id,\n  location_id,\n  department_id,\n  department,\n  assigned_to,\n  vendor_id,\n  is_rental,\n  is_fuel,\n  is_loan,\n  asset_class,\n  status,\n  condition_id,\n  serial_number,\n  brand,\n  model,\n  year_manufacture,\n  specifications,\n  description,\n  acquisition_method,\n  funding_source,\n  purchase_date,\n  purchase_price,\n  currency_id,\n  unit_id,\n  quantity,\n  residual_value,\n  useful_life_months,\n  qr_code_url,\n  notes,\n  sale_price,\n  sale_date,\n  sold_to,\n  created_at,\n  updated_at,\n  version\nFROM\n  assets\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m5.050389ms [3melapsed_secs[0m[2m=[0m0.005050389
+[2m2026-05-24T12:32:52.388850Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"INSERT INTO rentals ( …" [3mdb.statement[0m[2m=[0m"\n\nINSERT INTO\n  rentals (\n    id,\n    rental_number,\n    client_id,\n    status,\n    request_date,\n    start_date,\n    expected_end_date,\n    actual_end_date,\n    subtotal,\n    deposit_amount,\n    deposit_returned,\n    penalty_amount,\n    total_amount,\n    requested_by,\n    approved_by,\n    approved_at,\n    rejection_reason,\n    agreement_document,\n    invoice_number,\n    notes,\n    created_at,\n    updated_at\n  )\nVALUES\n  (\n    $1,\n    $2,\n    $3,\n    $4,\n    $5,\n    $6,\n    $7,\n    $8,\n    $9,\n    $10,\n    $11,\n    $12,\n    $13,\n    $14,\n    $15,\n    $16,\n    $17,\n    $18,\n    $19,\n    $20,\n    $21,\n    $22\n  )\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m3.24199ms [3melapsed_secs[0m[2m=[0m0.00324199
+[2m2026-05-24T12:32:52.401897Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"INSERT INTO rental_items ( …" [3mdb.statement[0m[2m=[0m"\n\nINSERT INTO\n  rental_items (\n    id,\n    rental_id,\n    asset_id,\n    rental_rate_id,\n    rate_amount,\n    rate_basis,\n    status,\n    start_date,\n    expected_end_date,\n    actual_end_date,\n    dispatched_by,\n    dispatched_at,\n    returned_by,\n    returned_at,\n    subtotal,\n    penalty_amount,\n    notes,\n    created_at,\n    updated_at\n  )\nVALUES\n  (\n    $1,\n    $2,\n    $3,\n    $4,\n    $5,\n    $6,\n    $7,\n    $8,\n    $9,\n    $10,\n    $11,\n    $12,\n    $13,\n    $14,\n    $15,\n    $16,\n    $17,\n    $18,\n    $19\n  )\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m4.076738ms [3melapsed_secs[0m[2m=[0m0.004076738
+[2m2026-05-24T12:32:52.406950Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"COMMIT" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m4.949244ms [3melapsed_secs[0m[2m=[0m0.004949244
+[2m2026-05-24T12:32:52.414732Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT r.*, c.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  r.*,\n  c.name as client_name\nFROM\n  rentals r\n  JOIN clients c ON r.client_id = c.id\nWHERE\n  r.id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m3.137399ms [3melapsed_secs[0m[2m=[0m0.003137399
+[2m2026-05-24T12:32:52.421370Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT ri.*, a.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  ri.*,\n  a.name as asset_name,\n  a.asset_code as asset_code\nFROM\n  rental_items ri\n  JOIN assets a ON ri.asset_id = a.id\nWHERE\n  ri.rental_id = $1\nORDER BY\n  a.name\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m2.973027ms [3melapsed_secs[0m[2m=[0m0.002973027
+[2m2026-05-24T12:32:52.432795Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE rentals SET client_id …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  rentals\nSET\n  client_id = $1,\n  status = $2,\n  request_date = $3,\n  start_date = $4,\n  expected_end_date = $5,\n  actual_end_date = $6,\n  subtotal = $7,\n  deposit_amount = $8,\n  deposit_returned = $9,\n  penalty_amount = $10,\n  total_amount = $11,\n  approved_by = $12,\n  approved_at = $13,\n  rejection_reason = $14,\n  agreement_document = $15,\n  invoice_number = $16,\n  notes = $17,\n  updated_at = $18\nWHERE\n  id = $19\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m2.229099ms [3melapsed_secs[0m[2m=[0m0.002229099
+[2m2026-05-24T12:32:52.436778Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"COMMIT" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m3.886121ms [3melapsed_secs[0m[2m=[0m0.003886121
+[2m2026-05-24T12:32:52.443006Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT r.*, c.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  r.*,\n  c.name as client_name\nFROM\n  rentals r\n  JOIN clients c ON r.client_id = c.id\nWHERE\n  r.id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m3.227233ms [3melapsed_secs[0m[2m=[0m0.003227233
+[2m2026-05-24T12:32:52.448333Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT ri.*, a.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  ri.*,\n  a.name as asset_name,\n  a.asset_code as asset_code\nFROM\n  rental_items ri\n  JOIN assets a ON ri.asset_id = a.id\nWHERE\n  ri.rental_id = $1\nORDER BY\n  a.name\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m1.749655ms [3melapsed_secs[0m[2m=[0m0.001749655
+[2m2026-05-24T12:32:52.452436Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE rentals SET status …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  rentals\nSET\n  status = 'approved',\n  approved_by = $1,\n  approved_at = $2,\n  updated_at = NOW()\nWHERE\n  id = $3\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m1.578652ms [3melapsed_secs[0m[2m=[0m0.001578652
+[2m2026-05-24T12:32:52.456455Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE rental_items SET status …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  rental_items\nSET\n  status = 'approved',\n  updated_at = NOW()\nWHERE\n  rental_id = $1\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m2.56772ms [3melapsed_secs[0m[2m=[0m0.00256772
+[2m2026-05-24T12:32:52.460270Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"COMMIT" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m3.706414ms [3melapsed_secs[0m[2m=[0m0.003706414
+[2m2026-05-24T12:32:52.466366Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT r.*, c.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  r.*,\n  c.name as client_name\nFROM\n  rentals r\n  JOIN clients c ON r.client_id = c.id\nWHERE\n  r.id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m3.334854ms [3melapsed_secs[0m[2m=[0m0.003334854
+[2m2026-05-24T12:32:52.472593Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT ri.*, a.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  ri.*,\n  a.name as asset_name,\n  a.asset_code as asset_code\nFROM\n  rental_items ri\n  JOIN assets a ON ri.asset_id = a.id\nWHERE\n  ri.rental_id = $1\nORDER BY\n  a.name\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m2.562837ms [3melapsed_secs[0m[2m=[0m0.002562837
+[2m2026-05-24T12:32:52.479087Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT r.*, c.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  r.*,\n  c.name as client_name\nFROM\n  rentals r\n  JOIN clients c ON r.client_id = c.id\nWHERE\n  r.id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m571.543µs [3melapsed_secs[0m[2m=[0m0.000571543
+[2m2026-05-24T12:32:52.485361Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT ri.*, a.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  ri.*,\n  a.name as asset_name,\n  a.asset_code as asset_code\nFROM\n  rental_items ri\n  JOIN assets a ON ri.asset_id = a.id\nWHERE\n  ri.rental_id = $1\nORDER BY\n  a.name\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m836.027µs [3melapsed_secs[0m[2m=[0m0.000836027
+[2m2026-05-24T12:32:52.487621Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT asset_id FROM rental_items …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  asset_id\nFROM\n  rental_items\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m632.539µs [3melapsed_secs[0m[2m=[0m0.000632539
+[2m2026-05-24T12:32:52.492229Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE rental_items SET status …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  rental_items\nSET\n  status = 'rented_out',\n  dispatched_by = $1,\n  dispatched_at = NOW(),\n  notes = $2,\n  updated_at = NOW()\nWHERE\n  id = $3\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m855.861µs [3melapsed_secs[0m[2m=[0m0.000855861
+[2m2026-05-24T12:32:52.500824Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE assets SET status …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  assets\nSET\n  status = 'Rented',\n  updated_at = NOW()\nWHERE\n  id = $1\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m6.301568ms [3melapsed_secs[0m[2m=[0m0.006301568
+[2m2026-05-24T12:32:52.506030Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"UPDATE rentals SET status …" [3mdb.statement[0m[2m=[0m"\n\nUPDATE\n  rentals\nSET\n  status = 'rented_out',\n  updated_at = NOW()\nWHERE\n  id = (\n    SELECT\n      rental_id\n    FROM\n      rental_items\n    WHERE\n      id = $1\n  )\n  AND status != 'rented_out'\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m1.955498ms [3melapsed_secs[0m[2m=[0m0.001955498
+[2m2026-05-24T12:32:52.509840Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"COMMIT" [3mdb.statement[0m[2m=[0m"" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m3.682846ms [3melapsed_secs[0m[2m=[0m0.003682846
+[2m2026-05-24T12:32:52.514052Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT r.*, c.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  r.*,\n  c.name as client_name\nFROM\n  rentals r\n  JOIN clients c ON r.client_id = c.id\nWHERE\n  r.id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m627.32µs [3melapsed_secs[0m[2m=[0m0.00062732
+[2m2026-05-24T12:32:52.521743Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT ri.*, a.name as …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  ri.*,\n  a.name as asset_name,\n  a.asset_code as asset_code\nFROM\n  rental_items ri\n  JOIN assets a ON ri.asset_id = a.id\nWHERE\n  ri.rental_id = $1\nORDER BY\n  a.name\n" [3mrows_affected[0m[2m=[0m1 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m1.38558ms [3melapsed_secs[0m[2m=[0m0.00138558
+[2m2026-05-24T12:32:52.523567Z[0m [34mDEBUG[0m [2mmanagement_system::api::middleware::rbac[0m[2m:[0m Found claims in extensions: "e01d08ab-649e-4fe7-b735-1e7ec05941d8"
+[2m2026-05-24T12:32:52.553443Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT a.id, a.asset_code, a.name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  a.id,\n  a.asset_code,\n  a.name,\n  a.category_id,\n  a.location_id,\n  a.department_id,\n  a.department,\n  a.assigned_to,\n  a.vendor_id,\n  a.is_rental,\n  a.is_fuel,\n  a.is_loan,\n  a.asset_class,\n  a.status,\n  a.condition_id,\n  a.serial_number,\n  a.brand,\n  a.model,\n  a.year_manufacture,\n  a.specifications,\n  a.purchase_date,\n  a.purchase_price,\n  a.currency_id,\n  a.unit_id,\n  a.quantity,\n  a.residual_value,\n  a.useful_life_months,\n  a.qr_code_url,\n  a.notes,\n  a.sale_price,\n  a.sale_date,\n  a.sold_to,\n  a.created_at,\n  a.updated_at,\n  a.version,\n  (\n    SELECT\n      row_to_json(vd)\n    FROM\n      vehicle_details vd\n    WHERE\n      vd.asset_id = a.id\n  ) as vehicle_details,\n  c.name as category_name,\n  l.name as location_name,\n  d.name as department_name,\n  u.name as assigned_to_name,\n  v.name as vendor_name\nFROM\n  assets a\n  LEFT JOIN categories c ON a.category_id = c.id\n  LEFT JOIN locations l ON a.location_id = l.id\n  LEFT JOIN departments d ON a.department_id = d.id\n  LEFT JOIN users u ON a.assigned_to = u.id\n  LEFT JOIN vendors v ON a.vendor_id = v.id\nWHERE\n  a.id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m6.13853ms [3melapsed_secs[0m[2m=[0m0.00613853
+[2m2026-05-24T12:32:52.557735Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT (SELECT COALESCE(SUM(actual_cost), 0) …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  (\n    SELECT\n      COALESCE(SUM(actual_cost), 0)\n    FROM\n      maintenance_work_orders\n    WHERE\n      asset_id = $1\n      AND status ILIKE 'completed'\n  ) as maint_cost,\n  (\n    SELECT\n      COALESCE(SUM(total_amount), 0)\n    FROM\n      rentals\n    WHERE\n      asset_id = $1\n      AND status ILIKE 'returned'\n  ) as rental_income\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m732.091µs [3melapsed_secs[0m[2m=[0m0.000732091
+
+thread 'tokio-runtime-worker' (579304) panicked at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.7.4/src/row.rs:72:37:
+called `Result::unwrap()` on an `Err` value: ColumnNotFound("description")
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/e408947bfd200af42db322daf0fadfe7e26d3bd1/library/std/src/panicking.rs:689:5
+   1: core::panicking::panic_fmt
+             at /rustc/e408947bfd200af42db322daf0fadfe7e26d3bd1/library/core/src/panicking.rs:80:14
+   2: core::result::unwrap_failed
+             at /rustc/e408947bfd200af42db322daf0fadfe7e26d3bd1/library/core/src/result.rs:1867:5
+   3: core::result::Result<T,E>::unwrap
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:1233:23
+   4: sqlx_core::row::Row::get
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.7.4/src/row.rs:72:37
+   5: management_system_core::infrastructure::repositories::asset_repository::AssetRepository::find_detail_by_id::{{closure}}
+             at ./crates/core/src/infrastructure/repositories/asset_repository.rs:142:32
+   6: management_system_assets::asset_service::AssetService::get_detail_by_id::{{closure}}
+             at ./crates/assets/src/asset_service.rs:256:14
+   7: management_system::api::handlers::asset_handler::get_asset::{{closure}}
+             at ./crates/api-server/src/api/handlers/asset_handler.rs:132:58
+   8: <F as axum::handler::Handler<(M,T1,T2),S>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/handler/mod.rs:241:53
+   9: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  10: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  11: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  12: <axum::handler::future::IntoServiceFuture<F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/macros.rs:42:39
+  13: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  14: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  15: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  16: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  17: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  18: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  19: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  20: axum::middleware::from_fn::Next::run::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:342:36
+  21: management_system::api::middleware::rbac::require_permission::{{closure}}::{{closure}}
+             at ./crates/api-server/src/api/middleware/rbac.rs:61:38
+  22: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  23: <axum::middleware::from_fn::FromFn<F,S,I,(T1,)> as tower_service::Service<http::request::Request<axum_core::body::Body>>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:306:45
+  24: <axum::middleware::from_fn::ResponseFuture as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:372:29
+  25: <tower::util::oneshot::Oneshot<S,Req> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/util/oneshot.rs:97:42
+  26: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  27: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  28: <axum::handler::future::LayeredFuture<S> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/handler/future.rs:50:30
+  29: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  30: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  31: <axum::handler::future::IntoServiceFuture<F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/macros.rs:42:39
+  32: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  33: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  34: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  35: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  36: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  37: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  38: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  39: <tower::util::oneshot::Oneshot<S,Req> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/util/oneshot.rs:97:42
+  40: <axum::routing::route::RouteFuture<E> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/route.rs:182:68
+  41: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  42: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  43: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  44: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  45: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  46: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  47: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  48: axum::middleware::from_fn::Next::run::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:342:36
+  49: management_system::api::middleware::auth::auth_middleware::{{closure}}
+             at ./crates/api-server/src/api/middleware/auth.rs:39:26
+  50: <axum::middleware::from_fn::FromFn<F,S,I,(T1,T2)> as tower_service::Service<http::request::Request<axum_core::body::Body>>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:306:45
+  51: <axum::middleware::from_fn::ResponseFuture as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:372:29
+  52: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  53: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  54: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  55: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  56: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  57: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  58: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  59: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  60: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  61: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  62: <futures_util::future::try_future::MapErr<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  63: <tower::util::map_err::MapErrFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  64: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  65: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  66: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  67: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  68: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  69: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  70: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  71: <tower::util::oneshot::Oneshot<S,Req> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/util/oneshot.rs:97:42
+  72: <axum::routing::route::RouteFuture<E> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/route.rs:182:68
+  73: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  74: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  75: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  76: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  77: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  78: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  79: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  80: axum::middleware::from_fn::Next::run::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:342:36
+  81: management_system::api::middleware::rate_limit::rate_limit_middleware::{{closure}}
+             at ./crates/api-server/src/api/middleware/rate_limit.rs:72:23
+  82: <axum::middleware::from_fn::FromFn<F,S,I,(T1,T2)> as tower_service::Service<http::request::Request<axum_core::body::Body>>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:306:45
+  83: <axum::middleware::from_fn::ResponseFuture as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:372:29
+  84: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  85: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  86: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  87: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  88: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  89: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  90: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  91: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  92: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  93: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+[2m2026-05-24T12:32:52.666280Z[0m [34mDEBUG[0m [2mmanagement_system::api::middleware::rbac[0m[2m:[0m Found claims in extensions: "e01d08ab-649e-4fe7-b735-1e7ec05941d8"
+[2m2026-05-24T12:32:52.692932Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT a.id, a.asset_code, a.name, …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  a.id,\n  a.asset_code,\n  a.name,\n  a.category_id,\n  a.location_id,\n  a.department_id,\n  a.department,\n  a.assigned_to,\n  a.vendor_id,\n  a.is_rental,\n  a.is_fuel,\n  a.is_loan,\n  a.asset_class,\n  a.status,\n  a.condition_id,\n  a.serial_number,\n  a.brand,\n  a.model,\n  a.year_manufacture,\n  a.specifications,\n  a.purchase_date,\n  a.purchase_price,\n  a.currency_id,\n  a.unit_id,\n  a.quantity,\n  a.residual_value,\n  a.useful_life_months,\n  a.qr_code_url,\n  a.notes,\n  a.sale_price,\n  a.sale_date,\n  a.sold_to,\n  a.created_at,\n  a.updated_at,\n  a.version,\n  (\n    SELECT\n      row_to_json(vd)\n    FROM\n      vehicle_details vd\n    WHERE\n      vd.asset_id = a.id\n  ) as vehicle_details,\n  c.name as category_name,\n  l.name as location_name,\n  d.name as department_name,\n  u.name as assigned_to_name,\n  v.name as vendor_name\nFROM\n  assets a\n  LEFT JOIN categories c ON a.category_id = c.id\n  LEFT JOIN locations l ON a.location_id = l.id\n  LEFT JOIN departments d ON a.department_id = d.id\n  LEFT JOIN users u ON a.assigned_to = u.id\n  LEFT JOIN vendors v ON a.vendor_id = v.id\nWHERE\n  a.id = $1\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m1 [3melapsed[0m[2m=[0m4.502344ms [3melapsed_secs[0m[2m=[0m0.004502344
+[2m2026-05-24T12:32:52.697367Z[0m [34mDEBUG[0m [2msqlx::query[0m[2m:[0m [3msummary[0m[2m=[0m"SELECT (SELECT COALESCE(SUM(actual_cost), 0) …" [3mdb.statement[0m[2m=[0m"\n\nSELECT\n  (\n    SELECT\n      COALESCE(SUM(actual_cost), 0)\n    FROM\n      maintenance_work_orders\n    WHERE\n      asset_id = $1\n      AND status ILIKE 'completed'\n  ) as maint_cost,\n  (\n    SELECT\n      COALESCE(SUM(total_amount), 0)\n    FROM\n      rentals\n    WHERE\n      asset_id = $1\n      AND status ILIKE 'returned'\n  ) as rental_income\n" [3mrows_affected[0m[2m=[0m0 [3mrows_returned[0m[2m=[0m0 [3melapsed[0m[2m=[0m870.143µs [3melapsed_secs[0m[2m=[0m0.000870143
+
+thread 'tokio-runtime-worker' (579304) panicked at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.7.4/src/row.rs:72:37:
+called `Result::unwrap()` on an `Err` value: ColumnNotFound("description")
+stack backtrace:
+   0: __rustc::rust_begin_unwind
+             at /rustc/e408947bfd200af42db322daf0fadfe7e26d3bd1/library/std/src/panicking.rs:689:5
+   1: core::panicking::panic_fmt
+             at /rustc/e408947bfd200af42db322daf0fadfe7e26d3bd1/library/core/src/panicking.rs:80:14
+   2: core::result::unwrap_failed
+             at /rustc/e408947bfd200af42db322daf0fadfe7e26d3bd1/library/core/src/result.rs:1867:5
+   3: core::result::Result<T,E>::unwrap
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:1233:23
+   4: sqlx_core::row::Row::get
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sqlx-core-0.7.4/src/row.rs:72:37
+   5: management_system_core::infrastructure::repositories::asset_repository::AssetRepository::find_detail_by_id::{{closure}}
+             at ./crates/core/src/infrastructure/repositories/asset_repository.rs:142:32
+   6: management_system_assets::asset_service::AssetService::get_detail_by_id::{{closure}}
+             at ./crates/assets/src/asset_service.rs:256:14
+   7: management_system::api::handlers::asset_handler::get_asset::{{closure}}
+             at ./crates/api-server/src/api/handlers/asset_handler.rs:132:58
+   8: <F as axum::handler::Handler<(M,T1,T2),S>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/handler/mod.rs:241:53
+   9: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  10: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  11: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  12: <axum::handler::future::IntoServiceFuture<F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/macros.rs:42:39
+  13: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  14: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  15: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  16: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  17: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  18: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  19: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  20: axum::middleware::from_fn::Next::run::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:342:36
+  21: management_system::api::middleware::rbac::require_permission::{{closure}}::{{closure}}
+             at ./crates/api-server/src/api/middleware/rbac.rs:61:38
+  22: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  23: <axum::middleware::from_fn::FromFn<F,S,I,(T1,)> as tower_service::Service<http::request::Request<axum_core::body::Body>>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:306:45
+  24: <axum::middleware::from_fn::ResponseFuture as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:372:29
+  25: <tower::util::oneshot::Oneshot<S,Req> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/util/oneshot.rs:97:42
+  26: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  27: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  28: <axum::handler::future::LayeredFuture<S> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/handler/future.rs:50:30
+  29: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  30: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  31: <axum::handler::future::IntoServiceFuture<F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/macros.rs:42:39
+  32: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  33: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  34: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  35: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  36: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  37: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  38: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  39: <tower::util::oneshot::Oneshot<S,Req> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/util/oneshot.rs:97:42
+  40: <axum::routing::route::RouteFuture<E> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/route.rs:182:68
+  41: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  42: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  43: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  44: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  45: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  46: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  47: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  48: axum::middleware::from_fn::Next::run::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:342:36
+  49: management_system::api::middleware::auth::auth_middleware::{{closure}}
+             at ./crates/api-server/src/api/middleware/auth.rs:39:26
+  50: <axum::middleware::from_fn::FromFn<F,S,I,(T1,T2)> as tower_service::Service<http::request::Request<axum_core::body::Body>>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:306:45
+  51: <axum::middleware::from_fn::ResponseFuture as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:372:29
+  52: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  53: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  54: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  55: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  56: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  57: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  58: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  59: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  60: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  61: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  62: <futures_util::future::try_future::MapErr<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  63: <tower::util::map_err::MapErrFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  64: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  65: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  66: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  67: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  68: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  69: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  70: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  71: <tower::util::oneshot::Oneshot<S,Req> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/util/oneshot.rs:97:42
+  72: <axum::routing::route::RouteFuture<E> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/route.rs:182:68
+  73: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  74: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  75: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  76: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  77: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  78: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  79: <core::pin::Pin<P> as core::future::future::Future>::poll
+             at /home/rus/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/future/future.rs:133:9
+  80: axum::middleware::from_fn::Next::run::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:342:36
+  81: management_system::api::middleware::rate_limit::rate_limit_middleware::{{closure}}
+             at ./crates/api-server/src/api/middleware/rate_limit.rs:72:23
+  82: <axum::middleware::from_fn::FromFn<F,S,I,(T1,T2)> as tower_service::Service<http::request::Request<axum_core::body::Body>>>::call::{{closure}}
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:306:45
+  83: <axum::middleware::from_fn::ResponseFuture as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/middleware/from_fn.rs:372:29
+  84: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  85: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  86: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  87: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  88: <futures_util::future::try_future::MapOk<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+  89: <tower::util::map_response::MapResponseFuture<F,N> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tower-0.5.2/src/macros.rs:38:38
+  90: <F as futures_core::future::TryFuture>::try_poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-core-0.3.31/src/future.rs:92:14
+  91: <futures_util::future::try_future::into_future::IntoFuture<Fut> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/try_future/into_future.rs:34:31
+  92: <futures_util::future::future::map::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/future/future/map.rs:55:44
+  93: <futures_util::future::future::Map<Fut,F> as core::future::future::Future>::poll
+             at /home/rus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-util-0.3.31/src/lib.rs:86:35
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.

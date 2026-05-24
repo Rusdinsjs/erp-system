@@ -105,6 +105,28 @@ export const inventoryApi = {
         return response.data.data;
     },
 
+    exportPdf: async () => {
+        const response = await api.get('/reports/inventory/pdf', {
+            responseType: 'blob'
+        });
+        
+        // Create blob link to download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'inventory_report.pdf');
+        
+        // Append to html link element page
+        document.body.appendChild(link);
+        
+        // Start download
+        link.click();
+        
+        // Clean up and remove the link
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    },
+
     // Documents
     listDocuments: async (id: string) => {
         const response = await api.get(`/inventory/items/${id}/documents`);

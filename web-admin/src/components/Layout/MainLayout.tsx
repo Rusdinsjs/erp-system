@@ -145,14 +145,12 @@ export function MainLayout() {
         return false;
     }) || filteredNavItems[0];
 
-    const isolatedNavItems = activeModule ? [activeModule] : filteredNavItems;
-
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden">
             {/* Sidebar Desktop */}
             <aside
                 className={`
-                    hidden md:flex flex-col bg-card border-r border-border transition-all duration-300
+                    hidden md:flex flex-col bg-card/60 backdrop-blur-xl border-r border-border/50 transition-all duration-300 shadow-xl
                     ${collapsed ? 'w-20' : 'w-72'}
                 `}
             >
@@ -169,26 +167,26 @@ export function MainLayout() {
 
                 <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
                     {/* Back to Launchpad Button */}
-                    <div className="mb-4 pb-4 border-b border-border/50">
+                    <div className="mb-4 pb-4 border-b border-border/30">
                         <button
                             onClick={() => navigate('/launchpad')}
                             className={`
-                                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-primary hover:bg-primary/10 transition-colors font-medium
+                                w-full flex items-center gap-3 px-4 py-3 rounded-xl text-primary hover:bg-primary/10 transition-all duration-300 font-medium group
                                 ${collapsed ? 'justify-center' : ''}
                             `}
                             title={collapsed ? 'Launchpad' : undefined}
                         >
-                            <LayoutGrid size={20} strokeWidth={1.5} className="shrink-0" />
+                            <LayoutGrid size={20} strokeWidth={1.5} className="shrink-0 transition-transform group-hover:scale-110" />
                             <span className={`whitespace-nowrap transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
                                 App Launcher
                             </span>
                         </button>
                     </div>
-                    {isolatedNavItems.map((item: any) => {
+                    {filteredNavItems.map((item: any) => {
                         const hasChildren = item.children && item.children.length > 0;
                         const isMenuOpen = openMenus.includes(item.path);
                         const fullCurrentPath = location.pathname + location.search;
-                        const active = location.pathname === item.path || (hasChildren && item.children.some((c: any) => fullCurrentPath === c.path));
+                        const active = location.pathname === item.path || (hasChildren && item.children.some((c: any) => fullCurrentPath === c.path || location.pathname.startsWith(c.path + '/')));
 
                         return (
                             <div key={item.path} className="space-y-1">
@@ -201,18 +199,18 @@ export function MainLayout() {
                                         }
                                     }}
                                     className={`
-                                        w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors
-                                        ${active && !hasChildren
-                                            ? 'bg-primary/10 text-primary'
-                                            : active && hasChildren ? 'text-primary hover:bg-muted' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                        w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all duration-300 group
+                                        ${active 
+                                            ? 'bg-gradient-to-r from-primary/15 to-transparent text-primary shadow-sm border-l-2 border-primary -ml-0.5' 
+                                            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-l-2 border-transparent -ml-0.5'
                                         }
-                                        ${collapsed ? 'justify-center' : ''}
+                                        ${collapsed ? 'justify-center ml-0 border-none' : ''}
                                     `}
                                     title={collapsed ? item.label : undefined}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <item.icon size={20} strokeWidth={1.5} className="shrink-0" />
-                                        <span className={`whitespace-nowrap transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
+                                        <item.icon size={20} strokeWidth={1.5} className={active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground transition-colors'} />
+                                        <span className={`whitespace-nowrap font-medium transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
                                             {item.label}
                                         </span>
                                     </div>
@@ -222,16 +220,16 @@ export function MainLayout() {
                                 </button>
 
                                 {hasChildren && isMenuOpen && !collapsed && (
-                                    <div className="pl-9 space-y-1">
+                                    <div className="pl-11 space-y-1 my-1 overflow-hidden transition-all duration-300 animate-in slide-in-from-top-2">
                                         {item.children.map((child: any) => {
-                                            const childActive = fullCurrentPath === child.path;
+                                            const childActive = fullCurrentPath === child.path || location.pathname.startsWith(child.path + '/');
                                             return (
                                                 <button
                                                     key={child.path}
                                                     onClick={() => navigate(child.path)}
                                                     className={`
-                                                        w-full text-left px-3 py-2 rounded-lg text-sm transition-colors
-                                                        ${childActive ? 'text-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}
+                                                        w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200
+                                                        ${childActive ? 'text-primary font-medium bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}
                                                     `}
                                                 >
                                                     {child.label}
@@ -303,11 +301,11 @@ export function MainLayout() {
                             <span>App Launcher</span>
                         </button>
                     </div>
-                    {isolatedNavItems.map((item: any) => {
+                    {filteredNavItems.map((item: any) => {
                         const hasChildren = item.children && item.children.length > 0;
                         const isMenuOpen = openMenus.includes(item.path);
                         const fullCurrentPath = location.pathname + location.search;
-                        const active = location.pathname === item.path || (hasChildren && item.children.some((c: any) => fullCurrentPath === c.path));
+                        const active = location.pathname === item.path || (hasChildren && item.children.some((c: any) => fullCurrentPath === c.path || location.pathname.startsWith(c.path + '/')));
 
                         return (
                             <div key={item.path} className="space-y-1">
@@ -373,9 +371,9 @@ export function MainLayout() {
             </aside>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col h-full min-w-0">
+            <div className="flex-1 flex flex-col h-full min-w-0 bg-background">
                 {/* Header */}
-                <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-border bg-card/50 backdrop-blur shrink-0">
+                <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-border/50 bg-card/60 backdrop-blur-xl shrink-0 shadow-sm relative z-10">
                     <div className="flex items-center gap-4">
                         <button
                             className="md:hidden text-slate-400 hover:text-white"
