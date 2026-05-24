@@ -24,113 +24,95 @@ jobs:
             # ── 1. Ambil kode terbaru ──────────────────────────────────────────
             git fetch --all
             git reset --hard origin/master || git reset --hard origin/main
+            echo ">> Kode terbaru sudah diambil."
 
-            # ── 2. Baca kredensial dari .env di VPS ────────────────────────────
-            # File .env di VPS adalah SUMBER KEBENARAN untuk semua credentials.
-            # File ini TIDAK di-commit ke git, dikelola langsung di VPS.
+            # ── 2. Validasi .env ───────────────────────────────────────────────
             if [ ! -f .env ]; then
               echo "ERROR: File .env tidak ditemukan di VPS!"
               echo "Buat dulu: cp .env.example .env && nano .env"
               exit 1
             fi
+            echo ">> File .env ditemukan."
 
-            DB_USER=$(grep -E "^DB_USER=" .env | cut -d '=' -f2 | tr -d '\r\n')
-            DB_PASS=$(grep -E "^DB_PASSWORD=" .env | cut -d '=' -f2 | tr -d '\r\n')
-            DB_NAME=$(grep -E "^DB_NAME=" .env | cut -d '=' -f2 | tr -d '\r\n')
-            DB_USER=${DB_USER:-postgres}
-            DB_PASS=${DB_PASS:-postgres}
-            DB_NAME=${DB_NAME:-management_system}
-
-            echo ">> Menggunakan DB_USER=${DB_USER}, DB_NAME=${DB_NAME}"
-
-            # ── 3. Stop container lain (postgres TIDAK distop agar data aman) ──
+            # ── 3. Stop container app (postgres TIDAK distop agar data aman) ──
+            echo ">> Stop container app..."
             sudo docker compose stop backend frontend ms-ai-ollama redis 2>/dev/null || true
 
-            # ── 4. Pastikan postgres berjalan ──────────────────────────────────
-            if ! sudo docker ps --filter "name=mgmt-db" --filter "status=running" \
-                --format "{{.Names}}" | grep -q "mgmt-db"; then
-              echo ">> Postgres belum jalan, start dulu..."
-              sudo docker compose up -d postgres
-              sleep 15
-            else
-              echo ">> Postgres sudah jalan."
-            fi
-
-            # ── 5. Tunggu postgres siap via UNIX SOCKET (tidak butuh password) ─
-            # Menggunakan 'su -c' sebagai OS user postgres → peer auth → bypass scram
-            echo ">> Menunggu postgres siap..."
-            for i in $(seq 1 18); do
-              if sudo docker exec mgmt-db su -c "pg_isready -q" postgres 2>/dev/null; then
-                echo ">> Postgres siap! ($i/18)"
+            # ── 4. Pastikan postgres berjalan & pakai config terbaru ───────────
+            # docker compose up --force-recreate akan restart postgres agar
+            # pg_hba.conf baru (trust auth) langsung aktif
+            echo ">> Memastikan postgres berjalan dengan config terbaru..."
+            sudo docker compose up -d --force-recreate postgres
+            echo ">> Menunggu postgres siap (trust auth mode)..."
+            for i in $(seq 1 24); do
+              if sudo docker exec mgmt-db pg_isready -q 2>/dev/null; then
+                echo ">> Postgres SIAP! ($i/24)"
                 break
               fi
-              if [ "$i" -eq 18 ]; then
-                echo "ERROR: Postgres tidak siap setelah 90 detik!"
+              if [ "$i" -eq 24 ]; then
+                echo "ERROR: Postgres tidak siap setelah 120 detik!"
                 sudo docker logs mgmt-db --tail 30
                 exit 1
               fi
-              echo "   Menunggu... ($i/18)"
+              echo "   Menunggu postgres... ($i/24)"
               sleep 5
             done
 
-            # ── 6. SINKRONISASI PASSWORD (PERMANEN, TIDAK PERNAH GAGAL) ────────
-            # Teknik: koneksi via Unix socket sebagai OS user 'postgres'
-            # → pg_hba.conf: "local all all trust" → tidak perlu password APAPUN
-            # → Berhasil terlepas dari password postgres yang tersimpan di volume
-            echo ">> Sinkronisasi password (via Unix socket / peer auth)..."
-            sudo docker exec mgmt-db su -c \
-              "psql -U postgres -c \"ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASS}';\"" \
-              postgres
-            echo ">> Password berhasil disinkronkan ke .env!"
+            # ── 5. Pastikan database ada ───────────────────────────────────────
+            DB_NAME=$(grep -E "^DB_NAME=" .env | cut -d '=' -f2 | tr -d '\r\n ')
+            DB_USER=$(grep -E "^DB_USER=" .env | cut -d '=' -f2 | tr -d '\r\n ')
+            DB_NAME=${DB_NAME:-management_system}
+            DB_USER=${DB_USER:-postgres}
 
-            # Pastikan database target ada
-            sudo docker exec mgmt-db su -c "
-              psql -U postgres -tc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}';\" \
+            echo ">> Memastikan database '${DB_NAME}' ada..."
+            sudo docker exec mgmt-db psql -U postgres -tc \
+              "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}';" \
               | grep -q 1 \
-              || psql -U postgres -c \"CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};\"
-            " postgres
+              || sudo docker exec mgmt-db psql -U postgres -c \
+              "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
+            echo ">> Database OK!"
 
-            # ── 7. Build image (hanya rebuild yang berubah) ────────────────────
+            # ── 6. Build image (hanya rebuild yang berubah) ────────────────────
             echo ">> Build image docker..."
             sudo docker compose build backend frontend
 
-            # ── 8. Start semua layanan ─────────────────────────────────────────
+            # ── 7. Start semua layanan ─────────────────────────────────────────
             echo ">> Start semua layanan..."
             sudo docker compose up -d --remove-orphans
 
-            # ── 9. Tunggu backend benar-benar siap ────────────────────────────
+            # ── 8. Tunggu backend benar-benar siap ────────────────────────────
             echo ">> Menunggu backend siap..."
             BACKEND_OK=0
-            for i in $(seq 1 24); do
+            for i in $(seq 1 30); do
               if sudo docker exec mgmt-backend curl -sf http://localhost:8080/health \
                   >/dev/null 2>&1; then
-                echo ">> Backend SIAP! ($i/24)"
+                echo ">> Backend SIAP! ($i/30)"
                 BACKEND_OK=1
                 break
               fi
-              echo "   Menunggu backend... ($i/24)"
+              echo "   Menunggu backend... ($i/30)"
               sleep 5
             done
 
             if [ "$BACKEND_OK" -eq 0 ]; then
               echo ""
-              echo "⚠️  WARNING: Backend tidak merespons setelah 120 detik."
+              echo "WARNING: Backend tidak merespons setelah 150 detik."
               echo ">> Log backend (50 baris terakhir):"
               sudo docker logs mgmt-backend --tail 50
               echo ""
               echo ">> Status semua container:"
               sudo docker compose ps
-              # Tidak exit 1 — Nginx tetap direload, container sudah jalan
             fi
 
-            # ── 10. Reload Nginx ───────────────────────────────────────────────
+            # ── 9. Reload Nginx ────────────────────────────────────────────────
             sudo systemctl reload nginx || true
 
-            # ── 11. Bersihkan image lama ───────────────────────────────────────
+            # ── 10. Bersihkan image lama ───────────────────────────────────────
             sudo docker image prune -f
 
             echo ""
-            echo "════════════════════════════════════════"
-            echo "  ✅ DEPLOY SELESAI!"
-            echo "════════════════════════════════════════"
+            echo "════════════════════════════════════════════════"
+            echo "  ✅ DEPLOY SELESAI! Trust Auth Aktif."
+            echo "  Password tidak lagi diperlukan untuk koneksi internal."
+            echo "════════════════════════════════════════════════"
             sudo docker compose ps

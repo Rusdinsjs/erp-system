@@ -10,8 +10,14 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-management_system}
+      # Beritahu postgres untuk pakai hba_file kita saat init
+      POSTGRES_INITDB_ARGS: "--auth-host=trust --auth-local=trust"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Mount custom pg_hba.conf — trust auth untuk semua koneksi Docker internal
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    # Override pg_hba.conf location sehingga trust auth aktif
+    command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
     ports:
       - "${DB_PORT:-5436}:5432"
     healthcheck:
@@ -50,6 +56,7 @@ services:
       redis:
         condition: service_healthy
     environment:
+      # Trust auth aktif → password di URL ini TIDAK perlu cocok dengan volume
       DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-management_system}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-management-system-secret-key-change-in-production}

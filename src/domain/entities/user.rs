@@ -19,6 +19,10 @@ pub enum UserRole {
     Technician,
     Staff,
     User,
+    // === 3 Admin Spesialis Asset ===
+    AdminAlatBerat,
+    AdminKendaraan,
+    AdminInfrastruktur,
 }
 
 impl UserRole {
@@ -30,6 +34,20 @@ impl UserRole {
             Self::Technician => "technician",
             Self::Staff => "staff",
             Self::User => "user",
+            Self::AdminAlatBerat => "admin_alat_berat",
+            Self::AdminKendaraan => "admin_kendaraan",
+            Self::AdminInfrastruktur => "admin_infrastruktur",
+        }
+    }
+
+    /// Kembalikan asset_group yang boleh diakses oleh role ini.
+    /// None berarti tidak ada pembatasan (lihat semua asset).
+    pub fn allowed_asset_group(&self) -> Option<&'static str> {
+        match self {
+            Self::AdminAlatBerat => Some("ALAT_BERAT"),
+            Self::AdminKendaraan => Some("KENDARAAN"),
+            Self::AdminInfrastruktur => Some("INFRASTRUKTUR"),
+            _ => None, // super_admin, admin, manager, dll → tidak difilter
         }
     }
 
@@ -47,6 +65,20 @@ impl UserRole {
             Self::Technician => vec!["maintenance.read", "maintenance.update", "asset.read"],
             Self::Staff => vec!["asset.read", "loan.request", "maintenance.request"],
             Self::User => vec!["asset.read", "loan.request"],
+            // 3 admin spesialis: akses penuh ke asset dan maintenance milik group-nya
+            Self::AdminAlatBerat | Self::AdminKendaraan | Self::AdminInfrastruktur => vec![
+                "asset.create",
+                "asset.read",
+                "asset.update",
+                "asset.delete",
+                "asset.transfer",
+                "maintenance.create",
+                "maintenance.read",
+                "maintenance.update",
+                "maintenance.approve",
+                "user.read",
+                "report.view",
+            ],
         }
     }
 }
@@ -62,6 +94,9 @@ impl std::str::FromStr for UserRole {
             "technician" => Ok(Self::Technician),
             "staff" => Ok(Self::Staff),
             "user" => Ok(Self::User),
+            "admin_alat_berat" => Ok(Self::AdminAlatBerat),
+            "admin_kendaraan" => Ok(Self::AdminKendaraan),
+            "admin_infrastruktur" => Ok(Self::AdminInfrastruktur),
             _ => Err(()),
         }
     }
@@ -178,12 +213,26 @@ impl User {
         })
     }
 
-    /// Check if user is admin or super admin
+    /// Check if user is admin or super admin (termasuk 3 admin spesialis)
     pub fn is_admin(&self) -> bool {
         matches!(
             self.role.parse::<UserRole>(),
-            Ok(UserRole::SuperAdmin) | Ok(UserRole::Admin)
+            Ok(UserRole::SuperAdmin)
+                | Ok(UserRole::Admin)
+                | Ok(UserRole::AdminAlatBerat)
+                | Ok(UserRole::AdminKendaraan)
+                | Ok(UserRole::AdminInfrastruktur)
         )
+    }
+
+    /// Kembalikan asset_group yang diizinkan untuk user ini.
+    /// None = tidak ada pembatasan (super_admin/admin/manager/dll).
+    pub fn allowed_asset_group(&self) -> Option<String> {
+        self.role
+            .parse::<UserRole>()
+            .ok()
+            .and_then(|r| r.allowed_asset_group())
+            .map(|s| s.to_string())
     }
 }
 

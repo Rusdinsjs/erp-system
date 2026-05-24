@@ -65,11 +65,12 @@ impl AssetService {
         page: i64,
         per_page: i64,
         department: Option<&str>,
+        asset_group: Option<&str>,
     ) -> DomainResult<PaginatedResponse<AssetSummary>> {
         let offset = (page - 1) * per_page;
         let assets = self
             .repository
-            .list(per_page, offset, department)
+            .list(per_page, offset, department, asset_group)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -285,6 +286,7 @@ impl AssetService {
     pub async fn search(
         &self,
         params: AssetSearchParams,
+        asset_group: Option<String>,
     ) -> DomainResult<PaginatedResponse<AssetSummary>> {
         let page = params.page.unwrap_or(1).max(1);
         let per_page = params.per_page.unwrap_or(20).clamp(1, 100);
@@ -320,11 +322,12 @@ impl AssetService {
         });
 
         tracing::info!(
-            "Searching assets (raw): query='{}', category_id={:?}, location_id={:?}, status={:?}",
+            "Searching assets (raw): query='{}', category_id={:?}, location_id={:?}, status={:?}, asset_group={:?}",
             params.query.as_deref().unwrap_or(""),
             params.category_id,
             params.location_id,
-            params.status
+            params.status,
+            asset_group,
         );
 
         let assets = self
@@ -336,6 +339,7 @@ impl AssetService {
                 department_clean.as_deref(),
                 status_clean.as_deref(),
                 params.is_fuel,
+                asset_group.as_deref(),
                 per_page,
                 offset,
                 params.exact_match.unwrap_or(false),

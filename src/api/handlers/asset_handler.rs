@@ -61,15 +61,32 @@ pub async fn list_assets(
     Extension(claims): Extension<UserClaims>,
     Query(params): Query<PaginationParams>,
 ) -> Result<Json<PaginatedResponse<AssetSummary>>, AppError> {
+    // Filter department untuk non-super_admin
     let department_filter = if claims.role == "super_admin" {
         None
     } else {
         claims.department.as_deref()
     };
 
+    // Filter asset_group berdasarkan role (untuk 3 admin spesialis)
+    // Dibuat sebagai User dummy agar bisa pakai method allowed_asset_group()
+    let asset_group_filter: Option<String> = {
+        use std::str::FromStr;
+        use crate::domain::entities::user::UserRole;
+        UserRole::from_str(&claims.role)
+            .ok()
+            .and_then(|r| r.allowed_asset_group())
+            .map(|s| s.to_string())
+    };
+
     let result = state
         .asset_service
-        .list(params.page(), params.per_page(), department_filter)
+        .list(
+            params.page(),
+            params.per_page(),
+            department_filter,
+            asset_group_filter.as_deref(),
+        )
         .await?;
     Ok(Json(result))
 }
@@ -89,12 +106,24 @@ pub async fn search_assets(
     Extension(claims): Extension<UserClaims>,
     Query(mut params): Query<AssetSearchParams>,
 ) -> Result<Json<PaginatedResponse<AssetSummary>>, AppError> {
+    // Filter department untuk non-super_admin
     if claims.role != "super_admin" {
         if let Some(dept) = &claims.department {
             params.department = Some(dept.clone());
         }
     }
-    let result = state.asset_service.search(params).await?;
+
+    // Filter asset_group berdasarkan role (untuk 3 admin spesialis)
+    let asset_group_filter: Option<String> = {
+        use std::str::FromStr;
+        use crate::domain::entities::user::UserRole;
+        UserRole::from_str(&claims.role)
+            .ok()
+            .and_then(|r| r.allowed_asset_group())
+            .map(|s| s.to_string())
+    };
+
+    let result = state.asset_service.search(params, asset_group_filter).await?;
     Ok(Json(result))
 }
 
