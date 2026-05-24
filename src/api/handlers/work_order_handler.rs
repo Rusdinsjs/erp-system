@@ -49,11 +49,18 @@ fn get_user_id(claims: &Claims) -> Result<Uuid, AppError> {
 /// List work orders (all authenticated users)
 pub async fn list_work_orders(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Query(params): Query<PaginationParams>,
 ) -> Result<Json<Vec<WorkOrder>>, AppError> {
+    let department_filter = if claims.role_level > ROLE_MANAGER {
+        claims.department.clone()
+    } else {
+        None
+    };
+
     let orders = state
         .work_order_service
-        .list(params.page(), params.per_page())
+        .list(params.page(), params.per_page(), department_filter)
         .await?;
     Ok(Json(orders))
 }
@@ -61,16 +68,30 @@ pub async fn list_work_orders(
 /// List pending work orders
 pub async fn list_pending_work_orders(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
 ) -> Result<Json<Vec<WorkOrder>>, AppError> {
-    let orders = state.work_order_service.list_pending().await?;
+    let department_filter = if claims.role_level > ROLE_MANAGER {
+        claims.department.clone()
+    } else {
+        None
+    };
+
+    let orders = state.work_order_service.list_pending(department_filter).await?;
     Ok(Json(orders))
 }
 
 /// List overdue work orders
 pub async fn list_overdue_work_orders(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
 ) -> Result<Json<Vec<WorkOrder>>, AppError> {
-    let orders = state.work_order_service.list_overdue().await?;
+    let department_filter = if claims.role_level > ROLE_MANAGER {
+        claims.department.clone()
+    } else {
+        None
+    };
+
+    let orders = state.work_order_service.list_overdue(department_filter).await?;
     Ok(Json(orders))
 }
 

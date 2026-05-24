@@ -143,9 +143,9 @@ impl WorkOrderService {
             .ok_or_else(|| DomainError::not_found("WorkOrder", id))
     }
 
-    pub async fn list(&self, page: i64, per_page: i64) -> DomainResult<Vec<WorkOrder>> {
+    pub async fn list(&self, page: i64, per_page: i64, department: Option<String>) -> DomainResult<Vec<WorkOrder>> {
         let offset = (page - 1) * per_page;
-        self.repository.list(per_page, offset).await.map_err(|e| {
+        self.repository.list(per_page, offset, department).await.map_err(|e| {
             DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
@@ -162,9 +162,9 @@ impl WorkOrderService {
         })
     }
 
-    pub async fn list_pending(&self) -> DomainResult<Vec<WorkOrder>> {
+    pub async fn list_pending(&self, department: Option<String>) -> DomainResult<Vec<WorkOrder>> {
         self.repository
-            .list_pending()
+            .list_pending(department)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -172,9 +172,9 @@ impl WorkOrderService {
             })
     }
 
-    pub async fn list_overdue(&self) -> DomainResult<Vec<WorkOrder>> {
+    pub async fn list_overdue(&self, department: Option<String>) -> DomainResult<Vec<WorkOrder>> {
         self.repository
-            .list_overdue()
+            .list_overdue(department)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),

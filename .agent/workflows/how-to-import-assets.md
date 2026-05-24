@@ -2,61 +2,46 @@
 description: Guide on creating custom categories and importing assets using dynamic templates
 ---
 
-# Asset Management: From Category Creation to Bulk Import
+# Panduan Import Aset Massal (Bulk Import via CSV)
 
-This workflow describes the end-to-end process of defining a new asset category with custom attributes and then importing assets into that category using the intelligent template system.
+Dokumen ini menjelaskan cara bagi Spesialis Aset (seperti Admin Alat Berat atau Kendaraan) untuk memasukkan ratusan data aset baru secara massal dalam hitungan detik tanpa harus mengklik tombol satu-satu di browser.
 
-## Phase 1: Create Custom Category
+## Prasyarat
 
-1.  **Navigate to Categories**
-    *   Go to **Master Data** > **Categories** in the sidebar.
+Pastikan kategori aset (misal: "Excavator", "Truk Tambang") sudah dibuat terlebih dahulu. Jika kategori tersebut belum ada di database produksi VPS, Manager atau Spesialis harus membuatnya terlebih dahulu (via UI atau via API).
 
-2.  **Create or Edit Category**
-    *   To create new: Click **New Root** or the **+** icon next to a parent category.
-    *   To edit existing: Click on the category name in the tree.
+## Langkah 1: Siapkan Template CSV
 
-3.  **Define Basic Info**
-    *   Fill in `Code` (e.g., `DRONE`) and `Name` (e.g., `Drone & Aerial Cam`).
-    *   Set `Depreciation` settings if applicable.
+Buat file CSV (misal di Excel lalu di-Save As -> CSV) dengan header standar berikut.
+Kunci utamanya adalah kolom **`category_code`**, pastikan kode ini *sama persis* dengan kode kategori yang ada di sistem (misal: `EXC` atau `TRK`).
 
-4.  **Define Custom Attributes (The "Brain")**
-    *   Click on the **Attributes** tab.
-    *   Enter the specific details you want to track for this category.
-    *   *Example for Drone:* Type `Max Altitude`, press Enter. Type `Battery Life`, press Enter. Type `Camera Resolution`, press Enter.
-    *   Click **Save/Update**.
+Contoh format `scratch/template_bulk_import_aset.csv`:
+```csv
+asset_code,name,category_code,brand,model,status,notes
+EXC-PROD-01,Excavator PC200 Super,EXC,Komatsu,PC200,draft,Aset Produksi Baru 1
+EXC-PROD-02,Excavator Zaxis 200,EXC,Hitachi,Zaxis,draft,Aset Produksi Baru 2
+TRK-PROD-01,Hino Dutro Dump,TRK,Hino,Dutro,draft,Truk Tambang Baru
+TRK-PROD-02,Mitsubishi Fuso,TRK,Mitsubishi,Fuso,draft,Truk Tambang 2
+```
 
-    > **Note:** These attributes are now permanently saved in the database for this category.
+## Langkah 2: Jalankan Script Importer
 
-## Phase 2: Bulk Import Assets
+Gunakan `bun` untuk mengeksekusi script *importer* yang otomatis akan login, mencocokkan kode kategori dengan ID aslinya, lalu menembakkannya ke `/api/assets/bulk`.
 
-1.  **Open Import Tool**
-    *   Go to the **Assets** page.
-    *   Click the **Import** button (top right).
+```bash
+bun scratch/bulk_importer.js <email_spesialis> <password> <lokasi_file_csv>
+```
 
-2.  **Download Smart Template**
-    *   In the modal, look for **Select Template by Category**.
-    *   Choose the category you just created (e.g., `Drone & Aerial Cam`).
-    *   Click **Download Template CSV**.
-    *   *The system will generate a CSV file specifically for Drones, including columns like `spec_Max Altitude` and `spec_Battery Life`.*
+**Contoh (Untuk Admin Alat Berat di lokal):**
+// turbo
+```bash
+bun scratch/bulk_importer.js berat@sjs.com admin123 scratch/template_bulk_import_aset.csv
+```
 
-3.  **Fill Data**
-    *   Open the CSV file (using Excel, Numbers, or Text Editor).
-    *   **Required Columns:** `asset_code`, `name`.
-    *   **Custom Columns:** Fill in the `spec_...` columns with your data.
-    *   Save the file as `.csv` (Comma Separated Values).
+**Contoh (Jika ingin menembak langsung ke VPS Produksi):**
+Edit nilai `BASE_URL` di dalam `scratch/bulk_importer.js` menjadi `https://apl.sjsgroup.site`, lalu jalankan kembali skripnya.
 
-4.  **Upload & Process**
-    *   Back in the system, click **Select CSV File**.
-    *   Upload your filled CSV.
-    *   **Preview:** The system will show a preview table. Ensure rows have a green checkmark.
-    *   Click **Import Assets**.
+## Langkah 3: Persetujuan Manager (L1 & L2)
 
-## Phase 3: Verification
-
-1.  **Check List**
-    *   The new assets should appear in the Asset List immediately.
-
-2.  **Check Details**
-    *   Click on one of the new assets (Edit/View).
-    *   Go to the **Specifications** tab (or *Vehicle/Property* tab if applicable).
-    *   You should see your custom data (`Max Altitude`, etc.) populated correctly.
+Setelah skrip di atas berhasil (muncul pesan sukses ter-import sebagai Draft/Pending Approval), aset tersebut belum langsung aktif.
+**Manager Aset** (`manager@sjs.com`) harus masuk dan melakukan persetujuan (Approve L1 & L2). Begitu status mencapai `APPROVED_L2`, sistem secara otomatis akan mengaktifkan aset tersebut dan departemennya dijamin sesuai dengan hak akses Spesialis yang menginput!

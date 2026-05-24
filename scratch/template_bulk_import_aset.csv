@@ -1,0 +1,5 @@
+asset_code,name,category_code,brand,model,status,notes
+EXC-PROD-01,Excavator PC200 Super,EXC,Komatsu,PC200,draft,Aset Produksi Baru 1
+EXC-PROD-02,Excavator Zaxis 200,EXC,Hitachi,Zaxis,draft,Aset Produksi Baru 2
+TRK-PROD-01,Hino Dutro Dump,TRK,Hino,Dutro,draft,Truk Tambang Baru
+TRK-PROD-02,Mitsubishi Fuso,TRK,Mitsubishi,Fuso,draft,Truk Tambang 2

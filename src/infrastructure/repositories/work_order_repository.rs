@@ -34,20 +34,38 @@ impl WorkOrderRepository {
             .await
     }
 
-    pub async fn list(&self, limit: i64, offset: i64) -> Result<Vec<WorkOrder>, sqlx::Error> {
-        sqlx::query_as::<_, WorkOrder>(
-            r#"
-            SELECT w.*, a.name as asset_name 
-            FROM maintenance_work_orders w
-            LEFT JOIN assets a ON w.asset_id = a.id
-            ORDER BY w.created_at DESC
-            LIMIT $1 OFFSET $2
-            "#,
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&self.pool)
-        .await
+    pub async fn list(&self, limit: i64, offset: i64, department: Option<String>) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        if let Some(dept) = department {
+            sqlx::query_as::<_, WorkOrder>(
+                r#"
+                SELECT w.*, a.name as asset_name 
+                FROM maintenance_work_orders w
+                LEFT JOIN assets a ON w.asset_id = a.id
+                WHERE a.department = $1 OR w.asset_id IS NULL
+                ORDER BY w.created_at DESC
+                LIMIT $2 OFFSET $3
+                "#,
+            )
+            .bind(dept)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, WorkOrder>(
+                r#"
+                SELECT w.*, a.name as asset_name 
+                FROM maintenance_work_orders w
+                LEFT JOIN assets a ON w.asset_id = a.id
+                ORDER BY w.created_at DESC
+                LIMIT $1 OFFSET $2
+                "#,
+            )
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await
+        }
     }
 
     pub async fn list_by_asset(&self, asset_id: Uuid) -> Result<Vec<WorkOrder>, sqlx::Error> {
@@ -71,26 +89,63 @@ impl WorkOrderRepository {
         .await
     }
 
-    pub async fn list_pending(&self) -> Result<Vec<WorkOrder>, sqlx::Error> {
-        sqlx::query_as::<_, WorkOrder>(
-            "SELECT * FROM maintenance_work_orders WHERE status = 'pending' ORDER BY priority DESC, created_at"
-        )
-        .fetch_all(&self.pool)
-        .await
+    pub async fn list_pending(&self, department: Option<String>) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        if let Some(dept) = department {
+            sqlx::query_as::<_, WorkOrder>(
+                r#"
+                SELECT w.*, a.name as asset_name 
+                FROM maintenance_work_orders w
+                LEFT JOIN assets a ON w.asset_id = a.id
+                WHERE w.status = 'pending' AND (a.department = $1 OR w.asset_id IS NULL)
+                ORDER BY w.priority DESC, w.created_at
+                "#
+            )
+            .bind(dept)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, WorkOrder>(
+                r#"
+                SELECT w.*, a.name as asset_name 
+                FROM maintenance_work_orders w
+                LEFT JOIN assets a ON w.asset_id = a.id
+                WHERE w.status = 'pending' 
+                ORDER BY w.priority DESC, w.created_at
+                "#
+            )
+            .fetch_all(&self.pool)
+            .await
+        }
     }
 
-    pub async fn list_overdue(&self) -> Result<Vec<WorkOrder>, sqlx::Error> {
-        sqlx::query_as::<_, WorkOrder>(
-            r#"
-            SELECT w.*, a.name as asset_name
-            FROM maintenance_work_orders w
-            LEFT JOIN assets a ON w.asset_id = a.id
-            WHERE w.due_date < CURRENT_DATE AND w.status NOT IN ('completed', 'cancelled')
-            ORDER BY w.priority DESC, w.due_date
-            "#,
-        )
-        .fetch_all(&self.pool)
-        .await
+    pub async fn list_overdue(&self, department: Option<String>) -> Result<Vec<WorkOrder>, sqlx::Error> {
+        if let Some(dept) = department {
+            sqlx::query_as::<_, WorkOrder>(
+                r#"
+                SELECT w.*, a.name as asset_name
+                FROM maintenance_work_orders w
+                LEFT JOIN assets a ON w.asset_id = a.id
+                WHERE w.due_date < CURRENT_DATE AND w.status NOT IN ('completed', 'cancelled')
+                AND (a.department = $1 OR w.asset_id IS NULL)
+                ORDER BY w.priority DESC, w.due_date
+                "#,
+            )
+            .bind(dept)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, WorkOrder>(
+                r#"
+                SELECT w.*, a.name as asset_name
+                FROM maintenance_work_orders w
+                LEFT JOIN assets a ON w.asset_id = a.id
+                WHERE w.due_date < CURRENT_DATE AND w.status NOT IN ('completed', 'cancelled')
+                ORDER BY w.priority DESC, w.due_date
+                "#,
+            )
+            .fetch_all(&self.pool)
+            .await
+        }
     }
 
     pub async fn create(&self, wo: &WorkOrder) -> Result<WorkOrder, sqlx::Error> {
