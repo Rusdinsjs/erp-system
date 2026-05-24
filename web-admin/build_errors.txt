@@ -1,0 +1,32 @@
+
+> management-system-web@0.0.0 build
+> tsc -b && vite build
+
+src/components/Layout/MainLayout.tsx(140,11): error TS6133: 'activeModule' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(6,20): error TS6133: 'Table' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(6,27): error TS6133: 'TableHead' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(6,38): error TS6133: 'TableBody' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(6,49): error TS6133: 'TableRow' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(6,59): error TS6133: 'TableTh' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(6,68): error TS6133: 'TableTd' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(7,21): error TS6133: 'Card' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(54,11): error TS6133: 'getStatusColor' is declared but its value is never read.
+src/components/Rentals/BillingReviewDetail.tsx(79,22): error TS2552: Cannot find name 'StatusBadge'. Did you mean 'statusbar'?
+src/components/Rentals/TimesheetList.tsx(149,51): error TS18048: 'ts.standby_hours' is possibly 'undefined'.
+src/components/Rentals/TimesheetList.tsx(149,75): error TS18048: 'ts.breakdown_hours' is possibly 'undefined'.
+src/components/Rentals/TimesheetList.tsx(151,58): error TS18048: 'ts.standby_hours' is possibly 'undefined'.
+src/components/Rentals/TimesheetList.tsx(156,58): error TS18048: 'ts.breakdown_hours' is possibly 'undefined'.
+src/pages/AnalyticsDashboard.tsx(8,10): error TS6133: 'Card' is declared but its value is never read.
+src/pages/Dashboard.tsx(19,10): error TS6133: 'Card' is declared but its value is never read.
+src/pages/Inventory/InventoryItems.tsx(5,36): error TS6133: 'MoreVertical' is declared but its value is never read.
+src/pages/Maintenance/MaintenanceSchedules.tsx(174,40): error TS2322: Type '{ children: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & TableHeadProps'.
+  Property 'className' does not exist on type 'IntrinsicAttributes & TableHeadProps'.
+src/pages/Maintenance/MaintenanceSchedules.tsx(185,40): error TS2322: Type '{ children: any[]; className: string; }' is not assignable to type 'IntrinsicAttributes & TableBodyProps'.
+  Property 'className' does not exist on type 'IntrinsicAttributes & TableBodyProps'.
+src/pages/Maintenance/MaintenanceSchedules.tsx(240,46): error TS2741: Property 'colSpan' is missing in type '{ message: string; }' but required in type 'TableEmptyProps'.
+src/pages/Maintenance/MaintenanceTemplates.tsx(185,52): error TS2322: Type '{ children: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & TableHeadProps'.
+  Property 'className' does not exist on type 'IntrinsicAttributes & TableHeadProps'.
+src/pages/Maintenance/MaintenanceTemplates.tsx(192,52): error TS2322: Type '{ children: (false | Element | Element[] | undefined)[]; className: string; }' is not assignable to type 'IntrinsicAttributes & TableBodyProps'.
+  Property 'className' does not exist on type 'IntrinsicAttributes & TableBodyProps'.
+src/pages/WorkOrders/WorkOrders.tsx(6,20): error TS6133: 'useMutation' is declared but its value is never read.
+src/pages/WorkOrders/WorkOrders.tsx(44,11): error TS6133: 'success' is declared but its value is never read.

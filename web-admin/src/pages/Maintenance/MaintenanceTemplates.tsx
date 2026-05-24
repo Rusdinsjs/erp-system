@@ -212,7 +212,7 @@ export default function MaintenanceTemplates() {
                                             {selectedTemplate?.tasks.length === 0 && (
                                                 <TableRow>
                                                     <TableTd colSpan={3}>
-                                                        <TableEmpty message="Click 'Add Task' to build your checklist template." />
+                                                        <TableEmpty message="Click 'Add Task' to build your checklist template." colSpan={3} />
                                                     </TableTd>
                                                 </TableRow>
                                             )}

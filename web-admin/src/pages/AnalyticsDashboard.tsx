@@ -5,7 +5,7 @@ import {
     PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import { api } from '../api/http';
-import { Card, LoadingSpinner } from '../components/ui';
+import { LoadingSpinner } from '../components/ui';
 import { DollarSign, PieChart as PieIcon, TrendingUp } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, string> = {

@@ -237,7 +237,7 @@ const MaintenanceSchedules: React.FC = () => {
                                 {schedules.length === 0 && (
                                     <TableRow>
                                         <TableTd colSpan={7}>
-                                            <TableEmpty message="No maintenance schedules found." />
+                                            <TableEmpty message="No maintenance schedules found." colSpan={7} />
                                         </TableTd>
                                     </TableRow>
                                 )}

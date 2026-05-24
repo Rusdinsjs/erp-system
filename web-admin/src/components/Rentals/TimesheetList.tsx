@@ -146,14 +146,14 @@ export function TimesheetList({ rentalId }: TimesheetListProps) {
                                                 </div>
 
                                                 {/* Exception Hours */}
-                                                {(ts.standby_hours > 0 || ts.breakdown_hours > 0) && (
+                                                {((ts.standby_hours || 0) > 0 || (ts.breakdown_hours || 0) > 0) && (
                                                     <div className="flex items-center gap-3">
-                                                        {ts.standby_hours > 0 && (
+                                                        {(ts.standby_hours || 0) > 0 && (
                                                             <Badge variant="warning" className="bg-orange-500/10 border-orange-500/20 text-orange-500 font-bold text-xs py-1.5 px-3">
                                                                 {ts.standby_hours}h Standby
                                                             </Badge>
                                                         )}
-                                                        {ts.breakdown_hours > 0 && (
+                                                        {(ts.breakdown_hours || 0) > 0 && (
                                                             <Badge variant="danger" className="bg-destructive/10 border-destructive/20 text-destructive font-bold text-xs py-1.5 px-3 animate-pulse">
                                                                 {ts.breakdown_hours}h Breakdown
                                                             </Badge>

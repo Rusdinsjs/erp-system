@@ -16,7 +16,7 @@ import {
     Legend
 } from 'recharts';
 import { api } from '../api/http';
-import { Card, PageLoading } from '../components/ui';
+import { PageLoading } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../components/ui/Toast';
 import { LiveActivityFeed } from '../components/dashboard/LiveActivityFeed';

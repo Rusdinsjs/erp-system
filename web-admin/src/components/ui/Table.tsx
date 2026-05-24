@@ -20,11 +20,12 @@ export function Table({ children, className = '' }: TableProps) {
 // Table Head
 interface TableHeadProps {
     children: ReactNode;
+    className?: string;
 }
 
-export function TableHead({ children }: TableHeadProps) {
+export function TableHead({ children, className = '' }: TableHeadProps) {
     return (
-        <thead className="bg-muted/50 border-b border-border">
+        <thead className={`bg-muted/50 border-b border-border ${className}`}>
             {children}
         </thead>
     );
@@ -33,10 +34,11 @@ export function TableHead({ children }: TableHeadProps) {
 // Table Body
 interface TableBodyProps {
     children: ReactNode;
+    className?: string;
 }
 
-export function TableBody({ children }: TableBodyProps) {
-    return <tbody className="divide-y divide-border/50">{children}</tbody>;
+export function TableBody({ children, className = '' }: TableBodyProps) {
+    return <tbody className={`divide-y divide-border/50 ${className}`}>{children}</tbody>;
 }
 
 // Table Row

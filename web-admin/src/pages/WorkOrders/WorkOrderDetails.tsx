@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, UserPlus, ClipboardCheck, Edit, FileText, ChevronRight, Camera, Loader2 } from 'lucide-react';
+import { ArrowLeft, Info, CheckSquare, Wrench, Plus, Trash2, DollarSign, Play, Check, UserPlus, ClipboardCheck, Edit, FileText, ChevronRight, Camera, Loader2, AlertCircle, AlertTriangle, Clock } from 'lucide-react';
 import { workOrderApi } from '../../api/work-order';
 import { uploadApi } from '../../api/upload';
 import { useAuthStore } from '../../store/useAuthStore';

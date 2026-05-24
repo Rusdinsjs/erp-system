@@ -137,13 +137,7 @@ export function MainLayout() {
         return true;
     });
 
-    const activeModule = filteredNavItems.find(item => {
-        if (location.pathname === item.path) return true;
-        if (item.children) {
-            return item.children.some((c: any) => location.pathname === c.path || location.pathname.startsWith(c.path + '/'));
-        }
-        return false;
-    }) || filteredNavItems[0];
+
 
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden">

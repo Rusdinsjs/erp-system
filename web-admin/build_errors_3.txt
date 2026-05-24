@@ -1,0 +1,6 @@
+
+> management-system-web@0.0.0 build
+> tsc -b && vite build
+
+src/pages/WorkOrders/WorkOrders.tsx(6,20): error TS6133: 'useMutation' is declared but its value is never read.
+src/pages/WorkOrders/WorkOrders.tsx(44,11): error TS6133: 'success' is declared but its value is never read.

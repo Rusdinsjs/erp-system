@@ -1,0 +1,6 @@
+
+> management-system-web@0.0.0 build
+> tsc -b && vite build
+
+src/components/Rentals/BillingReviewDetail.tsx(7,1): error TS1128: Declaration or statement expected.
+src/components/Rentals/BillingReviewDetail.tsx(7,3): error TS1434: Unexpected keyword or identifier.

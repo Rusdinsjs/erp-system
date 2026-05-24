@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { billingApi } from '../../api/timesheet';
 import { Clock, AlertCircle, Check, FileText } from 'lucide-react';
 import {
-    Button, Badge, Table, TableHead, TableBody, TableRow, TableTh, TableTd,
-    LoadingOverlay, Card, useToast
+    Button, Badge, StatusBadge,
+    LoadingOverlay, useToast
 } from '../ui';
 
 interface Props {
@@ -50,16 +50,6 @@ export function BillingReviewDetail({ billingId, onClose }: Props) {
 
     if (isLoading) return <div className="h-48 relative"><LoadingOverlay visible /></div>;
     if (!summary) return <div className="h-48 flex items-center justify-center text-slate-400">No data found</div>;
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'approved': return 'success';
-            case 'invoiced': return 'info';
-            case 'paid': return 'success';
-            case 'draft': return 'default';
-            default: return 'warning';
-        }
-    };
 
     return (
         <div className="space-y-6 relative">

@@ -2,8 +2,8 @@
 // Work Order Management Page
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Edit, Trash2, AlertTriangle, Wrench, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Edit, AlertTriangle, Wrench, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { workOrderApi } from '../../api/work-order';
 import type { WorkOrder } from '../../api/work-order';
 import { WorkOrderForm } from '../../components/WorkOrders/WorkOrderForm';
@@ -12,12 +12,10 @@ import { useWebSocket } from '../../contexts/WebSocketContext';
 import {
     Button,
     Card,
-    Table, TableHead, TableBody, TableRow,
     StatusBadge,
     ActionIcon,
     Pagination,
     Modal,
-    useToast,
     Tabs,
     TabsList,
     TabsTrigger,
@@ -42,7 +40,6 @@ export default function WorkOrders() {
         }
     }, [assetIdParam]);
     const { lastMessage } = useWebSocket();
-    const { success } = useToast();
 
     useEffect(() => {
         if (lastMessage && (lastMessage.event_type === 'WORK_ORDER_CREATED' || lastMessage.event_type === 'WORK_ORDER_COMPLETED')) {
@@ -63,15 +60,6 @@ export default function WorkOrders() {
 
     const records: WorkOrder[] = (workOrdersData as any) || [];
     const totalPages = 1; // TODO: Backend pagination support
-
-    // Delete Mutation
-    const deleteMutation = useMutation({
-        mutationFn: workOrderApi.delete,
-        onSuccess: () => {
-            success('Work Order deleted (cancelled)', 'Deleted');
-            queryClient.invalidateQueries({ queryKey: ['work-orders'] });
-        },
-    });
 
     const handleEdit = (id: string) => {
         setSelectedId(id);
