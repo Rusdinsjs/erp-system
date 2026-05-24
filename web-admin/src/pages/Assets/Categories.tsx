@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Save, Link2 } from 'lucide-react';
 import { api } from '../../api/http';
 import { financeApi } from '../../api/finance'; // Import financeApi
+import { useAuthStore } from '../../store/useAuthStore';
 import {
     Button,
     Card,
@@ -36,6 +37,7 @@ interface Category {
     asset_account_id?: string | null;
     expense_account_id?: string | null; // Added
     accumulated_depreciation_account_id?: string | null; // Added
+    asset_group?: string | null;
     full_path?: string;
     children?: Category[];
 }
@@ -56,6 +58,7 @@ interface CategoryRequest {
     asset_account_id?: string | null;
     expense_account_id?: string | null; // Added
     accumulated_depreciation_account_id?: string | null; // Added
+    asset_group?: string | null;
 }
 
 const MAIN_CATEGORIES = [
@@ -67,6 +70,8 @@ const MAIN_CATEGORIES = [
 export default function Categories() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
+    const { user } = useAuthStore();
+    const allowedGroup = user?.role === 'admin_alat_berat' ? 'ALAT_BERAT' : user?.role === 'admin_kendaraan' ? 'KENDARAAN' : user?.role === 'admin_infrastruktur' ? 'INFRASTRUKTUR' : null;
 
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -89,15 +94,22 @@ export default function Categories() {
         asset_account_id: '' as string,
         expense_account_id: '' as string, // Added
         accumulated_depreciation_account_id: '' as string, // Added
+        asset_group: '' as string,
     });
 
-    const { data: treeData, isLoading: treeLoading } = useQuery({
+    const { data: rawTreeData, isLoading: treeLoading } = useQuery({
         queryKey: ['categories-tree'],
         queryFn: async () => {
             const res = await api.get('/categories/tree');
             return res.data.data as Category[];
         },
     });
+
+    const treeData = useMemo(() => {
+        if (!rawTreeData) return [];
+        if (!allowedGroup) return rawTreeData;
+        return rawTreeData.filter(c => c.asset_group === allowedGroup);
+    }, [rawTreeData, allowedGroup]);
 
     // Fetch Accounts for Mapping
     const { data: accounts = [], isLoading: accountsLoading } = useQuery({
@@ -177,6 +189,7 @@ export default function Categories() {
             asset_account_id: '',
             expense_account_id: '',
             accumulated_depreciation_account_id: '',
+            asset_group: allowedGroup || '',
         });
     };
 
@@ -199,6 +212,7 @@ export default function Categories() {
             asset_account_id: category.asset_account_id || '',
             expense_account_id: category.expense_account_id || '',
             accumulated_depreciation_account_id: category.accumulated_depreciation_account_id || '',
+            asset_group: category.asset_group || '',
         });
     };
 
@@ -232,6 +246,7 @@ export default function Categories() {
             asset_account_id: formData.asset_account_id || null,
             expense_account_id: formData.expense_account_id || null,
             accumulated_depreciation_account_id: formData.accumulated_depreciation_account_id || null,
+            asset_group: formData.asset_group || null,
         };
 
         if (selectedCategory && isEditing) {
@@ -353,6 +368,19 @@ export default function Categories() {
                                 </TabsList>
 
                                 <TabsContent value="general" className="mt-6 space-y-4">
+                                    <Select
+                                        label="Asset Group (Akses Admin)"
+                                        placeholder="Pilih Asset Group..."
+                                        options={[
+                                            { value: 'ALAT_BERAT', label: 'Alat Berat' },
+                                            { value: 'KENDARAAN', label: 'Kendaraan' },
+                                            { value: 'INFRASTRUKTUR', label: 'Infrastruktur' },
+                                            { value: 'UMUM', label: 'Umum' }
+                                        ]}
+                                        value={formData.asset_group}
+                                        onChange={(val) => handleChange('asset_group', val)}
+                                        hint="Menentukan role admin mana yang bisa mengelola kategori ini."
+                                    />
                                     <div className="grid grid-cols-2 gap-4">
                                         <Input
                                             label="Code"

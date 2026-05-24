@@ -167,9 +167,9 @@ export default function Users() {
             case 'admin': return 'Organization Management';
             case 'manager': return 'Approval L2, Asset Management';
             case 'supervisor': return 'Approval L1, Operational View';
-            case 'admin_heavy_eq': return 'Heavy Equipment Specialist';
-            case 'admin_vehicle': return 'Vehicle Specialist';
-            case 'admin_infra': return 'Infrastructure Specialist';
+            case 'admin_alat_berat': return 'Spesialis Alat Berat';
+            case 'admin_kendaraan': return 'Spesialis Kendaraan';
+            case 'admin_infrastruktur': return 'Spesialis Infrastruktur';
             case 'technician': return 'Maintenance Execution';
             case 'staff': return 'General Staff View';
             case 'user': return 'Basic View Access';
