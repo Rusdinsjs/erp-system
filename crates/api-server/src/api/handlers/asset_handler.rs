@@ -218,10 +218,19 @@ pub async fn bulk_update_assets(
 pub async fn bulk_create_assets(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
-    Json(payload): Json<BulkCreateAssetRequest>,
+    Json(mut payload): Json<BulkCreateAssetRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
+
+    // Enforce department for restricted users on all bulk items
+    if claims.role != "super_admin" {
+        if let Some(dept) = &claims.department {
+            for asset in &mut payload.assets {
+                asset.department = Some(dept.clone());
+            }
+        }
+    }
 
     let results = state
         .asset_service

@@ -6,6 +6,7 @@ services:
     image: postgres:16-alpine
     container_name: mgmt-db
     restart: unless-stopped
+    mem_limit: 512m
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -32,6 +33,7 @@ services:
     image: redis:7-alpine
     container_name: mgmt-redis
     restart: unless-stopped
+    mem_limit: 256m
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -50,6 +52,7 @@ services:
       dockerfile: Dockerfile
     container_name: mgmt-backend
     restart: unless-stopped
+    mem_limit: 1024m
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,6 +83,7 @@ services:
       dockerfile: Dockerfile
     container_name: mgmt-frontend
     restart: unless-stopped
+    mem_limit: 256m
     depends_on:
       - backend
     ports:
@@ -104,12 +108,15 @@ services:
     image: ollama/ollama:latest
     container_name: ms-ai-ollama
     restart: unless-stopped
+    mem_limit: 4096m
     volumes:
       - ollama_data:/root/.ollama
     expose:
       - "11434"
     networks:
       - default
+    profiles:
+      - ai
 
 volumes:
   postgres_data:

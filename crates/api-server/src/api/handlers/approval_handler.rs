@@ -180,6 +180,17 @@ pub async fn approve_request(
             .approval_service
             .approve_request(id, approver_id, role_level, payload.notes)
             .await?;
+
+        // Instantiate Asset if request is APPROVED_L2
+        if request.status == "APPROVED_L2" && request.resource_type == "Asset" && request.action_type == "CREATE" {
+            if let Some(snapshot) = &request.data_snapshot {
+                if let Ok(create_req) = serde_json::from_value::<management_system_core::application::dto::CreateAssetRequest>(snapshot.clone()) {
+                    let user_id = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
+                    let _ = state.asset_service.create(create_req, user_id, 1).await?;
+                }
+            }
+        }
+
         return Ok(Json(ApiResponse::success(request)));
     }
 
