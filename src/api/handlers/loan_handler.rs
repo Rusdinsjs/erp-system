@@ -33,17 +33,22 @@ pub struct LoanQueryParams {
 )]
 pub async fn list_loans(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Query(params): Query<LoanQueryParams>,
 ) -> Result<Json<Vec<Loan>>, AppError> {
     if let Some(asset_id) = params.asset_id {
-        // If asset_id is provided, use it (ignores pagination for now or we can pass it if repo supports)
-        // Repo list_by_asset currently does not support pagination, returns all. This is acceptable for MVP.
         let loans = state.loan_service.list_by_asset(asset_id).await?;
         Ok(Json(loans))
     } else {
+        let department_filter = if claims.role_level > crate::domain::entities::ROLE_MANAGER {
+            claims.department.clone()
+        } else {
+            None
+        };
+
         let loans = state
             .loan_service
-            .list(params.pagination.page(), params.pagination.per_page())
+            .list(params.pagination.page(), params.pagination.per_page(), department_filter)
             .await?;
         Ok(Json(loans))
     }
@@ -104,8 +109,15 @@ pub async fn approve_loan(
 
 pub async fn list_overdue_loans(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
 ) -> Result<Json<Vec<Loan>>, AppError> {
-    let loans = state.loan_service.list_overdue().await?;
+    let department_filter = if claims.role_level > crate::domain::entities::ROLE_MANAGER {
+        claims.department.clone()
+    } else {
+        None
+    };
+
+    let loans = state.loan_service.list_overdue(department_filter).await?;
     Ok(Json(loans))
 }
 

@@ -91,10 +91,10 @@ impl LoanService {
     }
 
     /// List loans
-    pub async fn list(&self, page: i64, per_page: i64) -> DomainResult<Vec<Loan>> {
+    pub async fn list(&self, page: i64, per_page: i64, department: Option<String>) -> DomainResult<Vec<Loan>> {
         let offset = (page - 1) * per_page;
         self.loan_repo
-            .list(per_page, offset)
+            .list(per_page, offset, department)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -103,9 +103,9 @@ impl LoanService {
     }
 
     /// List overdue loans
-    pub async fn list_overdue(&self) -> DomainResult<Vec<Loan>> {
+    pub async fn list_overdue(&self, department: Option<String>) -> DomainResult<Vec<Loan>> {
         self.loan_repo
-            .list_overdue()
+            .list_overdue(department)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -319,7 +319,7 @@ impl LoanService {
     pub async fn check_overdue_loans(&self) -> DomainResult<()> {
         let overdue_loans =
             self.loan_repo
-                .list_overdue()
+                .list_overdue(None)
                 .await
                 .map_err(|e| DomainError::ExternalServiceError {
                     service: "database".to_string(),

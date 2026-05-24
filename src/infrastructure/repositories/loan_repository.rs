@@ -48,22 +48,42 @@ impl LoanRepository {
         .await
     }
 
-    pub async fn list(&self, limit: i64, offset: i64) -> Result<Vec<Loan>, sqlx::Error> {
-        sqlx::query_as::<_, Loan>(
-            r#"
-            SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
-            FROM asset_loans al
-            LEFT JOIN users u ON al.borrower_id = u.id
-            LEFT JOIN employees e ON al.employee_id = e.id
-            LEFT JOIN assets a ON al.asset_id = a.id
-            ORDER BY al.created_at DESC
-            LIMIT $1 OFFSET $2
-            "#,
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&self.pool)
-        .await
+    pub async fn list(&self, limit: i64, offset: i64, department: Option<String>) -> Result<Vec<Loan>, sqlx::Error> {
+        if let Some(dept) = department {
+            sqlx::query_as::<_, Loan>(
+                r#"
+                SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
+                FROM asset_loans al
+                LEFT JOIN users u ON al.borrower_id = u.id
+                LEFT JOIN employees e ON al.employee_id = e.id
+                LEFT JOIN assets a ON al.asset_id = a.id
+                WHERE a.department = $1 OR al.asset_id IS NULL
+                ORDER BY al.created_at DESC
+                LIMIT $2 OFFSET $3
+                "#,
+            )
+            .bind(dept)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, Loan>(
+                r#"
+                SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
+                FROM asset_loans al
+                LEFT JOIN users u ON al.borrower_id = u.id
+                LEFT JOIN employees e ON al.employee_id = e.id
+                LEFT JOIN assets a ON al.asset_id = a.id
+                ORDER BY al.created_at DESC
+                LIMIT $1 OFFSET $2
+                "#,
+            )
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&self.pool)
+            .await
+        }
     }
 
     pub async fn list_by_borrower(&self, borrower_id: Uuid) -> Result<Vec<Loan>, sqlx::Error> {
@@ -117,38 +137,75 @@ impl LoanRepository {
         .await
     }
 
-    pub async fn list_overdue(&self) -> Result<Vec<Loan>, sqlx::Error> {
-        sqlx::query_as::<_, Loan>(
-            r#"
-            SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
-            FROM asset_loans al
-            LEFT JOIN users u ON al.borrower_id = u.id
-            LEFT JOIN employees e ON al.employee_id = e.id
-            LEFT JOIN assets a ON al.asset_id = a.id
-            WHERE al.expected_return_date < CURRENT_DATE 
-              AND al.actual_return_date IS NULL
-              AND al.status NOT IN ('returned', 'lost', 'rejected')
-            ORDER BY al.expected_return_date
-            "#,
-        )
-        .fetch_all(&self.pool)
-        .await
+    pub async fn list_overdue(&self, department: Option<String>) -> Result<Vec<Loan>, sqlx::Error> {
+        if let Some(dept) = department {
+            sqlx::query_as::<_, Loan>(
+                r#"
+                SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
+                FROM asset_loans al
+                LEFT JOIN users u ON al.borrower_id = u.id
+                LEFT JOIN employees e ON al.employee_id = e.id
+                LEFT JOIN assets a ON al.asset_id = a.id
+                WHERE al.expected_return_date < CURRENT_DATE 
+                  AND al.actual_return_date IS NULL
+                  AND al.status NOT IN ('returned', 'lost', 'rejected')
+                  AND (a.department = $1 OR al.asset_id IS NULL)
+                ORDER BY al.expected_return_date
+                "#,
+            )
+            .bind(dept)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, Loan>(
+                r#"
+                SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
+                FROM asset_loans al
+                LEFT JOIN users u ON al.borrower_id = u.id
+                LEFT JOIN employees e ON al.employee_id = e.id
+                LEFT JOIN assets a ON al.asset_id = a.id
+                WHERE al.expected_return_date < CURRENT_DATE 
+                  AND al.actual_return_date IS NULL
+                  AND al.status NOT IN ('returned', 'lost', 'rejected')
+                ORDER BY al.expected_return_date
+                "#,
+            )
+            .fetch_all(&self.pool)
+            .await
+        }
     }
 
-    pub async fn list_pending_approval(&self) -> Result<Vec<Loan>, sqlx::Error> {
-        sqlx::query_as::<_, Loan>(
-            r#"
-            SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
-            FROM asset_loans al
-            LEFT JOIN users u ON al.borrower_id = u.id
-            LEFT JOIN employees e ON al.employee_id = e.id
-            LEFT JOIN assets a ON al.asset_id = a.id
-            WHERE al.status = 'requested'
-            ORDER BY al.created_at ASC
-            "#,
-        )
-        .fetch_all(&self.pool)
-        .await
+    pub async fn list_pending_approval(&self, department: Option<String>) -> Result<Vec<Loan>, sqlx::Error> {
+        if let Some(dept) = department {
+            sqlx::query_as::<_, Loan>(
+                r#"
+                SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
+                FROM asset_loans al
+                LEFT JOIN users u ON al.borrower_id = u.id
+                LEFT JOIN employees e ON al.employee_id = e.id
+                LEFT JOIN assets a ON al.asset_id = a.id
+                WHERE al.status = 'requested' AND (a.department = $1 OR al.asset_id IS NULL)
+                ORDER BY al.created_at ASC
+                "#,
+            )
+            .bind(dept)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, Loan>(
+                r#"
+                SELECT al.*, u.name as borrower_name, e.name as employee_name, a.name as asset_name
+                FROM asset_loans al
+                LEFT JOIN users u ON al.borrower_id = u.id
+                LEFT JOIN employees e ON al.employee_id = e.id
+                LEFT JOIN assets a ON al.asset_id = a.id
+                WHERE al.status = 'requested'
+                ORDER BY al.created_at ASC
+                "#,
+            )
+            .fetch_all(&self.pool)
+            .await
+        }
     }
 
     pub async fn create(&self, loan: &Loan) -> Result<Loan, sqlx::Error> {
