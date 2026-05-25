@@ -175,6 +175,35 @@ impl RbacRepository {
         Ok(result.rows_affected() > 0)
     }
 
+    pub async fn sync_user_role(
+        &self,
+        user_id: Uuid,
+        role_id: Uuid,
+        organization_id: Option<Uuid>,
+    ) -> Result<(), sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
+
+        // 1. Delete existing roles for this user in user_roles
+        sqlx::query("DELETE FROM user_roles WHERE user_id = $1")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // 2. Insert the new role assignment
+        sqlx::query(
+            "INSERT INTO user_roles (id, user_id, role_id, organization_id) VALUES ($1, $2, $3, $4)",
+        )
+        .bind(Uuid::new_v4())
+        .bind(user_id)
+        .bind(role_id)
+        .bind(organization_id)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
     /// Update role permissions in bulk (transaction-safe)
     pub async fn update_role_permissions(
         &self,

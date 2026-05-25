@@ -108,7 +108,7 @@ impl UserService {
             None
         };
 
-        let _updated_user = self
+        let updated_user = self
             .repository
             .update(
                 id,
@@ -125,6 +125,17 @@ impl UserService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?;
+
+        // Synchronize user_roles table on primary role change
+        if let Some(r_id) = role_id {
+            self.rbac_repo
+                .sync_user_role(id, r_id, updated_user.organization_id)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        }
 
         // If password needs update
         if let Some(hash) = password_hash {
