@@ -18,6 +18,11 @@ pub async fn start_audit_session(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
 ) -> Result<impl IntoResponse, AppError> {
+    if claims.role_level > 3 {
+        return Err(AppError::Forbidden(
+            "Hanya Super Admin (L1), Manager (L2), dan Supervisor (L3) yang dapat mengelola sesi audit".to_string()
+        ));
+    }
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
 
@@ -49,8 +54,14 @@ pub async fn get_active_session(
 /// Close audit session
 pub async fn close_session(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<AuditSession>>, AppError> {
+    if claims.role_level > 3 {
+        return Err(AppError::Forbidden(
+            "Hanya Super Admin (L1), Manager (L2), dan Supervisor (L3) yang dapat mengelola sesi audit".to_string()
+        ));
+    }
     let session = state.audit_service.close_session(id).await?;
     Ok(Json(ApiResponse::success_with_message(
         session,

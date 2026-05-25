@@ -76,7 +76,27 @@ if let Some(group) = allowed_group {
 
 ========================================================================
 
-IV. VERIFIKASI DAN KUALITAS KODE
+IV. PEMBATASAN AKSES MASTER DATA DAN SESI AUDIT
+
+Untuk memperketat keamanan dan sesuai dengan rekomendasi sistem, hak akses pengelolaan master data (Kategori, Template Kategori, Lokasi) serta pelaksanaan Sesi Audit dibatasi berdasarkan level tingkatan pengguna (role_level):
+
+1. Kategori & Template Kategori (Level L2 - Manager ke atas):
+   - Pembuatan, pembaruan, dan penghapusan (create, update, delete) dibatasi secara ketat hanya untuk Super Admin (L1) dan Manager (L2) (role_level <= 2).
+   - Admin Spesialis (L4) hanya memiliki hak akses membaca (Read-Only).
+
+2. Lokasi (Level L2 - Manager ke atas):
+   - Pembuatan, pembaruan, dan penghapusan lokasi hanya diizinkan untuk Super Admin (L1) dan Manager (L2) (role_level <= 2).
+   - Admin Spesialis (L4) hanya memiliki hak akses membaca (Read-Only).
+
+3. Sesi Audit (Level L3 - Supervisor ke atas):
+   - Membuka sesi audit baru (start_audit_session) dan menutup sesi audit (close_session) dibatasi hanya untuk Super Admin (L1), Manager (L2), dan Supervisor (L3) (role_level <= 3).
+   - Admin Spesialis (L4) hanya diperkenankan memindai dan mengirimkan catatan pemeriksaan aset (submit_audit_record).
+
+Seluruh pembatasan di atas telah diterapkan secara native pada pengendali API backend (API handlers) baik pada struktur workspace Rust modern (crates/api-server/) maupun legacy (src/api/).
+
+========================================================================
+
+V. VERIFIKASI DAN KUALITAS KODE
 
 Semua perubahan kode yang disinkronkan di seluruh struktur workspace Rust baru (crates/) dan legacy (src/) telah lolos verifikasi secara mutlak:
 - Kompilasi Proyek (cargo check): Lolos 100% tanpa kesalahan kompilasi.

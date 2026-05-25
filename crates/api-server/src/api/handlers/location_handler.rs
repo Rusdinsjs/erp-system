@@ -1,9 +1,10 @@
 use crate::api::server::AppState;
 use management_system_core::domain::entities::Location;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Extension},
     response::Json,
 };
+use management_system_core::domain::entities::user::UserClaims;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -65,8 +66,15 @@ pub struct CreateLocationRequest {
 
 pub async fn create_location(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Json(payload): Json<CreateLocationRequest>,
 ) -> Result<Json<Location>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    if claims.role_level > 2 {
+        return Err((
+            axum::http::StatusCode::FORBIDDEN,
+            Json(json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" })),
+        ));
+    }
     let location = Location {
         id: Uuid::new_v4(),
         parent_id: payload.parent_id,
@@ -93,9 +101,16 @@ pub async fn create_location(
 
 pub async fn update_location(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<CreateLocationRequest>,
 ) -> Result<Json<Location>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    if claims.role_level > 2 {
+        return Err((
+            axum::http::StatusCode::FORBIDDEN,
+            Json(json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" })),
+        ));
+    }
     // For update, we might need to fetch existing first to keep created_at, or just overwrite.
     // Simplifying by trusting payload, but ideally should merge.
     // Since service takes `Location`, let's check if we can get existing.
@@ -130,8 +145,15 @@ pub async fn update_location(
 
 pub async fn delete_location(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, Json<serde_json::Value>)> {
+    if claims.role_level > 2 {
+        return Err((
+            axum::http::StatusCode::FORBIDDEN,
+            Json(json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" })),
+        ));
+    }
     state
         .location_service
         .delete_location(id)
