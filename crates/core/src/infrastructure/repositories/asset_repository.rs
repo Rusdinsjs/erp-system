@@ -1013,6 +1013,23 @@ impl AssetRepository {
         Ok(row.and_then(|r| r.0))
     }
 
+    /// Get Asset Group (e.g. VEHICLES, HEAVY_EQ) via Category
+    pub async fn get_asset_group(&self, asset_id: Uuid) -> Result<Option<String>, sqlx::Error> {
+        let row: Option<(Option<String>,)> = sqlx::query_as(
+            r#"
+            SELECT c.asset_group
+            FROM assets a
+            LEFT JOIN categories c ON a.category_id = c.id
+            WHERE a.id = $1
+            "#,
+        )
+        .bind(asset_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.and_then(|r| r.0))
+    }
+
     /// Update vehicle expiry date for a specific field
     pub async fn update_vehicle_expiry(
         &self,

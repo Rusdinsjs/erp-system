@@ -270,6 +270,17 @@ impl AssetService {
         })
     }
 
+    /// Get the asset group name for an asset by its ID
+    pub async fn get_asset_group(&self, id: Uuid) -> DomainResult<Option<String>> {
+        self.repository
+            .get_asset_group(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
     /// Get asset by Code
     pub async fn get_by_code(&self, code: &str) -> DomainResult<Asset> {
         self.repository

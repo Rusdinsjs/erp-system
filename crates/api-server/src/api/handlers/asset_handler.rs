@@ -127,8 +127,22 @@ pub async fn search_assets(
 )]
 pub async fn get_asset(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<management_system_core::domain::entities::asset::AssetDetail>, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" => Some("ALAT_BERAT"),
+        "admin_kendaraan" => Some("KENDARAAN"),
+        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     let asset = state.asset_service.get_detail_by_id(id).await?;
     Ok(Json(asset))
 }
@@ -262,9 +276,23 @@ pub async fn bulk_create_assets(
 )]
 pub async fn update_asset(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateAssetRequest>,
 ) -> Result<Json<ApiResponse<Asset>>, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" => Some("ALAT_BERAT"),
+        "admin_kendaraan" => Some("KENDARAAN"),
+        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     let asset = state.asset_service.update(id, payload).await?;
     Ok(Json(ApiResponse::success_with_message(
         asset,
@@ -292,6 +320,19 @@ pub async fn sell_asset(
     Path(id): Path<Uuid>,
     Json(payload): Json<management_system_core::application::dto::SellAssetRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" => Some("ALAT_BERAT"),
+        "admin_kendaraan" => Some("KENDARAAN"),
+        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
 
@@ -334,8 +375,22 @@ pub async fn sell_asset(
 )]
 pub async fn delete_asset(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" => Some("ALAT_BERAT"),
+        "admin_kendaraan" => Some("KENDARAAN"),
+        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     state.asset_service.delete(id).await?;
     Ok(Json(ApiResponse::success_with_message(
         (),
@@ -362,6 +417,19 @@ pub async fn add_document_to_asset(
     Path(id): Path<Uuid>,
     Json(payload): Json<CreateAssetDocumentRequest>,
 ) -> Result<Json<ApiResponse<AssetDocumentResponse>>, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" => Some("ALAT_BERAT"),
+        "admin_kendaraan" => Some("KENDARAAN"),
+        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
 
@@ -404,8 +472,22 @@ pub async fn add_document_to_asset(
 )]
 pub async fn get_asset_documents(
     State(state): State<AppState>,
+    Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<AssetDocumentResponse>>, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" => Some("ALAT_BERAT"),
+        "admin_kendaraan" => Some("KENDARAAN"),
+        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     let docs = state.asset_service.get_documents(id).await?;
 
     let response: Vec<AssetDocumentResponse> = docs

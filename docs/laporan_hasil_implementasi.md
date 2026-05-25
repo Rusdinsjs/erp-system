@@ -1,0 +1,85 @@
+# LAPORAN HASIL IMPLEMENTASI
+## SISTEM MANAJEMEN ASET - SJS GROUP
+
+Laporan ini merinci hasil pembersihan role duplikat, penjelasan hak akses tingkat L1-L5, serta perbaikan celah keamanan kategori kelompok aset (*asset group boundary check*) bagi Admin Spesialis.
+
+---
+
+### I. PEMBERSIHAN DUPLIKASI ROLE ADMIN SPESIALIS
+
+1. **Role Duplikat Bahasa Inggris Dihapus**:
+   * `admin_heavy_eq` (Dihapus)
+   * `admin_vehicle` (Dihapus)
+   * `admin_infra` (Dihapus)
+2. **Role Bahasa Indonesia Dipertahankan & Dipromosikan ke Level 4 (L4)**:
+   * `admin_alat_berat` (Admin Alat Berat) - Mengelola kelompok aset `ALAT_BERAT`
+   * `admin_kendaraan` (Admin Kendaraan) - Mengelola kelompok aset `KENDARAAN`
+   * `admin_infrastruktur` (Admin Infrastruktur) - Mengelola kelompok aset `INFRASTRUKTUR`
+
+---
+
+### II. MATRIKS HAK AKSES DAN BATASAN ROLE (LEVEL L1 - L5)
+
+* **Level 1 (L1) - Super Admin (`super_admin`)**
+  * **Kewenangan**: Hak akses penuh mutlak (`*` permission) ke semua modul (Aset, Keuangan, HRD, dll). Mengelola data RBAC (user, role, permission).
+  * **Batasan**: Tidak ada batasan sistem.
+
+* **Level 2 (L2) - Manager (`manager`)**
+  * **Kewenangan**: Mengelola aset dan pemeliharaan pada level departemen/unit bisnis. Memiliki hak persetujuan akhir alur kerja (**Approval L2**) untuk aksi bernilai tinggi.
+  * **Batasan**: Dibatasi oleh wewenang departemen. Tidak dapat mengubah hak akses sistem global.
+
+* **Level 3 (L3) - Supervisor (`supervisor`)**
+  * **Kewenangan**: Memantau pekerjaan pemeliharaan lapangan dan melakukan persetujuan awal (**Approval L1**).
+  * **Batasan**: Dibatasi oleh persetujuan tingkat awal (L1). Aksi krusial tetap membutuhkan persetujuan L2 (Manager).
+
+* **Level 4 (L4) - Admin & Admin Spesialis**
+  * **Kewenangan**: Membuat, membaca, memperbarui, mengarsipkan, dan menjual aset dalam wewenangnya.
+  * **Admin Umum (`admin`)**: Akses penuh ke seluruh aset.
+  * **Admin Spesialis**: Dibatasi secara ketat hanya pada kelompok wewenangnya (misalnya: Admin Kendaraan hanya dapat berinteraksi dengan aset ber-grup `KENDARAAN`).
+  * **Batasan**: Seluruh aksi penting (pengadaan/penjualan) harus melalui alur persetujuan (approval) oleh L3/L2.
+
+* **Level 5 (L5) - Operator / Teknisi / Staf (`user`, `staff`, `technician`)**
+  * **Kewenangan**: Pengguna dasar. Staf dapat mengajukan peminjaman/servis aset. Teknisi dapat melihat dan mengisi lembar kerja pemeliharaan.
+  * **Batasan**: Hanya memiliki akses membaca (viewer). Tidak dapat menyetujui request atau memodifikasi aset secara langsung.
+
+---
+
+### III. PERBAIKAN BATASAN KATEGORI ASET ADMIN SPESIALIS
+
+#### Celah Keamanan Sebelumnya:
+Sebelum perbaikan dilakukan, Admin Spesialis (misalnya Admin Kendaraan) dapat menerobos batasan kategori dan melihat detail, memodifikasi, menghapus, atau menjual aset dari kelompok kategori lain (seperti Alat Berat) apabila mereka memanggil API individual per ID (`/api/assets/{id}`) secara langsung.
+
+#### Solusi yang Diimplementasikan:
+1. **Repository Layer**: Menambahkan metode `get_asset_group(asset_id)` untuk mendapatkan kategori kelompok aset (`asset_group`) dari database secara efisien.
+2. **Service Layer**: Mengekspos fungsionalitas `get_asset_group` pada API Service.
+3. **Handler Layer (Controller)**: Menambahkan pemeriksaan otorisasi grup wewenang pada 6 endpoint individual aset berikut:
+   * `GET /api/assets/{id}` (Melihat detail aset)
+   * `PUT /api/assets/{id}` (Memperbarui aset)
+   * `DELETE /api/assets/{id}` (Mengarsipkan/menghapus aset)
+   * `POST /api/assets/{id}/sell` (Menjual aset)
+   * `GET /api/assets/{id}/documents` (Melihat dokumen pendukung aset)
+   * `POST /api/assets/{id}/documents` (Mengunggah dokumen pendukung aset)
+
+#### Logika Validasi Otorisasi:
+```rust
+let allowed_group = match claims.role.as_str() {
+    "admin_alat_berat" => Some("ALAT_BERAT"),
+    "admin_kendaraan" => Some("KENDARAAN"),
+    "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+    _ => None,
+};
+if let Some(group) = allowed_group {
+    let asset_group = state.asset_service.get_asset_group(id).await?;
+    if asset_group.as_deref() != Some(group) {
+        return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+    }
+}
+```
+
+---
+
+### IV. VERIFIKASI DAN KUALITAS KODE
+
+Semua perubahan kode yang disinkronkan di seluruh struktur workspace Rust baru (`crates/`) dan legacy (`src/`) telah lolos verifikasi secara mutlak:
+* **Kompilasi Proyek (`cargo check`)**: Lolos 100% tanpa kesalahan kompilasi.
+* **Pengujian Unit (`cargo test`)**: **22 skenario pengujian unit** berhasil dijalankan dengan predikat **OK**.
