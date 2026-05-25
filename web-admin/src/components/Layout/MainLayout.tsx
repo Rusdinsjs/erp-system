@@ -127,11 +127,27 @@ export function MainLayout() {
         if (item.children) {
             item.children = item.children.filter(child => {
                 const childLevel = (child as any).minLevel ?? 5;
+
+                // Hide Categories, Locations, and Lifecycle (Audit) for Specialist Admins (L4)
+                const isSpecialistAdmin = user && [
+                    'admin_alat_berat', 
+                    'admin_kendaraan', 
+                    'admin_infrastruktur',
+                    'admin_heavy_eq',
+                    'admin_vehicle',
+                    'admin_infra'
+                ].includes(user.role);
+
+                if (isSpecialistAdmin && [
+                    '/categories', 
+                    '/locations', 
+                    '/assets/lifecycle'
+                ].includes(child.path)) {
+                    return false;
+                }
+
                 return userLevel <= childLevel;
             });
-            // If all children are filtered out and the parent itself doesn't have a direct useful link 
-            // (or if we want to hide parents with empty children), logic can be added here.
-            // For now, we keep the parent if it passes the level check.
         }
 
         return true;
