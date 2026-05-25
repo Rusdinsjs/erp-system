@@ -52,13 +52,16 @@ Sebelum perbaikan dilakukan, Admin Spesialis (misalnya Admin Kendaraan) dapat me
 #### Solusi yang Diimplementasikan:
 1. **Repository Layer**: Menambahkan metode `get_asset_group(asset_id)` untuk mendapatkan kategori kelompok aset (`asset_group`) dari database secara efisien.
 2. **Service Layer**: Mengekspos fungsionalitas `get_asset_group` pada API Service.
-3. **Handler Layer (Controller)**: Menambahkan pemeriksaan otorisasi grup wewenang pada 6 endpoint individual aset berikut:
+3. **Handler Layer (Controller)**: Menambahkan pemeriksaan otorisasi grup wewenang pada 8 endpoint individual aset berikut (termasuk modul siklus hidup aset):
    * `GET /api/assets/{id}` (Melihat detail aset)
    * `PUT /api/assets/{id}` (Memperbarui aset)
    * `DELETE /api/assets/{id}` (Mengarsipkan/menghapus aset)
    * `POST /api/assets/{id}/sell` (Menjual aset)
    * `GET /api/assets/{id}/documents` (Melihat dokumen pendukung aset)
    * `POST /api/assets/{id}/documents` (Mengunggah dokumen pendukung aset)
+   * `POST /api/assets/{id}/lifecycle/transition` (Eksekusi transisi status operasional aset)
+   * `POST /api/assets/{id}/lifecycle/request-transition` (Mengajukan transisi status operasional aset)
+4. **Frontend (UI) Unblocking**: Menyelaraskan konfigurasi ambang batas level transisi (`transitionPermissions`) pada berkas `AssetLifecycle.tsx` dari level 3/2 menjadi level 4 (Operator / Admin). Ini memastikan 3 Admin Spesialis (L4) dapat mengajukan dan mengeksekusi transisi status operasional untuk kelompok aset mereka secara mandiri tanpa terblokir oleh antarmuka sistem.
 
 #### Logika Validasi Otorisasi:
 ```rust
