@@ -145,9 +145,9 @@ pub async fn get_asset(
     Path(id): Path<Uuid>,
 ) -> Result<Json<crate::domain::entities::asset::AssetDetail>, AppError> {
     let allowed_group = match claims.role.as_str() {
-        "admin_alat_berat" => Some("ALAT_BERAT"),
-        "admin_kendaraan" => Some("KENDARAAN"),
-        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
         _ => None,
     };
     if let Some(group) = allowed_group {
@@ -286,9 +286,9 @@ pub async fn update_asset(
     Json(payload): Json<UpdateAssetRequest>,
 ) -> Result<Json<ApiResponse<Asset>>, AppError> {
     let allowed_group = match claims.role.as_str() {
-        "admin_alat_berat" => Some("ALAT_BERAT"),
-        "admin_kendaraan" => Some("KENDARAAN"),
-        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
         _ => None,
     };
     if let Some(group) = allowed_group {
@@ -326,9 +326,9 @@ pub async fn sell_asset(
     Json(payload): Json<crate::application::dto::SellAssetRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let allowed_group = match claims.role.as_str() {
-        "admin_alat_berat" => Some("ALAT_BERAT"),
-        "admin_kendaraan" => Some("KENDARAAN"),
-        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
         _ => None,
     };
     if let Some(group) = allowed_group {
@@ -384,9 +384,9 @@ pub async fn delete_asset(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let allowed_group = match claims.role.as_str() {
-        "admin_alat_berat" => Some("ALAT_BERAT"),
-        "admin_kendaraan" => Some("KENDARAAN"),
-        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
         _ => None,
     };
     if let Some(group) = allowed_group {
@@ -423,9 +423,9 @@ pub async fn add_document_to_asset(
     Json(payload): Json<CreateAssetDocumentRequest>,
 ) -> Result<Json<ApiResponse<AssetDocumentResponse>>, AppError> {
     let allowed_group = match claims.role.as_str() {
-        "admin_alat_berat" => Some("ALAT_BERAT"),
-        "admin_kendaraan" => Some("KENDARAAN"),
-        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
         _ => None,
     };
     if let Some(group) = allowed_group {
@@ -481,9 +481,9 @@ pub async fn get_asset_documents(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<AssetDocumentResponse>>, AppError> {
     let allowed_group = match claims.role.as_str() {
-        "admin_alat_berat" => Some("ALAT_BERAT"),
-        "admin_kendaraan" => Some("KENDARAAN"),
-        "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
         _ => None,
     };
     if let Some(group) = allowed_group {

@@ -94,9 +94,9 @@ impl std::str::FromStr for UserRole {
             "technician" => Ok(Self::Technician),
             "staff" => Ok(Self::Staff),
             "user" => Ok(Self::User),
-            "admin_alat_berat" => Ok(Self::AdminAlatBerat),
-            "admin_kendaraan" => Ok(Self::AdminKendaraan),
-            "admin_infrastruktur" => Ok(Self::AdminInfrastruktur),
+            "admin_alat_berat" | "admin_heavy_eq" => Ok(Self::AdminAlatBerat),
+            "admin_kendaraan" | "admin_vehicle" => Ok(Self::AdminKendaraan),
+            "admin_infrastruktur" | "admin_infra" => Ok(Self::AdminInfrastruktur),
             _ => Err(()),
         }
     }

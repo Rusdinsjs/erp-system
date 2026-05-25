@@ -63,9 +63,9 @@ Sebelum perbaikan dilakukan, Admin Spesialis (misalnya Admin Kendaraan) dapat me
 #### Logika Validasi Otorisasi:
 ```rust
 let allowed_group = match claims.role.as_str() {
-    "admin_alat_berat" => Some("ALAT_BERAT"),
-    "admin_kendaraan" => Some("KENDARAAN"),
-    "admin_infrastruktur" => Some("INFRASTRUKTUR"),
+    "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+    "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+    "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
     _ => None,
 };
 if let Some(group) = allowed_group {
