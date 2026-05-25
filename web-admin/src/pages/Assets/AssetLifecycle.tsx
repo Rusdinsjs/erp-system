@@ -72,18 +72,18 @@ const getBadgeVariant = (state: string): 'default' | 'info' | 'success' | 'warni
 const transitionPermissions: Record<string, number> = {
     // Role levels: 1=SuperAdmin, 2=Manager, 3=Supervisor, 4=Operator, 5=Viewer
     'planning': 4,
-    'procurement': 3,
+    'procurement': 4,
     'received': 4,
     'in_inventory': 4,
-    'deployed': 3,
+    'deployed': 4,
     'under_maintenance': 4,
     'under_repair': 4,
-    'under_conversion': 2,
-    'retired': 2,
-    'disposed': 2,
-    'sold': 2,
-    'lost_stolen': 3,
-    'archived': 2,
+    'under_conversion': 4,
+    'retired': 4,
+    'disposed': 4,
+    'sold': 4,
+    'lost_stolen': 4,
+    'archived': 4,
 };
 
 interface AssetLifecycleProps {

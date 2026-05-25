@@ -44,6 +44,19 @@ pub async fn request_transition(
     Path(asset_id): Path<Uuid>,
     Json(req): Json<TransitionRequest>,
 ) -> Result<Json<ApiResponse<TransitionResponse>>, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(asset_id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
@@ -96,6 +109,19 @@ pub async fn transition_asset(
     Path(asset_id): Path<Uuid>,
     Json(req): Json<TransitionRequest>,
 ) -> Result<Json<ApiResponse<LifecycleHistory>>, AppError> {
+    let allowed_group = match claims.role.as_str() {
+        "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
+        "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
+        "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
+        _ => None,
+    };
+    if let Some(group) = allowed_group {
+        let asset_group = state.asset_service.get_asset_group(asset_id).await?;
+        if asset_group.as_deref() != Some(group) {
+            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+        }
+    }
+
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
