@@ -594,6 +594,20 @@ export default function AdminDashboard() {
 
         if (userLevel > requiredLevel) return null;
 
+        // Hide Categories and Locations for Specialist Admins (L4)
+        const isSpecialistAdmin = user && [
+            'admin_alat_berat', 
+            'admin_kendaraan', 
+            'admin_infrastruktur',
+            'admin_heavy_eq',
+            'admin_vehicle',
+            'admin_infra'
+        ].includes(user.role);
+
+        if (isSpecialistAdmin && (item.id === 'categories' || item.id === 'locations')) {
+            return null;
+        }
+
         // Backward compatibility for adminOnly flag
         if (item.adminOnly && !isAdmin) return null;
 
@@ -652,6 +666,23 @@ export default function AdminDashboard() {
 
             const childReqLevel = (child as NavItem | NavGroup).minLevel ?? 5;
             if (userLevel > childReqLevel) return false;
+
+            // Hide Categories and Locations for Specialist Admins (L4)
+            const isSpecialistAdmin = user && [
+                'admin_alat_berat', 
+                'admin_kendaraan', 
+                'admin_infrastruktur',
+                'admin_heavy_eq',
+                'admin_vehicle',
+                'admin_infra'
+            ].includes(user.role);
+
+            if (isSpecialistAdmin && !isNavGroup(child) && !isNavHeader(child)) {
+                const childItem = child as NavItem;
+                if (childItem.id === 'categories' || childItem.id === 'locations') {
+                    return false;
+                }
+            }
 
             // Type guard for adminOnly check
             if (!isNavGroup(child) && !isNavHeader(child) && (child as NavItem).adminOnly && !isAdmin) return false;

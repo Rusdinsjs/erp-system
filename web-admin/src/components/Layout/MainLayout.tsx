@@ -140,8 +140,7 @@ export function MainLayout() {
 
                 if (isSpecialistAdmin && [
                     '/categories', 
-                    '/locations', 
-                    '/assets/lifecycle'
+                    '/locations'
                 ].includes(child.path)) {
                     return false;
                 }
