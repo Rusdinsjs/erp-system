@@ -93,9 +93,10 @@ Untuk memperketat keamanan dan sesuai dengan rekomendasi sistem, hak akses penge
    * Pembuatan, pembaruan, dan penghapusan lokasi hanya diizinkan untuk **Super Admin (L1)** dan **Manager (L2)** (`role_level <= 2`).
    * Admin Spesialis (L4) hanya memiliki hak akses membaca (Read-Only).
 
-3. **Sesi Audit (Level L3 - Supervisor ke atas)**:
+3. **Sesi Audit (Level L3 - Supervisor ke atas untuk Manajemen Sesi, L4 untuk Pelaksana Fisik)**:
    * Membuka sesi audit baru (`start_audit_session`) dan menutup sesi audit (`close_session`) dibatasi hanya untuk **Super Admin (L1)**, **Manager (L2)**, dan **Supervisor (L3)** (`role_level <= 3`).
-   * Admin Spesialis (L4) hanya diperkenankan memindai dan mengirimkan catatan pemeriksaan aset (`submit_audit_record`).
+   * **Pelaksana Fisik Lapangan**: Admin Spesialis (L4) **tetap memiliki akses ke menu Asset Audit di Sidebar** agar mereka dapat bertindak sebagai pelaksana fisik untuk mencocokkan/memindai aset di lapangan.
+   * **Batasan Kelompok Aset Audit**: Admin Spesialis (L4) dibatasi secara ketat hanya dapat memindai dan mengirimkan catatan pemeriksaan (`submit_audit_record`) untuk aset yang berada dalam **Asset Group** wewenangnya (misal: Admin Kendaraan hanya bisa memindai aset `KENDARAAN`). Jika mereka mencoba memindai kelompok aset lain, backend API akan menolak secara native dengan respons `403 Forbidden`.
 
 Seluruh pembatasan di atas telah diterapkan secara native pada pengendali API backend (API handlers) baik pada struktur workspace Rust modern (`crates/api-server/`) maupun legacy (`src/api/`).
 
