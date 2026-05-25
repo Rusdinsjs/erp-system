@@ -128,17 +128,11 @@ export function MainLayout() {
             item.children = item.children.filter(child => {
                 const childLevel = (child as any).minLevel ?? 5;
 
-                // Hide Categories, Locations, and Lifecycle (Audit) for Specialist Admins (L4)
-                const isSpecialistAdmin = user && [
-                    'admin_alat_berat', 
-                    'admin_kendaraan', 
-                    'admin_infrastruktur',
-                    'admin_heavy_eq',
-                    'admin_vehicle',
-                    'admin_infra'
-                ].includes(user.role);
+                // Hide Categories and Locations if the user has an asset group restriction
+                // (This replaces the hardcoded role check with dynamic restriction logic)
+                const hasAssetRestriction = user && !!user.allowed_asset_group;
 
-                if (isSpecialistAdmin && [
+                if (hasAssetRestriction && [
                     '/categories', 
                     '/locations'
                 ].includes(child.path)) {

@@ -23,6 +23,7 @@ export interface UserSummary {
     is_active: boolean;
     employee_name?: string;
     employee_nik?: string;
+    allowed_asset_group?: string;
 }
 
 export interface CreateUserRequest {
@@ -32,6 +33,7 @@ export interface CreateUserRequest {
     role_code: string;
     department_id?: string;
     organization_id?: string;
+    allowed_asset_group?: string;
 }
 
 export interface UpdateUserRequest {
@@ -40,6 +42,7 @@ export interface UpdateUserRequest {
     department_id?: string;
     is_active?: boolean;
     password?: string;
+    allowed_asset_group?: string;
 }
 
 export interface Location {

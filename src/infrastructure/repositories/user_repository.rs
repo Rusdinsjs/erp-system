@@ -24,6 +24,7 @@ impl UserRepository {
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
+                u.allowed_asset_group,
                 u.created_at, u.updated_at
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
@@ -45,6 +46,7 @@ impl UserRepository {
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
+                u.allowed_asset_group,
                 u.created_at, u.updated_at
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
@@ -64,7 +66,8 @@ impl UserRepository {
                 u.id, u.email, u.name, 
                 COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
                 u.department, u.department_id, u.is_active,
-                e.name as employee_name, e.nik as employee_nik
+                e.name as employee_name, e.nik as employee_nik,
+                u.allowed_asset_group
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             LEFT JOIN employees e ON u.id = e.user_id
@@ -89,8 +92,8 @@ impl UserRepository {
         sqlx::query_as::<_, User>(
             r#"
             WITH inserted_user AS (
-                INSERT INTO users (id, email, password_hash, name, role, role_id, department, department_id, organization_id, is_active)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                INSERT INTO users (id, email, password_hash, name, role, role_id, department, department_id, organization_id, is_active, allowed_asset_group)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 RETURNING *
             )
             SELECT 
@@ -99,6 +102,7 @@ impl UserRepository {
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
                 NULL::text as phone, NULL::text as avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
+                u.allowed_asset_group,
                 u.created_at, u.updated_at
             FROM inserted_user u
             LEFT JOIN roles r ON u.role_id = r.id
@@ -115,6 +119,7 @@ impl UserRepository {
         .bind(user.department_id)
         .bind(user.organization_id)
         .bind(user.is_active)
+        .bind(&user.allowed_asset_group)
         .fetch_one(&self.pool)
         .await
     }
@@ -154,6 +159,7 @@ impl UserRepository {
         department_id: Option<Uuid>,
         avatar_url: Option<String>,
         is_active: Option<bool>,
+        allowed_asset_group: Option<Option<String>>,
     ) -> Result<User, sqlx::Error> {
         sqlx::query_as::<_, User>(
             r#"
@@ -167,6 +173,7 @@ impl UserRepository {
                     department_id = COALESCE($6, department_id),
                     avatar_url = COALESCE($7, avatar_url),
                     is_active = COALESCE($8, is_active),
+                    allowed_asset_group = CASE WHEN $9::boolean THEN $10 ELSE allowed_asset_group END,
                     updated_at = NOW()
                 WHERE id = $1
                 RETURNING *
@@ -177,6 +184,7 @@ impl UserRepository {
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
+                u.allowed_asset_group,
                 u.created_at, u.updated_at
             FROM updated_user u
             LEFT JOIN roles r ON u.role_id = r.id
@@ -191,6 +199,8 @@ impl UserRepository {
         .bind(department_id)
         .bind(avatar_url)
         .bind(is_active)
+        .bind(allowed_asset_group.is_some()) // $9: has value been provided?
+        .bind(allowed_asset_group.flatten()) // $10: the value (Option<String>)
         .fetch_one(&self.pool)
         .await
     }
@@ -217,6 +227,7 @@ impl UserRepository {
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
+                u.allowed_asset_group,
                 u.created_at, u.updated_at
             FROM updated_user u
             LEFT JOIN roles r ON u.role_id = r.id
@@ -247,6 +258,7 @@ impl UserRepository {
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
                 u.phone, u.avatar_url,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
+                u.allowed_asset_group,
                 u.created_at, u.updated_at
             FROM updated_user u
             LEFT JOIN roles r ON u.role_id = r.id

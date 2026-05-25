@@ -141,6 +141,8 @@ pub struct User {
     pub email_verified: bool,
     pub last_login_at: Option<DateTime<Utc>>,
 
+    pub allowed_asset_group: Option<String>,
+
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -190,6 +192,7 @@ impl User {
             is_active: true,
             email_verified: false,
             last_login_at: None,
+            allowed_asset_group: None,
             created_at: now,
             updated_at: now,
         }
@@ -226,8 +229,12 @@ impl User {
     }
 
     /// Kembalikan asset_group yang diizinkan untuk user ini.
-    /// None = tidak ada pembatasan (super_admin/admin/manager/dll).
+    /// Jika properti `allowed_asset_group` diisi, gunakan itu.
+    /// Jika tidak, fallback ke default bawaan role.
     pub fn allowed_asset_group(&self) -> Option<String> {
+        if let Some(group) = &self.allowed_asset_group {
+            return Some(group.clone());
+        }
         self.role
             .parse::<UserRole>()
             .ok()
@@ -251,6 +258,7 @@ pub struct UserSummary {
     pub is_active: bool,
     pub employee_name: Option<String>,
     pub employee_nik: Option<String>,
+    pub allowed_asset_group: Option<String>,
 }
 
 /// JWT Claims for authentication
@@ -265,6 +273,7 @@ pub struct UserClaims {
     pub org: Option<String>,       // Organization ID
     pub employee_id: Option<Uuid>, // Employee ID if linked
     pub permissions: Vec<String>,
+    pub allowed_asset_group: Option<String>,
     pub exp: i64,
     pub iat: i64,
     pub jti: String, // JWT ID for revocation

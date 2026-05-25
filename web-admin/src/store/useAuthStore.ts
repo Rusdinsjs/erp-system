@@ -14,6 +14,7 @@ export interface User {
     phone?: string;
     avatar_url?: string;
     department?: string;
+    allowed_asset_group?: string;
 }
 
 interface AuthState {
@@ -32,6 +33,7 @@ interface JwtClaims {
     permissions?: string[];
     role_level?: number;
     department?: string;
+    allowed_asset_group?: string;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -52,6 +54,7 @@ export const useAuthStore = create<AuthState>()(
                             permissions,
                             role_level,
                             department: decoded.department,
+                            allowed_asset_group: decoded.allowed_asset_group,
                         },
                     });
                 } catch (e) {

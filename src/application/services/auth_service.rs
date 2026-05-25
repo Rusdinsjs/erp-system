@@ -98,6 +98,7 @@ impl AuthService {
             org: user.organization_id.map(|id| id.to_string()),
             employee_id,
             permissions,
+            allowed_asset_group: user.allowed_asset_group.clone(),
             exp: (Utc::now() + Duration::hours(24)).timestamp(),
             iat: Utc::now().timestamp(),
             jti: Uuid::new_v4().to_string(),

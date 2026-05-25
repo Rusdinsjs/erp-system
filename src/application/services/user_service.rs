@@ -71,6 +71,7 @@ impl UserService {
         user.role_id = Some(role.id);
         user.department_id = req.department_id;
         user.organization_id = req.organization_id;
+        user.allowed_asset_group = req.allowed_asset_group;
 
         self.repository
             .create(&user)
@@ -119,6 +120,7 @@ impl UserService {
                 req.department_id,
                 req.avatar_url, // Added
                 req.is_active,
+                Some(req.allowed_asset_group),
             )
             .await
             .map_err(|e| DomainError::ExternalServiceError {

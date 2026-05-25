@@ -27,6 +27,7 @@ const initialFormState: CreateUserRequest = {
     password: '',
     name: '',
     role_code: 'user',
+    allowed_asset_group: undefined,
 };
 
 export default function Users() {
@@ -149,6 +150,7 @@ export default function Users() {
             name: user.name,
             role_code: user.role_code,
             is_active: user.is_active,
+            allowed_asset_group: user.allowed_asset_group || '',
         });
         setEditOpened(true);
     };
@@ -190,6 +192,13 @@ export default function Users() {
         { value: 'all', label: 'All Status' },
         { value: 'active', label: 'Active' },
         { value: 'inactive', label: 'Inactive' }
+    ];
+
+    const assetGroupOptions = [
+        { value: '', label: 'None (Full Access)' },
+        { value: 'ALAT_BERAT', label: 'Alat Berat' },
+        { value: 'KENDARAAN', label: 'Kendaraan' },
+        { value: 'INFRASTRUKTUR', label: 'Infrastruktur' },
     ];
 
     return (
@@ -267,6 +276,11 @@ export default function Users() {
                                         <span className="text-sm text-slate-400">
                                             {getAccessScope(user.role_code)}
                                         </span>
+                                        {user.allowed_asset_group && (
+                                            <div className="mt-1">
+                                                <Badge variant="warning">{user.allowed_asset_group}</Badge>
+                                            </div>
+                                        )}
                                     </TableTd>
                                     <TableTd>
                                         <Badge variant={user.is_active ? 'success' : 'danger'}>
@@ -339,6 +353,13 @@ export default function Users() {
                         onChange={(val) => setFormData({ ...formData, role_code: val })}
                         options={roleOptions}
                     />
+                    <Select
+                        label="Asset Group Restriction"
+                        placeholder="No Restriction"
+                        value={formData.allowed_asset_group || ''}
+                        onChange={(val) => setFormData({ ...formData, allowed_asset_group: val || undefined })}
+                        options={assetGroupOptions}
+                    />
                     <Button fullWidth onClick={handleCreate} loading={submitting}>
                         Create User
                     </Button>
@@ -358,6 +379,13 @@ export default function Users() {
                         value={editFormData.role_code || ''}
                         onChange={(val) => setEditFormData({ ...editFormData, role_code: val })}
                         options={roleOptions}
+                    />
+                    <Select
+                        label="Asset Group Restriction"
+                        placeholder="No Restriction"
+                        value={editFormData.allowed_asset_group || ''}
+                        onChange={(val) => setEditFormData({ ...editFormData, allowed_asset_group: val || undefined })}
+                        options={assetGroupOptions}
                     />
                     <Input
                         label="New Password (Optional)"

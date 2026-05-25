@@ -17,6 +17,8 @@ pub struct CreateUserRequest {
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
     pub organization_id: Option<Uuid>,
+    #[schema(example = "ALAT_BERAT")]
+    pub allowed_asset_group: Option<String>,
 }
 
 impl std::fmt::Debug for CreateUserRequest {
@@ -42,6 +44,7 @@ pub struct UpdateUserRequest {
     pub is_active: Option<bool>,
     pub password: Option<String>, // Optional password update
     pub avatar_url: Option<String>,
+    pub allowed_asset_group: Option<String>,
 }
 
 impl std::fmt::Debug for UpdateUserRequest {
