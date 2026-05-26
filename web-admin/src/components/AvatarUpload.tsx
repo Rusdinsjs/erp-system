@@ -89,13 +89,16 @@ export function AvatarUpload({ className = '', size = 'md' }: AvatarUploadProps)
                         alt={user.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'A')}&background=0D8ABC&color=fff`;
+                            const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+                            (e.target as HTMLImageElement).src = isAdmin ? '/avatar-admin.png' : '/avatar-user.png';
                         }}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-xl bg-slate-800">
-                        {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </div>
+                    <img
+                        src={user?.role === 'admin' || user?.role === 'super_admin' ? '/avatar-admin.png' : '/avatar-user.png'}
+                        alt={user?.name}
+                        className="w-full h-full object-cover"
+                    />
                 )}
 
                 {/* Overlay for upload */}

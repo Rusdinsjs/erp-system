@@ -213,13 +213,17 @@ export default function Launchpad() {
                                 src={getImageUrl(user.avatar_url)}
                                 alt="Avatar"
                                 className="w-20 h-20 rounded-2xl object-cover ring-4 ring-primary/20 shadow-xl"
+                                onError={(e) => {
+                                    const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+                                    (e.target as HTMLImageElement).src = isAdmin ? '/avatar-admin.png' : '/avatar-user.png';
+                                }}
                             />
                         ) : (
-                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center ring-4 ring-primary/20 shadow-xl">
-                                <span className="text-3xl font-bold text-white">
-                                    {user?.name?.charAt(0) || 'U'}
-                                </span>
-                            </div>
+                            <img
+                                src={user?.role === 'admin' || user?.role === 'super_admin' ? '/avatar-admin.png' : '/avatar-user.png'}
+                                alt="Avatar"
+                                className="w-20 h-20 rounded-2xl object-cover ring-4 ring-primary/20 shadow-xl"
+                            />
                         )}
                     </div>
                     <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2">

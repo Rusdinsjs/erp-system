@@ -874,11 +874,16 @@ export default function AdminDashboard() {
                                         alt={user.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'A')}&background=0D8ABC&color=fff`;
+                                            const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+                                            (e.target as HTMLImageElement).src = isAdmin ? '/avatar-admin.png' : '/avatar-user.png';
                                         }}
                                     />
                                 ) : (
-                                    user?.name?.charAt(0) || 'U'
+                                    <img
+                                        src={user?.role === 'admin' || user?.role === 'super_admin' ? '/avatar-admin.png' : '/avatar-user.png'}
+                                        alt={user?.name}
+                                        className="w-full h-full object-cover"
+                                    />
                                 )}
                             </div>
                             <div className="min-w-0">
@@ -977,11 +982,16 @@ export default function AdminDashboard() {
                                     alt={user.name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
-                                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'A')}&background=0D8ABC&color=fff`;
+                                        const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+                                        (e.target as HTMLImageElement).src = isAdmin ? '/avatar-admin.png' : '/avatar-user.png';
                                     }}
                                 />
                             ) : (
-                                user?.name?.charAt(0) || 'U'
+                                <img
+                                    src={user?.role === 'admin' || user?.role === 'super_admin' ? '/avatar-admin.png' : '/avatar-user.png'}
+                                    alt={user?.name}
+                                    className="w-full h-full object-cover"
+                                />
                             )}
                         </div>
                         <div className="hidden sm:block text-left">
