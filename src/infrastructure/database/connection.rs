@@ -25,8 +25,8 @@ impl Default for DatabaseConfig {
             max_connections: 10,
             min_connections: 2,
             acquire_timeout: Duration::from_secs(30),
-            idle_timeout: Duration::from_secs(600),
-            max_lifetime: Duration::from_secs(1800),
+            idle_timeout: Duration::from_secs(60),
+            max_lifetime: Duration::from_secs(300),
         }
     }
 }
@@ -56,6 +56,7 @@ pub async fn create_pool(config: &DatabaseConfig) -> Result<PgPool, sqlx::Error>
         .acquire_timeout(config.acquire_timeout)
         .idle_timeout(config.idle_timeout)
         .max_lifetime(config.max_lifetime)
+        .test_before_acquire(true)
         .connect(&config.url)
         .await
 }

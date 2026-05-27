@@ -46,7 +46,9 @@ async fn main() {
                 .max_connections(50)
                 .min_connections(2)
                 .acquire_timeout(std::time::Duration::from_secs(10))
-                .idle_timeout(std::time::Duration::from_secs(600))
+                .idle_timeout(std::time::Duration::from_secs(60))
+                .max_lifetime(std::time::Duration::from_secs(300))
+                .test_before_acquire(true)
                 .connect(&config.database_url)
                 .await
             {
