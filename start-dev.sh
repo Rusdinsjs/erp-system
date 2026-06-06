@@ -38,15 +38,15 @@ fi
 echo -e "${GREEN}1. Menjalankan Docker Service (DB & Redis)...${NC}"
 
 # Detection logic for docker/podman
-DOCKER_CMD="docker"
-if ! command -v docker &> /dev/null; then
-    if command -v podman &> /dev/null; then
-        DOCKER_CMD="podman"
-        echo -e "${BLUE}Docker not found. Using Podman...${NC}"
-    else
-        echo -e "${GREEN}Neither docker nor podman found!${NC}"
-        exit 1
-    fi
+DOCKER_CMD=""
+if command -v docker &> /dev/null && docker info &> /dev/null; then
+    DOCKER_CMD="docker"
+elif command -v podman &> /dev/null; then
+    DOCKER_CMD="podman"
+    echo -e "${BLUE}Docker daemon not running or not found. Using Podman...${NC}"
+else
+    echo -e "${GREEN}Neither running docker daemon nor podman found!${NC}"
+    exit 1
 fi
 
 # Try compose up

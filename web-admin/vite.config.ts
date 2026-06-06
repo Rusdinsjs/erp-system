@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5174,
+    host: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
@@ -18,7 +19,8 @@ export default defineConfig({
       }
     },
     allowedHosts: [
-      'app.sjsgroup.site'
+      'app.sjsgroup.site',
+      '100.85.240.54'
     ]
   },
   build: {

@@ -6,6 +6,7 @@ import { api } from '../api/http';
 import { useAuthStore } from '../store/useAuthStore';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings';
+import { getImageUrl } from '../utils/image';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -67,16 +68,21 @@ export default function LoginPage() {
                     <div className="relative group inline-block">
                         <div className="absolute -inset-4 bg-blue-500/20 rounded-full blur-2xl opacity-25 group-hover:opacity-50 transition duration-700"></div>
                         <div className="relative inline-flex items-center justify-center w-24 h-24 bg-white border border-border/50 rounded-full shadow-2xl p-2 transform group-hover:scale-110 transition duration-500 ease-out overflow-hidden">
-                            {companyLogo ? (
+                            {companyLogo && companyLogo !== 'null' ? (
                                 <img
-                                    src={companyLogo}
+                                    src={getImageUrl(companyLogo)}
+                                    alt={companyName}
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/logo-sjs.png';
+                                    }}
+                                />
+                            ) : (
+                                <img
+                                    src="/logo-sjs.png"
                                     alt={companyName}
                                     className="w-full h-full object-contain"
                                 />
-                            ) : (
-                                <div className="text-blue-600 font-black text-4xl">
-                                    {companyName.charAt(0)}
-                                </div>
                             )}
                         </div>
                     </div>

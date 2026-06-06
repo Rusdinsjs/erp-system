@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../../api/settings';
+import { getImageUrl } from '../../utils/image';
 
 interface LogoProps {
     collapsed?: boolean;
@@ -22,16 +23,21 @@ export const Logo: React.FC<LogoProps> = ({ collapsed, className = "" }) => {
             {/* Logo Icon Container */}
             <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center p-0.5 shadow-lg shadow-blue-500/10 overflow-hidden">
-                    {companyLogo ? (
+                    {companyLogo && companyLogo !== 'null' ? (
                         <img
-                            src={companyLogo}
+                            src={getImageUrl(companyLogo)}
+                            alt={companyName}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/logo-sjs.png';
+                            }}
+                        />
+                    ) : (
+                        <img
+                            src="/logo-sjs.png"
                             alt={companyName}
                             className="w-full h-full object-contain"
                         />
-                    ) : (
-                        <div className="bg-blue-600 w-full h-full flex items-center justify-center text-white font-bold">
-                            {companyName.charAt(0)}
-                        </div>
                     )}
                 </div>
                 {/* Glow effect */}
