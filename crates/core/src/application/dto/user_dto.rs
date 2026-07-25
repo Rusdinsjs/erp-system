@@ -17,6 +17,8 @@ pub struct CreateUserRequest {
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
     pub organization_id: Option<Uuid>,
+    pub employee_id: Option<Uuid>,
+    pub allowed_asset_group: Option<String>,
 }
 
 impl std::fmt::Debug for CreateUserRequest {
@@ -29,6 +31,7 @@ impl std::fmt::Debug for CreateUserRequest {
             .field("department", &self.department)
             .field("department_id", &self.department_id)
             .field("organization_id", &self.organization_id)
+            .field("employee_id", &self.employee_id)
             .finish()
     }
 }
@@ -42,6 +45,9 @@ pub struct UpdateUserRequest {
     pub is_active: Option<bool>,
     pub password: Option<String>, // Optional password update
     pub avatar_url: Option<String>,
+    pub employee_id: Option<Uuid>,
+    pub clear_employee_link: Option<bool>,
+    pub allowed_asset_group: Option<String>,
 }
 
 impl std::fmt::Debug for UpdateUserRequest {

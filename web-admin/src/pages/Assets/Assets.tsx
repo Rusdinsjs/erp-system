@@ -308,7 +308,7 @@ export default function Assets() {
     };
 
     return (
-        <div className="p-8">
+        <div>
             {/* Header Section */}
             <div className="flex justify-between items-end mb-8">
                 <div>

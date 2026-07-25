@@ -74,12 +74,24 @@ export const workOrderApi = {
         const response = await api.delete(`/maintenance-templates/${id}`);
         return response.data;
     },
-    addTemplateTask: async (id: string, data: { task_number: number, description: string }): Promise<TemplateTask> => {
+    addTemplateTask: async (id: string, data: { task_number: number, description: string, instructions?: string, expected_result?: string }): Promise<TemplateTask> => {
         const response = await api.post(`/maintenance-templates/${id}/tasks`, data);
         return response.data;
     },
     deleteTemplateTask: async (templateId: string, taskId: string): Promise<ApiResponse<boolean>> => {
         const response = await api.delete(`/maintenance-templates/${templateId}/tasks/${taskId}`);
+        return response.data;
+    },
+    duplicateTemplate: async (id: string, newName: string): Promise<MaintenanceTemplate> => {
+        const response = await api.post(`/maintenance-templates/${id}/duplicate`, { new_name: newName });
+        return response.data;
+    },
+    reorderTemplateTasks: async (id: string, taskIds: string[]): Promise<ApiResponse<boolean>> => {
+        const response = await api.put(`/maintenance-templates/${id}/tasks/reorder`, { task_ids: taskIds });
+        return response.data;
+    },
+    getTemplateVersions: async (id: string): Promise<MaintenanceTemplate[]> => {
+        const response = await api.get(`/maintenance-templates/${id}/versions`);
         return response.data;
     },
 

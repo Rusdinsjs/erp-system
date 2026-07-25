@@ -1,7 +1,8 @@
 // Users Page - Pure Tailwind
 import { useEffect, useState } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Link, UserCheck } from 'lucide-react';
 import { usersApi, type UserSummary, type CreateUserRequest, type UpdateUserRequest } from '../api/users';
+import { employeeApi, type Employee } from '../api/employee';
 import {
     Button,
     Card,
@@ -27,6 +28,7 @@ const initialFormState: CreateUserRequest = {
     password: '',
     name: '',
     role_code: 'user',
+    employee_id: undefined,
     allowed_asset_group: undefined,
 };
 
@@ -34,6 +36,7 @@ export default function Users() {
     const [users, setUsers] = useState<UserSummary[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<UserSummary[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(false);
 
     const [createOpened, setCreateOpened] = useState(false);
@@ -48,6 +51,7 @@ export default function Users() {
     const [filterRole, setFilterRole] = useState<string>('all');
     const [filterDepartment, setFilterDepartment] = useState<string>('all');
     const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [filterLinked, setFilterLinked] = useState<string>('all');
 
     const { success, error: showError } = useToast();
 
@@ -58,9 +62,10 @@ export default function Users() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [usersRes, rolesRes] = await Promise.all([
-                usersApi.list(1, 50),
-                usersApi.listRoles()
+            const [usersRes, rolesRes, employeesRes] = await Promise.all([
+                usersApi.list(1, 100),
+                usersApi.listRoles(),
+                employeeApi.list()
             ]);
 
             if (usersRes && Array.isArray(usersRes.data)) {
@@ -73,6 +78,10 @@ export default function Users() {
 
             if (Array.isArray(rolesRes)) {
                 setRoles(rolesRes);
+            }
+
+            if (Array.isArray(employeesRes)) {
+                setEmployees(employeesRes);
             }
         } catch (error) {
             console.error(error);
@@ -100,14 +109,20 @@ export default function Users() {
             filtered = filtered.filter(u => !u.is_active);
         }
 
+        if (filterLinked === 'linked') {
+            filtered = filtered.filter(u => u.employee_name || u.employee_id);
+        } else if (filterLinked === 'unlinked') {
+            filtered = filtered.filter(u => !u.employee_name && !u.employee_id);
+        }
+
         setFilteredUsers(filtered);
-    }, [users, filterRole, filterDepartment, filterStatus]);
+    }, [users, filterRole, filterDepartment, filterStatus, filterLinked]);
 
     const handleCreate = async () => {
         setSubmitting(true);
         try {
             await usersApi.create(formData);
-            success('User created', 'Success');
+            success('User created successfully', 'Success');
             setCreateOpened(false);
             setFormData(initialFormState);
             loadData();
@@ -123,7 +138,7 @@ export default function Users() {
         setSubmitting(true);
         try {
             await usersApi.update(editingUser.id, editFormData);
-            success('User updated', 'Success');
+            success('User updated successfully', 'Success');
             setEditOpened(false);
             loadData();
         } catch (e: any) {
@@ -151,6 +166,8 @@ export default function Users() {
             role_code: user.role_code,
             is_active: user.is_active,
             allowed_asset_group: user.allowed_asset_group || '',
+            employee_id: user.employee_id || '',
+            clear_employee_link: false,
         });
         setEditOpened(true);
     };
@@ -194,6 +211,12 @@ export default function Users() {
         { value: 'inactive', label: 'Inactive' }
     ];
 
+    const linkStatusOptions = [
+        { value: 'all', label: 'All Link Status' },
+        { value: 'linked', label: 'Linked Employee Only' },
+        { value: 'unlinked', label: 'Not Linked Only' }
+    ];
+
     const assetGroupOptions = [
         { value: '', label: 'None (Full Access)' },
         { value: 'ALAT_BERAT', label: 'Alat Berat' },
@@ -201,10 +224,21 @@ export default function Users() {
         { value: 'INFRASTRUKTUR', label: 'Infrastruktur' },
     ];
 
+    const employeeOptions = [
+        { value: '', label: '-- Not Linked (No Employee) --' },
+        ...employees.map(e => ({
+            value: e.id,
+            label: `${e.name} (NIK: ${e.nik || 'N/A'})`
+        }))
+    ];
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-white">User Management</h1>
+                <div>
+                    <h1 className="text-2xl font-bold text-white">User Operations</h1>
+                    <p className="text-xs text-slate-400 mt-1">Manage system user accounts and their linked employee profiles.</p>
+                </div>
                 <Button onClick={() => setCreateOpened(true)}>
                     Create User
                 </Button>
@@ -212,8 +246,8 @@ export default function Users() {
 
             {/* Filters */}
             <Card padding="md">
-                <div className="flex gap-3 flex-wrap">
-                    <div className="min-w-[200px]">
+                <div className="flex gap-3 flex-wrap items-end">
+                    <div className="min-w-[180px]">
                         <Select
                             label="Filter by Role"
                             value={filterRole}
@@ -221,7 +255,7 @@ export default function Users() {
                             options={[{ value: 'all', label: 'All Roles' }, ...roleOptions]}
                         />
                     </div>
-                    <div className="min-w-[200px]">
+                    <div className="min-w-[180px]">
                         <Select
                             label="Filter by Department"
                             value={filterDepartment}
@@ -229,16 +263,24 @@ export default function Users() {
                             options={departmentOptions}
                         />
                     </div>
-                    <div className="min-w-[180px]">
+                    <div className="min-w-[150px]">
                         <Select
-                            label="Filter by Status"
+                            label="Filter by Account Status"
                             value={filterStatus}
                             onChange={setFilterStatus}
                             options={statusOptions}
                         />
                     </div>
-                    <div className="flex items-end">
-                        <span className="text-sm text-slate-400">
+                    <div className="min-w-[180px]">
+                        <Select
+                            label="Filter by Employee Link"
+                            value={filterLinked}
+                            onChange={setFilterLinked}
+                            options={linkStatusOptions}
+                        />
+                    </div>
+                    <div className="flex items-center pb-2">
+                        <span className="text-sm text-slate-400 font-medium">
                             Showing {filteredUsers.length} of {users.length} users
                         </span>
                     </div>
@@ -289,14 +331,28 @@ export default function Users() {
                                     </TableTd>
                                     <TableTd>
                                         {user.employee_name ? (
-                                            <div>
-                                                <p className="text-sm text-white">{user.employee_name}</p>
-                                                {user.employee_nik && (
-                                                    <p className="text-xs text-slate-500">NIK: {user.employee_nik}</p>
-                                                )}
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                                                    <UserCheck size={16} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-white">{user.employee_name}</p>
+                                                    {user.employee_nik && (
+                                                        <p className="text-xs text-slate-400 font-mono">NIK: {user.employee_nik}</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         ) : (
-                                            <span className="text-xs text-slate-500 italic">Not Linked</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-slate-500 italic">Not Linked</span>
+                                                <button
+                                                    onClick={() => openEditModal(user)}
+                                                    className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline font-medium flex items-center gap-1 ml-1"
+                                                    title="Link an Employee to this User"
+                                                >
+                                                    <Link size={12} /> Link
+                                                </button>
+                                            </div>
                                         )}
                                     </TableTd>
                                     <TableTd align="center">
@@ -354,6 +410,13 @@ export default function Users() {
                         options={roleOptions}
                     />
                     <Select
+                        label="Link to Employee (Optional)"
+                        placeholder="Select Employee to link"
+                        value={formData.employee_id || ''}
+                        onChange={(val) => setFormData({ ...formData, employee_id: val || undefined })}
+                        options={employeeOptions}
+                    />
+                    <Select
                         label="Asset Group Restriction"
                         placeholder="No Restriction"
                         value={formData.allowed_asset_group || ''}
@@ -381,6 +444,18 @@ export default function Users() {
                         options={roleOptions}
                     />
                     <Select
+                        label="Linked Employee"
+                        value={editFormData.employee_id || ''}
+                        onChange={(val) => {
+                            if (!val) {
+                                setEditFormData({ ...editFormData, employee_id: undefined, clear_employee_link: true });
+                            } else {
+                                setEditFormData({ ...editFormData, employee_id: val, clear_employee_link: false });
+                            }
+                        }}
+                        options={employeeOptions}
+                    />
+                    <Select
                         label="Asset Group Restriction"
                         placeholder="No Restriction"
                         value={editFormData.allowed_asset_group || ''}
@@ -394,7 +469,7 @@ export default function Users() {
                         value={editFormData.password || ''}
                         onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value || undefined })}
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-2">
                         <input
                             type="checkbox"
                             id="is_active"

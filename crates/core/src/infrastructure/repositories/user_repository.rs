@@ -64,7 +64,7 @@ impl UserRepository {
                 u.id, u.email, u.name, 
                 COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
                 u.department, u.department_id, u.is_active,
-                e.name as employee_name, e.nik as employee_nik
+                e.id as employee_id, e.name as employee_name, e.nik as employee_nik
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             LEFT JOIN employees e ON u.id = e.user_id
@@ -76,6 +76,37 @@ impl UserRepository {
         .bind(offset)
         .fetch_all(&self.pool)
         .await
+    }
+
+    pub async fn link_employee(&self, user_id: Uuid, employee_id: Uuid) -> Result<(), sqlx::Error> {
+        // Clear any previous link for this user
+        sqlx::query("UPDATE employees SET user_id = NULL WHERE user_id = $1")
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+
+        // Clear any previous link for target employee
+        sqlx::query("UPDATE employees SET user_id = NULL WHERE id = $1")
+            .bind(employee_id)
+            .execute(&self.pool)
+            .await?;
+
+        // Link target employee to user
+        sqlx::query("UPDATE employees SET user_id = $1, updated_at = NOW() WHERE id = $2")
+            .bind(user_id)
+            .bind(employee_id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn unlink_employee(&self, user_id: Uuid) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE employees SET user_id = NULL, updated_at = NOW() WHERE user_id = $1")
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 
     pub async fn create(&self, user: &User) -> Result<User, sqlx::Error> {

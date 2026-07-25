@@ -72,13 +72,26 @@ impl UserService {
         user.department_id = req.department_id;
         user.organization_id = req.organization_id;
 
-        self.repository
+        let created_user = self
+            .repository
             .create(&user)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
-            })
+            })?;
+
+        if let Some(emp_id) = req.employee_id {
+            self.repository
+                .link_employee(created_user.id, emp_id)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        }
+
+        Ok(created_user)
     }
 
     /// Update user
@@ -141,6 +154,25 @@ impl UserService {
         if let Some(hash) = password_hash {
             self.repository
                 .update_password(id, &hash)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        }
+
+        // Handle employee linking / unlinking
+        if req.clear_employee_link == Some(true) {
+            self.repository
+                .unlink_employee(id)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        } else if let Some(emp_id) = req.employee_id {
+            self.repository
+                .link_employee(id, emp_id)
                 .await
                 .map_err(|e| DomainError::ExternalServiceError {
                     service: "database".to_string(),

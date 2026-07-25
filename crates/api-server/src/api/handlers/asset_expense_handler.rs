@@ -92,18 +92,11 @@ pub async fn approve_expense(
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::Unauthorized("Invalid user ID in token".to_string()))?;
 
-    // Determine Role Level from Claims (simplified)
-    // 1=Admin, 2=Manager, 3=Supervisor
-    let role_level = match claims.role.as_str() {
-        "superadmin" | "director" => 1,
-        "manager" => 2,
-        "supervisor" => 3,
-        _ => 4, // Staff
-    };
+    let role_code = claims.role.clone();
 
     let expense = state
         .asset_expense_service
-        .approve_expense(id, user_id, role_level, payload.notes)
+        .approve_expense(id, user_id, role_code, payload.notes)
         .await?;
 
     Ok(Json(expense))

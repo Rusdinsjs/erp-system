@@ -212,6 +212,7 @@ pub struct UserSummary {
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
     pub is_active: bool,
+    pub employee_id: Option<Uuid>,
     pub employee_name: Option<String>,
     pub employee_nik: Option<String>,
 }

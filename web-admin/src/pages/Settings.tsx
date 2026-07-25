@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Globe, Palette, DollarSign, Upload, Image as ImageIcon, Moon, Sun, Monitor } from 'lucide-react';
+import { Save, Globe, Palette, DollarSign, Upload, Image as ImageIcon, Moon, Sun, Monitor, LayoutGrid, RotateCcw, GripVertical, X as XIcon, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { settingsApi } from '../api/settings';
 import {
@@ -14,6 +14,7 @@ import {
     TabsTrigger,
     TabsContent
 } from '../components/ui';
+import { DEFAULT_LAUNCHPAD_CONFIG, MENU_LABELS, type LaunchpadConfig, type LaunchpadModuleConfig, type MenuId } from '../config/launchpadConfig';
 
 export default function Settings() {
     const queryClient = useQueryClient();
@@ -78,7 +79,7 @@ export default function Settings() {
     };
 
     return (
-        <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
+        <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
             <div className="flex justify-between items-end mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground tracking-tight">System Settings</h1>
@@ -127,6 +128,13 @@ export default function Settings() {
                                 className="w-full justify-start px-4 py-3 data-[state=active]:bg-cyan-600/10 data-[state=active]:text-cyan-400"
                             >
                                 Asset Monitoring
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="launchpad"
+                                icon={<LayoutGrid size={16} />}
+                                className="w-full justify-start px-4 py-3 data-[state=active]:bg-orange-600/10 data-[state=active]:text-orange-400"
+                            >
+                                Launchpad
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -402,9 +410,341 @@ export default function Settings() {
                                 </div>
                             </div>
                         </TabsContent>
+
+                        <TabsContent value="launchpad" className="mt-0 space-y-6">
+                            <LaunchpadConfigEditor
+                                formData={formData}
+                                handleChange={handleChange}
+                                onSave={handleSave}
+                                isSaving={updateMutation.isPending}
+                            />
+                        </TabsContent>
                     </div>
                 </Tabs>
             </Card>
+        </div>
+    );
+}
+
+// ─── Launchpad Config Editor Component ────────────────────────────────────────
+
+interface LaunchpadConfigEditorProps {
+    formData: Record<string, any>;
+    handleChange: (key: string, value: any) => void;
+    onSave: () => void;
+    isSaving: boolean;
+}
+
+function LaunchpadConfigEditor({ formData, handleChange }: LaunchpadConfigEditorProps) {
+    const { success: showSuccess } = useToast();
+
+    // Parse the current config from formData, fallback to default
+    const currentConfig: LaunchpadConfig = (() => {
+        try {
+            const raw = formData['launchpad_config'];
+            if (raw && typeof raw === 'object' && Array.isArray(raw.modules)) {
+                return raw as LaunchpadConfig;
+            }
+            return DEFAULT_LAUNCHPAD_CONFIG;
+        } catch {
+            return DEFAULT_LAUNCHPAD_CONFIG;
+        }
+    })();
+
+    const [expandedModule, setExpandedModule] = useState<string | null>(null);
+
+    // All possible menu IDs from the labels registry
+    const allMenuIds = Object.keys(MENU_LABELS) as MenuId[];
+
+    // Get menu IDs already assigned to any module or global
+    const getAssignedMenuIds = useCallback((): Set<MenuId> => {
+        const assigned = new Set<MenuId>();
+        currentConfig.modules.forEach(m => m.menuIds.forEach(id => assigned.add(id)));
+        currentConfig.globalMenuIds.forEach(id => assigned.add(id));
+        return assigned;
+    }, [currentConfig]);
+
+    // Update config in formData
+    const updateConfig = useCallback((newConfig: LaunchpadConfig) => {
+        handleChange('launchpad_config', newConfig);
+    }, [handleChange]);
+
+    // Toggle a menu ID in a module (ensures menu is moved if assigned elsewhere)
+    const toggleMenuInModule = (targetModuleId: string, menuId: MenuId) => {
+        const targetModule = currentConfig.modules.find(m => m.id === targetModuleId);
+        const alreadyInTarget = targetModule?.menuIds.includes(menuId);
+
+        const newModules = currentConfig.modules.map(m => {
+            if (m.id === targetModuleId) {
+                return {
+                    ...m,
+                    menuIds: alreadyInTarget
+                        ? m.menuIds.filter(id => id !== menuId)
+                        : [...m.menuIds, menuId]
+                };
+            } else if (!alreadyInTarget) {
+                // If moving menuId to targetModuleId, remove it from other modules
+                return {
+                    ...m,
+                    menuIds: m.menuIds.filter(id => id !== menuId)
+                };
+            }
+            return m;
+        });
+        updateConfig({ ...currentConfig, modules: newModules });
+    };
+
+    // Toggle a global menu
+    const toggleGlobalMenu = (menuId: MenuId) => {
+        const has = currentConfig.globalMenuIds.includes(menuId);
+        updateConfig({
+            ...currentConfig,
+            globalMenuIds: has
+                ? currentConfig.globalMenuIds.filter(id => id !== menuId)
+                : [...currentConfig.globalMenuIds, menuId]
+        });
+    };
+
+    // Move a menu from one module to another (reserved for future drag-drop)
+    // const moveMenuToModule = (menuId: MenuId, fromModuleId: string, toModuleId: string) => { ... }
+
+    // Reset to default config
+    const handleReset = () => {
+        updateConfig(DEFAULT_LAUNCHPAD_CONFIG);
+        showSuccess('Reset to default configuration');
+    };
+
+    // Toggle module enabled
+    const toggleModuleEnabled = (moduleId: string) => {
+        const newModules = currentConfig.modules.map(m =>
+            m.id === moduleId ? { ...m, enabled: !m.enabled } : m
+        );
+        updateConfig({ ...currentConfig, modules: newModules });
+    };
+
+    // Update module field
+    const updateModuleField = (moduleId: string, field: keyof LaunchpadModuleConfig, value: any) => {
+        const newModules = currentConfig.modules.map(m =>
+            m.id === moduleId ? { ...m, [field]: value } : m
+        );
+        updateConfig({ ...currentConfig, modules: newModules });
+    };
+
+    // Get unassigned menus
+    const assigned = getAssignedMenuIds();
+    const unassignedMenus = allMenuIds.filter(id => !assigned.has(id));
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <div>
+                    <h3 className="text-lg font-bold text-foreground">Launchpad Configuration</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Configure which menus appear in each Launchpad module card.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        leftIcon={<RotateCcw size={14} />}
+                        onClick={handleReset}
+                        className="text-muted-foreground hover:text-foreground"
+                    >
+                        Reset Default
+                    </Button>
+                </div>
+            </div>
+
+            {/* Global Menus */}
+            <div className="mt-6 p-4 bg-muted/30 rounded-xl border border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <GripVertical size={14} className="text-muted-foreground" />
+                    Global Menus
+                    <span className="text-xs text-muted-foreground font-normal">(Tampil di semua modul)</span>
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                    {currentConfig.globalMenuIds.map(menuId => (
+                        <span
+                            key={menuId}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-medium border border-blue-500/20"
+                        >
+                            {MENU_LABELS[menuId] || menuId}
+                            <button
+                                onClick={() => toggleGlobalMenu(menuId)}
+                                className="hover:text-red-400 transition-colors"
+                            >
+                                <XIcon size={12} />
+                            </button>
+                        </span>
+                    ))}
+                    {/* Add global menu */}
+                    {unassignedMenus.length > 0 && (
+                        <select
+                            className="px-2 py-1.5 bg-card border border-border rounded-lg text-xs text-muted-foreground cursor-pointer"
+                            onChange={(e) => {
+                                if (e.target.value) {
+                                    toggleGlobalMenu(e.target.value as MenuId);
+                                    e.target.value = '';
+                                }
+                            }}
+                            value=""
+                        >
+                            <option value="">+ Add global...</option>
+                            {unassignedMenus.map(id => (
+                                <option key={id} value={id}>{MENU_LABELS[id]}</option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+            </div>
+
+            {/* Module Cards */}
+            <div className="mt-6 space-y-3">
+                {currentConfig.modules
+                    .sort((a, b) => a.order - b.order)
+                    .map(mod => {
+                        const isExpanded = expandedModule === mod.id;
+                        return (
+                            <div
+                                key={mod.id}
+                                className={`rounded-xl border transition-all ${
+                                    mod.enabled
+                                        ? 'border-border bg-card/50'
+                                        : 'border-border/50 bg-muted/20 opacity-60'
+                                }`}
+                            >
+                                {/* Module Header */}
+                                <div
+                                    className="flex items-center gap-3 p-4 cursor-pointer select-none"
+                                    onClick={() => setExpandedModule(isExpanded ? null : mod.id)}
+                                >
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold ${mod.iconBg}`}>
+                                        {mod.order}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="font-semibold text-foreground text-sm">{mod.title}</h4>
+                                            <span className="text-xs text-muted-foreground">({mod.menuIds.length} menu)</span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate">{mod.subtitle}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {/* Enable/Disable Toggle */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleModuleEnabled(mod.id);
+                                            }}
+                                            className={`px-2 py-1 text-xs rounded-md border transition-colors ${
+                                                mod.enabled
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                    : 'bg-muted text-muted-foreground border-border'
+                                            }`}
+                                        >
+                                            {mod.enabled ? 'Active' : 'Disabled'}
+                                        </button>
+                                        {isExpanded ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+                                    </div>
+                                </div>
+
+                                {/* Expanded Details */}
+                                {isExpanded && (
+                                    <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
+                                        {/* Module Settings */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Input
+                                                label="Title"
+                                                value={mod.title}
+                                                onChange={(e) => updateModuleField(mod.id, 'title', e.target.value)}
+                                            />
+                                            <Input
+                                                label="Subtitle"
+                                                value={mod.subtitle}
+                                                onChange={(e) => updateModuleField(mod.id, 'subtitle', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Input
+                                                label="Default Route"
+                                                value={mod.defaultRoute}
+                                                onChange={(e) => updateModuleField(mod.id, 'defaultRoute', e.target.value)}
+                                            />
+                                            <Input
+                                                label="Min Role Level"
+                                                type="number"
+                                                value={mod.minLevel}
+                                                onChange={(e) => updateModuleField(mod.id, 'minLevel', parseInt(e.target.value))}
+                                            />
+                                        </div>
+
+                                        {/* Menu Assignment */}
+                                        <div>
+                                            <label className="text-sm font-medium text-foreground block mb-2">Assigned Menus</label>
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                {mod.menuIds.map(menuId => (
+                                                    <span
+                                                        key={menuId}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-medium border border-primary/20"
+                                                    >
+                                                        {MENU_LABELS[menuId] || menuId}
+                                                        <button
+                                                            onClick={() => toggleMenuInModule(mod.id, menuId)}
+                                                            className="hover:text-red-400 transition-colors"
+                                                        >
+                                                            <XIcon size={12} />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+
+                                            {/* Add menu dropdown */}
+                                            <select
+                                                className="px-3 py-2 bg-card border border-border rounded-lg text-sm text-muted-foreground cursor-pointer w-full"
+                                                onChange={(e) => {
+                                                    if (e.target.value) {
+                                                        toggleMenuInModule(mod.id, e.target.value as MenuId);
+                                                        e.target.value = '';
+                                                    }
+                                                }}
+                                                value=""
+                                            >
+                                                <option value="">+ Add menu to this module...</option>
+                                                {allMenuIds
+                                                    .filter(id => !mod.menuIds.includes(id) && !currentConfig.globalMenuIds.includes(id))
+                                                    .map(id => (
+                                                        <option key={id} value={id}>
+                                                            {MENU_LABELS[id]}
+                                                            {assigned.has(id) ? ' (assigned elsewhere)' : ''}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+            </div>
+
+            {/* Unassigned Warning */}
+            {unassignedMenus.length > 0 && (
+                <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    <p className="text-xs font-medium text-amber-400 mb-2">
+                        ⚠ {unassignedMenus.length} menu belum di-assign ke modul apapun:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                        {unassignedMenus.map(id => (
+                            <span key={id} className="px-2 py-1 bg-amber-500/10 text-amber-400 rounded text-xs">
+                                {MENU_LABELS[id]}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Save Reminder */}
+            <p className="mt-4 text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg border border-border">
+                <strong>Note:</strong> Klik <strong>Save Changes</strong> di atas untuk menyimpan konfigurasi Launchpad. Perubahan akan langsung berlaku setelah disimpan.
+            </p>
         </div>
     );
 }

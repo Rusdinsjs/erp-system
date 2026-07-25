@@ -939,6 +939,12 @@ impl WorkOrderService {
             )
             .await;
 
+        // Increment template usage statistics
+        let _ = self
+            .maintenance_template_repo
+            .increment_usage(template_id)
+            .await;
+
         Ok(count)
     }
 }

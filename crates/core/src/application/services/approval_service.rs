@@ -24,7 +24,35 @@ impl ApprovalService {
         requested_by: Uuid,
         data: Option<JsonValue>,
     ) -> DomainResult<ApprovalRequest> {
+        const VALID_ENTITY_TYPES: &[&str] = &[
+            "asset", "work_order", "loan", "lifecycle_transition",
+            "rental_request", "timesheet_verification", "conversion_request",
+            "fuel_request", "tax_renewal",
+        ];
+
+        if !VALID_ENTITY_TYPES.contains(&resource_type) {
+            return Err(DomainError::validation(
+                "resource_type",
+                &format!("Invalid entity type: {}. Valid types: {:?}", resource_type, VALID_ENTITY_TYPES),
+            ));
+        }
+
+        let workflow = self.repository
+            .find_workflow_by_entity(resource_type)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        let (workflow_id, required_levels) = match workflow {
+            Some(w) => (Some(w.id), Some(w.approval_levels)),
+            None => return Err(DomainError::validation("workflow", "No active workflow found for this entity")),
+        };
+
         let req = CreateApprovalRequest {
+            workflow_id,
+            required_levels,
             resource_type: resource_type.to_string(),
             resource_id,
             action_type: action_type.to_string(),
@@ -79,7 +107,7 @@ impl ApprovalService {
         &self,
         request_id: Uuid,
         approver_id: Uuid,
-        _role_level: i32,
+        role_code: String,
         notes: Option<String>,
     ) -> DomainResult<ApprovalRequest> {
         let request = self
@@ -92,25 +120,55 @@ impl ApprovalService {
             })?
             .ok_or_else(|| DomainError::not_found("ApprovalRequest", request_id.to_string()))?;
 
-        // Verify Level
-        // If Request is L1, Approver must be Supervisor (3) or higher (1, 2)
-        // Ideally we check strict level match or "can_approve_level_1" permission
+        // Fetch workflow
+        let workflow = self.repository
+            .find_workflow_by_entity(&request.resource_type)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| DomainError::validation("workflow", "No active workflow found for this entity"))?;
 
-        if request.current_approval_level == 1 {
-            // L1 Approval
-            // Update status to APPROVED_L1 if logic requires 2 steps.
-            // If fully approved after L1 (workflow dependent), set APPROVED_L2/COMPLETED logic?
-            // For now assume 2 steps:
-            // L1 -> APPROVED_L1 -> Increment Level -> 2
+        // Check role
+        let expected_role = match request.current_approval_level {
+            1 => workflow.level_1_role,
+            2 => workflow.level_2_role,
+            3 => workflow.level_3_role,
+            4 => workflow.level_4_role,
+            5 => workflow.level_5_role,
+            _ => None,
+        };
 
-            self.repository
-                .update_status(request_id, "APPROVED_L1", 1, Some(approver_id), notes)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
-                    service: "database".to_string(),
-                    message: e.to_string(),
-                })?;
+        let has_permission = if role_code == "super_admin" {
+            true
+        } else if let Some(role) = expected_role {
+            role == role_code
+        } else {
+            false
+        };
 
+        if !has_permission {
+            return Err(DomainError::validation("role", "You are not authorized to approve this level"));
+        }
+
+        let is_final = request.current_approval_level >= workflow.approval_levels;
+        
+        let status = if is_final {
+            format!("APPROVED_L{}", request.current_approval_level) // Or just "APPROVED" depending on old logic, but let's stick to L_x
+        } else {
+            format!("APPROVED_L{}", request.current_approval_level)
+        };
+
+        self.repository
+            .update_status(request_id, &status, request.current_approval_level, Some(approver_id), notes)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        if !is_final {
             self.repository
                 .increment_level(request_id)
                 .await
@@ -118,36 +176,19 @@ impl ApprovalService {
                     service: "database".to_string(),
                     message: e.to_string(),
                 })?;
-
-            // Re-fetch updated
-            let updated = self
-                .repository
-                .find_by_id(request_id)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
-                    service: "database".to_string(),
-                    message: e.to_string(),
-                })?
-                .ok_or_else(|| {
-                    DomainError::not_found("Approval request", request_id.to_string())
-                })?;
-
-            Ok(updated)
-        } else if request.current_approval_level == 2 {
-            // L2 Approval (Final)
-            self.repository
-                .update_status(request_id, "APPROVED_L2", 2, Some(approver_id), notes)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
-                    service: "database".to_string(),
-                    message: e.to_string(),
-                })
-        } else {
-            Err(DomainError::validation(
-                "approval_level",
-                "Invalid approval level state",
-            ))
         }
+
+        // Re-fetch updated
+        self.repository
+            .find_by_id(request_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?
+            .ok_or_else(|| {
+                DomainError::not_found("Approval request", request_id.to_string())
+            })
     }
 
     pub async fn reject_request(

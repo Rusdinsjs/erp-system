@@ -72,7 +72,7 @@ export default function WorkOrders() {
     };
 
     return (
-        <div className="p-8">
+        <div>
             {/* Header Section */}
             <div className="flex justify-between items-end mb-8">
                 <div>
@@ -80,7 +80,7 @@ export default function WorkOrders() {
                     <p className="text-muted-foreground mt-2">Manage maintenance, repairs, and service schedules</p>
                 </div>
                 <div className="flex gap-3">
-                    <PermissionGate requiredLevel={3}>
+                    <PermissionGate resource="work_order" action="create" fallbackLevel={3}>
                         <Button
                             leftIcon={<Plus size={20} />}
                             onClick={handleCreate}

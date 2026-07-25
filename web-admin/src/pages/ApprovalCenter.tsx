@@ -23,18 +23,13 @@ import {
 } from '../components/ui';
 import { Fuel, FileText } from 'lucide-react';
 
-// Resource type config
-const resourceTypeConfig: Record<string, { label: string; iconColor: string }> = {
-    lifecycle_transition: { label: 'Lifecycle', iconColor: 'text-violet-400' },
-    work_order: { label: 'Work Order', iconColor: 'text-blue-400' },
-    asset: { label: 'Asset', iconColor: 'text-green-400' },
-    rental_request: { label: 'Rental Request', iconColor: 'text-orange-400' },
-    timesheet_verification: { label: 'Timesheet', iconColor: 'text-teal-400' },
-    loan: { label: 'Loan Request', iconColor: 'text-cyan-400' },
-    conversion_request: { label: 'Conversion', iconColor: 'text-purple-400' },
-    fuel_request: { label: 'Fuel Request', iconColor: 'text-yellow-400' },
-    tax_renewal: { label: 'Tax Renewal', iconColor: 'text-rose-400' },
-};
+import { APPROVAL_ENTITY_TYPES } from '../config/approvalEntities';
+
+// Resource type config built dynamically from our single source of truth
+const resourceTypeConfig = APPROVAL_ENTITY_TYPES.reduce((acc, entity) => {
+    acc[entity.value] = { label: entity.label, iconColor: entity.color };
+    return acc;
+}, {} as Record<string, { label: string; iconColor: string }>);
 
 // State colors for lifecycle
 const stateBadgeVariant: Record<string, 'default' | 'info' | 'success' | 'warning' | 'danger'> = {

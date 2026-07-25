@@ -100,7 +100,7 @@ export const useAuthStore = create<AuthState>()(
             hasPermission: (permission: string) => {
                 const user = get().user;
                 if (!user) return false;
-                if (user.role === 'super_admin') return true; // Super admin bypass
+                if (user.role_level <= 2) return true; // Admin and Super Admin bypass
                 return user.permissions.includes(permission);
             },
             hasRoleLevel: (level: number) => {

@@ -42,7 +42,7 @@ impl SettingsService {
         // Fetch only specific keys safe for public consumption
         let mut public_config = serde_json::Map::new();
 
-        let keys = vec!["app_name", "company_logo"];
+        let keys = vec!["app_name", "company_logo", "launchpad_config"];
 
         for key in keys {
             if let Ok(Some(setting)) = self.repository.get(key).await {

@@ -23,6 +23,18 @@ pub struct CreateTemplateRequest {
 pub struct AddTemplateTaskRequest {
     pub task_number: i32,
     pub description: String,
+    pub instructions: Option<String>,
+    pub expected_result: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct DuplicateTemplateRequest {
+    pub new_name: String,
+}
+
+#[derive(Deserialize)]
+pub struct ReorderTasksRequest {
+    pub task_ids: Vec<Uuid>,
 }
 
 pub async fn list_maintenance_templates(
@@ -78,7 +90,13 @@ pub async fn add_template_task(
 
     let task = state
         .maintenance_template_service
-        .add_task(id, payload.task_number, payload.description)
+        .add_task(
+            id,
+            payload.task_number,
+            payload.description,
+            payload.instructions,
+            payload.expected_result,
+        )
         .await?;
     Ok(Json(task))
 }
@@ -95,6 +113,47 @@ pub async fn delete_template_task(
         .delete_task(task_id)
         .await?;
     Ok(Json(ApiResponse::success(success)))
+}
+
+pub async fn duplicate_maintenance_template(
+    State(state): State<AppState>,
+    Extension(claims): axum::Extension<Claims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<DuplicateTemplateRequest>,
+) -> Result<Json<MaintenanceTemplate>, AppError> {
+    check_role(&claims, ROLE_SUPERVISOR)?;
+
+    let template = state
+        .maintenance_template_service
+        .duplicate_template(id, payload.new_name)
+        .await?;
+    Ok(Json(template))
+}
+
+pub async fn reorder_template_tasks(
+    State(state): State<AppState>,
+    Extension(claims): axum::Extension<Claims>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<ReorderTasksRequest>,
+) -> Result<Json<ApiResponse<bool>>, AppError> {
+    check_role(&claims, ROLE_SUPERVISOR)?;
+
+    state
+        .maintenance_template_service
+        .reorder_tasks(id, payload.task_ids)
+        .await?;
+    Ok(Json(ApiResponse::success(true)))
+}
+
+pub async fn get_maintenance_template_versions(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<MaintenanceTemplate>>, AppError> {
+    let versions = state
+        .maintenance_template_service
+        .get_versions(id)
+        .await?;
+    Ok(Json(versions))
 }
 
 pub async fn apply_maintenance_template(

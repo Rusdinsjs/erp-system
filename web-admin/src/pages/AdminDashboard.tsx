@@ -2,6 +2,7 @@
 import { useState, lazy, Suspense, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { useNavigationStore } from '../store/useNavigationStore';
 import {
     LayoutDashboard, Package, FolderTree, Users, LogOut, Menu, X,
     FileText, Settings, Bell, ChevronDown, ChevronRight, ClipboardCheck,
@@ -16,6 +17,8 @@ import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings';
 import { useTheme } from '../contexts/ThemeContext';
 import { AIChatWidget } from '../components/AI/AIChatWidget';
+import type { MenuId, LaunchpadConfig } from '../config/launchpadConfig';
+import { MENU_TO_RESOURCE } from '../config/launchpadConfig';
 
 // Import all views
 const DashboardView = lazy(() => import('./Dashboard'));
@@ -147,7 +150,6 @@ interface NavItem {
     adminOnly?: boolean;
     minLevel?: number; // 1=SuperAdmin, 2=Admin, 3=Manager, 4=Staff, 5=Viewer
     showBadge?: boolean;
-    context?: string; // New: To link with Launchpad Card ID
 }
 
 interface NavGroup {
@@ -157,14 +159,12 @@ interface NavGroup {
     children: NavEntry[];
     minLevel?: number;
     showBadge?: boolean;
-    context?: string; // New
 }
 
 interface NavHeader {
     type: 'header';
     label: string;
     minLevel?: number;
-    context?: string; // New
 }
 
 type NavEntry = NavItem | NavGroup | NavHeader;
@@ -177,137 +177,65 @@ const isNavHeader = (entry: NavEntry): entry is NavHeader => {
     return 'type' in entry && entry.type === 'header';
 };
 
-// Navigation structure
-const navItems: NavEntry[] = [
-    { type: 'header', label: 'INSIGHTS & REPORTING', minLevel: 5, context: 'insights' },
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview', minLevel: 5, context: 'insights' },
-    { id: 'analytics', icon: TrendingUp, label: 'Performance Analytics', minLevel: 3, context: 'insights' },
-    { id: 'reports', icon: FileText, label: 'Management Reports', minLevel: 3, context: 'insights' },
+// Master registry of all navigation items in the application
+const ALL_NAV_ITEMS: Record<string, NavItem> = {
+    'dashboard': { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview', minLevel: 5 },
+    'analytics': { id: 'analytics', icon: TrendingUp, label: 'Performance Analytics', minLevel: 3 },
+    'reports': { id: 'reports', icon: FileText, label: 'Management Reports', minLevel: 3 },
 
-    { type: 'header', label: 'ASSET MANAGEMENT', minLevel: 5, context: 'assets' },
-    {
-        id: 'asset_operations',
-        label: 'Assets',
-        icon: Box,
-        minLevel: 5,
-        context: 'assets',
-        children: [
-            { id: 'assets', icon: Box, label: 'All Assets', minLevel: 5 },
-            { id: 'asset-lifecycle', icon: History, label: 'Asset Lifecycle', minLevel: 4 },
-            { id: 'categories', icon: FolderTree, label: 'Categories', minLevel: 4 },
-            { id: 'locations', icon: MapPin, label: 'Locations', minLevel: 4 },
-            { id: 'asset-audit', icon: Scan, label: 'Asset Audit', minLevel: 4 },
-        ]
-    },
-    {
-        id: 'inventory_group',
-        label: 'Inventory',
-        icon: Package,
-        minLevel: 4,
-        context: 'ops',
-        children: [
-            { id: 'inventory-items', icon: Package, label: 'Items', minLevel: 4 },
-            { id: 'inventory-categories', icon: FolderTree, label: 'Categories', minLevel: 4 },
-            { id: 'stock-opname', icon: Scan, label: 'Stock Opname', minLevel: 3 },
-        ]
-    },
+    'assets': { id: 'assets', icon: Box, label: 'All Assets', minLevel: 5 },
+    'asset-lifecycle': { id: 'asset-lifecycle', icon: History, label: 'Asset Lifecycle', minLevel: 4 },
+    'categories': { id: 'categories', icon: FolderTree, label: 'Asset Categories', minLevel: 4 },
+    'locations': { id: 'locations', icon: MapPin, label: 'Locations', minLevel: 4 },
+    'asset-audit': { id: 'asset-audit', icon: Scan, label: 'Asset Audit', minLevel: 4 },
 
-    { type: 'header', label: 'OPERATIONS', minLevel: 5, context: 'ops' },
-    {
-        id: 'maintenance_group',
-        label: 'Field Operations',
-        icon: Wrench,
-        minLevel: 5,
-        context: 'ops',
-        children: [
-            { id: 'work-orders', icon: ClipboardCheck, label: 'Work Orders', minLevel: 4 },
-            { id: 'conversions', icon: ArrowLeftRight, label: 'Conversions', minLevel: 3 },
-            { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
-            { id: 'maintenance-templates', icon: FileText, label: 'SOP Templates', minLevel: 3 },
-            { id: 'fuel', icon: Fuel, label: 'Fuel Management', minLevel: 4 },
-            { id: 'loans', icon: HandMetal, label: 'Internal Loans', minLevel: 5 },
-            { id: 'tax-renewals', icon: Receipt, label: 'Tax & Documents', minLevel: 3 },
-        ]
-    },
-    {
-        id: 'rental_module',
-        label: 'Rental & Contracts',
-        icon: Truck,
-        minLevel: 4,
-        context: 'ops',
-        children: [
-            { id: 'rentals', icon: Truck, label: 'Rental Orders', minLevel: 4 },
-            { id: 'contracts', icon: FileText, label: 'Contracts', minLevel: 4 },
-            { id: 'contract-templates', icon: Settings, label: 'Templates', minLevel: 3 },
-        ]
-    },
+    'inventory-items': { id: 'inventory-items', icon: Package, label: 'Items', minLevel: 4 },
+    'inventory-categories': { id: 'inventory-categories', icon: FolderTree, label: 'Inventory Categories', minLevel: 4 },
+    'stock-opname': { id: 'stock-opname', icon: Scan, label: 'Stock Opname', minLevel: 3 },
+    'conversions': { id: 'conversions', icon: ArrowLeftRight, label: 'Conversions', minLevel: 3 },
 
-    { type: 'header', label: 'FINANCE & ACCOUNTING', minLevel: 2, context: 'finance' },
-    {
-        id: 'finance_group',
-        label: 'Finance',
-        icon: Wallet,
-        minLevel: 2,
-        context: 'finance',
-        children: [
-            { id: 'finance', icon: FolderTree, label: 'Chart of Accounts', minLevel: 2 },
-            { id: 'cash-bank', icon: Wallet, label: 'Cash & Bank', minLevel: 2 },
-            { id: 'expenses', icon: Receipt, label: 'Expenses (Opex/Capex)', minLevel: 2 },
-            { id: 'journal-entries', icon: FileText, label: 'Journal Entries', minLevel: 2 },
-            { id: 'financial-reports', icon: TrendingUp, label: 'Reports', minLevel: 2 },
-        ]
-    },
-    {
-        id: 'commercial_group',
-        label: 'Commercial In/Out',
-        icon: ShoppingCart,
-        minLevel: 3,
-        context: 'finance',
-        children: [
-            { id: 'sales-invoices', icon: FileText, label: 'Sales Invoices', minLevel: 3 },
-            { id: 'purchase-bills', icon: FileText, label: 'Vendor Bills', minLevel: 3 },
-        ]
-    },
+    'purchase-bills': { id: 'purchase-bills', icon: FileText, label: 'Vendor Bills', minLevel: 3 },
 
-    { type: 'header', label: 'ORGANIZATION', minLevel: 3, context: 'hr' },
-    {
-        id: 'hr_group',
-        label: 'Human Resources',
-        icon: Users,
-        minLevel: 3,
-        context: 'hr',
-        children: [
-            { id: 'employees', icon: Users, label: 'Employees', minLevel: 3 },
-            { id: 'departments', icon: Building2, label: 'Departments', minLevel: 3 },
-            { id: 'attendance', icon: Clock, label: 'Attendance', minLevel: 3 },
-            { id: 'leaves', icon: CalendarIcon, label: 'Leaves', minLevel: 3 },
-        ]
-    },
-    { id: 'clients', icon: Building2, label: 'Clients / Partners', minLevel: 4, context: 'hr' },
+    'work-orders': { id: 'work-orders', icon: ClipboardCheck, label: 'Work Orders', minLevel: 4 },
+    'maintenance-schedules': { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
+    'maintenance-templates': { id: 'maintenance-templates', icon: FileText, label: 'SOP Templates', minLevel: 3 },
+    'fuel': { id: 'fuel', icon: Fuel, label: 'Fuel Management', minLevel: 4 },
+    'tax-renewals': { id: 'tax-renewals', icon: Receipt, label: 'Tax & Documents', minLevel: 3 },
 
-    { type: 'header', label: 'SYSTEM', minLevel: 3, context: 'system' },
-    { id: 'approvals', icon: CheckSquare, label: 'Approval Center', minLevel: 3, showBadge: true, context: 'system' },
+    'rentals': { id: 'rentals', icon: Truck, label: 'Rental Orders', minLevel: 4 },
+    'contracts': { id: 'contracts', icon: FileText, label: 'Contracts', minLevel: 4 },
+    'contract-templates': { id: 'contract-templates', icon: Settings, label: 'Templates', minLevel: 3 },
+    'loans': { id: 'loans', icon: HandMetal, label: 'Internal Loans', minLevel: 5 },
 
-    {
-        id: 'settings_group',
-        label: 'Configuration',
-        icon: Settings,
-        minLevel: 2,
-        context: 'system',
-        children: [
-            { id: 'users', icon: Users, label: 'User Operations', minLevel: 2 },
-            { id: 'roles', icon: Shield, label: 'Access Rights', minLevel: 1 },
-            { id: 'approval-workflow-settings', icon: Layers, label: 'Workflows', minLevel: 1 },
-            { id: 'audit', icon: History, label: 'Audit Logs', minLevel: 2 },
-            { id: 'settings', icon: Settings, label: 'App Settings', minLevel: 2 },
-            { id: 'profile', icon: UserCircle, label: 'My Profile', minLevel: 5 },
-        ]
-    },
-];
+    'sales-invoices': { id: 'sales-invoices', icon: FileText, label: 'Sales Invoices', minLevel: 3 },
+    'clients': { id: 'clients', icon: Building2, label: 'Clients / Partners', minLevel: 4 },
+
+    'finance': { id: 'finance', icon: FolderTree, label: 'Chart of Accounts', minLevel: 2 },
+    'cash-bank': { id: 'cash-bank', icon: Wallet, label: 'Cash & Bank', minLevel: 2 },
+    'expenses': { id: 'expenses', icon: Receipt, label: 'Expenses (Opex/Capex)', minLevel: 2 },
+    'journal-entries': { id: 'journal-entries', icon: FileText, label: 'Journal Entries', minLevel: 2 },
+    'financial-reports': { id: 'financial-reports', icon: TrendingUp, label: 'Reports', minLevel: 2 },
+
+    'employees': { id: 'employees', icon: Users, label: 'Employees', minLevel: 3 },
+    'departments': { id: 'departments', icon: Building2, label: 'Departments', minLevel: 3 },
+    'attendance': { id: 'attendance', icon: Clock, label: 'Attendance', minLevel: 3 },
+    'leaves': { id: 'leaves', icon: CalendarIcon, label: 'Leaves', minLevel: 3 },
+
+    'approvals': { id: 'approvals', icon: CheckSquare, label: 'Approval Center', minLevel: 3, showBadge: true },
+
+    'users': { id: 'users', icon: Users, label: 'User Operations', minLevel: 2 },
+    'roles': { id: 'roles', icon: Shield, label: 'Access Rights', minLevel: 1 },
+    'approval-workflow-settings': { id: 'approval-workflow-settings', icon: Layers, label: 'Workflows', minLevel: 1 },
+    'audit': { id: 'audit', icon: History, label: 'Audit Logs', minLevel: 2 },
+    'settings': { id: 'settings', icon: Settings, label: 'App Settings', minLevel: 2 },
+    'profile': { id: 'profile', icon: UserCircle, label: 'My Profile', minLevel: 5 },
+};
+
 
 export default function AdminDashboard() {
     const { theme, setTheme } = useTheme();
     const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+    const { activeModule, setActiveModule, getVisibleMenuIds, launchpadConfig, setLaunchpadConfig } = useNavigationStore();
 
     const toggleTheme = () => {
         setTheme(theme === 'light' ? 'dark' : 'light');
@@ -320,7 +248,7 @@ export default function AdminDashboard() {
         master_data: false,
         rental_group: false,
         finance_group: false,
-        inventory_group: true,
+        inventory_group: false,
         settings_group: false
     });
     const [notifOpen, setNotifOpen] = useState(false);
@@ -334,7 +262,7 @@ export default function AdminDashboard() {
     const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
     const [selectedContractId] = useState<string | null>(null);
 
-    const { user, logout } = useAuthStore();
+    const { user, logout, hasPermission } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -352,6 +280,22 @@ export default function AdminDashboard() {
             document.title = 'Asset Management System';
         }
     }, [activeTab, publicSettings]);
+
+    // Sync backend launchpad_config with navigation store
+    useEffect(() => {
+        if (publicSettings?.launchpad_config) {
+            try {
+                const backendConfig = typeof publicSettings.launchpad_config === 'string'
+                    ? JSON.parse(publicSettings.launchpad_config)
+                    : publicSettings.launchpad_config;
+                if (backendConfig && Array.isArray(backendConfig.modules)) {
+                    setLaunchpadConfig(backendConfig as LaunchpadConfig);
+                }
+            } catch {
+                // Ignore parse errors
+            }
+        }
+    }, [publicSettings, setLaunchpadConfig]);
 
     // Sync URL with State
     useEffect(() => {
@@ -513,59 +457,163 @@ export default function AdminDashboard() {
         setOpenGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
     };
 
-    // Helper to find context of current tab
-    const findTabContext = (tabId: TabId, items: NavEntry[], parentContext?: string): string | undefined => {
-        for (const item of items) {
-            // Check headers/items/groups
-            const currentContext = 'context' in item ? item.context : parentContext;
-
-            if (isNavGroup(item)) {
-                // Check direct children valid ids
-                // Note: Group itself might not match tabId, but one of its children will
-                const foundInChild = findTabContext(tabId, item.children, currentContext);
-                if (foundInChild) return foundInChild;
-            } else if (!isNavHeader(item)) {
-                if (item.id === tabId) return currentContext;
+    // Auto-detect module from current tab when no module is set
+    // (e.g., direct URL access without going through Launchpad)
+    useEffect(() => {
+        if (!activeModule && activeTab !== 'dashboard') {
+            const menuId = activeTab as MenuId;
+            const matchingModule = launchpadConfig.modules.find(m =>
+                m.menuIds.includes(menuId)
+            );
+            if (matchingModule) {
+                setActiveModule(matchingModule.id);
             }
         }
-        return undefined;
-    };
+    }, [activeTab, activeModule, launchpadConfig, setActiveModule]);
 
-    // Derived Context
-    const activeContext = useMemo(() => {
-        // Hardcode specific overrides if needed, or rely on recursion
-        return findTabContext(activeTab, navItems);
-    }, [activeTab]);
+    // Dynamically construct navItems structure based on launchpadConfig
+    const navItems: NavEntry[] = useMemo(() => {
+        const getModuleMenuIds = (moduleId: string): string[] => {
+            const mod = launchpadConfig?.modules?.find(m => m.id === moduleId);
+            return mod ? mod.menuIds : [];
+        };
 
-    // Filtered Nav Items based on Context
+        const fieldOpsIds = getModuleMenuIds('field-operations');
+        const rawCommercialIds = getModuleMenuIds('commercial');
+        // Exclude items assigned to field-operations from commercialIds so they move exclusively
+        const commercialIds = rawCommercialIds.filter(id => !fieldOpsIds.includes(id));
+        const assetIds = getModuleMenuIds('asset-management');
+        const supplyChainIds = getModuleMenuIds('supply-chain');
+        const financeIds = getModuleMenuIds('finance');
+        const hrIds = getModuleMenuIds('hr');
+        const adminIds = getModuleMenuIds('admin');
+        const insightsIds = getModuleMenuIds('insights');
+
+        const getGroupItems = (moduleIds: string[], preferredOrder: string[], allowedFilter?: string[]) => {
+            const result: NavItem[] = [];
+            const activeIds = moduleIds.length > 0 ? moduleIds : preferredOrder;
+
+            preferredOrder.forEach(id => {
+                if (activeIds.includes(id) && ALL_NAV_ITEMS[id] && (!allowedFilter || allowedFilter.includes(id))) {
+                    result.push(ALL_NAV_ITEMS[id]);
+                }
+            });
+            activeIds.forEach(id => {
+                if (!preferredOrder.includes(id) && ALL_NAV_ITEMS[id] && (!allowedFilter || allowedFilter.includes(id))) {
+                    result.push(ALL_NAV_ITEMS[id]);
+                }
+            });
+            return result;
+        };
+
+        return [
+            ALL_NAV_ITEMS['dashboard'],
+            ...(insightsIds.length === 0 || insightsIds.includes('analytics') ? [ALL_NAV_ITEMS['analytics']] : []),
+            ...(insightsIds.length === 0 || insightsIds.includes('reports') ? [ALL_NAV_ITEMS['reports']] : []),
+            {
+                id: 'asset_operations',
+                label: 'Assets',
+                icon: Box,
+                minLevel: 5,
+                children: getGroupItems(assetIds, ['assets', 'asset-lifecycle', 'asset-audit'])
+            },
+            {
+                id: 'inventory_group',
+                label: 'Inventory',
+                icon: Package,
+                minLevel: 4,
+                children: getGroupItems(supplyChainIds, ['inventory-items', 'stock-opname', 'conversions'], ['inventory-items', 'stock-opname', 'conversions'])
+            },
+            {
+                id: 'procurement_group',
+                label: 'Procurement',
+                icon: ShoppingCart,
+                minLevel: 3,
+                children: getGroupItems(supplyChainIds, ['purchase-bills'], ['purchase-bills'])
+            },
+            {
+                id: 'maintenance_group',
+                label: 'Field Operations',
+                icon: Wrench,
+                minLevel: 5,
+                children: getGroupItems(fieldOpsIds, ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'])
+            },
+            {
+                id: 'rental_module',
+                label: 'Rental & Contracts',
+                icon: Truck,
+                minLevel: 4,
+                children: getGroupItems(commercialIds, ['rentals', 'contracts', 'loans'], ['rentals', 'contracts', 'loans'])
+            },
+            {
+                id: 'commercial_group',
+                label: 'Commercial',
+                icon: TrendingUp,
+                minLevel: 3,
+                children: getGroupItems(commercialIds, ['sales-invoices', 'clients'], ['sales-invoices', 'clients'])
+            },
+            {
+                id: 'finance_group',
+                label: 'Finance',
+                icon: Wallet,
+                minLevel: 2,
+                children: getGroupItems(financeIds, ['finance', 'cash-bank', 'expenses', 'journal-entries', 'financial-reports'])
+            },
+            {
+                id: 'hr_group',
+                label: 'Human Resources',
+                icon: Users,
+                minLevel: 3,
+                children: getGroupItems(hrIds, ['employees', 'departments', 'attendance', 'leaves'])
+            },
+            {
+                id: 'settings_group',
+                label: 'Configuration',
+                icon: Settings,
+                minLevel: 2,
+                children: [
+                    { type: 'header', label: 'Master Data' },
+                    ...getGroupItems(adminIds, ['categories', 'inventory-categories', 'locations'], ['categories', 'inventory-categories', 'locations']),
+                    { type: 'header', label: 'Operational Templates' },
+                    ...getGroupItems(adminIds, ['maintenance-templates', 'contract-templates'], ['maintenance-templates', 'contract-templates']),
+                    { type: 'header', label: 'Access Control & Approvals' },
+                    ...getGroupItems(adminIds, ['users', 'roles', 'approval-workflow-settings', 'approvals'], ['users', 'roles', 'approval-workflow-settings', 'approvals']),
+                    { type: 'header', label: 'System Administration' },
+                    ...getGroupItems(adminIds, ['audit', 'settings', 'profile'], ['audit', 'settings', 'profile']),
+                ]
+            },
+        ];
+    }, [launchpadConfig]);
+
+    // Filtered Nav Items based on active Launchpad module
     const visibleNavItems = useMemo(() => {
-        const isSuperAdmin = user?.role === 'super_admin' || user?.role_level === 1;
-        if (isSuperAdmin) return navItems;
+        // Get visible menu IDs from the navigation store
+        const visibleMenuIds = getVisibleMenuIds();
 
-        // If no context found (e.g. initial load or weird state), maybe show all or nothing?
-        // Default to showing Dashboard related if lost? Or just nothing?
-        // Let's assume if no context, we show Insights (default) or everything?
-        // Better: Show items where context matches OR context is 'global'
+        // No module selected → show all menus (fallback)
+        if (!activeModule) return navItems;
 
-        if (!activeContext) return navItems; // Fallback to all if context lost
+        // Helper: collect all leaf menu IDs from a nav entry
+        const getLeafIds = (entry: NavEntry): string[] => {
+            if (isNavHeader(entry)) return [];
+            if (isNavGroup(entry)) {
+                return entry.children.flatMap(getLeafIds);
+            }
+            return [(entry as NavItem).id];
+        };
 
+        // Filter: keep items/groups that have at least one visible menu ID
         return navItems.filter(item => {
-            // Global items (Settings, Profile) always show
-            if ('context' in item && item.context === 'global') return true;
+            if (isNavHeader(item)) {
+                // Show header if the next non-header item would be visible
+                // (handled by rendering — headers without following content are harmless)
+                return true;
+            }
 
-            // Context matches
-            if ('context' in item && item.context === activeContext) return true;
-
-            // Admin context special handling? User said "System Settings" always visible. 
-            // I tagged 'settings_group' as global.
-            // Master Data is tagged 'admin'. Should it show?
-            // "Menu Assets Operation dan System Settings (Selalu Tampil)".
-            // User did NOT say Master Data.
-            // So logic holds.
-
-            return false;
+            const leafIds = getLeafIds(item);
+            return leafIds.some(id => visibleMenuIds.includes(id as MenuId));
         });
-    }, [user, activeContext]);
+    }, [user, activeModule, getVisibleMenuIds, navItems]);
 
 
     // Check if user is admin
@@ -661,13 +709,22 @@ export default function AdminDashboard() {
         if (userLevel > requiredLevel) return null;
 
         // Also ensure at least one child is visible
-        const visibleChildren = group.children.filter(child => {
-            if (isNavHeader(child)) return true; // Headers don't block visibility
+        const visibleMenuIds = getVisibleMenuIds();
 
-            const childReqLevel = (child as NavItem | NavGroup).minLevel ?? 5;
-            if (userLevel > childReqLevel) return false;
+        const isItemVisible = (entry: NavEntry): boolean => {
+            if (isNavHeader(entry) || isNavGroup(entry)) return false;
+            const item = entry as NavItem;
+            const menuId = item.id as MenuId;
+            const resourceId = MENU_TO_RESOURCE[menuId] || menuId.replace(/-/g, '_');
+            
+            if (!hasPermission(`${resourceId}.view`)) {
+                return false;
+            }
 
-            // Hide Categories and Locations for Specialist Admins (L4)
+            if (activeModule && !visibleMenuIds.includes(menuId)) {
+                return false;
+            }
+
             const isSpecialistAdmin = user && [
                 'admin_alat_berat', 
                 'admin_kendaraan', 
@@ -677,17 +734,21 @@ export default function AdminDashboard() {
                 'admin_infra'
             ].includes(user.role);
 
-            if (isSpecialistAdmin && !isNavGroup(child) && !isNavHeader(child)) {
-                const childItem = child as NavItem;
-                if (childItem.id === 'categories' || childItem.id === 'locations') {
-                    return false;
-                }
+            if (isSpecialistAdmin && (item.id === 'categories' || item.id === 'locations')) {
+                return false;
             }
 
-            // Type guard for adminOnly check
-            if (!isNavGroup(child) && !isNavHeader(child) && (child as NavItem).adminOnly && !isAdmin) return false;
-
             return true;
+        };
+
+        const visibleChildren = group.children.filter((child, idx, array) => {
+            if (isNavHeader(child)) {
+                const remaining = array.slice(idx + 1);
+                const nextHeaderIdx = remaining.findIndex(isNavHeader);
+                const sectionItems = nextHeaderIdx >= 0 ? remaining.slice(0, nextHeaderIdx) : remaining;
+                return sectionItems.some(isItemVisible);
+            }
+            return isItemVisible(child);
         });
 
         if (visibleChildren.length === 0) return null;
@@ -826,22 +887,25 @@ export default function AdminDashboard() {
 
             {/* Sidebar */}
             <aside
-                className={`
-            fixed lg:static inset-y-0 left-0 z-50
-            bg-card/80 backdrop-blur-xl border-r border-border text-card-foreground 
-            transition-all duration-300 ease-in-out flex flex-col shadow-2xl lg:shadow-none
-            ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}
-        `}
+                className={`flex-none bg-card/80 backdrop-blur-xl border-r border-border transition-all duration-300 ease-in-out flex flex-col relative z-20 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]
+                ${sidebarOpen ? 'w-64' : 'w-20'} 
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} 
+                absolute lg:relative h-full`}
             >
-                {/* Logo */}
-                <div className="h-16 flex items-center px-4 border-b border-border gap-3">
-                    <Logo collapsed={!sidebarOpen} />
-
+                {/* Brand / Logo & Toggle */}
+                <div className="h-16 flex items-center px-4 border-b border-border gap-2">
+                    <div 
+                        className="flex items-center gap-3 overflow-hidden cursor-pointer flex-1"
+                        onClick={() => { setActiveModule(null); navigate('/launchpad'); }}
+                        title="Kembali ke Launchpad"
+                    >
+                        <Logo collapsed={!sidebarOpen} />
+                    </div>
 
                     {/* Desktop Toggle Button */}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground hidden lg:block ml-auto transition-colors"
+                        className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground hidden lg:block transition-colors"
                     >
                         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
                     </button>
@@ -849,7 +913,7 @@ export default function AdminDashboard() {
                     {/* Mobile Close Button */}
                     <button
                         onClick={() => setSidebarOpen(false)}
-                        className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white lg:hidden ml-auto transition-colors"
+                        className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white lg:hidden transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -924,17 +988,15 @@ export default function AdminDashboard() {
 
                     <Logo className="lg:hidden" collapsed={false} />
 
-                    {/* Back to Launchpad Button (For Non-Super Admin) */}
-                    {user?.role !== 'super_admin' && (
-                        <button
-                            onClick={() => navigate('/launchpad')}
-                            className="hidden md:flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
-                            title="Back to Launchpad"
-                        >
-                            <LayoutDashboard size={18} />
-                            <span>Menu Utama</span>
-                        </button>
-                    )}
+                    {/* Back to Launchpad Button (For All Users) */}
+                    <button
+                        onClick={() => { setActiveModule(null); navigate('/launchpad'); }}
+                        className="hidden md:flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
+                        title="Back to Launchpad"
+                    >
+                        <LayoutDashboard size={18} />
+                        <span>Menu Utama</span>
+                    </button>
 
                     <div className="flex-1" /> {/* Spacer */}
 
@@ -1004,7 +1066,7 @@ export default function AdminDashboard() {
                 </header>
 
                 {/* Content Area */}
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-transparent relative z-10 global-scrollbar">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-transparent relative z-10 global-scrollbar p-6 lg:p-8">
                     <Suspense fallback={<PageLoading />}>
                         {renderContent()}
                     </Suspense>

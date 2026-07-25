@@ -3,17 +3,17 @@ import { useAuthStore } from '../store/useAuthStore';
 
 interface PermissionGateProps {
     children: ReactNode;
-    requiredPermission?: string;
-    requiredRole?: string; // Code
-    requiredLevel?: number; // Less than or equal to user level (1 is highest)
+    resource?: string;
+    action?: 'view' | 'create' | 'edit' | 'delete';
+    fallbackLevel?: number; // Less than or equal to user level (1 is highest)
     fallback?: ReactNode;
 }
 
 export function PermissionGate({
     children,
-    requiredPermission,
-    requiredRole,
-    requiredLevel,
+    resource,
+    action,
+    fallbackLevel,
     fallback = null
 }: PermissionGateProps) {
     const { user, hasPermission, hasRoleLevel } = useAuthStore();
@@ -22,25 +22,25 @@ export function PermissionGate({
         return <>{fallback}</>;
     }
 
-    // Role Level Check
-    if (requiredLevel !== undefined) {
-        if (!hasRoleLevel(requiredLevel)) {
-            return <>{fallback}</>;
+    let isAllowed = false;
+
+    // Check RBAC Permission first if provided
+    if (resource && action) {
+        if (hasPermission(`${resource}.${action}`)) {
+            isAllowed = true;
         }
     }
 
-    // Role Code Check
-    if (requiredRole) {
-        if (user.role !== requiredRole && user.role !== 'super_admin') {
-            return <>{fallback}</>;
+    // Fallback to Role Level if permission not granted but fallback is defined
+    if (!isAllowed && fallbackLevel !== undefined) {
+        if (hasRoleLevel(fallbackLevel)) {
+            isAllowed = true;
         }
     }
 
-    // Permission Check
-    if (requiredPermission) {
-        if (!hasPermission(requiredPermission)) {
-            return <>{fallback}</>;
-        }
+    // If no permission and no fallbackLevel provided, but we require a check, deny
+    if (!isAllowed && (resource || fallbackLevel !== undefined)) {
+        return <>{fallback}</>;
     }
 
     return <>{children}</>;

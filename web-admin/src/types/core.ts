@@ -21,6 +21,7 @@ export interface UserSummary {
     department?: string;
     department_id?: string;
     is_active: boolean;
+    employee_id?: string;
     employee_name?: string;
     employee_nik?: string;
     allowed_asset_group?: string;
@@ -33,6 +34,7 @@ export interface CreateUserRequest {
     role_code: string;
     department_id?: string;
     organization_id?: string;
+    employee_id?: string;
     allowed_asset_group?: string;
 }
 
@@ -42,6 +44,8 @@ export interface UpdateUserRequest {
     department_id?: string;
     is_active?: boolean;
     password?: string;
+    employee_id?: string;
+    clear_employee_link?: boolean;
     allowed_asset_group?: string;
 }
 

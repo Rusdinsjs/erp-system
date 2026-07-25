@@ -46,15 +46,20 @@ pub fn require_permission(
         Box::pin(async move {
             let claims = extract_user_claims(&request).ok_or(StatusCode::UNAUTHORIZED)?;
 
-            // Check if user has permission (supporting wildcards)
+            // Check if user has permission (supporting wildcards and view/read, edit/update aliases)
             let has_permission = claims.permissions.iter().any(|p| {
-                *p == "*" || *p == permission || {
-                    if let Some(prefix) = p.strip_suffix(".*") {
-                        permission.starts_with(prefix)
-                    } else {
-                        false
+                if *p == "*" || *p == permission {
+                    return true;
+                }
+                if let Some(prefix) = p.strip_suffix(".*") {
+                    if permission.starts_with(prefix) {
+                        return true;
                     }
                 }
+                // Support aliases between .view/.read and .edit/.update
+                let norm_user = p.replace(".view", ".read").replace(".edit", ".update");
+                let norm_req = permission.replace(".view", ".read").replace(".edit", ".update");
+                norm_user == norm_req
             });
 
             if has_permission {

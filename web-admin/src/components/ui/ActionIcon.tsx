@@ -3,7 +3,7 @@ import { type ButtonHTMLAttributes } from 'react';
 
 interface ActionIconProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     children: React.ReactNode;
-    variant?: 'default' | 'danger' | 'success';
+    variant?: 'default' | 'danger' | 'success' | 'ghost';
     size?: 'sm' | 'md';
 }
 
@@ -18,6 +18,7 @@ export function ActionIcon({
         default: 'text-muted-foreground hover:text-foreground hover:bg-muted',
         danger: 'text-muted-foreground hover:text-destructive hover:bg-destructive/10',
         success: 'text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10',
+        ghost: 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
     };
 
     const sizes = {

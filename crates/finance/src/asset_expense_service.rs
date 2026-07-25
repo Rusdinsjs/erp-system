@@ -61,7 +61,7 @@ impl AssetExpenseService {
         &self,
         expense_id: Uuid,
         approver_id: Uuid,
-        role_level: i32,
+        role_code: String,
         notes: Option<String>,
     ) -> DomainResult<AssetExpenseResponse> {
         // 1. Find active approval request
@@ -79,7 +79,7 @@ impl AssetExpenseService {
         // 2. Approve via ApprovalService
         let updated_approval = self
             .approval_service
-            .approve_request(approval_req.id, approver_id, role_level, notes)
+            .approve_request(approval_req.id, approver_id, role_code, notes)
             .await?;
 
         // 3. Check if fully approved (assuming L2 is final for now)

@@ -48,7 +48,7 @@ export default function AuditLogs() {
     };
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="space-y-6">
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-3">

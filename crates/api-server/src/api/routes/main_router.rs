@@ -47,11 +47,11 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/assets/expiring",
             get(get_expiring_assets
-                .layer(axum_middleware::from_fn(require_permission("asset.read")))),
+                .layer(axum_middleware::from_fn(require_permission("asset.view")))),
         )
         .route(
             "/api/assets",
-            get(list_assets.layer(axum_middleware::from_fn(require_permission("asset.read"))))
+            get(list_assets.layer(axum_middleware::from_fn(require_permission("asset.view"))))
                 .post(
                     create_asset
                         .layer(axum_middleware::from_fn(require_permission("asset.create"))),
@@ -71,7 +71,7 @@ pub fn create_router(state: AppState) -> Router {
             "/api/assets/bulk-update",
             post(
                 bulk_update_assets
-                    .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+                    .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
             )
             .layer(tower_http::limit::RequestBodyLimitLayer::new(
                 10 * 1024 * 1024,
@@ -79,14 +79,14 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route(
             "/api/assets/search",
-            get(search_assets.layer(axum_middleware::from_fn(require_permission("asset.read")))),
+            get(search_assets.layer(axum_middleware::from_fn(require_permission("asset.view")))),
         )
         .route(
             "/api/assets/:id",
-            get(get_asset.layer(axum_middleware::from_fn(require_permission("asset.read"))))
+            get(get_asset.layer(axum_middleware::from_fn(require_permission("asset.view"))))
                 .put(
                     update_asset
-                        .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+                        .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
                 )
                 .delete(
                     delete_asset
@@ -95,19 +95,19 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route(
             "/api/assets/:id/sell",
-            post(sell_asset.layer(axum_middleware::from_fn(require_permission("asset.update")))),
+            post(sell_asset.layer(axum_middleware::from_fn(require_permission("asset.edit")))),
         )
         .route(
             "/api/assets/export",
-            get(export_assets.layer(axum_middleware::from_fn(require_permission("asset.read")))),
+            get(export_assets.layer(axum_middleware::from_fn(require_permission("asset.view")))),
         )
         .route(
             "/api/assets/:id/documents",
             get(get_asset_documents
-                .layer(axum_middleware::from_fn(require_permission("asset.read"))))
+                .layer(axum_middleware::from_fn(require_permission("asset.view"))))
             .post(
                 add_document_to_asset
-                    .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+                    .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
             ),
         )
         // Maintenance - Merged below
@@ -166,8 +166,20 @@ pub fn create_router(state: AppState) -> Router {
             get(get_maintenance_template).delete(delete_maintenance_template),
         )
         .route(
+            "/api/maintenance-templates/:id/duplicate",
+            post(duplicate_maintenance_template),
+        )
+        .route(
+            "/api/maintenance-templates/:id/versions",
+            get(get_maintenance_template_versions),
+        )
+        .route(
             "/api/maintenance-templates/:id/tasks",
             post(add_template_task),
+        )
+        .route(
+            "/api/maintenance-templates/:id/tasks/reorder",
+            put(reorder_template_tasks),
         )
         .route(
             "/api/maintenance-templates/:id/tasks/:task_id",

@@ -1,0 +1,83 @@
+export interface ApprovalEntityType {
+    value: string;           // key di DB
+    label: string;           // label di UI
+    icon: string;            // lucide icon name
+    color: string;           // tailwind color class
+    description: string;     // deskripsi singkat
+    backendModule: string;   // modul backend yang handle
+}
+
+export const APPROVAL_ENTITY_TYPES: ApprovalEntityType[] = [
+    {
+        value: 'asset',
+        label: 'Asset',
+        icon: 'Box',
+        color: 'text-green-400',
+        description: 'Asset creation, sale, and disposal',
+        backendModule: 'asset_service',
+    },
+    {
+        value: 'work_order',
+        label: 'Work Order',
+        icon: 'Wrench',
+        color: 'text-blue-400',
+        description: 'Maintenance work order creation',
+        backendModule: 'work_order_service',
+    },
+    {
+        value: 'loan',
+        label: 'Loan',
+        icon: 'ArrowLeftRight',
+        color: 'text-cyan-400',
+        description: 'Asset loan requests',
+        backendModule: 'loan_service',
+    },
+    {
+        value: 'lifecycle_transition',
+        label: 'Lifecycle Transition',
+        icon: 'RefreshCw',
+        color: 'text-violet-400',
+        description: 'Asset state changes (deploy, retire, etc)',
+        backendModule: 'asset_service',
+    },
+    {
+        value: 'rental_request',
+        label: 'Rental Request',
+        icon: 'Truck',
+        color: 'text-orange-400',
+        description: 'New rental order requests',
+        backendModule: 'rental_service',
+    },
+    {
+        value: 'timesheet_verification',
+        label: 'Timesheet',
+        icon: 'ClipboardCheck',
+        color: 'text-teal-400',
+        description: 'Timesheet verification requests',
+        backendModule: 'timesheet_service',
+    },
+    {
+        value: 'conversion_request',
+        label: 'Conversion',
+        icon: 'ArrowLeftRight',
+        color: 'text-purple-400',
+        description: 'Unit conversion requests',
+        backendModule: 'inventory_service',
+    },
+    {
+        value: 'fuel_request',
+        label: 'Fuel Request',
+        icon: 'Fuel',
+        color: 'text-yellow-400',
+        description: 'Fuel logging requests',
+        backendModule: 'fuel_service',
+    },
+    {
+        value: 'tax_renewal',
+        label: 'Tax Renewal',
+        icon: 'FileText',
+        color: 'text-rose-400',
+        description: 'Tax/KIR/STNK renewal requests',
+        backendModule: 'tax_renewal_service',
+    },
+];

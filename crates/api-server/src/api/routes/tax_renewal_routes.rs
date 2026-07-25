@@ -13,26 +13,26 @@ pub fn tax_renewal_routes() -> Router<AppState> {
         .route(
             "/api/tax-renewals",
             get(tax_renewal_handler::list_renewals)
-                .layer(axum_middleware::from_fn(require_permission("asset.read"))),
+                .layer(axum_middleware::from_fn(require_permission("asset.view"))),
         )
         .route(
             "/api/tax-renewals/:id/cost",
             put(tax_renewal_handler::submit_cost)
-                .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+                .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
         )
         .route(
             "/api/tax-renewals/:id/approve",
             put(tax_renewal_handler::approve_renewal)
-                .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+                .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
         )
         .route(
             "/api/tax-renewals/:id/reject",
             put(tax_renewal_handler::reject_renewal)
-                .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+                .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
         )
         .route(
             "/api/tax-renewals/:id/complete",
             put(tax_renewal_handler::complete_renewal)
-                .layer(axum_middleware::from_fn(require_permission("asset.update"))),
+                .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
         )
 }

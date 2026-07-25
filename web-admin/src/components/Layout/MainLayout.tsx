@@ -1,6 +1,7 @@
 // MainLayout - Pure Tailwind
 import { useState } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { useNavigationStore } from '../../store/useNavigationStore';
 import {
     LayoutGrid, LayoutDashboard, Box, Wrench, Wallet, Building2, Settings,
     LogOut, Menu, ChevronLeft, ChevronRight, ChevronDown
@@ -172,7 +173,7 @@ export function MainLayout() {
                     {/* Back to Launchpad Button */}
                     <div className="mb-4 pb-4 border-b border-border/30">
                         <button
-                            onClick={() => navigate('/launchpad')}
+                            onClick={() => { useNavigationStore.getState().setActiveModule(null); navigate('/launchpad'); }}
                             className={`
                                 w-full flex items-center gap-3 px-4 py-3 rounded-xl text-primary hover:bg-primary/10 transition-all duration-300 font-medium group
                                 ${collapsed ? 'justify-center' : ''}
@@ -297,7 +298,7 @@ export function MainLayout() {
                     {/* Back to Launchpad Button Mobile */}
                     <div className="mb-4 pb-4 border-b border-border/50">
                         <button
-                            onClick={() => { navigate('/launchpad'); setMobileMenuOpen(false); }}
+                            onClick={() => { useNavigationStore.getState().setActiveModule(null); navigate('/launchpad'); setMobileMenuOpen(false); }}
                             className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-primary hover:bg-primary/10 transition-colors font-medium"
                         >
                             <LayoutGrid size={20} />

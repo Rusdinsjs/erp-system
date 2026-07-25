@@ -59,6 +59,11 @@ export interface MaintenanceTemplate {
     name: string;
     description: string | null;
     asset_category_id: string | null;
+    version?: number;
+    is_active?: boolean;
+    parent_id?: string | null;
+    usage_count?: number;
+    last_used_at?: string | null;
     created_at: string;
     updated_at: string;
 }

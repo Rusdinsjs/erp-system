@@ -278,6 +278,8 @@ impl EmployeeService {
             department: employee.department_name.clone(),
             department_id: employee.department_id,
             organization_id: None, // Default organization
+            employee_id: Some(id),
+            allowed_asset_group: None,
         };
 
         let user = self.user_service.create_user(user_req).await?;

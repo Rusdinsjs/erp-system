@@ -17,7 +17,7 @@ import { RentalScheduler } from '../../components/Rentals/RentalScheduler';
 
 export default function Rentals() {
     return (
-        <div className="p-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <div className="space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
             {/* Header Section */}
             <div className="relative">
                 {/* Decorative background element */}

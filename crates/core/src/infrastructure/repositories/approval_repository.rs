@@ -8,9 +8,25 @@ use uuid::Uuid;
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct ApprovalWorkflow {
+    pub id: Uuid,
+    pub workflow_name: String,
+    pub entity_type: String,
+    pub approval_levels: i32,
+    pub level_1_role: Option<String>,
+    pub level_2_role: Option<String>,
+    pub level_3_role: Option<String>,
+    pub level_4_role: Option<String>,
+    pub level_5_role: Option<String>,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct ApprovalRequest {
     #[schema(example = "550e8400-e29b-41d4-a716-446655440000")]
     pub id: Uuid,
+    pub workflow_id: Option<Uuid>,
+    pub required_levels: Option<i32>,
     #[schema(example = "Asset")]
     pub resource_type: String,
     pub resource_id: Uuid,
@@ -53,18 +69,32 @@ impl ApprovalRepository {
         sqlx::query_as::<_, ApprovalRequest>(
             r#"
             INSERT INTO approval_requests (
-                resource_type, resource_id, action_type, requested_by, data_snapshot, status, current_approval_level
+                workflow_id, required_levels, resource_type, resource_id, action_type, requested_by, data_snapshot, status, current_approval_level
             )
-            VALUES ($1, $2, $3, $4, $5, 'PENDING', 1)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING', 1)
             RETURNING *, NULL as requester_name
-            "#
+            "#,
         )
+        .bind(req.workflow_id)
+        .bind(req.required_levels)
         .bind(&req.resource_type)
         .bind(req.resource_id)
         .bind(&req.action_type)
         .bind(req.requested_by)
         .bind(&req.data_snapshot)
         .fetch_one(&self.pool)
+        .await
+    }
+
+    pub async fn find_workflow_by_entity(
+        &self,
+        entity_type: &str,
+    ) -> Result<Option<ApprovalWorkflow>, sqlx::Error> {
+        sqlx::query_as::<_, ApprovalWorkflow>(
+            "SELECT * FROM approval_workflows WHERE entity_type = $1 AND is_active = true LIMIT 1"
+        )
+        .bind(entity_type)
+        .fetch_optional(&self.pool)
         .await
     }
 
@@ -194,6 +224,8 @@ pub mod scan_approval_request {
     use uuid::Uuid;
 
     pub struct CreateApprovalRequest {
+        pub workflow_id: Option<Uuid>,
+        pub required_levels: Option<i32>,
         pub resource_type: String,
         pub resource_id: Uuid,
         pub action_type: String,

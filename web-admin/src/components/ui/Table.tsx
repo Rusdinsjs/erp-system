@@ -1,5 +1,4 @@
-// Table Component - Pure Tailwind
-import { type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 // Table Root
 interface TableProps {
@@ -42,26 +41,33 @@ export function TableBody({ children, className = '' }: TableBodyProps) {
 }
 
 // Table Row
-interface TableRowProps {
+export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
     children: ReactNode;
     onClick?: () => void;
     className?: string;
+    style?: React.CSSProperties;
 }
 
-export function TableRow({ children, onClick, className = '' }: TableRowProps) {
-    return (
-        <tr
-            className={`
-                bg-card/30 hover:bg-muted/50 transition-colors
-                ${onClick ? 'cursor-pointer' : ''}
-                ${className}
-            `}
-            onClick={onClick}
-        >
-            {children}
-        </tr>
-    );
-}
+export const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
+    ({ children, onClick, className = '', style, ...props }, ref) => {
+        return (
+            <tr
+                ref={ref}
+                style={style}
+                className={`
+                    bg-card/30 hover:bg-muted/50 transition-colors
+                    ${onClick ? 'cursor-pointer' : ''}
+                    ${className}
+                `}
+                onClick={onClick}
+                {...props}
+            >
+                {children}
+            </tr>
+        );
+    }
+);
+TableRow.displayName = 'TableRow';
 
 // Table Header Cell
 interface TableThProps {

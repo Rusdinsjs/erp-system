@@ -153,7 +153,7 @@ const Contracts: React.FC = () => {
     };
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto">
+        <div className="max-w-[1600px] mx-auto space-y-6">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
                 <div>

@@ -115,14 +115,7 @@ export default function Dashboard() {
     });
 
 
-    // 3. Fetch Depreciation/Financials
-    const { data: financials, isLoading: financialsLoading } = useQuery({
-        queryKey: ['dashboard-depreciation'],
-        queryFn: async () => {
-            const res = await api.get('/dashboard/depreciation');
-            return res.data;
-        },
-    });
+
 
     // 4. Fetch Maintenance Trends
     const { data: trends, isLoading: trendsLoading } = useQuery({
@@ -183,7 +176,7 @@ export default function Dashboard() {
     const { hasRoleLevel } = useAuthStore();
     const showFinancials = hasRoleLevel(3); // Level 3 (Manager) or higher
 
-    const isLoading = statsLoading || financialsLoading || trendsLoading || statusLoading;
+    const isLoading = statsLoading || trendsLoading || statusLoading;
 
     if (isLoading) return <PageLoading />;
 
@@ -210,13 +203,6 @@ export default function Dashboard() {
             color: 'blue' as const,
             description: `${stats?.assets?.by_status?.find((s: any) => s.status === 'available')?.count || 0} Available`
         },
-        ...(showFinancials ? [{
-            label: 'Total Value',
-            value: formatCurrency(stats?.assets?.total_value || 0),
-            icon: DollarSign,
-            color: 'green' as const,
-            description: 'Asset Purchase Value'
-        }] : []),
         {
             label: 'Active Work Orders',
             value: stats?.maintenance?.pending || 0,
@@ -315,37 +301,8 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Financial Snapshot & Recent Activity Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {showFinancials && (
-                            <div className="bg-card/40 backdrop-blur-xl border border-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none" />
-                                <h2 className="text-sm font-black uppercase tracking-widest text-foreground mb-6">Financial Snapshot</h2>
-                                <div className="space-y-6 relative z-10">
-                                    <div>
-                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Book Value</p>
-                                        <p className="text-3xl font-black text-emerald-400 font-mono tracking-tight">
-                                            {formatCurrency(financials?.total_book_value || 0)}
-                                        </p>
-                                    </div>
-                                    <div className="pt-6 border-t border-border grid grid-cols-2 gap-6">
-                                        <div>
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Orig. Cost</p>
-                                            <p className="text-sm font-black text-foreground font-mono">
-                                                {formatCurrency(financials?.total_original_cost || 0)}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Deprec.</p>
-                                            <p className="text-sm font-black text-rose-500 font-mono">
-                                                -{formatCurrency(financials?.total_accumulated_depreciation || 0)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
+                    {/* Recent Activity Row */}
+                    <div>
                         <LiveActivityFeed />
                     </div>
                 </div>
