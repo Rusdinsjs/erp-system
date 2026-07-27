@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw, LayoutGrid, List } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw, LayoutGrid, List, QrCode } from 'lucide-react';
 import { assetApi } from '../../api/assets';
 import { categoryApi } from '../../api/category';
 import { locationApi } from '../../api/locations';
@@ -29,6 +29,7 @@ import {
 } from '../../components/ui';
 import { BulkActionToolbar } from '../../components/Assets/BulkActionToolbar';
 import { AssetPreviewModal } from '../../components/Assets/AssetPreviewModal';
+import { QRCodeModal } from '../../components/QRCodeModal';
 
 // Helper to flatten category tree
 const flattenCategories = (nodes: any[], prefix = ''): any[] => {
@@ -74,6 +75,7 @@ export default function Assets() {
     const [bulkValue, setBulkValue] = useState<string>('');
     const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [qrModalAsset, setQrModalAsset] = useState<Asset | null>(null);
 
     // Fetch Assets
     const { data: assetsData, isLoading: assetsLoading } = useQuery({
@@ -589,6 +591,13 @@ export default function Assets() {
                                                 <TableTd align="center">
                                                     <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <ActionIcon
+                                                            onClick={() => setQrModalAsset(asset)}
+                                                            title="QR Code Label"
+                                                            className="hover:bg-purple-500/20 text-purple-400"
+                                                        >
+                                                            <QrCode size={16} />
+                                                        </ActionIcon>
+                                                        <ActionIcon
                                                             onClick={() => {
                                                                 setPreviewAsset(asset);
                                                                 setIsPreviewOpen(true);
@@ -689,17 +698,24 @@ export default function Assets() {
                                                         </div>
                                                     </div>
                                                     
-                                                    <div className="pt-4 mt-4 border-t border-border flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 max-w-[50%]">
-                                                            <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold border border-blue-500/30 flex-shrink-0">
-                                                                {asset.assigned_to_name?.charAt(0) || '?'}
+                                                    <div className="pt-3 mt-3 border-t border-border flex items-center justify-between gap-2">
+                                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border flex-shrink-0 ${
+                                                                asset.assigned_to_name 
+                                                                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                                                                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                                                            }`}>
+                                                                {asset.assigned_to_name ? asset.assigned_to_name.charAt(0).toUpperCase() : '?'}
                                                             </div>
-                                                            <span className="text-xs text-muted-foreground truncate" title={asset.assigned_to_name}>{asset.assigned_to_name || 'Unassigned'}</span>
+                                                            <span className={`text-xs truncate ${asset.assigned_to_name ? 'text-foreground font-medium' : 'text-muted-foreground/70'}`} title={asset.assigned_to_name || 'Unassigned'}>
+                                                                {asset.assigned_to_name || 'Unassigned'}
+                                                            </span>
                                                         </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <ActionIcon onClick={() => { setPreviewAsset(asset); setIsPreviewOpen(true); }} className="hover:bg-cyan-500/20 text-cyan-400 w-8 h-8"><Eye size={14} /></ActionIcon>
-                                                            <ActionIcon onClick={() => navigate(`/assets/${asset.id}/lifecycle`)} className="hover:bg-emerald-500/20 text-emerald-400 w-8 h-8"><RefreshCw size={14} /></ActionIcon>
-                                                            <ActionIcon onClick={() => handleEdit(asset)} className="hover:bg-amber-500/20 text-amber-400 w-8 h-8"><Edit size={14} /></ActionIcon>
+                                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                                            <ActionIcon onClick={() => { setPreviewAsset(asset); setIsPreviewOpen(true); }} title="Quick Preview" className="hover:bg-cyan-500/20 text-cyan-400 w-7 h-7 rounded-lg"><Eye size={14} /></ActionIcon>
+                                                            <ActionIcon onClick={() => setQrModalAsset(asset)} title="QR Code Label" className="hover:bg-purple-500/20 text-purple-400 w-7 h-7 rounded-lg"><QrCode size={14} /></ActionIcon>
+                                                            <ActionIcon onClick={() => navigate(`/assets/${asset.id}/lifecycle`)} title="Manage Lifecycle" className="hover:bg-emerald-500/20 text-emerald-400 w-7 h-7 rounded-lg"><RefreshCw size={14} /></ActionIcon>
+                                                            <ActionIcon onClick={() => handleEdit(asset)} title="Edit Asset" className="hover:bg-amber-500/20 text-amber-400 w-7 h-7 rounded-lg"><Edit size={14} /></ActionIcon>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -947,6 +963,12 @@ export default function Assets() {
                 isOpen={isPreviewOpen}
                 onClose={() => setIsPreviewOpen(false)}
                 asset={previewAsset}
+            />
+
+            <QRCodeModal
+                isOpen={!!qrModalAsset}
+                onClose={() => setQrModalAsset(null)}
+                asset={qrModalAsset}
             />
         </div>
     );
