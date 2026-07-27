@@ -1,12 +1,12 @@
 [Unit]
-Description=Management System ERP Dev Services
+Description=System ERP Dev Services
 After=network.target docker.service
 
 [Service]
 Type=simple
 User=rus
-WorkingDirectory=/home/rus/projects/management-system
-ExecStart=/bin/bash /home/rus/projects/management-system/start-dev.sh
+WorkingDirectory=/home/rus/projects/erp-system
+ExecStart=/bin/bash /home/rus/projects/erp-system/start-dev.sh
 Restart=on-failure
 RestartSec=10
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
