@@ -18,10 +18,7 @@ export default defineConfig({
         ws: true,
       }
     },
-    allowedHosts: [
-      'app.sjsgroup.site',
-      '100.85.240.54'
-    ]
+    allowedHosts: true
   },
   build: {
     rollupOptions: {

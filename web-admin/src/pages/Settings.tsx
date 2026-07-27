@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Globe, Palette, DollarSign, Upload, Image as ImageIcon, Moon, Sun, Monitor, LayoutGrid, RotateCcw, GripVertical, X as XIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Save, Globe, Palette, Bot, Play, Sparkles, Eye, EyeOff, CheckCircle2, Loader2, DollarSign, Upload, Image as ImageIcon, Moon, Sun, Monitor, LayoutGrid, RotateCcw, GripVertical, X as XIcon, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { settingsApi } from '../api/settings';
+import { aiApi } from '../api/ai';
 import {
     Button,
     Card,
@@ -21,6 +22,21 @@ export default function Settings() {
     const { success, error: showError } = useToast();
     const [activeTab, setActiveTab] = useState('general');
     const { theme, setTheme } = useTheme();
+
+    const [isTestingAI, setIsTestingAI] = useState(false);
+    const [showApiKey, setShowApiKey] = useState(false);
+
+    const handleTestAI = async () => {
+        setIsTestingAI(true);
+        try {
+            const res = await aiApi.testConnection(formData);
+            success(`AI Connection Success! Response: "${res.slice(0, 60)}..."`, 'AI Test OK');
+        } catch (err: any) {
+            showError(err.message || 'AI Connection Failed', 'AI Test Error');
+        } finally {
+            setIsTestingAI(false);
+        }
+    };
 
     // Fetch all settings
     const { data: settings = [], isLoading } = useQuery({
@@ -129,8 +145,15 @@ export default function Settings() {
                             >
                                 Asset Monitoring
                             </TabsTrigger>
+                                                        <TabsTrigger
+                                value="ai"
+                                icon={<Bot size={16} />}
+                                className="w-full justify-start px-4 py-3 data-[state=active]:bg-indigo-600/10 data-[state=active]:text-indigo-400"
+                            >
+                                AI Integration
+                            </TabsTrigger>
                             <TabsTrigger
-                                value="launchpad"
+                                value="launchpad" 
                                 icon={<LayoutGrid size={16} />}
                                 className="w-full justify-start px-4 py-3 data-[state=active]:bg-orange-600/10 data-[state=active]:text-orange-400"
                             >
@@ -140,7 +163,206 @@ export default function Settings() {
                     </div>
 
                     <div className="flex-1 p-8 bg-card">
-                        <TabsContent value="general" className="mt-0 space-y-6">
+                                                {/* AI & LLM Integration Tab */}
+                        <TabsContent value="ai" className="mt-0 space-y-6">
+                            <div>
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
+                                            <Bot className="text-indigo-500" size={20} />
+                                            AI & LLM Provider Configuration
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Hubungkan Hermes AI Assistant dengan Provider LLM pilihan Anda (Ollama, OpenAI, Groq, Anthropic, atau Custom OpenAI API).
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        leftIcon={isTestingAI ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                                        onClick={handleTestAI}
+                                        disabled={isTestingAI}
+                                        className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+                                    >
+                                        {isTestingAI ? 'Testing Connection...' : 'Test AI Connection'}
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {/* Agent Name Input */}
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-medium text-foreground">Nama Asisten AI (Agent Name / Call Sign)</label>
+                                        <Input
+                                            value={formData['ai_agent_name'] ?? ''}
+                                            onChange={(e) => handleChange('ai_agent_name', e.target.value)}
+                                            placeholder="e.g. Hermes AI, Jarvis, SJS Assistant"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Nama panggilan asisten virtual yang tampil pada header widget chat, sapaan pengguna, dan identitas agen AI.
+                                        </p>
+                                    </div>
+
+                                    {/* AI Provider Select Cards */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-foreground mb-2">Select AI Provider</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {[
+                                                { id: 'ollama', name: 'Ollama', desc: 'Local LLM (Llama 3, Mistral)', defaultEndpoint: 'http://localhost:11434', defaultModel: 'llama3' },
+                                                { id: 'openai', name: 'OpenAI', desc: 'ChatGPT (gpt-4o, gpt-4o-mini)', defaultEndpoint: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini' },
+                                                { id: 'groq', name: 'Groq', desc: 'Ultra-fast Llama 3.3 70B', defaultEndpoint: 'https://api.groq.com/openai/v1', defaultModel: 'llama-3.3-70b-versatile' },
+                                                { id: 'anthropic', name: 'Anthropic', desc: 'Claude 3.5 Sonnet', defaultEndpoint: 'https://api.anthropic.com', defaultModel: 'claude-3-5-sonnet-latest' },
+                                                { id: 'custom', name: 'Custom API', desc: 'OpenAI-Compatible (vLLM, LM Studio)', defaultEndpoint: 'http://localhost:1234/v1', defaultModel: 'custom-model' }
+                                            ].map(p => {
+                                                const isSelected = (formData['ai_provider'] || 'ollama') === p.id;
+                                                return (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleChange('ai_provider', p.id);
+                                                            if (!formData['ai_endpoint']) handleChange('ai_endpoint', p.defaultEndpoint);
+                                                            if (!formData['ai_model']) handleChange('ai_model', p.defaultModel);
+                                                        }}
+                                                        className={`p-4 rounded-xl border text-left transition-all relative overflow-hidden ${
+                                                            isSelected
+                                                                ? 'border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500'
+                                                                : 'border-border bg-card/50 hover:bg-muted/50'
+                                                        }`}
+                                                    >
+                                                        {isSelected && (
+                                                            <div className="absolute top-2 right-2 text-indigo-400">
+                                                                <CheckCircle2 size={16} />
+                                                            </div>
+                                                        )}
+                                                        <div className="font-semibold text-sm text-foreground">{p.name}</div>
+                                                        <div className="text-xs text-muted-foreground mt-1">{p.desc}</div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Base Endpoint URL */}
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-medium text-foreground">API Base Endpoint URL</label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                value={formData['ai_endpoint'] ?? ''}
+                                                onChange={(e) => handleChange('ai_endpoint', e.target.value)}
+                                                placeholder="e.g. http://localhost:11434 atau https://api.openai.com/v1"
+                                                className="flex-1"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const p = formData['ai_provider'] || 'ollama';
+                                                    if (p === 'ollama') handleChange('ai_endpoint', 'http://localhost:11434');
+                                                    else if (p === 'openai') handleChange('ai_endpoint', 'https://api.openai.com/v1');
+                                                    else if (p === 'groq') handleChange('ai_endpoint', 'https://api.groq.com/openai/v1');
+                                                    else if (p === '9router') handleChange('ai_endpoint', 'http://localhost:20128/v1');
+                                                    else if (p === 'anthropic') handleChange('ai_endpoint', 'https://api.anthropic.com');
+                                                    else handleChange('ai_endpoint', 'http://localhost:1234/v1');
+                                                }}
+                                                className="text-xs text-muted-foreground"
+                                            >
+                                                Reset Default
+                                            </Button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            URL dasar server AI. Untuk Ollama lokal: <code>http://localhost:11434</code>
+                                        </p>
+                                    </div>
+
+                                    {/* API Key */}
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-medium text-foreground">API Key (Secret)</label>
+                                        <div className="relative">
+                                            <Input
+                                                type={showApiKey ? 'text' : 'password'}
+                                                value={formData['ai_api_key'] ?? ''}
+                                                onChange={(e) => handleChange('ai_api_key', e.target.value)}
+                                                placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowApiKey(!showApiKey)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                                            >
+                                                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Wajib diisi jika menggunakan OpenAI, Groq, Anthropic, atau Custom API. Kosongkan untuk Ollama lokal tanpa auth.
+                                        </p>
+                                    </div>
+
+                                    {/* Model Name */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-foreground">Model Name</label>
+                                        <Input
+                                            value={formData['ai_model'] ?? ''}
+                                            onChange={(e) => handleChange('ai_model', e.target.value)}
+                                            placeholder="e.g. llama3, gpt-4o-mini, llama-3.3-70b-versatile"
+                                        />
+                                        
+                                        {/* Popular Model Quick Picks */}
+                                        <div className="flex flex-wrap gap-2 pt-1">
+                                            <span className="text-xs text-muted-foreground py-1">Rekomendasi Quick Pick:</span>
+                                            {['combo-kantor', 'llama3', 'gpt-4o-mini', 'llama-3.3-70b-versatile', 'claude-3-5-sonnet-latest', 'mistral', 'qwen2.5'].map(m => (
+                                                <button
+                                                    key={m}
+                                                    type="button"
+                                                    onClick={() => handleChange('ai_model', m)}
+                                                    className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                                                        formData['ai_model'] === m
+                                                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 font-medium'
+                                                            : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    {m}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Knowledge Base & Long-Term Memory */}
+                                    <div className="space-y-1.5 pt-4 border-t border-border">
+                                        <label className="block text-sm font-medium text-foreground flex items-center gap-2">
+                                            <Sparkles className="text-amber-400" size={16} />
+                                            Knowledge Base & Ingatan Jangka Panjang (Pengembangan Diri AI)
+                                        </label>
+                                        <textarea
+                                            rows={5}
+                                            value={formData['ai_custom_knowledge'] ?? ''}
+                                            onChange={(e) => handleChange('ai_custom_knowledge', e.target.value)}
+                                            placeholder="Tuliskan pengetahuan, aturan SOP, catatan penting, atau instruksi permanen yang harus selalu diingat oleh AI (contoh: 'Aset alat berat jika rusak wajib melapor ke Budi', 'Batas stok reorder inventaris adalah 10 unit', dll.)."
+                                            className="w-full bg-background border border-border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/20 text-foreground outline-none resize-y placeholder:text-muted-foreground/50 font-mono text-xs"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Semua catatan di sini tersimpan **PERMANEN** di database dan menjadi ingatan/skill jangka panjang yang tidak akan pernah dilupakan oleh Agen AI terlepas dari provider atau model yang digunakan.
+                                        </p>
+                                    </div>
+
+                                    {/* System Prompt Customization */}
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-medium text-foreground">Custom System Persona / Prompt</label>
+                                        <textarea
+                                            rows={4}
+                                            value={formData['ai_system_prompt'] ?? ''}
+                                            onChange={(e) => handleChange('ai_system_prompt', e.target.value)}
+                                            placeholder="Kosongkan untuk menggunakan prompt standar Hermes AI. Masukkan instruksi khusus jika ingin mengubah karakter AI."
+                                            className="w-full bg-background border border-border rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/20 text-foreground outline-none resize-y placeholder:text-muted-foreground/50"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Kustomisasi instruksi dasar dan peran AI Hermes untuk disesuaikan dengan aturan bisnis perusahaan.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="general"  className="mt-0 space-y-6">
                             <div>
                                 <h3 className="text-lg font-bold text-foreground mb-1">General Information</h3>
                                 <p className="text-sm text-muted-foreground mb-6">Basic identification details for the system.</p>

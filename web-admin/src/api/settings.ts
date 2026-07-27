@@ -15,7 +15,7 @@ export const settingsApi = {
     },
 
     update: async (key: string, value: any, description?: string): Promise<Setting> => {
-        const response = await api.put<{ data: Setting }>(`/settings/${key}`, {
+        const response = await api.put<{ data: Setting }>('/settings/' + key, {
             value,
             description
         });
@@ -23,8 +23,14 @@ export const settingsApi = {
     },
 
     getPublic: async (): Promise<any> => {
-        const response = await api.get<{ data: any }>('/public-settings');
-        return response.data.data;
+        try {
+            const response = await api.get<{ data: any }>('/public-settings', {
+                headers: { 'X-Suppress-Toast': 'true' }
+            });
+            return response.data?.data ?? null;
+        } catch {
+            return null;
+        }
     },
 
     uploadFile: async (file: File): Promise<{ url: string; id: string }> => {

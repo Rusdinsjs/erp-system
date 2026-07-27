@@ -9,7 +9,9 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
     const token = useAuthStore.getState().token;
     if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        const headers = config.headers || {};
+        headers.Authorization = 'Bearer ' + token;
+        config.headers = headers;
     }
     return config;
 });
@@ -17,18 +19,30 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        const message = error.response?.data?.error || error.response?.data?.message || 'Something went wrong';
+        const headers = error.config?.headers;
+        const hasSuppressHeader = headers && (headers['X-Suppress-Toast'] || headers['x-suppress-toast']);
+        
+        if (
+            hasSuppressHeader ||
+            error.config?.url?.includes('/public-settings') ||
+            error.config?.url?.includes('/audit/sessions/active')
+        ) {
+            return Promise.reject(error);
+        }
 
-        // Ignore 401s as they are handled by auth store redirection (usually)
+        const message = error.response?.data?.error || error.response?.data?.message;
+
         if (error.response?.status === 401) {
             useAuthStore.getState().logout();
             showToast('Session expired. Please login again.', 'error', 'Authentication Error');
-        } else if (error.response?.status === 404 && error.config?.url?.includes('/audit/sessions/active')) {
-            // Ignore 404 for active session check - it just means no session is active
-            return Promise.resolve({ data: null });
         } else if (error.response?.status >= 400) {
-            // General API errors
-            showToast(message, 'error', 'Error');
+            if (message) {
+                showToast(message, 'error', 'Error');
+            }
+        } else if (!error.response && !axios.isCancel(error)) {
+            if (error.config?.method?.toUpperCase() !== 'GET') {
+                showToast('Tidak dapat terhubung ke server backend', 'error', 'Koneksi Gagal');
+            }
         }
 
         return Promise.reject(error);

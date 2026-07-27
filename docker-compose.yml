@@ -1,9 +1,9 @@
-# version: "3.8"
+name: management-system
 
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:17-alpine
+    image: postgres:16-alpine
     container_name: mgmt-db
     restart: unless-stopped
     mem_limit: 512m

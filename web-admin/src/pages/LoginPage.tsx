@@ -44,7 +44,7 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const response = await api.post('/auth/login', { email, password });
+            const response = await api.post('/auth/login', { email, password }, { headers: { 'X-Suppress-Toast': 'true' } });
             const { token, user } = response.data;
             login(token, user);
             navigate('/');
