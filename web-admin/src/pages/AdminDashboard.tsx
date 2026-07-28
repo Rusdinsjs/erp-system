@@ -978,10 +978,10 @@ export default function AdminDashboard() {
                 {/* Header */}
                 <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 gap-4 relative z-10 shadow-sm">
 
-                    {/* Sidebar Toggle Button */}
+                    {/* Sidebar Toggle Button (Mobile Only) */}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 -ml-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                        className="p-2 -ml-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors lg:hidden"
                     >
                         <Menu size={24} />
                     </button>
