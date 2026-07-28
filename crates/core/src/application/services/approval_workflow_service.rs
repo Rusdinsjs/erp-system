@@ -3,16 +3,25 @@ use uuid::Uuid;
 
 use crate::domain::entities::ApprovalWorkflow;
 use crate::domain::errors::{DomainError, DomainResult};
-use crate::infrastructure::repositories::ApprovalWorkflowRepository;
+use crate::infrastructure::repositories::{
+    ApprovalEntityTypeRepository, ApprovalWorkflowRepository,
+};
 
 #[derive(Clone)]
 pub struct ApprovalWorkflowService {
     repo: Arc<ApprovalWorkflowRepository>,
+    entity_type_repo: Arc<ApprovalEntityTypeRepository>,
 }
 
 impl ApprovalWorkflowService {
-    pub fn new(repo: Arc<ApprovalWorkflowRepository>) -> Self {
-        Self { repo }
+    pub fn new(
+        repo: Arc<ApprovalWorkflowRepository>,
+        entity_type_repo: Arc<ApprovalEntityTypeRepository>,
+    ) -> Self {
+        Self {
+            repo,
+            entity_type_repo,
+        }
     }
 
     pub async fn list_workflows(&self) -> DomainResult<Vec<ApprovalWorkflow>> {
@@ -37,6 +46,23 @@ impl ApprovalWorkflowService {
         &self,
         workflow: ApprovalWorkflow,
     ) -> DomainResult<ApprovalWorkflow> {
+        let et = self
+            .entity_type_repo
+            .find_by_value(&workflow.entity_type)
+            .await?;
+        match et {
+            Some(type_obj) if type_obj.is_active => {}
+            _ => {
+                return Err(DomainError::validation(
+                    "entity_type",
+                    &format!(
+                        "Invalid entity type: '{}'. Must be a registered active entity type.",
+                        workflow.entity_type
+                    ),
+                ));
+            }
+        }
+
         self.repo.create(&workflow).await
     }
 
@@ -45,6 +71,23 @@ impl ApprovalWorkflowService {
         id: Uuid,
         workflow: ApprovalWorkflow,
     ) -> DomainResult<ApprovalWorkflow> {
+        let et = self
+            .entity_type_repo
+            .find_by_value(&workflow.entity_type)
+            .await?;
+        match et {
+            Some(type_obj) if type_obj.is_active => {}
+            _ => {
+                return Err(DomainError::validation(
+                    "entity_type",
+                    &format!(
+                        "Invalid entity type: '{}'. Must be a registered active entity type.",
+                        workflow.entity_type
+                    ),
+                ));
+            }
+        }
+
         self.repo.update(id, &workflow).await
     }
 

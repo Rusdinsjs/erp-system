@@ -2,6 +2,7 @@
 //!
 //! Data access layer implementations.
 
+pub mod approval_entity_type_repository;
 pub mod approval_repository;
 pub mod approval_workflow_repository;
 pub mod asset_repository;
@@ -37,6 +38,7 @@ pub mod user_repository;
 pub mod vendor_repository;
 pub mod work_order_repository;
 
+pub use approval_entity_type_repository::*;
 pub use approval_repository::*;
 pub use approval_workflow_repository::*;
 pub use asset_repository::*;

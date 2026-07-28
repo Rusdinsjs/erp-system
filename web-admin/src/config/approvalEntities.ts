@@ -1,10 +1,14 @@
 export interface ApprovalEntityType {
+    id?: string;
     value: string;           // key di DB
     label: string;           // label di UI
-    icon: string;            // lucide icon name
-    color: string;           // tailwind color class
-    description: string;     // deskripsi singkat
-    backendModule: string;   // modul backend yang handle
+    icon: string | null;     // lucide icon name
+    color: string | null;    // tailwind color class
+    description: string | null; // deskripsi singkat
+    backend_module?: string | null; // modul backend yang handle
+    backendModule?: string | null;
+    is_active?: boolean;
+    is_system?: boolean;
 }
 
 export const APPROVAL_ENTITY_TYPES: ApprovalEntityType[] = [

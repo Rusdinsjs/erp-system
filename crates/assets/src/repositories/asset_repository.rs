@@ -238,7 +238,8 @@ impl AssetRepository {
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
                    a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, 
-                   a.assigned_to, u.name as assigned_to_name, a.version
+                   a.assigned_to, u.name as assigned_to_name, a.version,
+                   (SELECT file_path FROM asset_documents WHERE asset_id = a.id AND (type IN ('FRONT', 'BACK', 'LEFT', 'RIGHT', 'PHOTO', 'main') OR mime_type ILIKE 'image/%') ORDER BY CASE WHEN type = 'FRONT' THEN 1 WHEN type = 'PHOTO' THEN 2 ELSE 3 END, created_at DESC LIMIT 1) as photo_url
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
@@ -327,7 +328,8 @@ impl AssetRepository {
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
                    a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, 
-                   a.assigned_to, u.name as assigned_to_name, a.version
+                   a.assigned_to, u.name as assigned_to_name, a.version,
+                   (SELECT file_path FROM asset_documents WHERE asset_id = a.id AND (type IN ('FRONT', 'BACK', 'LEFT', 'RIGHT', 'PHOTO', 'main') OR mime_type ILIKE 'image/%') ORDER BY CASE WHEN type = 'FRONT' THEN 1 WHEN type = 'PHOTO' THEN 2 ELSE 3 END, created_at DESC LIMIT 1) as photo_url
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id

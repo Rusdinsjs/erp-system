@@ -80,6 +80,8 @@ async fn main() {
         .await
         .unwrap_or_else(|_| panic!("Failed to bind to address: {}", addr));
 
+    tracing::info!("Server listening on http://{}", addr);
+
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),

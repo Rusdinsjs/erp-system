@@ -1,6 +1,7 @@
 //! Application Services
 
 pub mod analytics_service;
+pub mod approval_entity_type_service;
 pub mod approval_service; // Added
 pub mod approval_workflow_service;
 pub mod audit_service; // Added
@@ -21,6 +22,7 @@ pub mod sensor_service;
 pub mod settings_service;
 
 pub use analytics_service::*;
+pub use approval_entity_type_service::*;
 pub use approval_service::*; // Added
 pub use approval_workflow_service::*;
 pub use audit_service::*;

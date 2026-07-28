@@ -184,6 +184,7 @@ pub struct AssetSummary {
     pub assigned_to: Option<Uuid>,
     pub assigned_to_name: Option<String>,
     pub version: i32,
+    pub photo_url: Option<String>,
 }
 
 /// Asset with joined data for detail view

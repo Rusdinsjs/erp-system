@@ -30,6 +30,7 @@ import {
 import { BulkActionToolbar } from '../../components/Assets/BulkActionToolbar';
 import { AssetPreviewModal } from '../../components/Assets/AssetPreviewModal';
 import { QRCodeModal } from '../../components/QRCodeModal';
+import { getImageUrl } from '../../utils/image';
 
 // Helper to flatten category tree
 const flattenCategories = (nodes: any[], prefix = ''): any[] => {
@@ -641,8 +642,8 @@ export default function Assets() {
                             ) : (
                                 <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {assetsData?.data?.map((asset: any) => {
-                                        const imageUrl = asset.photos?.front || asset.photos?.left || asset.photos?.right || asset.photos?.back || null;
-                                        const displayUrl = imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `${import.meta.env.VITE_API_URL || '/api'}${imageUrl}`) : null;
+                                        const imageUrl = asset.photos?.front || asset.photos?.left || asset.photos?.right || asset.photos?.back || asset.photos?.main || asset.photo_url || asset.image_url || null;
+                                        const displayUrl = imageUrl ? getImageUrl(imageUrl) : null;
                                         
                                         return (
                                             <div key={asset.id} className="group bg-card/60 backdrop-blur-xl border border-border rounded-3xl overflow-hidden hover:shadow-2xl hover:border-primary/50 transition-all duration-300 relative flex flex-col min-h-[340px]">

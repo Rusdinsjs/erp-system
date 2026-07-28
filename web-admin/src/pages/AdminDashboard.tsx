@@ -978,10 +978,10 @@ export default function AdminDashboard() {
                 {/* Header */}
                 <header className="h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 gap-4 relative z-10 shadow-sm">
 
-                    {/* Mobile Toggle Button */}
+                    {/* Sidebar Toggle Button */}
                     <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="p-2 -ml-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground lg:hidden transition-colors"
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="p-2 -ml-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <Menu size={24} />
                     </button>
@@ -991,11 +991,11 @@ export default function AdminDashboard() {
                     {/* Back to Launchpad Button (For All Users) */}
                     <button
                         onClick={() => { setActiveModule(null); navigate('/launchpad'); }}
-                        className="hidden md:flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
-                        title="Back to Launchpad"
+                        className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
+                        title="Kembali ke Menu Utama / Launchpad"
                     >
                         <LayoutDashboard size={18} />
-                        <span>Menu Utama</span>
+                        <span className="hidden sm:inline">Menu Utama</span>
                     </button>
 
                     <div className="flex-1" /> {/* Spacer */}

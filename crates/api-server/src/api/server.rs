@@ -76,6 +76,8 @@ pub struct AppState {
     pub tax_renewal_service: management_system_ops::TaxRenewalService,
     pub approval_workflow_service:
         management_system_core::application::services::ApprovalWorkflowService,
+    pub approval_entity_type_service:
+        management_system_core::application::services::ApprovalEntityTypeService,
     pub file_storage: Arc<FileStorage>,
     pub contract_document_repo: Arc<ContractDocumentRepository>,
     pub pool: PgPool,
@@ -122,6 +124,11 @@ impl AppState {
         );
         let approval_workflow_repo = Arc::new(
             management_system_core::infrastructure::repositories::ApprovalWorkflowRepository::new(
+                pool.clone(),
+            ),
+        );
+        let approval_entity_type_repo = Arc::new(
+            management_system_core::infrastructure::repositories::ApprovalEntityTypeRepository::new(
                 pool.clone(),
             ),
         );
@@ -177,9 +184,14 @@ impl AppState {
 
         let email_service =
             management_system_core::application::services::EmailService::new(config);
+        let approval_entity_type_service =
+            management_system_core::application::services::ApprovalEntityTypeService::new(
+                approval_entity_type_repo.clone(),
+            );
         let approval_workflow_service =
             management_system_core::application::services::ApprovalWorkflowService::new(
                 approval_workflow_repo.clone(),
+                approval_entity_type_repo.clone(),
             );
         let contract_service = ContractService::new(
             pool.clone(),
@@ -332,6 +344,7 @@ impl AppState {
             pdf_service,
             email_service,
             approval_workflow_service,
+            approval_entity_type_service,
             approval_service,
             sensor_service,
             timesheet_service,

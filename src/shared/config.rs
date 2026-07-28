@@ -26,9 +26,10 @@ impl AppConfig {
             redis_url: env::var("REDIS_URL").ok(),
             server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
             server_port: env::var("SERVER_PORT")
+                .or_else(|_| env::var("API_PORT"))
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse()
-                .expect("SERVER_PORT must be a number"),
+                .expect("SERVER_PORT or API_PORT must be a number"),
             jwt_secret: env::var("JWT_SECRET")
                 .unwrap_or_else(|_| "super-secret-key-change-in-production".to_string()),
             jwt_expiry_hours: env::var("JWT_EXPIRY_HOURS")

@@ -56,10 +56,10 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
 
     // Fetch Assets
     const { data: assetsData, isLoading: assetsLoading } = useQuery({
-        queryKey: ['assets'],
+        queryKey: ['work-order-assets'],
         queryFn: async () => {
             const res = await assetApi.list({ page: 1, per_page: 100 });
-            return res.data;
+            return Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
         },
     });
 
@@ -141,13 +141,24 @@ export function WorkOrderForm({ maintenanceId, initialAssetId, initialType, onCl
 
     const assetOptions = useMemo(() => {
         if (!assetsData) return [];
-        return assetsData
+        const rawList = Array.isArray(assetsData)
+            ? assetsData
+            : Array.isArray((assetsData as any)?.data)
+            ? (assetsData as any).data
+            : [];
+
+        return rawList
             .filter((a: any) => {
+                if (!a) return false;
                 if (isEdit && a.id === formData.asset_id) return true;
+                const status = (a.status || '').toLowerCase();
                 const blockedStatuses = ['under_maintenance', 'under_repair', 'maintenance', 'repair', 'under_conversion'];
-                return !blockedStatuses.includes(a.status.toLowerCase());
+                return !blockedStatuses.includes(status);
             })
-            .map((a: any) => ({ value: a.id, label: a.name }));
+            .map((a: any) => ({
+                value: a.id,
+                label: a.asset_code ? `${a.asset_code} - ${a.name}` : a.name,
+            }));
     }, [assetsData, isEdit, formData.asset_id]);
 
     const validate = () => {

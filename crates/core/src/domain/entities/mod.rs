@@ -3,6 +3,7 @@
 //! Core business entities representing the main concepts in the asset management domain.
 
 pub mod analytics;
+pub mod approval_entity_type;
 pub mod approval_workflow;
 pub mod asset;
 pub mod asset_details;
@@ -46,6 +47,7 @@ pub mod user;
 pub mod vendor;
 pub mod work_order;
 
+pub use approval_entity_type::*;
 pub use approval_workflow::*;
 pub use asset::{Asset, AssetHistory, AssetSummary};
 pub use asset_details::*;
