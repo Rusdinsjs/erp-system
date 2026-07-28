@@ -1,6 +1,10 @@
 import { api } from './http';
 
-// ==================== INTERFACES ====================
+export interface ApiResponse<T> {
+    success: boolean;
+    data: T;
+    message?: string;
+}
 
 export interface RentalClient {
     id: string;
@@ -154,6 +158,16 @@ export const rentalApi = {
 
     getRental: async (id: string) => {
         const response = await api.get<Rental>(`/rentals/${id}`);
+        return response.data;
+    },
+
+    updateRental: async (id: string, data: { start_date?: string; expected_end_date?: string; deposit_amount?: number; notes?: string }) => {
+        const response = await api.put<ApiResponse<Rental>>(`/rentals/${id}`, data);
+        return response.data;
+    },
+
+    deleteRental: async (id: string) => {
+        const response = await api.delete(`/rentals/${id}`);
         return response.data;
     },
 

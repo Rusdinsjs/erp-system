@@ -1,26 +1,104 @@
-import { useQuery } from '@tanstack/react-query';
-import { Plus, Eye, Truck, User } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Eye, Truck, User, Trash2, Edit, LayoutGrid, List, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { rentalApi } from '../../api/rental';
+import { showToast } from '../ui/Toast';
 import {
     Button,
     ActionIcon,
     Pagination,
     StatusBadge,
-    TableSkeleton
+    TableSkeleton,
+    Table,
+    TableHead,
+    TableBody,
+    TableRow,
+    TableTh,
+    TableTd,
+    TableEmpty,
+    Badge,
+    Modal,
+    DateInput,
+    NumberInput,
+    Textarea
 } from '../ui';
-
 import { useState } from 'react';
+import clsx from 'clsx';
 
 export function RentalList() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [currentPage, setCurrentPage] = useState(1);
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+    const [editingRental, setEditingRental] = useState<any | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        start_date: '',
+        expected_end_date: '',
+        deposit_amount: 0,
+        notes: ''
+    });
+
     const itemsPerPage = 10;
 
     const { data: rentals, isLoading } = useQuery({
         queryKey: ['rentals', 'active'],
         queryFn: () => rentalApi.listRentals('active')
     });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => rentalApi.deleteRental(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['rentals'] });
+            showToast('Rental order deleted successfully', 'success', 'Success');
+        },
+        onError: (err: any) => {
+            showToast(err.message || 'Failed to delete rental order', 'error', 'Error');
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => rentalApi.updateRental(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['rentals'] });
+            showToast('Rental order updated successfully', 'success', 'Success');
+            setEditingRental(null);
+        },
+        onError: (err: any) => {
+            showToast(err.message || 'Failed to update rental order', 'error', 'Error');
+        }
+    });
+
+    const handleDelete = (e: React.MouseEvent, rental: any) => {
+        e.stopPropagation();
+        if (window.confirm(`Are you sure you want to delete rental order #${rental.rental_number}?`)) {
+            deleteMutation.mutate(rental.id);
+        }
+    };
+
+    const handleEditClick = (e: React.MouseEvent, rental: any) => {
+        e.stopPropagation();
+        setEditingRental(rental);
+        setEditFormData({
+            start_date: rental.start_date || '',
+            expected_end_date: rental.expected_end_date || '',
+            deposit_amount: rental.deposit_amount || 0,
+            notes: rental.notes || ''
+        });
+    };
+
+    const handleEditSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingRental) return;
+        updateMutation.mutate({
+            id: editingRental.id,
+            data: {
+                start_date: editFormData.start_date || undefined,
+                expected_end_date: editFormData.expected_end_date || undefined,
+                deposit_amount: Number(editFormData.deposit_amount),
+                notes: editFormData.notes
+            }
+        });
+    };
 
     // Client-side pagination logic
     const totalItems = rentals?.length || 0;
@@ -33,7 +111,7 @@ export function RentalList() {
     return (
         <div className="flex flex-col h-full bg-background rounded-b-2xl">
             {/* Contextual Header */}
-            <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-card/40 backdrop-blur-sm">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border bg-card/40 backdrop-blur-sm flex-wrap gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
                         <Truck size={20} className="text-emerald-500" />
@@ -43,14 +121,49 @@ export function RentalList() {
                         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Ongoing Rental Operations</p>
                     </div>
                 </div>
-                <Button
-                    variant="primary"
-                    leftIcon={<Plus size={18} />}
-                    onClick={() => navigate('/rentals/new')}
-                    className="rounded-xl shadow-lg shadow-emerald-500/10 bg-emerald-600 hover:bg-emerald-500 h-11 px-6 text-[11px] font-black uppercase tracking-widest text-white"
-                >
-                    New Rental Order
-                </Button>
+
+                <div className="flex items-center gap-3">
+                    {/* View Switcher Toggle */}
+                    <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('grid')}
+                            title="Grid / Card View"
+                            className={clsx(
+                                "p-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                                viewMode === 'grid'
+                                    ? "bg-card text-primary shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <LayoutGrid size={16} />
+                            <span className="hidden sm:inline">Grid</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('table')}
+                            title="List / Table View"
+                            className={clsx(
+                                "p-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer",
+                                viewMode === 'table'
+                                    ? "bg-card text-primary shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <List size={16} />
+                            <span className="hidden sm:inline">List</span>
+                        </button>
+                    </div>
+
+                    <Button
+                        variant="primary"
+                        leftIcon={<Plus size={18} />}
+                        onClick={() => navigate('/rentals/new')}
+                        className="rounded-xl shadow-lg shadow-emerald-500/10 bg-emerald-600 hover:bg-emerald-500 h-11 px-6 text-[11px] font-black uppercase tracking-widest text-white"
+                    >
+                        New Rental Order
+                    </Button>
+                </div>
             </div>
 
             <div className="relative flex-1 overflow-hidden flex flex-col">
@@ -58,11 +171,86 @@ export function RentalList() {
                     <div className="p-4">
                         <TableSkeleton rows={10} cols={6} />
                     </div>
+                ) : viewMode === 'table' ? (
+                    /* Table / List View */
+                    <div className="flex-1 overflow-auto p-6">
+                        <Table>
+                            <TableHead>
+                                <TableRow>
+                                    <TableTh>Order Ref</TableTh>
+                                    <TableTh>Client Entity</TableTh>
+                                    <TableTh>Utilization</TableTh>
+                                    <TableTh>Start Date</TableTh>
+                                    <TableTh>Expected End</TableTh>
+                                    <TableTh>Status</TableTh>
+                                    <TableTh align="center">Actions</TableTh>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {paginatedRentals && paginatedRentals.length > 0 ? (
+                                    paginatedRentals.map((rental: any) => (
+                                        <TableRow
+                                            key={rental.id}
+                                            onClick={() => navigate(`/rentals/${rental.id}`)}
+                                            className="cursor-pointer hover:bg-muted/30 transition-colors"
+                                        >
+                                            <TableTd className="font-mono font-bold text-foreground">
+                                                #{rental.rental_number}
+                                            </TableTd>
+                                            <TableTd className="font-semibold text-foreground">
+                                                {rental.client_name}
+                                            </TableTd>
+                                            <TableTd>
+                                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-bold">
+                                                    {rental.items?.length || 0} Assets
+                                                </Badge>
+                                            </TableTd>
+                                            <TableTd className="text-muted-foreground font-medium">
+                                                {rental.start_date}
+                                            </TableTd>
+                                            <TableTd className="text-muted-foreground font-medium">
+                                                {rental.expected_end_date || 'Indefinite'}
+                                            </TableTd>
+                                            <TableTd>
+                                                <StatusBadge status={rental.status} />
+                                            </TableTd>
+                                            <TableTd align="center">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <ActionIcon
+                                                        onClick={(e) => { e.stopPropagation(); navigate(`/rentals/${rental.id}`); }}
+                                                        title="View Details"
+                                                    >
+                                                        <Eye size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        onClick={(e) => handleEditClick(e, rental)}
+                                                        title="Edit Rental Order"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+                                                        variant="danger"
+                                                        onClick={(e) => handleDelete(e, rental)}
+                                                        title="Delete Rental Order"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </ActionIcon>
+                                                </div>
+                                            </TableTd>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableEmpty colSpan={7} message="No active rentals found in the system" />
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 ) : (
+                    /* Grid / Card View */
                     <div className="flex-1 overflow-auto custom-scrollbar p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                             {paginatedRentals && paginatedRentals.length > 0 ? (
-                                paginatedRentals.map((rental) => (
+                                paginatedRentals.map((rental: any) => (
                                     <div
                                         key={rental.id}
                                         onClick={() => navigate(`/rentals/${rental.id}`)}
@@ -122,13 +310,30 @@ export function RentalList() {
                                             </div>
 
                                             {/* Footer Actions */}
-                                            <div className="mt-6 pt-4 border-t border-border/50 flex justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                            <div className="mt-6 pt-4 border-t border-border/50 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
                                                 <ActionIcon
                                                     onClick={(e) => { e.stopPropagation(); navigate(`/rentals/${rental.id}`); }}
                                                     variant="default"
+                                                    title="View Details"
                                                     className="rounded-xl hover:bg-emerald-500 hover:text-white hover:border-emerald-500 w-10 h-10 border border-border shadow-lg shadow-black/5"
                                                 >
                                                     <Eye size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    onClick={(e) => handleEditClick(e, rental)}
+                                                    variant="default"
+                                                    title="Edit Rental Order"
+                                                    className="rounded-xl hover:bg-primary hover:text-white hover:border-primary w-10 h-10 border border-border shadow-lg shadow-black/5"
+                                                >
+                                                    <Edit size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    onClick={(e) => handleDelete(e, rental)}
+                                                    variant="danger"
+                                                    title="Delete Rental Order"
+                                                    className="rounded-xl w-10 h-10 border border-border shadow-lg shadow-black/5"
+                                                >
+                                                    <Trash2 size={16} />
                                                 </ActionIcon>
                                             </div>
                                         </div>
@@ -173,6 +378,49 @@ export function RentalList() {
                     />
                 </div>
             )}
+
+            {/* Edit Rental Modal */}
+            <Modal
+                isOpen={!!editingRental}
+                onClose={() => setEditingRental(null)}
+                title={`Edit Rental Order #${editingRental?.rental_number || ''}`}
+                size="md"
+            >
+                <form onSubmit={handleEditSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <DateInput
+                            label="Start Date"
+                            value={editFormData.start_date ? new Date(editFormData.start_date) : null}
+                            onChange={(d) => setEditFormData(p => ({ ...p, start_date: d ? d.toISOString().split('T')[0] : '' }))}
+                        />
+                        <DateInput
+                            label="Expected End Date"
+                            value={editFormData.expected_end_date ? new Date(editFormData.expected_end_date) : null}
+                            onChange={(d) => setEditFormData(p => ({ ...p, expected_end_date: d ? d.toISOString().split('T')[0] : '' }))}
+                        />
+                    </div>
+                    <NumberInput
+                        label="Deposit Amount"
+                        prefix="Rp "
+                        value={editFormData.deposit_amount}
+                        onChange={(v) => setEditFormData(p => ({ ...p, deposit_amount: Number(v) }))}
+                    />
+                    <Textarea
+                        label="Notes"
+                        rows={3}
+                        value={editFormData.notes}
+                        onChange={(e) => setEditFormData(p => ({ ...p, notes: e.target.value }))}
+                    />
+                    <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="ghost" type="button" onClick={() => setEditingRental(null)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" leftIcon={<Save size={16} />} loading={updateMutation.isPending}>
+                            Save Changes
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

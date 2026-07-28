@@ -14,6 +14,6 @@ pub fn client_routes() -> Router<AppState> {
         .route("/api/clients/search", get(api_search_clients))
         .route(
             "/api/clients/:id",
-            get(api_get_client).put(api_update_client),
+            get(api_get_client).put(api_update_client).delete(api_delete_client),
         )
 }

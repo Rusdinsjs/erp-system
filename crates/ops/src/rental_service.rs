@@ -546,6 +546,59 @@ impl RentalService {
             })
     }
 
+    /// Update a rental order details
+    pub async fn update_rental(
+        &self,
+        id: Uuid,
+        start_date: Option<NaiveDate>,
+        expected_end_date: Option<NaiveDate>,
+        deposit_amount: Option<Decimal>,
+        notes: Option<String>,
+    ) -> DomainResult<Rental> {
+        let mut rental = self.find_rental(id).await?;
+
+        if let Some(sd) = start_date {
+            rental.start_date = Some(sd);
+        }
+        if let Some(ed) = expected_end_date {
+            rental.expected_end_date = Some(ed);
+        }
+        if let Some(dep) = deposit_amount {
+            rental.deposit_amount = Some(dep);
+        }
+        if let Some(n) = notes {
+            rental.notes = Some(n);
+        }
+        rental.updated_at = Some(Utc::now());
+
+        self.rental_repo
+            .update(&rental)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
+    /// Delete a rental order
+    pub async fn delete_rental(&self, id: Uuid) -> DomainResult<()> {
+        let _existing = self.find_rental(id).await?;
+        let deleted = self
+            .rental_repo
+            .delete_rental(id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        if deleted {
+            Ok(())
+        } else {
+            Err(DomainError::not_found("Rental", id))
+        }
+    }
+
     /// Get schedule for Gantt
     pub async fn get_schedule(
         &self,

@@ -320,8 +320,62 @@ impl FinanceRepository {
         Ok(recs)
     }
 
+    pub async fn get_sales_invoice_by_id(
+        &self,
+        id: Uuid,
+    ) -> DomainResult<Option<crate::domain::entities::SalesInvoice>> {
+        let rec = sqlx::query_as::<_, crate::domain::entities::SalesInvoice>(
+            r#"
+            SELECT id, invoice_number, client_id, date, due_date, subject, 
+                   subtotal::FLOAT8 as subtotal, tax::FLOAT8 as tax, 
+                   total_amount::FLOAT8 as total_amount, amount_paid::FLOAT8 as amount_paid, 
+                   status, journal_entry_id, created_at, attachment_url
+            FROM sales_invoices
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+        Ok(rec)
+    }
+
+    pub async fn update_sales_invoice(
+        &self,
+        invoice: &crate::domain::entities::SalesInvoice,
+    ) -> DomainResult<crate::domain::entities::SalesInvoice> {
+        sqlx::query(
+            r#"
+            UPDATE sales_invoices
+            SET invoice_number = $1, client_id = $2, date = $3, due_date = $4, subject = $5,
+                subtotal = $6, tax = $7, total_amount = $8, amount_paid = $9, status = $10,
+                attachment_url = $11
+            WHERE id = $12
+            "#,
+        )
+        .bind(&invoice.invoice_number)
+        .bind(invoice.client_id)
+        .bind(invoice.date)
+        .bind(invoice.due_date)
+        .bind(&invoice.subject)
+        .bind(invoice.subtotal)
+        .bind(invoice.tax)
+        .bind(invoice.total_amount)
+        .bind(invoice.amount_paid)
+        .bind(&invoice.status)
+        .bind(&invoice.attachment_url)
+        .bind(invoice.id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        Ok(invoice.clone())
+    }
+
     pub async fn delete_sales_invoice(&self, id: Uuid) -> DomainResult<()> {
-        sqlx::query!("DELETE FROM sales_invoices WHERE id = $1", id)
+        sqlx::query("DELETE FROM sales_invoices WHERE id = $1")
+            .bind(id)
             .execute(&self.pool)
             .await
             .map_err(|e| DomainError::Database(e.to_string()))?;

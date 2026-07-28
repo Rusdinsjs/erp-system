@@ -88,6 +88,18 @@ export const financeApi = {
         const response = await api.post('/finance/sales/invoices', data);
         return response.data.data;
     },
+    getSalesInvoice: async (id: string) => {
+        const response = await api.get(`/finance/sales/invoices/${id}`);
+        return response.data.data;
+    },
+    updateSalesInvoice: async (id: string, data: any) => {
+        const response = await api.put(`/finance/sales/invoices/${id}`, data);
+        return response.data.data;
+    },
+    deleteSalesInvoice: async (id: string) => {
+        const response = await api.delete(`/finance/sales/invoices/${id}`);
+        return response.data.data;
+    },
     createPurchaseBill: async (data: any) => {
         const response = await api.post('/finance/purchase/bills', data);
         return response.data.data;

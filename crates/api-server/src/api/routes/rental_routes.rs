@@ -31,7 +31,12 @@ pub fn rental_routes() -> Router<AppState> {
             get(rental_handler::list_overdue_rentals),
         )
         .route("/api/rentals/schedule", get(rental_handler::get_schedule))
-        .route("/api/rentals/:id", get(rental_handler::get_rental))
+        .route(
+            "/api/rentals/:id",
+            get(rental_handler::get_rental)
+                .put(rental_handler::update_rental)
+                .delete(rental_handler::delete_rental),
+        )
         .route(
             "/api/rentals/:id/approve",
             put(rental_handler::approve_rental),

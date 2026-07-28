@@ -48,6 +48,9 @@ export const clientApi = {
     update: (id: string, data: Partial<Client>) =>
         api.put<ApiResponse<Client>>(`/clients/${id}`, data),
 
+    delete: (id: string) =>
+        api.delete<ApiResponse<void>>(`/clients/${id}`),
+
     search: (q: string) =>
         api.get<ApiResponse<Client[]>>("/clients/search", { params: { q } }),
 };

@@ -24,7 +24,7 @@ export function HandoverGallery({ rentalId, handoverId, readOnly = false }: Hand
         enabled: !!rentalId
     });
 
-    const handover = handovers?.find(h => h.id === handoverId);
+    const handover = handovers?.find((h: any) => h.id === handoverId);
     // Parse photos if they are in JSON string format or JSON object
     const photos: any[] = Array.isArray(handover?.photos) ? handover.photos : [];
 

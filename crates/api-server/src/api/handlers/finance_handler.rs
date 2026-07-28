@@ -88,6 +88,31 @@ pub async fn create_sales_invoice(
     Ok(Json(json!({ "success": true, "data": invoice })))
 }
 
+pub async fn get_sales_invoice(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Value>, AppError> {
+    let invoice = state.finance_service.get_sales_invoice(id).await?;
+    Ok(Json(json!({ "success": true, "data": invoice })))
+}
+
+pub async fn update_sales_invoice(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<management_system_core::domain::entities::CreateSalesInvoiceRequest>,
+) -> Result<Json<Value>, AppError> {
+    let invoice = state.finance_service.update_sales_invoice(id, payload).await?;
+    Ok(Json(json!({ "success": true, "data": invoice })))
+}
+
+pub async fn delete_sales_invoice(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Value>, AppError> {
+    state.finance_service.delete_sales_invoice(id).await?;
+    Ok(Json(json!({ "success": true, "message": "Sales invoice deleted successfully" })))
+}
+
 pub async fn create_purchase_bill(
     State(state): State<AppState>,
     Json(payload): Json<management_system_core::domain::entities::CreatePurchaseBillRequest>,

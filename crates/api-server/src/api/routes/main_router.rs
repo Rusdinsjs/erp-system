@@ -341,6 +341,12 @@ pub fn create_router(state: AppState) -> Router {
             get(finance_handler::list_sales_invoices).post(finance_handler::create_sales_invoice),
         )
         .route(
+            "/api/finance/sales/invoices/:id",
+            get(finance_handler::get_sales_invoice)
+                .put(finance_handler::update_sales_invoice)
+                .delete(finance_handler::delete_sales_invoice),
+        )
+        .route(
             "/api/finance/sales/quotes",
             get(finance_handler::list_sales_quotes).post(finance_handler::create_sales_quote),
         )

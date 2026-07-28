@@ -105,4 +105,23 @@ impl ClientService {
                 message: e.to_string(),
             })
     }
+
+    /// Delete client (hard delete if no references exist, or force delete references if in use)
+    pub async fn delete_client(&self, id: Uuid) -> DomainResult<bool> {
+        let _existing = self.get_client(id).await?;
+
+        match self.client_repo.delete(id).await {
+            Ok(true) => Ok(true), // Permanently deleted
+            Ok(false) => Err(DomainError::not_found("Client", id)),
+            Err(_) => {
+                // Perform force delete to clean up dependent records and delete client
+                self.client_repo.force_delete(id).await.map_err(|err| {
+                    DomainError::ExternalServiceError {
+                        service: "database".to_string(),
+                        message: err.to_string(),
+                    }
+                })
+            }
+        }
+    }
 }

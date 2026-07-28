@@ -311,6 +311,40 @@ impl FinanceService {
         self.repo.create_sales_invoice(&invoice).await
     }
 
+    pub async fn get_sales_invoice(
+        &self,
+        id: Uuid,
+    ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
+        self.repo
+            .get_sales_invoice_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::not_found("SalesInvoice", id))
+    }
+
+    pub async fn update_sales_invoice(
+        &self,
+        id: Uuid,
+        req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
+    ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
+        let mut invoice = self.get_sales_invoice(id).await?;
+        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+
+        invoice.invoice_number = req.invoice_number;
+        invoice.client_id = req.client_id;
+        invoice.date = req.date;
+        invoice.due_date = req.due_date;
+        invoice.subject = req.subject;
+        invoice.subtotal = total;
+        invoice.total_amount = total;
+        invoice.attachment_url = req.attachment_url;
+
+        self.repo.update_sales_invoice(&invoice).await
+    }
+
+    pub async fn delete_sales_invoice(&self, id: Uuid) -> DomainResult<()> {
+        self.repo.delete_sales_invoice(id).await
+    }
+
     pub async fn create_purchase_bill(
         &self,
         req: management_system_core::domain::entities::CreatePurchaseBillRequest,

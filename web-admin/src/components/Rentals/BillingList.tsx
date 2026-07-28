@@ -24,7 +24,7 @@ export function BillingList() {
         queryFn: () => rentalApi.listRentals('active')
     });
 
-    const rentalOptions = rentals?.map(r => ({ value: r.id, label: `${r.rental_number} - ${r.client_name}` })) || [];
+    const rentalOptions = rentals?.map((r: any) => ({ value: r.id, label: `${r.rental_number} - ${r.client_name}` })) || [];
 
     const { data: billingPeriods, isLoading } = useQuery({
         queryKey: ['billing', selectedRental],

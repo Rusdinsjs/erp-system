@@ -143,3 +143,22 @@ pub async fn api_search_clients(
 
     Ok(Json(ApiResponse::success(clients)))
 }
+
+pub async fn api_delete_client(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    let permanently_deleted = state
+        .client_service
+        .delete_client(id)
+        .await
+        .map_err(AppError::Domain)?;
+
+    let msg = if permanently_deleted {
+        "Client permanently deleted"
+    } else {
+        "Client is linked to existing records and has been deactivated"
+    };
+
+    Ok(Json(ApiResponse::success_with_message((), msg)))
+}

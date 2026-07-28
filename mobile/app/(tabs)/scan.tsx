@@ -4,6 +4,7 @@ import { StyleSheet, View, Alert, Vibration } from 'react-native';
 import { Text, Button, useTheme, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { assetApi } from '../../api/assets';
 
 export default function ScanScreen() {
     const theme = useTheme();
@@ -27,12 +28,10 @@ export default function ScanScreen() {
     }, []);
 
     if (!permission) {
-        // Camera permissions are still loading.
         return <View />;
     }
 
     if (!permission.granted) {
-        // Camera permissions are not granted yet.
         return (
             <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
                 <Text style={{ textAlign: 'center', color: theme.colors.onSurface, marginBottom: 20 }}>
@@ -45,29 +44,36 @@ export default function ScanScreen() {
         );
     }
 
-    const handleBarCodeScanned = ({ type, data }: { type: string, data: string }) => {
+    const handleBarCodeScanned = async ({ type, data }: { type: string, data: string }) => {
         setScanned(true);
         Vibration.vibrate();
-
-        console.log(`Bar code with type ${type} and data ${data} has been scanned!`);
-
-        Alert.alert(
-            "Asset Scanned",
-            `ID: ${data}\nLocation Included: ${!!location}`,
-            [
-                {
-                    text: "View Detail",
-                    onPress: () => {
-                        router.push(`/assets/${data}`);
-                        setTimeout(() => setScanned(false), 1000);
+        try {
+            const asset = await assetApi.scanByCode(data);
+            Alert.alert(
+                "Asset Found",
+                `${asset.name}\nCode: ${asset.asset_code}\nStatus: ${asset.status}`,
+                [
+                    {
+                        text: "View Detail",
+                        onPress: () => {
+                            router.push(`/assets/${asset.id}`);
+                            setTimeout(() => setScanned(false), 1000);
+                        }
+                    },
+                    {
+                        text: "Scan Again",
+                        onPress: () => setScanned(false)
                     }
-                },
-                {
-                    text: "Scan Again",
-                    onPress: () => setScanned(false)
-                }
-            ]
-        );
+                ]
+            );
+        } catch (error: any) {
+            const message = error.response?.status === 404
+                ? `Asset not found for code: ${data}`
+                : "Failed to look up asset. Please try again.";
+            Alert.alert("Scan Failed", message, [
+                { text: "OK", onPress: () => setScanned(false) }
+            ]);
+        }
     };
 
     return (
@@ -81,17 +87,14 @@ export default function ScanScreen() {
                 }}
             >
                 <View style={styles.overlay}>
-                    {/* Top Bar */}
                     <Surface style={[styles.topBar, { backgroundColor: theme.colors.backdrop }]} elevation={0}>
                         <Text variant="titleMedium" style={{ color: 'white' }}>Scan Asset QR Code</Text>
                     </Surface>
 
-                    {/* Scanner Marker */}
                     <View style={[styles.markerContainer]}>
                         <View style={[styles.marker, { borderColor: theme.colors.primary }]} />
                     </View>
 
-                    {/* Bottom Bar */}
                     <View style={styles.bottomBar}>
                         <Text style={{ color: 'white', textAlign: 'center', marginBottom: 20 }}>
                             Point camera at the Asset Tag

@@ -1,8 +1,8 @@
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Text, Card, Button, Avatar, List, Divider, useTheme, ActivityIndicator, Chip } from 'react-native-paper';
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { assetApi } from '../../api/assets';
 
 export default function AssetDetailScreen() {
@@ -26,9 +26,12 @@ export default function AssetDetailScreen() {
     }
 
     if (error || !asset) {
+        console.error('Asset Detail Error:', error);
+        const errorMessage = (error as any)?.message || 'Unknown error';
         return (
             <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-                <Text style={{ color: theme.colors.error }}>Failed to load asset details</Text>
+                <Text style={{ color: theme.colors.error, textAlign: 'center', marginBottom: 10 }}>Failed to load asset details</Text>
+                <Text style={{ color: theme.colors.secondary, fontSize: 12, marginBottom: 20 }}>{errorMessage}</Text>
                 <Button onPress={() => router.back()} style={{ marginTop: 20 }}>Go Back</Button>
             </View>
         );
@@ -39,22 +42,33 @@ export default function AssetDetailScreen() {
             <Stack.Screen options={{ title: 'Asset Detail', headerBackTitle: 'Back' }} />
             <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
 
-                {/* Asset Header Image */}
-                <Card style={styles.headerCard}>
-                    {/* Placeholder image for now, or asset image if available */}
-                    <Card.Cover source={{ uri: 'https://via.placeholder.com/300' }} />
-                    <Card.Title
-                        title={asset.name}
-                        subtitle={asset.asset_code}
-                        titleVariant="headlineSmall"
-                        left={(props) => <Avatar.Icon {...props} icon="excavator" />}
-                    />
-                    <Card.Content>
-                        <View style={styles.chipRow}>
-                            <Chip icon="check-circle" style={{ backgroundColor: theme.colors.primaryContainer }}>{asset.status}</Chip>
-                            <Chip icon="tag" mode="outlined">{asset.category_name || 'Asset'}</Chip>
+                {/* Asset Hero Banner */}
+                <Card style={styles.heroCard} mode="outlined">
+                    <LinearGradient
+                        colors={['#1e3a5f', '#0f172a']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.heroGradient}
+                    >
+                        <View style={styles.heroContent}>
+                            <Avatar.Icon
+                                size={72}
+                                icon="excavator"
+                                style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', marginBottom: 12 }}
+                                color="#3b82f6"
+                            />
+                            <Text variant="headlineSmall" style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
+                                {asset.name}
+                            </Text>
+                            <Text variant="bodyLarge" style={{ color: '#60a5fa', marginTop: 4 }}>
+                                {asset.asset_code}
+                            </Text>
+                            <View style={styles.chipRow}>
+                                <Chip icon="check-circle" style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }} textStyle={{ color: '#93c5fd' }}>{asset.status}</Chip>
+                                <Chip icon="tag" mode="outlined" style={{ borderColor: 'rgba(255,255,255,0.2)' }} textStyle={{ color: 'rgba(255,255,255,0.8)' }}>{asset.category_name || 'Asset'}</Chip>
+                            </View>
                         </View>
-                    </Card.Content>
+                    </LinearGradient>
                 </Card>
 
                 {/* Location Section */}
@@ -124,7 +138,7 @@ export default function AssetDetailScreen() {
                         mode="contained"
                         icon="clipboard-check"
                         style={styles.actionButton}
-                        onPress={() => Alert.alert('P2H', 'Daily Inspection Form coming soon')}
+                        onPress={() => router.push({ pathname: '/p2h', params: { assetId: asset.id, assetName: asset.name } })}
                     >
                         Daily Check (P2H)
                     </Button>
@@ -152,9 +166,18 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    headerCard: {
+    heroCard: {
         margin: 16,
         marginBottom: 0,
+        borderColor: 'rgba(255,255,255,0.1)',
+        overflow: 'hidden',
+    },
+    heroGradient: {
+        padding: 24,
+        alignItems: 'center',
+    },
+    heroContent: {
+        alignItems: 'center',
     },
     chipRow: {
         flexDirection: 'row',

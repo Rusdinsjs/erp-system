@@ -1,7 +1,7 @@
 // PriceList - Pure Tailwind
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Plus, Edit, Trash, Eye, Tag } from 'lucide-react';
 import { rentalApi, type RentalRate } from '../../api/rental';
 import {
     Table, TableHead, TableBody, TableRow, TableTh, TableTd,
@@ -41,7 +41,9 @@ export function PriceList() {
     const queryClient = useQueryClient();
     const { success, error: showError } = useToast();
     const [opened, setOpened] = useState(false);
+    const [viewOpened, setViewOpened] = useState(false);
     const [editingRate, setEditingRate] = useState<RentalRate | null>(null);
+    const [viewingRate, setViewingRate] = useState<RentalRate | null>(null);
     const [form, setForm] = useState<PriceFormState>(initialFormState);
 
     const { data: rates, isLoading } = useQuery({
@@ -92,6 +94,11 @@ export function PriceList() {
         } else {
             createMutation.mutate(payload);
         }
+    };
+
+    const handleView = (rate: RentalRate) => {
+        setViewingRate(rate);
+        setViewOpened(true);
     };
 
     const handleEdit = (rate: RentalRate) => {
@@ -146,7 +153,7 @@ export function PriceList() {
                             <TableTh>Min Hours</TableTh>
                             <TableTh>Overtime</TableTh>
                             <TableTh>Standby</TableTh>
-                            <TableTh align="center" className="w-24">Action</TableTh>
+                            <TableTh align="center" className="w-32">Action</TableTh>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -163,13 +170,25 @@ export function PriceList() {
                                 <TableTd className="text-muted-foreground">{((rate.overtime_multiplier || 1) * 100).toFixed(0)}%</TableTd>
                                 <TableTd className="text-muted-foreground">{((rate.standby_multiplier || 0) * 100).toFixed(0)}%</TableTd>
                                 <TableTd align="center">
-                                    <div className="flex gap-2 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <ActionIcon className="hover:bg-primary/20 text-primary" onClick={() => handleEdit(rate)}>
+                                    <div className="flex gap-1.5 justify-center items-center">
+                                        <ActionIcon
+                                            className="hover:bg-cyan-500/20 text-cyan-400"
+                                            onClick={() => handleView(rate)}
+                                            title="View Detail"
+                                        >
+                                            <Eye size={16} />
+                                        </ActionIcon>
+                                        <ActionIcon
+                                            className="hover:bg-amber-500/20 text-amber-400"
+                                            onClick={() => handleEdit(rate)}
+                                            title="Edit Template"
+                                        >
                                             <Edit size={16} />
                                         </ActionIcon>
                                         <ActionIcon
-                                            className="hover:bg-destructive/20 text-destructive"
+                                            className="hover:bg-rose-500/20 text-rose-400"
                                             onClick={() => handleDelete(rate.id)}
+                                            title="Delete Template"
                                         >
                                             <Trash size={16} />
                                         </ActionIcon>
@@ -187,6 +206,101 @@ export function PriceList() {
                 )}
             </div>
 
+            {/* Modal View Detail Price Template */}
+            <Modal
+                isOpen={viewOpened}
+                onClose={() => setViewOpened(false)}
+                title="Price Template Details"
+                size="lg"
+            >
+                {viewingRate && (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-4 bg-slate-950/60 rounded-xl border border-slate-800">
+                            <div className="p-3 bg-cyan-500/10 rounded-xl">
+                                <Tag size={24} className="text-cyan-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white">{viewingRate.name}</h3>
+                                <p className="text-xs text-slate-400">Tarif standar rental & aturan kontrak</p>
+                            </div>
+                            <div className="ml-auto">
+                                <Badge variant="default" className="capitalize bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                                    {viewingRate.rate_basis}
+                                </Badge>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex justify-between items-center">
+                            <div>
+                                <p className="text-xs text-emerald-400 uppercase font-semibold">Besaran Tarif (Rate Amount)</p>
+                                <p className="text-2xl font-bold text-white font-mono mt-0.5">
+                                    Rp {Number(viewingRate.rate_amount).toLocaleString('id-ID')}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs text-slate-400 uppercase">Basis Tarif</p>
+                                <p className="text-sm font-semibold text-white capitalize">{viewingRate.rate_basis}</p>
+                            </div>
+                        </div>
+
+                        <div className="relative py-2">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-800"></div>
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                                <span className="px-3 py-1 bg-slate-900 text-slate-400 rounded-full border border-slate-800">
+                                    Aturan Kontrak & Otomatisasi Tagihan
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Min. Jam / Bulan</p>
+                                <p className="text-white font-mono font-bold mt-1">{viewingRate.minimum_hours || 0} Jam</p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Pengali Overtime</p>
+                                <p className="text-cyan-400 font-mono font-bold mt-1">
+                                    {((viewingRate.overtime_multiplier || 1) * 100).toFixed(0)}% ({viewingRate.overtime_multiplier}x)
+                                </p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Pengali Standby</p>
+                                <p className="text-amber-400 font-mono font-bold mt-1">
+                                    {((viewingRate.standby_multiplier || 0) * 100).toFixed(0)}% ({viewingRate.standby_multiplier}x)
+                                </p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Denda Breakdown / Hari</p>
+                                <p className="text-rose-400 font-mono font-bold mt-1">
+                                    Rp {Number(viewingRate.breakdown_penalty_per_day || 0).toLocaleString('id-ID')}
+                                </p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Surcharge BBM / Liter</p>
+                                <p className="text-emerald-400 font-mono font-bold mt-1">
+                                    Rp {Number(viewingRate.fuel_surcharge_rate || 0).toLocaleString('id-ID')}
+                                </p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Jam / Hari & Hari / Bulan</p>
+                                <p className="text-white font-mono font-bold mt-1">
+                                    {viewingRate.hours_per_day || 8}h / hari ({viewingRate.days_per_month || 25} hari/bln)
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-3 border-t border-slate-800">
+                            <Button variant="ghost" onClick={() => setViewOpened(false)}>
+                                Tutup
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Modal Create / Edit Price Template */}
             <Modal
                 isOpen={opened}
                 onClose={() => setOpened(false)}

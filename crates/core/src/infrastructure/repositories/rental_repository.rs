@@ -855,4 +855,26 @@ impl RentalRepository {
         .fetch_all(&self.pool)
         .await
     }
+
+    /// Delete a rental order
+    pub async fn delete_rental(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+        let _ = sqlx::query(
+            r#"
+            UPDATE assets SET status = 'in_inventory', is_rental = true, updated_at = NOW()
+            WHERE id IN (
+                SELECT asset_id FROM rental_items WHERE rental_id = $1
+            ) AND status = 'rented_out'
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await;
+
+        let result = sqlx::query("DELETE FROM rentals WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
 }

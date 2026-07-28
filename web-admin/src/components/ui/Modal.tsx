@@ -8,7 +8,7 @@ interface ModalProps {
     onClose: () => void;
     title?: string;
     children: ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full' | 'half' | '60p';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full' | 'half' | '60p' | '75p';
     showCloseButton?: boolean;
 }
 
@@ -40,17 +40,18 @@ export function Modal({
     if (!isOpen) return null;
 
     const sizes = {
-        sm: 'max-w-sm',
-        md: 'max-w-md',
-        lg: 'max-w-lg',
-        xl: 'max-w-xl',
-        '2xl': 'max-w-2xl',
-        '3xl': 'max-w-3xl',
-        '4xl': 'max-w-4xl',
-        '5xl': 'max-w-5xl',
-        full: 'max-w-7xl',
-        half: 'w-full md:w-1/2 max-w-none',
-        '60p': 'w-full md:w-[60%] max-w-none',
+        sm: 'max-w-md',
+        md: 'max-w-xl',
+        lg: 'max-w-2xl',
+        xl: 'max-w-4xl',
+        '2xl': 'max-w-5xl',
+        '3xl': 'max-w-6xl',
+        '4xl': 'max-w-7xl',
+        '5xl': 'w-full md:w-[85%] max-w-none',
+        full: 'w-full md:w-[95%] max-w-none',
+        half: 'w-full md:w-[65%] max-w-none',
+        '60p': 'w-full md:w-[75%] max-w-none',
+        '75p': 'w-full md:w-[75%] max-w-none',
     };
 
     const modalContent = (

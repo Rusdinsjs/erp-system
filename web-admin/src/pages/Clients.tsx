@@ -1,6 +1,6 @@
 // Clients Page - Pure Tailwind
 import { useState } from 'react';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Building2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientApi } from '../api/client-management';
 import type { Client } from '../api/client-management';
@@ -21,7 +21,9 @@ export default function Clients() {
     const { success, error: showError } = useToast();
     const [search, setSearch] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
+    const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [viewClient, setViewClient] = useState<Client | null>(null);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -39,7 +41,7 @@ export default function Clients() {
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const { data: clients, isLoading } = useQuery({
+    const { data: clientsResponse, isLoading } = useQuery({
         queryKey: ['clients'],
         queryFn: () => clientApi.list().then((res: any) => res.data),
     });
@@ -48,7 +50,7 @@ export default function Clients() {
         mutationFn: (data: Partial<Client>) => clientApi.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['clients'] });
-            success('Client created', 'Success');
+            success('Client created successfully', 'Success');
             setModalOpen(false);
             resetForm();
         },
@@ -61,7 +63,7 @@ export default function Clients() {
         mutationFn: (data: Partial<Client>) => clientApi.update(selectedClient!.id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['clients'] });
-            success('Client updated', 'Success');
+            success('Client status/data updated successfully', 'Success');
             setModalOpen(false);
             setSelectedClient(null);
             resetForm();
@@ -70,6 +72,40 @@ export default function Clients() {
             showError(err.message || 'Failed to update client', 'Error');
         }
     });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => clientApi.delete(id),
+        onSuccess: (res: any) => {
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
+            const msg = res?.data?.message || 'Client deleted successfully';
+            success(msg, 'Success');
+        },
+        onError: (err: any) => {
+            showError(err.message || 'Failed to delete client', 'Error');
+        }
+    });
+
+    const handleDelete = (client: Client) => {
+        if (window.confirm(`Apakah Anda yakin ingin menghapus permanen client "${client.name}"?`)) {
+            deleteMutation.mutate(client.id);
+        }
+    };
+
+    const handleView = (client: Client) => {
+        setViewClient(client);
+        setViewModalOpen(true);
+    };
+
+    const handleToggleStatus = (client: Client) => {
+        const nextState = !client.is_active;
+        if (window.confirm(`Ubah status client "${client.name}" menjadi ${nextState ? 'ACTIVE' : 'INACTIVE'}?`)) {
+            setSelectedClient(client);
+            updateMutation.mutate({
+                ...client,
+                is_active: nextState,
+            });
+        }
+    };
 
     const resetForm = () => {
         setFormData({
@@ -131,16 +167,29 @@ export default function Clients() {
         }
     };
 
-    const filteredClients = clients?.data?.filter((c: any) =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.client_code.toLowerCase().includes(search.toLowerCase()) ||
+    const clientList: Client[] = Array.isArray(clientsResponse)
+        ? clientsResponse
+        : Array.isArray(clientsResponse?.data)
+        ? clientsResponse.data
+        : Array.isArray(clientsResponse?.data?.data)
+        ? clientsResponse.data.data
+        : Array.isArray(clientsResponse?.items)
+        ? clientsResponse.items
+        : [];
+
+    const filteredClients = clientList.filter((c: any) =>
+        c.name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.client_code?.toLowerCase().includes(search.toLowerCase()) ||
         c.company_name?.toLowerCase().includes(search.toLowerCase())
-    ) || [];
+    );
 
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-white">Client Management</h1>
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Client Management</h1>
+                    <p className="text-xs text-slate-400">Kelola daftar pelanggan & mitra bisnis</p>
+                </div>
                 <Button leftIcon={<Plus size={16} />} onClick={openCreateModal}>
                     Add Client
                 </Button>
@@ -178,7 +227,7 @@ export default function Clients() {
                             {filteredClients.length > 0 ? filteredClients.map((client: any) => (
                                 <TableRow key={client.id}>
                                     <TableTd>
-                                        <Badge variant="default">{client.client_code}</Badge>
+                                        <Badge variant="default" className="font-mono">{client.client_code}</Badge>
                                     </TableTd>
                                     <TableTd>
                                         <div>
@@ -188,22 +237,32 @@ export default function Clients() {
                                     </TableTd>
                                     <TableTd>
                                         <div>
-                                            <p className="text-sm text-slate-300">{client.email}</p>
-                                            <p className="text-xs text-slate-500">{client.phone}</p>
+                                            <p className="text-sm text-slate-300">{client.email || '-'}</p>
+                                            <p className="text-xs text-slate-500">{client.phone || '-'}</p>
                                         </div>
                                     </TableTd>
                                     <TableTd>
-                                        <Badge variant={client.is_active ? 'success' : 'default'}>
-                                            {client.is_active ? 'Active' : 'Inactive'}
-                                        </Badge>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleStatus(client)}
+                                            title="Klik untuk mengubah status Active / Inactive"
+                                            className="cursor-pointer transition-transform hover:scale-105"
+                                        >
+                                            <Badge variant={client.is_active ? 'success' : 'default'} className={client.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}>
+                                                {client.is_active ? 'Active' : 'Inactive'}
+                                            </Badge>
+                                        </button>
                                     </TableTd>
                                     <TableTd align="center">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <ActionIcon onClick={() => handleEdit(client)} title="Edit">
-                                                <Edit size={16} />
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            <ActionIcon onClick={() => handleView(client)} title="View Detail">
+                                                <Eye size={16} className="text-cyan-400" />
                                             </ActionIcon>
-                                            <ActionIcon variant="danger" title="Delete">
-                                                <Trash2 size={16} />
+                                            <ActionIcon onClick={() => handleEdit(client)} title="Edit">
+                                                <Edit size={16} className="text-amber-400" />
+                                            </ActionIcon>
+                                            <ActionIcon variant="danger" title="Delete" onClick={() => handleDelete(client)}>
+                                                <Trash2 size={16} className="text-rose-400" />
                                             </ActionIcon>
                                         </div>
                                     </TableTd>
@@ -215,6 +274,80 @@ export default function Clients() {
                     </Table>
                 </div>
             </Card>
+
+            {/* View Client Modal */}
+            <Modal
+                isOpen={viewModalOpen}
+                onClose={() => setViewModalOpen(false)}
+                title="Client Details"
+                size="lg"
+            >
+                {viewClient && (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-4 bg-slate-950/60 rounded-xl border border-slate-800">
+                            <div className="p-3 bg-cyan-500/10 rounded-xl">
+                                <Building2 size={24} className="text-cyan-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white">{viewClient.name}</h3>
+                                <p className="text-xs font-mono text-cyan-400">{viewClient.client_code}</p>
+                            </div>
+                            <div className="ml-auto">
+                                <Badge variant={viewClient.is_active ? 'success' : 'default'}>
+                                    {viewClient.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Company Name</p>
+                                <p className="text-white font-medium mt-1">{viewClient.company_name || '-'}</p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Contact Person</p>
+                                <p className="text-white font-medium mt-1">{viewClient.contact_person || '-'}</p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Email</p>
+                                <p className="text-cyan-300 font-mono text-xs mt-1">{viewClient.email || '-'}</p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Phone</p>
+                                <p className="text-slate-300 font-mono text-xs mt-1">{viewClient.phone || '-'}</p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Tax ID / NPWP</p>
+                                <p className="text-slate-300 font-mono text-xs mt-1">{viewClient.tax_id || '-'}</p>
+                            </div>
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">City</p>
+                                <p className="text-white font-medium mt-1">{viewClient.city || '-'}</p>
+                            </div>
+                        </div>
+
+                        {viewClient.address && (
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Address</p>
+                                <p className="text-slate-300 text-sm mt-1">{viewClient.address}</p>
+                            </div>
+                        )}
+
+                        {viewClient.notes && (
+                            <div className="p-3.5 bg-slate-950/40 rounded-lg border border-slate-800/80">
+                                <p className="text-xs text-slate-500 uppercase font-semibold">Notes</p>
+                                <p className="text-slate-300 text-sm mt-1">{viewClient.notes}</p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end pt-2">
+                            <Button variant="outline" onClick={() => setViewModalOpen(false)}>
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
 
             {/* Create/Edit Modal */}
             <Modal
@@ -240,11 +373,26 @@ export default function Clients() {
                             required
                         />
                     </div>
-                    <Input
-                        label="Company Name"
-                        value={formData.company_name}
-                        onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Company Name"
+                            value={formData.company_name}
+                            onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                        />
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Status Client</label>
+                            <select
+                                value={formData.is_active ? 'active' : 'inactive'}
+                                onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}
+                                className="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all text-sm"
+                            >
+                                <option value="active">Active (Aktif)</option>
+                                <option value="inactive">Inactive (Non-Aktif)</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Email"

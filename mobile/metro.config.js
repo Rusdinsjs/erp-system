@@ -4,7 +4,9 @@ const { getDefaultConfig } = require('expo/metro-config');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Ensure we handle assets correctly
-config.resolver.assetExts.push('cjs');
+// Ensure cjs is treated as source JavaScript, not an asset
+if (!config.resolver.sourceExts.includes('cjs')) {
+  config.resolver.sourceExts.push('cjs');
+}
 
 module.exports = config;

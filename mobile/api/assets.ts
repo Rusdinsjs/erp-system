@@ -50,6 +50,11 @@ export const assetApi = {
         return response.data;
     },
 
+    scanByCode: async (code: string) => {
+        const response = await api.get<Asset>(`/mobile/scan/${code}`);
+        return response.data;
+    },
+
     updateLocation: async (id: string, location_id: string) => {
         // Implement when location update endpoint is ready
         // const response = await api.put(\`/assets/${id}/location\`, { location_id });

@@ -35,7 +35,7 @@ export function ClientList() {
                     </TableHead>
                     <TableBody>
                         {clients && clients.length > 0 ? (
-                            clients.map((client) => (
+                            clients.map((client: any) => (
                                 <TableRow key={client.id} className="hover:bg-muted/30 border-border group transition-all">
                                     <td className="px-4 py-3 text-foreground font-medium">{client.name}</td>
                                     <td className="px-4 py-3 font-mono text-muted-foreground">{client.code}</td>

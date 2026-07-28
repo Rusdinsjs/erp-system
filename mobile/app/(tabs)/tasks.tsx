@@ -1,28 +1,56 @@
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { Text, Card, Chip, useTheme, FAB, SegmentedButtons, Avatar, Badge } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { Text, Card, Chip, useTheme, FAB, SegmentedButtons, Avatar, Badge, ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { workOrderApi, WorkOrder } from '../../api/workOrder';
 import { LinearGradient } from 'expo-linear-gradient';
+
+function formatDue(dateStr: string | null): string {
+    if (!dateStr) return '—';
+    const due = new Date(dateStr);
+    const now = new Date();
+    const diffMs = due.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return `${Math.abs(diffDays)}d overdue`;
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    return `in ${diffDays}d`;
+}
+
+function mapStatusGroup(status: string): string {
+    const s = status.toLowerCase();
+    if (['pending', 'approved', 'assigned'].includes(s)) return 'pending';
+    if (['in_progress', 'started'].includes(s)) return 'in_progress';
+    if (['completed', 'verified', 'finalized', 'cancelled'].includes(s)) return 'completed';
+    return 'pending';
+}
+
+function getPriorityColor(priority: string | null): string {
+    const p = (priority || 'medium').toLowerCase();
+    if (p === 'high' || p === 'critical') return '#ef4444';
+    if (p === 'medium') return '#eab308';
+    return '#6b7280';
+}
 
 export default function TasksScreen() {
     const theme = useTheme();
     const router = useRouter();
     const [filter, setFilter] = useState('pending');
 
-    const tasks = [
-        { id: 'WO-101', title: 'Excavator P2H Check', asset: 'Excavator CAT-320', status: 'pending', priority: 'high', due: 'Today' },
-        { id: 'WO-102', title: 'Hydraulic Leak Fix', asset: 'Dump Truck DT-05', status: 'in_progress', priority: 'medium', due: 'Tomorrow' },
-        { id: 'WO-103', title: 'Weekly Maintenance', asset: 'Genset 500kVA', status: 'completed', priority: 'low', due: 'Yesterday' },
-    ];
+    const { data: orders = [], isLoading, refetch, isRefetching } = useQuery({
+        queryKey: ['work-orders'],
+        queryFn: workOrderApi.listAll,
+        refetchInterval: 30000,
+    });
 
-    const filteredTasks = tasks.filter(t => t.status === filter);
+    const filteredOrders = orders.filter((o: WorkOrder) => mapStatusGroup(o.status) === filter);
 
     return (
         <LinearGradient
             colors={['#0f172a', '#1e293b']}
             style={styles.container}
         >
-            {/* Header filter */}
             <View style={styles.filterContainer}>
                 <SegmentedButtons
                     value={filter}
@@ -33,34 +61,66 @@ export default function TasksScreen() {
                         { value: 'completed', label: 'Done' },
                     ]}
                     theme={{ colors: { secondaryContainer: theme.colors.primary, onSecondaryContainer: 'white' } }}
-                    style={{ backgroundColor: 'rgba(255,255,255,0.05)' }} // Subtle glass effect for the toggle
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                 />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {filteredTasks.length === 0 ? (
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="white" />
+                }
+            >
+                {isLoading ? (
                     <View style={styles.emptyState}>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)' }}>No tasks found</Text>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                    </View>
+                ) : filteredOrders.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)' }}>No work orders found</Text>
                     </View>
                 ) : (
-                    filteredTasks.map((task) => (
-                        <Card key={task.id} style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]} mode="outlined" onPress={() => console.log('Open Task', task.id)}>
+                    filteredOrders.map((order: WorkOrder) => (
+                        <Card
+                            key={order.id}
+                            style={[styles.card, { backgroundColor: 'rgba(30, 41, 59, 0.6)', borderColor: 'rgba(255,255,255,0.1)' }]}
+                            mode="outlined"
+                            onPress={() => router.push(`/assets/${order.asset_id}`)}
+                        >
                             <Card.Title
-                                title={task.title}
+                                title={order.problem_description || order.wo_type || order.wo_number}
                                 titleStyle={{ color: 'white', fontWeight: 'bold' }}
-                                subtitle={task.asset}
+                                subtitle={order.asset_name || 'Unknown Asset'}
                                 subtitleStyle={{ color: 'rgba(255,255,255,0.7)' }}
                                 left={(props) => <Avatar.Icon {...props} icon="clipboard-list" style={{ backgroundColor: theme.colors.primary }} color="white" />}
                                 right={(props) => (
                                     <View style={{ marginRight: 16 }}>
-                                        {task.priority === 'high' && <Badge style={{ backgroundColor: theme.colors.error }}>High</Badge>}
+                                        {order.priority && (
+                                            <Badge style={{ backgroundColor: getPriorityColor(order.priority) }}>
+                                                {order.priority.toUpperCase()}
+                                            </Badge>
+                                        )}
                                     </View>
                                 )}
                             />
                             <Card.Content>
                                 <View style={styles.row}>
-                                    <Chip icon="clock-outline" mode="outlined" textStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }} style={{ backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.2)' }}>{task.due}</Chip>
-                                    <Chip icon="pound" mode="outlined" textStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }} style={{ backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.2)' }}>{task.id}</Chip>
+                                    <Chip
+                                        icon="clock-outline"
+                                        mode="outlined"
+                                        textStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}
+                                        style={{ backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.2)' }}
+                                    >
+                                        {formatDue(order.due_date || order.scheduled_date)}
+                                    </Chip>
+                                    <Chip
+                                        icon="pound"
+                                        mode="outlined"
+                                        textStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}
+                                        style={{ backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.2)' }}
+                                    >
+                                        {order.wo_number}
+                                    </Chip>
                                 </View>
                             </Card.Content>
                         </Card>
@@ -68,11 +128,10 @@ export default function TasksScreen() {
                 )}
             </ScrollView>
 
-            {/* FAB to create new task (if allowed) */}
             <FAB
                 icon="plus"
                 style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-                onPress={() => console.log('Create new task')}
+                onPress={() => router.push('/(tabs)/input')}
                 color="white"
             />
         </LinearGradient>
@@ -109,6 +168,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         margin: 16,
         right: 0,
-        bottom: 110, // Raised further as requested
+        bottom: 110,
     },
 });

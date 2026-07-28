@@ -78,7 +78,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
             isOpen={isOpen} 
             onClose={onClose} 
             title={`Preview Asset: ${asset.asset_code}`}
-            size="60p"
+            size="75p"
         >
             <div className="flex flex-col gap-6 min-h-[400px]">
                 <LoadingOverlay visible={isLoading} />
@@ -145,8 +145,8 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                         ))}
                     </div>
 
-                    {/* Info Grid - 4 Columns */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Info Grid - 2 Columns */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Column 1: General Info */}
                         <Card className="bg-muted/30 border-border backdrop-blur-sm">
                             <div className="p-4 space-y-4">

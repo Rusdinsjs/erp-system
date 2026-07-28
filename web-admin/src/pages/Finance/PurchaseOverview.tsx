@@ -14,11 +14,15 @@ export default function PurchaseOverview() {
     const { data: orders } = useQuery({ queryKey: ['finance', 'purchase-orders'], queryFn: financeApi.listPurchaseOrders });
     const { data: shipments } = useQuery({ queryKey: ['finance', 'purchase-shipments'], queryFn: financeApi.listPurchaseShipments });
 
-    // Calculate stats
-    const totalOrders = orders?.data?.length || 0;
-    const pendingOrders = orders?.data?.filter((o: any) => o.status === 'draft' || o.status === 'sent').length || 0;
-    const activeShipments = shipments?.data?.filter((s: any) => s.status !== 'completed').length || 0;
-    const recentQuotes = quotes?.data?.slice(0, 5) || [];
+    // Calculate stats safely
+    const orderList = Array.isArray(orders?.data) ? orders.data : Array.isArray(orders?.data?.data) ? orders.data.data : Array.isArray(orders) ? orders : [];
+    const shipmentList = Array.isArray(shipments?.data) ? shipments.data : Array.isArray(shipments?.data?.data) ? shipments.data.data : Array.isArray(shipments) ? shipments : [];
+    const quoteList = Array.isArray(quotes?.data) ? quotes.data : Array.isArray(quotes?.data?.data) ? quotes.data.data : Array.isArray(quotes) ? quotes : [];
+
+    const totalOrders = orderList.length;
+    const pendingOrders = orderList.filter((o: any) => o.status === 'draft' || o.status === 'sent').length;
+    const activeShipments = shipmentList.filter((s: any) => s.status !== 'completed').length;
+    const recentQuotes = quoteList.slice(0, 5);
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('id-ID', {

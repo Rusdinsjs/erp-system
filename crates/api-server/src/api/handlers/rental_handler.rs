@@ -26,6 +26,14 @@ pub struct ScheduleParams {
     pub end: NaiveDate,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateRentalPayload {
+    pub start_date: Option<NaiveDate>,
+    pub expected_end_date: Option<NaiveDate>,
+    pub deposit_amount: Option<rust_decimal::Decimal>,
+    pub notes: Option<String>,
+}
+
 // ==================== RENTAL ENDPOINTS ====================
 
 /// List all rentals
@@ -45,6 +53,41 @@ pub async fn get_rental(
 ) -> Result<Json<Rental>, AppError> {
     let rental = state.rental_service.find_rental(id).await?;
     Ok(Json(rental))
+}
+
+/// Update rental order by ID
+pub async fn update_rental(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateRentalPayload>,
+) -> Result<Json<ApiResponse<Rental>>, AppError> {
+    let rental = state
+        .rental_service
+        .update_rental(
+            id,
+            payload.start_date,
+            payload.expected_end_date,
+            payload.deposit_amount,
+            payload.notes,
+        )
+        .await?;
+
+    Ok(Json(ApiResponse::success_with_message(
+        rental,
+        "Rental order updated successfully",
+    )))
+}
+
+/// Delete rental order by ID
+pub async fn delete_rental(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiResponse<()>>, AppError> {
+    state.rental_service.delete_rental(id).await?;
+    Ok(Json(ApiResponse::success_with_message(
+        (),
+        "Rental order deleted successfully",
+    )))
 }
 
 /// Create a new rental request
