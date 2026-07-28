@@ -100,7 +100,10 @@ impl AssetState {
                     | Self::Retired
                     | Self::Sold
             ),
-            Self::RentedOut => matches!(target, Self::InInventory | Self::Sold),
+            Self::RentedOut => matches!(
+                target,
+                Self::InInventory | Self::UnderMaintenance | Self::UnderRepair | Self::Sold
+            ),
             Self::UnderMaintenance => matches!(target, Self::Deployed | Self::InInventory),
             Self::UnderRepair => matches!(target, Self::Deployed | Self::InInventory),
             Self::UnderConversion => matches!(target, Self::Deployed | Self::InInventory),
@@ -129,7 +132,12 @@ impl AssetState {
                     Self::Sold,
                 ]);
             }
-            Self::RentedOut => transitions.extend([Self::InInventory, Self::Sold]),
+            Self::RentedOut => transitions.extend([
+                Self::InInventory,
+                Self::UnderMaintenance,
+                Self::UnderRepair,
+                Self::Sold,
+            ]),
             Self::UnderMaintenance => transitions.push(Self::Deployed),
             Self::UnderRepair => transitions.push(Self::Deployed),
             Self::UnderConversion => transitions.push(Self::Deployed),
