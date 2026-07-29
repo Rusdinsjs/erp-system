@@ -289,6 +289,23 @@ export default function AdminDashboard() {
                     ? JSON.parse(publicSettings.launchpad_config)
                     : publicSettings.launchpad_config;
                 if (backendConfig && Array.isArray(backendConfig.modules)) {
+                    backendConfig.modules = backendConfig.modules.map((m: any) => {
+                        if (m.id === 'asset-management') {
+                            const ids = m.menuIds || [];
+                            if (!ids.includes('conversions')) ids.push('conversions');
+                            return { ...m, menuIds: ids };
+                        }
+                        if (m.id === 'commercial') {
+                            const ids = m.menuIds || [];
+                            if (!ids.includes('purchase-bills')) ids.push('purchase-bills');
+                            return { ...m, menuIds: ids };
+                        }
+                        if (m.id === 'supply-chain') {
+                            const ids = (m.menuIds || []).filter((id: string) => id !== 'conversions' && id !== 'purchase-bills');
+                            return { ...m, menuIds: ids };
+                        }
+                        return m;
+                    });
                     setLaunchpadConfig(backendConfig as LaunchpadConfig);
                 }
             } catch {
@@ -491,7 +508,9 @@ export default function AdminDashboard() {
 
         const getGroupItems = (moduleIds: string[], preferredOrder: string[], allowedFilter?: string[]) => {
             const result: NavItem[] = [];
-            const activeIds = moduleIds.length > 0 ? moduleIds : preferredOrder;
+            const activeIds = moduleIds.length > 0
+                ? Array.from(new Set([...moduleIds, ...preferredOrder.filter(id => !allowedFilter || allowedFilter.includes(id))]))
+                : preferredOrder;
 
             preferredOrder.forEach(id => {
                 if (activeIds.includes(id) && ALL_NAV_ITEMS[id] && (!allowedFilter || allowedFilter.includes(id))) {
@@ -515,21 +534,14 @@ export default function AdminDashboard() {
                 label: 'Assets',
                 icon: Box,
                 minLevel: 5,
-                children: getGroupItems(assetIds, ['assets', 'asset-lifecycle', 'asset-audit'])
+                children: getGroupItems(assetIds, ['assets', 'asset-lifecycle', 'conversions', 'asset-audit'])
             },
             {
                 id: 'inventory_group',
                 label: 'Inventory',
                 icon: Package,
                 minLevel: 4,
-                children: getGroupItems(supplyChainIds, ['inventory-items', 'stock-opname', 'conversions'], ['inventory-items', 'stock-opname', 'conversions'])
-            },
-            {
-                id: 'procurement_group',
-                label: 'Procurement',
-                icon: ShoppingCart,
-                minLevel: 3,
-                children: getGroupItems(supplyChainIds, ['purchase-bills'], ['purchase-bills'])
+                children: getGroupItems(supplyChainIds, ['inventory-items', 'stock-opname'], ['inventory-items', 'stock-opname'])
             },
             {
                 id: 'maintenance_group',
@@ -544,6 +556,13 @@ export default function AdminDashboard() {
                 icon: Truck,
                 minLevel: 4,
                 children: getGroupItems(commercialIds, ['rentals', 'contracts', 'loans'], ['rentals', 'contracts', 'loans'])
+            },
+            {
+                id: 'procurement_group',
+                label: 'Procurement',
+                icon: ShoppingCart,
+                minLevel: 3,
+                children: getGroupItems(commercialIds, ['purchase-bills'], ['purchase-bills'])
             },
             {
                 id: 'commercial_group',
