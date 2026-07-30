@@ -59,11 +59,7 @@ cd ..
 
 # 4. Jalankan Backend (Rust) di background
 echo -e "${GREEN}5. Menjalankan Backend (Rust)...${NC}"
-if [ -f "./target/debug/management-system" ]; then
-    ./target/debug/management-system > backend.log 2>&1 &
-else
     cargo run > backend.log 2>&1 &
-fi
 BACKEND_PID=$!
 
 sleep 3
