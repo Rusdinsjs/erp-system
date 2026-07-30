@@ -31,8 +31,8 @@ VALUES (
                 "iconBg": "bg-gradient-to-br from-emerald-500 to-teal-500",
                 "defaultRoute": "/assets",
                 "minLevel": 5,
-                "features": ["Asset Registry", "Lifecycle", "Asset Conversions", "Categories & Locations"],
-                "menuIds": ["assets", "asset-lifecycle", "conversions", "categories", "locations", "asset-audit"],
+                "features": ["Asset Registry", "Lifecycle", "Asset Conversions", "Asset Audit"],
+                "menuIds": ["assets", "asset-lifecycle", "conversions", "asset-audit"],
                 "order": 2,
                 "enabled": true
             },
@@ -46,7 +46,7 @@ VALUES (
                 "defaultRoute": "/work-orders",
                 "minLevel": 5,
                 "features": ["Work Orders", "PM Schedules", "Fuel & Tax"],
-                "menuIds": ["work-orders", "maintenance-schedules", "maintenance-templates", "fuel", "tax-renewals"],
+                "menuIds": ["work-orders", "maintenance-schedules", "fuel", "tax-renewals"],
                 "order": 3,
                 "enabled": true
             },
@@ -60,7 +60,7 @@ VALUES (
                 "defaultRoute": "/rentals",
                 "minLevel": 4,
                 "features": ["Rental Operations", "Contracts", "Client Management", "Procurement & Vendor Bills"],
-                "menuIds": ["rentals", "contracts", "contract-templates", "sales-invoices", "clients", "loans", "purchase-bills"],
+                "menuIds": ["rentals", "contracts", "sales-invoices", "clients", "loans", "purchase-bills"],
                 "order": 4,
                 "enabled": true
             },
@@ -115,8 +115,8 @@ VALUES (
                 "iconBg": "bg-gradient-to-br from-slate-500 to-gray-500",
                 "defaultRoute": "/approvals",
                 "minLevel": 2,
-                "features": ["Approvals", "Users & Roles", "System Config"],
-                "menuIds": ["approvals", "users", "roles", "approval-workflow-settings", "audit", "settings"],
+                "features": ["Master Data & Templates", "Users & Roles", "System Config"],
+                "menuIds": ["categories", "inventory-categories", "locations", "maintenance-templates", "contract-templates", "approvals", "users", "roles", "approval-workflow-settings", "audit", "settings"],
                 "order": 8,
                 "enabled": true
             }
