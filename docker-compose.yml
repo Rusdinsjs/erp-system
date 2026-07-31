@@ -47,6 +47,7 @@ services:
 
   # Backend API
   backend:
+    image: ghcr.io/rusdinsjs/erp-backend:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -78,6 +79,7 @@ services:
 
   # Frontend Web Admin
   frontend:
+    image: ghcr.io/rusdinsjs/erp-frontend:latest
     build:
       context: ./web-admin
       dockerfile: Dockerfile
