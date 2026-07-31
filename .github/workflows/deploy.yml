@@ -57,14 +57,21 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GITHUB_TOKEN,GITHUB_ACTOR
           command_timeout: 60m
           script: |
             set -e
             cd ~/erp-system
+
+            # Login ke GHCR agar VPS bisa langsung pull image tanpa build lokal
+            echo "$GITHUB_TOKEN" | sudo docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin 2>/dev/null || true
 
             # ── 1. Ambil kode terbaru ──────────────────────────────────────────
             git fetch --all
@@ -84,7 +91,7 @@ jobs:
             sudo docker compose stop backend frontend ms-ai-ollama redis 2>/dev/null || true
             sudo docker compose rm -f backend frontend ms-ai-ollama redis 2>/dev/null || true
 
-            # ── 4. Pastikan postgres berjalan & pakai config terbaru ───────────
+            # ── 4. Pastikan postgres berjalan ──────────────────────────────────
             echo ">> Memastikan postgres berjalan..."
             sudo docker compose up -d --force-recreate postgres
             echo ">> Menunggu postgres siap..."
@@ -118,7 +125,7 @@ jobs:
 
             # ── 6. Pull image pre-built dari GHCR (Super Cepat!) ──────────────
             echo ">> Pull image terbaru dari GHCR..."
-            sudo docker compose pull backend frontend || sudo docker compose build backend frontend
+            sudo docker compose pull backend frontend
 
             # ── 7. Start semua layanan ─────────────────────────────────────────
             echo ">> Start semua layanan..."
