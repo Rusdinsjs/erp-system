@@ -19,7 +19,7 @@ jobs:
           command_timeout: 60m
           script: |
             set -e
-            cd ~/management-system
+            cd ~/erp-system
 
             # ── 1. Ambil kode terbaru ──────────────────────────────────────────
             git fetch --all
