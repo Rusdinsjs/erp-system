@@ -27,13 +27,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase Repository Owner
+        id: prep
+        run: echo "owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/erp-backend:latest
+          tags: ghcr.io/${{ steps.prep.outputs.owner }}/erp-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -43,7 +47,7 @@ jobs:
           context: ./web-admin
           file: ./web-admin/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/erp-frontend:latest
+          tags: ghcr.io/${{ steps.prep.outputs.owner }}/erp-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
