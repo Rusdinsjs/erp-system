@@ -90,4 +90,10 @@ opt-level = 3
 [profile.dev.package.password-hash]
 opt-level = 3
 
+[profile.release]
+opt-level = 3
+codegen-units = 16
+lto = "thin"
+
+
 
