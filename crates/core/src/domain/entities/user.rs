@@ -166,6 +166,7 @@ impl User {
             employee_id: None,
             phone: None,
             avatar_url: None,
+            allowed_asset_group: None,
             is_active: true,
             email_verified: false,
             last_login_at: None,
