@@ -71,7 +71,7 @@ pub async fn list_assets(
         "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
         "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
         "admin_infrastruktur" | "admin_infra" => Some("INFRASTRUKTUR"),
-        _ => None,
+        _ => claims.allowed_asset_group.as_deref(),
     };
 
     let result = state
@@ -106,7 +106,11 @@ pub async fn search_assets(
         "admin_alat_berat" | "admin_heavy_eq" => params.asset_group = Some("ALAT_BERAT".to_string()),
         "admin_kendaraan" | "admin_vehicle" => params.asset_group = Some("KENDARAAN".to_string()),
         "admin_infrastruktur" | "admin_infra" => params.asset_group = Some("INFRASTRUKTUR".to_string()),
-        _ => {}
+        _ => {
+            if params.asset_group.is_none() {
+                params.asset_group = claims.allowed_asset_group.clone();
+            }
+        }
     }
 
     let result = state.asset_service.search(params).await?;

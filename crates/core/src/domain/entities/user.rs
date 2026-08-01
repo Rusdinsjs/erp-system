@@ -228,6 +228,7 @@ pub struct UserClaims {
     pub role: String,
     pub role_level: i32,
     pub department: Option<String>,
+    pub allowed_asset_group: Option<String>,
     pub org: Option<String>,       // Organization ID
     pub employee_id: Option<Uuid>, // Employee ID if linked
     pub permissions: Vec<String>,

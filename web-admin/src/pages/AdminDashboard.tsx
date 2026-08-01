@@ -655,25 +655,21 @@ export default function AdminDashboard() {
     };
     // Render Navigation Item
     const renderNavItem = (item: NavItem, isChild = false) => {
-        // Permissions Check
-        const userLevel = user?.role_level ?? 5;
-        const requiredLevel = item.minLevel ?? 5; // Default to Viewer if not specified
+        const menuId = item.id as MenuId;
+        const resourceId = MENU_TO_RESOURCE[menuId] || menuId.replace(/-/g, '_');
+        
+        let hasAccess = hasPermission(`${resourceId}.read`) || 
+                          hasPermission(`${resourceId}.view`) || 
+                          hasPermission(`${resourceId}.*`);
 
-        if (userLevel > requiredLevel) return null;
-
-        // Hide Categories and Locations for Specialist Admins (L4)
-        const isSpecialistAdmin = user && [
-            'admin_alat_berat', 
-            'admin_kendaraan', 
-            'admin_infrastruktur',
-            'admin_heavy_eq',
-            'admin_vehicle',
-            'admin_infra'
-        ].includes(user.role);
-
-        if (isSpecialistAdmin && (item.id === 'categories' || item.id === 'locations')) {
-            return null;
+        if (!hasAccess && resourceId === 'work_order') {
+            hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
         }
+        if (!hasAccess && resourceId === 'approval_center') {
+            hasAccess = hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost') || true;
+        }
+
+        if (!hasAccess) return null;
 
         // Backward compatibility for adminOnly flag
         if (item.adminOnly && !isAdmin) return null;
@@ -721,12 +717,6 @@ export default function AdminDashboard() {
         const isChildActive = isChildActiveRecursive(group.children);
         const isOpen = openGroups[group.id] || false;
 
-        // Permissions Check for Group using minLevel
-        const userLevel = user?.role_level ?? 5;
-        const requiredLevel = group.minLevel ?? 5;
-
-        if (userLevel > requiredLevel) return null;
-
         // Also ensure at least one child is visible
         const visibleMenuIds = getVisibleMenuIds();
 
@@ -736,24 +726,24 @@ export default function AdminDashboard() {
             const menuId = item.id as MenuId;
             const resourceId = MENU_TO_RESOURCE[menuId] || menuId.replace(/-/g, '_');
             
-            if (!hasPermission(`${resourceId}.view`)) {
+            // Check read, view, or wildcard permission
+            let hasAccess = hasPermission(`${resourceId}.read`) || 
+                              hasPermission(`${resourceId}.view`) || 
+                              hasPermission(`${resourceId}.*`);
+
+            // Fallback resource mapping
+            if (!hasAccess && resourceId === 'work_order') {
+                hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
+            }
+            if (!hasAccess && resourceId === 'approval_center') {
+                hasAccess = hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost') || true;
+            }
+
+            if (!hasAccess) {
                 return false;
             }
 
             if (activeModule && !visibleMenuIds.includes(menuId)) {
-                return false;
-            }
-
-            const isSpecialistAdmin = user && [
-                'admin_alat_berat', 
-                'admin_kendaraan', 
-                'admin_infrastruktur',
-                'admin_heavy_eq',
-                'admin_vehicle',
-                'admin_infra'
-            ].includes(user.role);
-
-            if (isSpecialistAdmin && (item.id === 'categories' || item.id === 'locations')) {
                 return false;
             }
 
@@ -793,6 +783,7 @@ export default function AdminDashboard() {
                         {group.children.map((child) => {
                             if (isNavHeader(child)) return renderNavHeader(child);
                             if (isNavGroup(child)) return renderNavGroup(child);
+                            if (!isItemVisible(child)) return null;
                             return renderNavItem(child as NavItem, true);
                         })}
                     </div>

@@ -51,14 +51,27 @@ function resolveIcon(iconName: string): React.ElementType {
 
 export default function Launchpad() {
     const navigate = useNavigate();
-    const { user, logout, hasRoleLevel, hasPermission } = useAuthStore();
+    const { user, logout, hasPermission } = useAuthStore();
     const { theme, setTheme } = useTheme();
     const { setActiveModule, setLaunchpadConfig, launchpadConfig } = useNavigationStore();
 
     // Check if user has permission for a specific menu resource
     const canAccessMenu = (menuId: string) => {
         const resource = MENU_TO_RESOURCE[menuId as MenuId] || menuId.replace(/-/g, '_');
-        return hasPermission(`${resource}.read`) || hasPermission(`${resource}.view`) || hasPermission(`${resource}.*`);
+
+        // Special case: 'users' menu in System Admin requires user management capabilities
+        if (menuId === 'users') {
+            return hasPermission('user.create') || hasPermission('user.update') || hasPermission('user.delete') || hasPermission('user.*');
+        }
+
+        let hasAccess = hasPermission(`${resource}.read`) || hasPermission(`${resource}.view`) || hasPermission(`${resource}.*`);
+
+        // Fallback checks for resources with alternative names in RBAC
+        if (!hasAccess && resource === 'work_order') {
+            hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
+        }
+
+        return hasAccess;
     };
 
     // Fetch public settings (includes launchpad_config if stored in backend)
@@ -92,13 +105,15 @@ export default function Launchpad() {
         }
     }, [publicSettings, setLaunchpadConfig]);
 
-    // Get visible cards based on user role level and Permission Matrix permissions
+    // Get visible cards based on user Permission Matrix permissions
     const visibleCards = launchpadConfig.modules
         .filter(card => {
             if (!card.enabled) return false;
-            const hasLevelAccess = hasRoleLevel(card.minLevel);
+            // Super Admin or Level <= 2 sees all cards
+            if (user?.role_level && user.role_level <= 2) return true;
+            // For other users, only show cards where they have at least one menu permission
             const hasAnyMenuPermission = card.menuIds.some(menuId => canAccessMenu(menuId));
-            return hasLevelAccess || hasAnyMenuPermission;
+            return hasAnyMenuPermission;
         })
         .sort((a, b) => a.order - b.order);
 

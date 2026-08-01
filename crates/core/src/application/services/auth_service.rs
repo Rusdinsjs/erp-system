@@ -95,6 +95,7 @@ impl AuthService {
             role: user.role.clone(),
             role_level: user.role_level,
             department: user.department.clone(),
+            allowed_asset_group: user.allowed_asset_group.clone(),
             org: user.organization_id.map(|id| id.to_string()),
             employee_id,
             permissions,
