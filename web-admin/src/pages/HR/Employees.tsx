@@ -1,8 +1,10 @@
 // Employees Page - Pure Tailwind
 import { useEffect, useState } from 'react';
-import { Plus, Edit, Trash2, Search, UserPlus, UserCheck } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, UserPlus, UserCheck, Eye, Camera, Loader2 } from 'lucide-react';
 import { employeeApi, type Employee, type EmploymentStatus } from '../../api/employee';
 import { api } from '../../api/http';
+import { uploadApi } from '../../api/upload';
+import { getImageUrl } from '../../utils/image';
 import {
     Button,
     Card,
@@ -16,7 +18,6 @@ import {
     useToast,
     Tabs, TabsList, TabsTrigger, TabsContent,
     DateInput,
-    Textarea
 } from '../../components/ui';
 import dayjs from 'dayjs';
 
@@ -34,6 +35,7 @@ const initialFormState: Partial<Employee> = {
     position: '',
     employment_status: 'pkwt',
     user_id: '',
+    photo_url: '',
 
     // Biodata
     ktp_number: '',
@@ -82,14 +84,18 @@ export default function Employees() {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [userModalOpen, setUserModalOpen] = useState(false);
+    const [viewOpened, setViewOpened] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+
     const [submitting, setSubmitting] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [formData, setFormData] = useState(initialFormState);
     const [userFormData, setUserFormData] = useState(initialUserFormState);
 
-    // New State for Integrated User Creation
+    // Integrated User Creation State
     const [createUser, setCreateUser] = useState(false);
     const [userPassword, setUserPassword] = useState('');
     const [userRole, setUserRole] = useState('staff');
@@ -120,6 +126,27 @@ export default function Employees() {
             setDepartments(response.data);
         } catch (error) {
             console.error('Failed to fetch departments:', error);
+        }
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            showError('File harus berupa gambar (JPG, PNG, WebP, dll.)', 'Upload Error');
+            return;
+        }
+
+        setUploadingPhoto(true);
+        try {
+            const res = await uploadApi.upload(file);
+            setFormData(prev => ({ ...prev, photo_url: res.url }));
+            success('Foto pegawai berhasil diupload', 'Success');
+        } catch (err: any) {
+            showError(err.response?.data?.message || 'Gagal mengupload foto', 'Upload Error');
+        } finally {
+            setUploadingPhoto(false);
         }
     };
 
@@ -212,14 +239,19 @@ export default function Employees() {
         setEditingEmployee(employee);
         setIsEditing(true);
         setFormData({
-            ...initialFormState, // Fill with defaults for new fields
-            ...employee, // Overwrite with existing data
-            basic_salary: Number(employee.basic_salary) || 0, // Ensure number
+            ...initialFormState,
+            ...employee,
+            basic_salary: Number(employee.basic_salary) || 0,
         });
-        setCreateUser(false); // Default to false
+        setCreateUser(false);
         setUserPassword('');
         setUserRole('staff');
         setModalOpen(true);
+    };
+
+    const openViewModal = (employee: Employee) => {
+        setSelectedEmployee(employee);
+        setViewOpened(true);
     };
 
     const openUserModal = (employee: Employee) => {
@@ -332,9 +364,25 @@ export default function Employees() {
                             {filteredEmployees.length > 0 ? filteredEmployees.map((employee) => (
                                 <TableRow key={employee.id}>
                                     <TableTd>
-                                        <div>
-                                            <p className="font-medium text-white">{employee.name}</p>
-                                            <p className="text-xs text-slate-500">{employee.nik}</p>
+                                        <div className="flex items-center gap-3">
+                                            {employee.photo_url ? (
+                                                <img
+                                                    src={getImageUrl(employee.photo_url)}
+                                                    alt={employee.name}
+                                                    className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-700/50 shadow-sm shrink-0"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = '/avatar-user.png';
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-9 h-9 rounded-full bg-cyan-500/10 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/20 shrink-0">
+                                                    {employee.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <p className="font-medium text-white">{employee.name}</p>
+                                                <p className="text-xs text-slate-500">{employee.nik}</p>
+                                            </div>
                                         </div>
                                     </TableTd>
                                     <TableTd>{employee.email}</TableTd>
@@ -369,10 +417,13 @@ export default function Employees() {
                                     </TableTd>
                                     <TableTd align="center">
                                         <div className="flex items-center justify-center gap-1">
-                                            <ActionIcon onClick={() => openEditModal(employee)} title="Edit">
+                                            <ActionIcon onClick={() => openViewModal(employee)} title="Lihat Detail Pegawai">
+                                                <Eye size={16} />
+                                            </ActionIcon>
+                                            <ActionIcon onClick={() => openEditModal(employee)} title="Edit Pegawai">
                                                 <Edit size={16} />
                                             </ActionIcon>
-                                            <ActionIcon variant="danger" onClick={() => handleDelete(employee)} title="Delete">
+                                            <ActionIcon variant="danger" onClick={() => handleDelete(employee)} title="Hapus Pegawai">
                                                 <Trash2 size={16} />
                                             </ActionIcon>
                                         </div>
@@ -405,6 +456,59 @@ export default function Employees() {
                     <div className="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                         {/* 1. PERSONAL DETAILS */}
                         <TabsContent value="personal" className="space-y-4">
+                            {/* Photo Upload Section */}
+                            <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                                <div className="relative group shrink-0">
+                                    {formData.photo_url ? (
+                                        <img
+                                            src={getImageUrl(formData.photo_url)}
+                                            alt="Preview"
+                                            className="w-16 h-16 rounded-full object-cover ring-2 ring-cyan-500/30 shadow-inner"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).src = '/avatar-user.png';
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="w-16 h-16 rounded-full bg-slate-800 text-slate-400 font-semibold text-xs flex flex-col items-center justify-center border border-slate-700">
+                                            <Camera size={20} className="mb-1 text-slate-500" />
+                                            <span>Foto</span>
+                                        </div>
+                                    )}
+                                    {uploadingPhoto && (
+                                        <div className="absolute inset-0 bg-slate-950/80 rounded-full flex items-center justify-center">
+                                            <Loader2 size={18} className="animate-spin text-cyan-400" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-2">
+                                    <span className="text-xs font-semibold text-slate-300 block">Foto Profil Pegawai</span>
+                                    <div className="flex items-center gap-2">
+                                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium transition-colors shadow-sm">
+                                            <Camera size={14} />
+                                            <span>Upload Foto</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={handlePhotoUpload}
+                                                disabled={uploadingPhoto}
+                                            />
+                                        </label>
+                                        {formData.photo_url && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-xs text-rose-400 hover:text-rose-300"
+                                                onClick={() => setFormData({ ...formData, photo_url: '' })}
+                                            >
+                                                Hapus Foto
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-slate-500">Format: JPG, PNG, WEBP. Maks 5MB.</p>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
                                     label="NIK"
@@ -448,7 +552,7 @@ export default function Employees() {
                                 <Select
                                     label="Golongan Darah"
                                     value={formData.blood_type}
-                                    onChange={(val) => setFormData({ ...formData, blood_type: val })}
+                                    onChange={(val) => setFormData({ ...formData, blood_type: val || undefined })}
                                     options={bloodOptions}
                                 />
                             </div>
@@ -459,13 +563,13 @@ export default function Employees() {
                                     onChange={(e) => setFormData({ ...formData, religion: e.target.value })}
                                 />
                                 <Input
-                                    label="Status Perkawinan"
-                                    placeholder="Lajang/Menikah..."
+                                    label="Status Pernikahan"
+                                    placeholder="Lajang / Menikah"
                                     value={formData.marital_status}
                                     onChange={(e) => setFormData({ ...formData, marital_status: e.target.value })}
                                 />
                             </div>
-                            <Textarea
+                            <Input
                                 label="Alamat Domisili"
                                 value={formData.address}
                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -478,111 +582,96 @@ export default function Employees() {
                                 <Select
                                     label="Departemen"
                                     value={formData.department_id}
-                                    onChange={(val) => setFormData({ ...formData, department_id: val || '' })}
+                                    onChange={(val) => setFormData({ ...formData, department_id: val || undefined })}
                                     options={deptOptions}
                                 />
                                 <Input
-                                    label="Jabatan"
+                                    label="Jabatan / Posisi"
                                     value={formData.position}
                                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Select
-                                    label="Status Karyawan"
+                                    label="Status Kepegawaian"
                                     value={formData.employment_status}
-                                    onChange={(val) => setFormData({ ...formData, employment_status: (val as EmploymentStatus) || 'pkwt' })}
+                                    onChange={(val) => setFormData({ ...formData, employment_status: val as any })}
                                     options={statusOptions}
                                 />
-                                <Input
-                                    label="Pendidikan Terakhir"
-                                    value={formData.education}
-                                    onChange={(e) => setFormData({ ...formData, education: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
                                 <DateInput
-                                    label="Tanggal Masuk"
+                                    label="Tanggal Mulai Kerja"
                                     value={formData.start_date}
                                     onChange={(val) => setFormData({ ...formData, start_date: val ? dayjs(val).format('YYYY-MM-DD') : '' })}
                                 />
+                            </div>
+                            {formData.employment_status === 'pkwt' && (
                                 <DateInput
-                                    label="Akhir Kontrak"
+                                    label="Tanggal Akhir Kontrak"
                                     value={formData.end_contract_date}
                                     onChange={(val) => setFormData({ ...formData, end_contract_date: val ? dayjs(val).format('YYYY-MM-DD') : '' })}
                                 />
-                            </div>
+                            )}
+                        </TabsContent>
+
+                        {/* 3. CONTACT & EMERGENCY */}
+                        <TabsContent value="contact" className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
-                                    label="Email Kantor"
+                                    label="Email Utama"
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     required
                                 />
+                                <Input
+                                    label="No. Telepon / HP"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                />
                             </div>
-                        </TabsContent>
-
-                        {/* 3. CONTACT & EMERGENCY */}
-                        <TabsContent value="contact" className="space-y-4">
+                            <hr className="border-slate-700/50 my-2" />
+                            <h4 className="text-sm font-medium text-slate-300">Kontak Darurat</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Nama Kontak Darurat"
+                                    value={formData.emergency_contact_name}
+                                    onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                                />
+                                <Input
+                                    label="No. HP Kontak Darurat"
+                                    value={formData.emergency_contact_phone}
+                                    onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                                />
+                            </div>
                             <Input
-                                label="No. Telepon / WhatsApp"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                label="Hubungan Kontak Darurat"
+                                placeholder="Misal: Orang Tua, Suami/Istri, Saudara"
+                                value={formData.emergency_contact_relation}
+                                onChange={(e) => setFormData({ ...formData, emergency_contact_relation: e.target.value })}
                             />
-                            <div className="border-t border-slate-700 pt-4">
-                                <h4 className="text-sm font-semibold text-slate-300 mb-2">Kontak Darurat</h4>
-                                <div className="space-y-3">
-                                    <Input
-                                        label="Nama Kontak Darurat"
-                                        value={formData.emergency_contact_name}
-                                        onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
-                                    />
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Input
-                                            label="No. Telepon"
-                                            value={formData.emergency_contact_phone}
-                                            onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
-                                        />
-                                        <Input
-                                            label="Hubungan"
-                                            placeholder="Ortu/Istri/Suami..."
-                                            value={formData.emergency_contact_relation}
-                                            onChange={(e) => setFormData({ ...formData, emergency_contact_relation: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
                         </TabsContent>
 
-                        {/* 4. PAYROLL */}
+                        {/* 4. PAYROLL & FINANCIAL */}
                         <TabsContent value="payroll" className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
                                     label="Nama Bank"
-                                    placeholder="BCA/Mandiri..."
+                                    placeholder="BCA, Mandiri, BRI, dll."
                                     value={formData.bank_name}
                                     onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
                                 />
                                 <Input
-                                    label="No. Rekening"
+                                    label="No. Rekening Bank"
                                     value={formData.bank_account}
                                     onChange={(e) => setFormData({ ...formData, bank_account: e.target.value })}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    label="NPWP"
-                                    value={formData.npwp}
-                                    onChange={(e) => setFormData({ ...formData, npwp: e.target.value })}
-                                />
-                                <Input
-                                    label="Gaji Pokok"
-                                    type="number"
-                                    value={formData.basic_salary}
-                                    onChange={(e) => setFormData({ ...formData, basic_salary: Number(e.target.value) })}
-                                />
-                            </div>
+                            <Input
+                                label="Gaji Pokok"
+                                type="number"
+                                value={formData.basic_salary}
+                                onChange={(e) => setFormData({ ...formData, basic_salary: Number(e.target.value) })}
+                            />
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
                                     label="BPJS Kesehatan"
@@ -643,9 +732,9 @@ export default function Employees() {
                                                     { value: 'technician', label: 'Technician' },
                                                     { value: 'manager', label: 'Manager' },
                                                     { value: 'admin', label: 'Admin' },
-                                                    { value: 'admin_alat_berat', label: 'Admin Alat Berat' },
-                                                    { value: 'admin_kendaraan', label: 'Admin Kendaraan' },
-                                                    { value: 'admin_infrastruktur', label: 'Admin Infrastruktur' },
+                                                    { value: 'admin_heavy_eq', label: 'Admin Alat Berat' },
+                                                    { value: 'admin_vehicle', label: 'Admin Kendaraan' },
+                                                    { value: 'admin_infra', label: 'Admin Infrastruktur' },
                                                 ]}
                                             />
                                         </div>
@@ -664,6 +753,187 @@ export default function Employees() {
                         </Button>
                     </div>
                 </Tabs>
+            </Modal>
+
+            {/* View Employee Details Modal */}
+            <Modal
+                isOpen={viewOpened}
+                onClose={() => setViewOpened(false)}
+                title="Detail Informasi Pegawai"
+                size="lg"
+            >
+                {selectedEmployee && (
+                    <div className="space-y-6">
+                        {/* Profile Banner */}
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/70 border border-slate-800">
+                            {selectedEmployee.photo_url ? (
+                                <img
+                                    src={getImageUrl(selectedEmployee.photo_url)}
+                                    alt={selectedEmployee.name}
+                                    className="w-16 h-16 rounded-full object-cover ring-2 ring-cyan-500/40 shadow-inner shrink-0"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/avatar-user.png';
+                                    }}
+                                />
+                            ) : (
+                                <div className="w-16 h-16 rounded-full bg-cyan-500/10 text-cyan-400 font-bold text-xl flex items-center justify-center border border-cyan-500/20 shadow-inner shrink-0">
+                                    {selectedEmployee.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-bold text-white truncate">{selectedEmployee.name}</h3>
+                                <p className="text-xs font-mono text-cyan-400 font-medium">NIK: {selectedEmployee.nik}</p>
+                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    <Badge variant={getStatusBadge(selectedEmployee.employment_status)}>
+                                        {getStatusLabel(selectedEmployee.employment_status)}
+                                    </Badge>
+                                    <Badge variant={selectedEmployee.is_active ? 'success' : 'danger'}>
+                                        {selectedEmployee.is_active ? 'Aktif' : 'Non-Aktif'}
+                                    </Badge>
+                                    {selectedEmployee.department_name && (
+                                        <Badge variant="info">Dept: {selectedEmployee.department_name}</Badge>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Details Tabs */}
+                        <Tabs defaultValue="personal" className="w-full">
+                            <TabsList className="mb-4">
+                                <TabsTrigger value="personal">Personal & Biodata</TabsTrigger>
+                                <TabsTrigger value="employment">Pekerjaan</TabsTrigger>
+                                <TabsTrigger value="contact">Kontak & Darurat</TabsTrigger>
+                                <TabsTrigger value="payroll">Payroll & Bank</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="personal" className="space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Nama Lengkap</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.name}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">No. KTP (NIK)</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.ktp_number || '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Tempat, Tgl Lahir</span>
+                                        <p className="text-sm font-semibold text-white">
+                                            {selectedEmployee.place_of_birth || '-'}, {selectedEmployee.date_of_birth ? dayjs(selectedEmployee.date_of_birth).format('DD MMMM YYYY') : '-'}
+                                        </p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Jenis Kelamin</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.gender === 'L' ? 'Laki-laki' : selectedEmployee.gender === 'P' ? 'Perempuan' : '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Agama & Gol. Darah</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.religion || '-'} (Gol. Darah: {selectedEmployee.blood_type || '-'})</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Status Pernikahan</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.marital_status || '-'}</p>
+                                    </div>
+                                </div>
+                                <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                    <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Alamat Domisili</span>
+                                    <p className="text-sm font-medium text-slate-200">{selectedEmployee.address || '-'}</p>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="employment" className="space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Departemen</span>
+                                        <p className="text-sm font-semibold text-cyan-400">{selectedEmployee.department_name || '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Jabatan</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.position || '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Status Kepegawaian</span>
+                                        <p className="text-sm font-semibold text-white">{getStatusLabel(selectedEmployee.employment_status)}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Tanggal Mulai Kerja</span>
+                                        <p className="text-sm font-semibold text-white">
+                                            {selectedEmployee.start_date ? dayjs(selectedEmployee.start_date).format('DD MMMM YYYY') : '-'}
+                                        </p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Sisa Cuti Tahunan</span>
+                                        <p className="text-sm font-semibold text-emerald-400">{selectedEmployee.leave_balance ?? 12} Hari (Terpakai: {selectedEmployee.leave_used ?? 0})</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Akun User Login</span>
+                                        {selectedEmployee.user_id ? (
+                                            <Badge variant="success">Terhubung ke User Login</Badge>
+                                        ) : (
+                                            <span className="text-sm text-slate-500 italic">Belum Ada Akun Login</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="contact" className="space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Email Utama</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.email}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">No. Telepon / HP</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.phone || '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Kontak Darurat (Nama)</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.emergency_contact_name || '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Kontak Darurat (No & Hubungan)</span>
+                                        <p className="text-sm font-semibold text-white">
+                                            {selectedEmployee.emergency_contact_phone || '-'} ({selectedEmployee.emergency_contact_relation || '-'})
+                                        </p>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="payroll" className="space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Bank & Rekening</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.bank_name || '-'} - {selectedEmployee.bank_account || '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Gaji Pokok</span>
+                                        <p className="text-sm font-semibold text-emerald-400">
+                                            {selectedEmployee.basic_salary ? `Rp ${Number(selectedEmployee.basic_salary).toLocaleString('id-ID')}` : '-'}
+                                        </p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">BPJS Kesehatan</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.bpjs_kesehatan || '-'}</p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                        <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">BPJS Ketenagakerjaan</span>
+                                        <p className="text-sm font-semibold text-white">{selectedEmployee.bpjs_tenaga_kerja || '-'}</p>
+                                    </div>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+
+                        {/* Modal Footer Actions */}
+                        <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                            <Button variant="secondary" onClick={() => setViewOpened(false)}>
+                                Tutup
+                            </Button>
+                            <Button onClick={() => { setViewOpened(false); openEditModal(selectedEmployee); }}>
+                                Edit Pegawai
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Modal>
 
             {/* User Account Modal */}
@@ -699,9 +969,9 @@ export default function Employees() {
                             { value: 'technician', label: 'Technician' },
                             { value: 'manager', label: 'Manager' },
                             { value: 'admin', label: 'Admin' },
-                            { value: 'admin_alat_berat', label: 'Admin Alat Berat' },
-                            { value: 'admin_kendaraan', label: 'Admin Kendaraan' },
-                            { value: 'admin_infrastruktur', label: 'Admin Infrastruktur' },
+                            { value: 'admin_heavy_eq', label: 'Admin Alat Berat' },
+                            { value: 'admin_vehicle', label: 'Admin Kendaraan' },
+                            { value: 'admin_infra', label: 'Admin Infrastruktur' },
                         ]}
                     />
                     <Button fullWidth onClick={handleCreateUser} loading={submitting}>

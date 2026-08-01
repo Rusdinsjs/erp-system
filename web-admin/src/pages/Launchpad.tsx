@@ -26,7 +26,7 @@ import { settingsApi } from '../api/settings';
 import { Logo } from '../components/ui';
 import { AIChatWidget } from '../components/AI/AIChatWidget';
 import type { LaunchpadModuleConfig, LaunchpadConfig, MenuId } from '../config/launchpadConfig';
-import { DEFAULT_LAUNCHPAD_CONFIG, MENU_LABELS } from '../config/launchpadConfig';
+import { DEFAULT_LAUNCHPAD_CONFIG, MENU_LABELS, MENU_TO_RESOURCE } from '../config/launchpadConfig';
 
 // ─── Icon Registry ───────────────────────────────────────────────────────────
 // Maps icon string names (stored in config) to actual Lucide components
@@ -51,9 +51,15 @@ function resolveIcon(iconName: string): React.ElementType {
 
 export default function Launchpad() {
     const navigate = useNavigate();
-    const { user, logout, hasRoleLevel } = useAuthStore();
+    const { user, logout, hasRoleLevel, hasPermission } = useAuthStore();
     const { theme, setTheme } = useTheme();
     const { setActiveModule, setLaunchpadConfig, launchpadConfig } = useNavigationStore();
+
+    // Check if user has permission for a specific menu resource
+    const canAccessMenu = (menuId: string) => {
+        const resource = MENU_TO_RESOURCE[menuId as MenuId] || menuId.replace(/-/g, '_');
+        return hasPermission(`${resource}.read`) || hasPermission(`${resource}.view`) || hasPermission(`${resource}.*`);
+    };
 
     // Fetch public settings (includes launchpad_config if stored in backend)
     const { data: publicSettings } = useQuery({
@@ -86,9 +92,14 @@ export default function Launchpad() {
         }
     }, [publicSettings, setLaunchpadConfig]);
 
-    // Get visible cards based on user role level, sorted by order
+    // Get visible cards based on user role level and Permission Matrix permissions
     const visibleCards = launchpadConfig.modules
-        .filter(card => card.enabled && hasRoleLevel(card.minLevel))
+        .filter(card => {
+            if (!card.enabled) return false;
+            const hasLevelAccess = hasRoleLevel(card.minLevel);
+            const hasAnyMenuPermission = card.menuIds.some(menuId => canAccessMenu(menuId));
+            return hasLevelAccess || hasAnyMenuPermission;
+        })
         .sort((a, b) => a.order - b.order);
 
     const handleCardClick = (card: LaunchpadModuleConfig) => {
@@ -246,18 +257,26 @@ export default function Launchpad() {
 
                                         {/* Dynamic Menu Features */}
                                         <div className="space-y-1.5 mb-4 min-h-[60px]">
-                                            {card.menuIds.slice(0, 3).map((menuId, i) => (
-                                                <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/70">
-                                                    <div className="w-1 h-1 rounded-full bg-border shrink-0" />
-                                                    <span className="truncate">{MENU_LABELS[menuId as MenuId] || menuId}</span>
-                                                </div>
-                                            ))}
-                                            {card.menuIds.length > 3 && (
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground/50 italic">
-                                                    <div className="w-1 h-1 rounded-full bg-transparent shrink-0" />
-                                                    <span>+{card.menuIds.length - 3} menu lainnya...</span>
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const permittedMenuIds = card.menuIds.filter(menuId => canAccessMenu(menuId));
+                                                const displayMenuIds = permittedMenuIds.length > 0 ? permittedMenuIds : card.menuIds;
+                                                return (
+                                                    <>
+                                                        {displayMenuIds.slice(0, 3).map((menuId, i) => (
+                                                            <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                                                                <div className="w-1 h-1 rounded-full bg-border shrink-0" />
+                                                                <span className="truncate">{MENU_LABELS[menuId as MenuId] || menuId}</span>
+                                                            </div>
+                                                        ))}
+                                                        {displayMenuIds.length > 3 && (
+                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground/50 italic">
+                                                                <div className="w-1 h-1 rounded-full bg-transparent shrink-0" />
+                                                                <span>+{displayMenuIds.length - 3} menu lainnya...</span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* Arrow */}

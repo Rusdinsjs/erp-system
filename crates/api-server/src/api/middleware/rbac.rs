@@ -92,7 +92,11 @@ pub fn require_permission(
 pub async fn admin_only_middleware(request: Request, next: Next) -> Result<Response, StatusCode> {
     let claims = extract_user_claims(&request).ok_or(StatusCode::UNAUTHORIZED)?;
 
-    if claims.role == "admin" || claims.role == "super_admin" {
+    if claims.role == "admin"
+        || claims.role == "super_admin"
+        || claims.role.starts_with("admin_")
+        || claims.role_level <= 2
+    {
         Ok(next.run(request).await)
     } else {
         let body = serde_json::json!({

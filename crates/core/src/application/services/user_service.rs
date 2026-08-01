@@ -121,6 +121,9 @@ impl UserService {
             None
         };
 
+        let allowed_group = req.allowed_asset_group.map(|g| if g.trim().is_empty() { "__CLEAR__".to_string() } else { g });
+        let dept = req.department.map(|d| if d.trim().is_empty() { "__CLEAR__".to_string() } else { d });
+
         let updated_user = self
             .repository
             .update(
@@ -128,10 +131,11 @@ impl UserService {
                 req.name,
                 role_id,
                 req.role_code,
-                req.department,
+                dept,
                 req.department_id,
-                req.avatar_url, // Added
+                req.avatar_url,
                 req.is_active,
+                allowed_group,
             )
             .await
             .map_err(|e| DomainError::ExternalServiceError {

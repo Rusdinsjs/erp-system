@@ -55,6 +55,7 @@ pub struct Employee {
     pub employment_status: String,
     pub user_id: Option<Uuid>,
     pub is_active: bool,
+    pub photo_url: Option<String>,
 
     // Biodata
     pub ktp_number: Option<String>,

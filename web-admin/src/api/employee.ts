@@ -14,6 +14,7 @@ export interface Employee {
     employment_status: EmploymentStatus;
     user_id?: string;
     is_active: boolean;
+    photo_url?: string;
 
     // Biodata
     ktp_number?: string;
@@ -35,6 +36,8 @@ export interface Employee {
     end_contract_date?: string;
     is_manager: boolean;
     manager_id?: string;
+    leave_balance?: number;
+    leave_used?: number;
 
     // Payroll
     bank_account?: string;

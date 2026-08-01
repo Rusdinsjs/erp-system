@@ -215,6 +215,8 @@ pub struct UserSummary {
     pub employee_id: Option<Uuid>,
     pub employee_name: Option<String>,
     pub employee_nik: Option<String>,
+    pub employee_photo_url: Option<String>,
+    pub allowed_asset_group: Option<String>,
 }
 
 /// JWT Claims for authentication

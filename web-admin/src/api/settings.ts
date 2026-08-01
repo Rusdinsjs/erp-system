@@ -10,8 +10,14 @@ export interface Setting {
 
 export const settingsApi = {
     getAll: async (): Promise<Setting[]> => {
-        const response = await api.get<{ data: Setting[] }>('/settings');
-        return response.data.data;
+        try {
+            const response = await api.get<{ data: Setting[] }>('/settings', {
+                headers: { 'X-Suppress-Toast': 'true' }
+            });
+            return response.data.data;
+        } catch {
+            return [];
+        }
     },
 
     update: async (key: string, value: any, description?: string): Promise<Setting> => {

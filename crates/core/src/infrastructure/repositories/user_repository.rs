@@ -64,7 +64,8 @@ impl UserRepository {
                 u.id, u.email, u.name, 
                 COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
                 u.department, u.department_id, u.is_active,
-                e.id as employee_id, e.name as employee_name, e.nik as employee_nik
+                e.id as employee_id, e.name as employee_name, e.nik as employee_nik, e.photo_url as employee_photo_url,
+                u.allowed_asset_group
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             LEFT JOIN employees e ON u.id = e.user_id
@@ -185,6 +186,7 @@ impl UserRepository {
         department_id: Option<Uuid>,
         avatar_url: Option<String>,
         is_active: Option<bool>,
+        allowed_asset_group: Option<String>,
     ) -> Result<User, sqlx::Error> {
         sqlx::query_as::<_, User>(
             r#"
@@ -194,10 +196,11 @@ impl UserRepository {
                     name = COALESCE($2, name),
                     role_id = COALESCE($3, role_id),
                     role = COALESCE($4, role),
-                    department = COALESCE($5, department),
-                    department_id = COALESCE($6, department_id),
+                    department = CASE WHEN $5 = '__CLEAR__' THEN NULL WHEN $5 IS NOT NULL THEN $5 ELSE department END,
+                    department_id = CASE WHEN $5 = '__CLEAR__' THEN NULL WHEN $6 IS NOT NULL THEN $6 ELSE department_id END,
                     avatar_url = COALESCE($7, avatar_url),
                     is_active = COALESCE($8, is_active),
+                    allowed_asset_group = CASE WHEN $9 = '__CLEAR__' THEN NULL WHEN $9 IS NOT NULL THEN $9 ELSE allowed_asset_group END,
                     updated_at = NOW()
                 WHERE id = $1
                 RETURNING *
@@ -206,7 +209,7 @@ impl UserRepository {
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
-                u.phone, u.avatar_url,
+                u.phone, u.avatar_url, u.allowed_asset_group,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM updated_user u
@@ -222,6 +225,7 @@ impl UserRepository {
         .bind(department_id)
         .bind(avatar_url)
         .bind(is_active)
+        .bind(allowed_asset_group)
         .fetch_one(&self.pool)
         .await
     }

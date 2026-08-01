@@ -18,7 +18,7 @@ impl EmployeeRepository {
             r#"
             INSERT INTO employees (
                 id, nik, name, email, phone, department_id, position, 
-                employment_status, user_id, is_active,
+                employment_status, user_id, is_active, photo_url,
                 ktp_number, place_of_birth, date_of_birth, gender, marital_status, religion, address,
                 start_date, end_contract_date, is_manager, manager_id,
                 bank_account, bank_name, basic_salary,
@@ -26,12 +26,12 @@ impl EmployeeRepository {
                 assigned_asset_id, work_area_id
             )
             VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                $11, $12, $13, $14, $15, $16, $17,
-                $18, $19, $20, $21,
-                $22, $23, $24,
-                $25, $26,
-                $27, $28
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+                $12, $13, $14, $15, $16, $17, $18,
+                $19, $20, $21, $22,
+                $23, $24, $25,
+                $26, $27,
+                $28, $29
             )
             RETURNING *
             "#,
@@ -46,6 +46,7 @@ impl EmployeeRepository {
         .bind(&employee.employment_status)
         .bind(employee.user_id)
         .bind(employee.is_active)
+        .bind(&employee.photo_url)
         // Bind new fields
         .bind(&employee.ktp_number)
         .bind(&employee.place_of_birth)
@@ -140,15 +141,15 @@ impl EmployeeRepository {
             UPDATE employees
             SET nik = $2, name = $3, email = $4, phone = $5, 
                 department_id = $6, position = $7, employment_status = $8, 
-                user_id = $9, is_active = $10,
-                ktp_number = $11, place_of_birth = $12, date_of_birth = $13, 
-                gender = $14, marital_status = $15, religion = $16, address = $17, blood_type = $18,
-                emergency_contact_name = $19, emergency_contact_phone = $20, emergency_contact_relation = $21,
-                start_date = $22, end_contract_date = $23, is_manager = $24, manager_id = $25,
-                bank_account = $26, bank_name = $27, npwp = $28, bpjs_kesehatan = $29, bpjs_tenaga_kerja = $30, basic_salary = $31,
-                education = $32,
-                leave_balance = $33, leave_used = $34,
-                assigned_asset_id = $35, work_area_id = $36,
+                user_id = $9, is_active = $10, photo_url = $11,
+                ktp_number = $12, place_of_birth = $13, date_of_birth = $14, 
+                gender = $15, marital_status = $16, religion = $17, address = $18, blood_type = $19,
+                emergency_contact_name = $20, emergency_contact_phone = $21, emergency_contact_relation = $22,
+                start_date = $23, end_contract_date = $24, is_manager = $25, manager_id = $26,
+                bank_account = $27, bank_name = $28, npwp = $29, bpjs_kesehatan = $30, bpjs_tenaga_kerja = $31, basic_salary = $32,
+                education = $33,
+                leave_balance = $34, leave_used = $35,
+                assigned_asset_id = $36, work_area_id = $37,
                 updated_at = NOW()
             WHERE id = $1
             RETURNING *
@@ -164,6 +165,7 @@ impl EmployeeRepository {
         .bind(&employee.employment_status)
         .bind(employee.user_id)
         .bind(employee.is_active)
+        .bind(&employee.photo_url)
         // Bind new fields
         .bind(&employee.ktp_number)
         .bind(&employee.place_of_birth)

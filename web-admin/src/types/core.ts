@@ -24,6 +24,7 @@ export interface UserSummary {
     employee_id?: string;
     employee_name?: string;
     employee_nik?: string;
+    employee_photo_url?: string;
     allowed_asset_group?: string;
 }
 
@@ -32,6 +33,7 @@ export interface CreateUserRequest {
     password: string;
     name: string;
     role_code: string;
+    department?: string;
     department_id?: string;
     organization_id?: string;
     employee_id?: string;
@@ -41,6 +43,7 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
     name?: string;
     role_code?: string;
+    department?: string;
     department_id?: string;
     is_active?: boolean;
     password?: string;

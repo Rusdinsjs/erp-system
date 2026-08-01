@@ -401,7 +401,11 @@ pub fn create_router(state: AppState) -> Router {
         )
         // Rental Billing routes moved to rental_routes.rs to avoid conflicts
         // RBAC
-        .route("/api/rbac/roles", get(list_roles))
+        .route("/api/rbac/roles", get(list_roles).post(create_role))
+        .route(
+            "/api/rbac/roles/:role_id",
+            put(update_role).delete(delete_role),
+        )
         .route("/api/rbac/permissions", get(list_permissions))
         .route(
             "/api/rbac/roles/:role_id/permissions",
@@ -413,6 +417,7 @@ pub fn create_router(state: AppState) -> Router {
             "/api/users/:user_id/roles/:role_code",
             post(assign_role).delete(remove_role),
         )
+
         // Sensors
         .route(
             "/api/assets/:asset_id/sensors/readings",

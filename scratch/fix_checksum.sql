@@ -1,0 +1,1 @@
+UPDATE _sqlx_migrations SET checksum = '\x1a666dc552b33537a08053d79033bd73a3ff6426b82e576de5f392415bf587d1a8b7dd437d2c8ab84e774a719ad1b6ef' WHERE version = 20260724200000;

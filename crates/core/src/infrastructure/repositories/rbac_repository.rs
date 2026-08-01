@@ -204,6 +204,75 @@ impl RbacRepository {
         Ok(())
     }
 
+    /// Check if a role with the given code already exists
+    pub async fn role_exists(&self, code: &str) -> Result<bool, sqlx::Error> {
+        let rec = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM roles WHERE LOWER(code) = LOWER($1)",
+        )
+        .bind(code)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(rec > 0)
+    }
+
+    /// Insert a brand-new role (used by Super Admin via UI)
+    pub async fn insert_role(
+        &self,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        role_level: i32,
+    ) -> Result<Role, sqlx::Error> {
+        sqlx::query_as::<_, Role>(
+            r#"
+            INSERT INTO roles (id, code, name, description, role_level, is_system, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, false, now(), now())
+            RETURNING *
+            "#,
+        )
+        .bind(code)
+        .bind(name)
+        .bind(description)
+        .bind(role_level)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    /// Update an existing role (name, description, role_level only – code is immutable)
+    pub async fn update_role(
+        &self,
+        role_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        role_level: i32,
+    ) -> Result<Role, sqlx::Error> {
+        sqlx::query_as::<_, Role>(
+            r#"
+            UPDATE roles
+            SET name = $2, description = $3, role_level = $4, updated_at = now()
+            WHERE id = $1
+            RETURNING *
+            "#,
+        )
+        .bind(role_id)
+        .bind(name)
+        .bind(description)
+        .bind(role_level)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    /// Delete a role (only non-system roles)
+    pub async fn delete_role(&self, role_id: Uuid) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            "DELETE FROM roles WHERE id = $1 AND is_system = false",
+        )
+        .bind(role_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
     /// Update role permissions in bulk (transaction-safe)
     pub async fn update_role_permissions(
         &self,

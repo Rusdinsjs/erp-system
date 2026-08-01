@@ -162,4 +162,84 @@ impl RbacService {
                 message: e.to_string(),
             })
     }
+
+    /// Create a new custom role (Super Admin only)
+    pub async fn create_role(
+        &self,
+        code: &str,
+        name: &str,
+        description: Option<&str>,
+        role_level: i32,
+    ) -> DomainResult<Role> {
+        // Validate role_level range
+        if !(1..=5).contains(&role_level) {
+            return Err(DomainError::validation(
+                "role_level",
+                "Role level must be between 1 and 5",
+            ));
+        }
+
+        // Normalize code: uppercase + spaces to underscores
+        let code_normalized = code.trim().to_uppercase().replace(' ', "_");
+
+        // Ensure code uniqueness
+        let exists = self
+            .repository
+            .role_exists(&code_normalized)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        if exists {
+            return Err(DomainError::validation(
+                "code",
+                &format!("Role code '{}' already exists", code_normalized),
+            ));
+        }
+
+        self.repository
+            .insert_role(&code_normalized, name.trim(), description, role_level)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
+    /// Update an existing role (non-system roles only)
+    pub async fn update_role(
+        &self,
+        role_id: Uuid,
+        name: &str,
+        description: Option<&str>,
+        role_level: i32,
+    ) -> DomainResult<Role> {
+        if !(1..=5).contains(&role_level) {
+            return Err(DomainError::validation(
+                "role_level",
+                "Role level must be between 1 and 5",
+            ));
+        }
+
+        self.repository
+            .update_role(role_id, name.trim(), description, role_level)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
+
+    /// Delete a non-system role
+    pub async fn delete_role(&self, role_id: Uuid) -> DomainResult<bool> {
+        self.repository
+            .delete_role(role_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })
+    }
 }

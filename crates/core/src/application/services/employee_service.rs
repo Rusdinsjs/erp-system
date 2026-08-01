@@ -44,6 +44,7 @@ impl EmployeeService {
             employment_status: req.employment_status,
             user_id: req.user_id,
             is_active: true,
+            photo_url: req.photo_url,
 
             // Biodata
             ktp_number: req.ktp_number,
@@ -156,6 +157,9 @@ impl EmployeeService {
         }
         if let Some(active) = req.is_active {
             employee.is_active = active;
+        }
+        if let Some(photo) = req.photo_url {
+            employee.photo_url = Some(photo);
         }
 
         // Biodata Updates

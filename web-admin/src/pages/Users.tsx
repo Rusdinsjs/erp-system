@@ -1,8 +1,10 @@
 // Users Page - Pure Tailwind
 import { useEffect, useState } from 'react';
-import { Edit, Trash2, Link, UserCheck } from 'lucide-react';
+import { Edit, Trash2, Link, UserCheck, Eye } from 'lucide-react';
 import { usersApi, type UserSummary, type CreateUserRequest, type UpdateUserRequest } from '../api/users';
 import { employeeApi, type Employee } from '../api/employee';
+import { departmentApi, type Department } from '../api/departments';
+import { getImageUrl } from '../utils/image';
 import {
     Button,
     Card,
@@ -37,13 +39,16 @@ export default function Users() {
     const [filteredUsers, setFilteredUsers] = useState<UserSummary[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
     const [loading, setLoading] = useState(false);
 
     const [createOpened, setCreateOpened] = useState(false);
     const [editOpened, setEditOpened] = useState(false);
+    const [viewOpened, setViewOpened] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     const [editingUser, setEditingUser] = useState<UserSummary | null>(null);
+    const [selectedUser, setSelectedUser] = useState<UserSummary | null>(null);
     const [formData, setFormData] = useState<CreateUserRequest>(initialFormState);
     const [editFormData, setEditFormData] = useState<UpdateUserRequest>({});
 
@@ -62,10 +67,11 @@ export default function Users() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [usersRes, rolesRes, employeesRes] = await Promise.all([
+            const [usersRes, rolesRes, employeesRes, deptsRes] = await Promise.all([
                 usersApi.list(1, 100),
                 usersApi.listRoles(),
-                employeeApi.list()
+                employeeApi.list(),
+                departmentApi.list()
             ]);
 
             if (usersRes && Array.isArray(usersRes.data)) {
@@ -82,6 +88,10 @@ export default function Users() {
 
             if (Array.isArray(employeesRes)) {
                 setEmployees(employeesRes);
+            }
+
+            if (Array.isArray(deptsRes)) {
+                setDepartmentsList(deptsRes);
             }
         } catch (error) {
             console.error(error);
@@ -137,16 +147,34 @@ export default function Users() {
         if (!editingUser) return;
         setSubmitting(true);
         try {
-            await usersApi.update(editingUser.id, editFormData);
+            // Build payload – only include fields that have actual values
+            // Empty strings are sent as null/undefined so backend COALESCE keeps existing value
+            const payload: UpdateUserRequest = {
+                name: editFormData.name,
+                role_code: editFormData.role_code,
+                is_active: editFormData.is_active,
+                password: editFormData.password || undefined,
+                // Send empty string as '__CLEAR__' sentinel or undefined to retain
+                department: editFormData.department ?? undefined,
+                allowed_asset_group: editFormData.allowed_asset_group ?? undefined,
+                // employee_id: keep as-is (UUID string)
+                employee_id: editFormData.employee_id || undefined,
+                clear_employee_link: editFormData.clear_employee_link,
+            };
+            console.log('[handleUpdate] payload:', payload);
+            const res = await usersApi.update(editingUser.id, payload);
+            console.log('[handleUpdate] response:', res);
             success('User updated successfully', 'Success');
             setEditOpened(false);
             loadData();
         } catch (e: any) {
-            showError(e.response?.data?.message || 'Failed to update user', 'Error');
+            console.error('[handleUpdate] error:', e.response?.data || e.message);
+            showError(e.response?.data?.message || e.message || 'Failed to update user', 'Error');
         } finally {
             setSubmitting(false);
         }
     };
+
 
     const handleDelete = async (user: UserSummary) => {
         if (!window.confirm(`Are you sure you want to delete ${user.name}?`)) return;
@@ -159,12 +187,18 @@ export default function Users() {
         }
     };
 
+    const openViewModal = (user: UserSummary) => {
+        setSelectedUser(user);
+        setViewOpened(true);
+    };
+
     const openEditModal = (user: UserSummary) => {
         setEditingUser(user);
         setEditFormData({
             name: user.name,
             role_code: user.role_code,
             is_active: user.is_active,
+            department: user.department || '',
             allowed_asset_group: user.allowed_asset_group || '',
             employee_id: user.employee_id || '',
             clear_employee_link: false,
@@ -199,9 +233,17 @@ export default function Users() {
     const roleOptions = roles.map(r => ({ value: r.code, label: `${r.name} (L${r.role_level})` }));
 
     // Get unique departments for filter
-    const departments = Array.from(new Set(users.map(u => u.department).filter(Boolean)));
+    const departments = Array.from(new Set([
+        ...departmentsList.map(d => d.name),
+        ...users.map(u => u.department).filter(Boolean)
+    ]));
     const departmentOptions = [
         { value: 'all', label: 'All Departments' },
+        ...departments.map(d => ({ value: d!, label: d! }))
+    ];
+
+    const formDepartmentOptions = [
+        { value: '', label: 'None (All Departments)' },
         ...departments.map(d => ({ value: d!, label: d! }))
     ];
 
@@ -318,11 +360,14 @@ export default function Users() {
                                         <span className="text-sm text-slate-400">
                                             {getAccessScope(user.role_code)}
                                         </span>
-                                        {user.allowed_asset_group && (
-                                            <div className="mt-1">
-                                                <Badge variant="warning">{user.allowed_asset_group}</Badge>
-                                            </div>
-                                        )}
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                            {user.department && (
+                                                <Badge variant="info">Dept: {user.department}</Badge>
+                                            )}
+                                            {user.allowed_asset_group && (
+                                                <Badge variant="warning">Asset: {user.allowed_asset_group}</Badge>
+                                            )}
+                                        </div>
                                     </TableTd>
                                     <TableTd>
                                         <Badge variant={user.is_active ? 'success' : 'danger'}>
@@ -357,6 +402,9 @@ export default function Users() {
                                     </TableTd>
                                     <TableTd align="center">
                                         <div className="flex items-center justify-center gap-1">
+                                            <ActionIcon onClick={() => openViewModal(user)} title="View User Details">
+                                                <Eye size={16} />
+                                            </ActionIcon>
                                             <ActionIcon onClick={() => openEditModal(user)} title="Edit User">
                                                 <Edit size={16} />
                                             </ActionIcon>
@@ -410,6 +458,13 @@ export default function Users() {
                         options={roleOptions}
                     />
                     <Select
+                        label="Department Restriction"
+                        placeholder="No Restriction"
+                        value={formData.department || ''}
+                        onChange={(val) => setFormData({ ...formData, department: val || undefined })}
+                        options={formDepartmentOptions}
+                    />
+                    <Select
                         label="Link to Employee (Optional)"
                         placeholder="Select Employee to link"
                         value={formData.employee_id || ''}
@@ -442,6 +497,13 @@ export default function Users() {
                         value={editFormData.role_code || ''}
                         onChange={(val) => setEditFormData({ ...editFormData, role_code: val })}
                         options={roleOptions}
+                    />
+                    <Select
+                        label="Department Restriction"
+                        placeholder="No Restriction"
+                        value={editFormData.department || ''}
+                        onChange={(val) => setEditFormData({ ...editFormData, department: val || undefined })}
+                        options={formDepartmentOptions}
                     />
                     <Select
                         label="Linked Employee"
@@ -483,6 +545,93 @@ export default function Users() {
                         Save Changes
                     </Button>
                 </div>
+            </Modal>
+
+            {/* View Details Modal */}
+            <Modal isOpen={viewOpened} onClose={() => setViewOpened(false)} title="User Profile Details">
+                {selectedUser && (
+                    <div className="space-y-6">
+                        {/* Header Profile Info */}
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                            {selectedUser.employee_photo_url || (selectedUser as any).avatar_url ? (
+                                <img
+                                    src={getImageUrl(selectedUser.employee_photo_url || (selectedUser as any).avatar_url)}
+                                    alt={selectedUser.name}
+                                    className="w-14 h-14 rounded-full object-cover ring-2 ring-cyan-500/30 shadow-inner shrink-0"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/avatar-user.png';
+                                    }}
+                                />
+                            ) : (
+                                <div className="w-14 h-14 rounded-full bg-cyan-500/10 text-cyan-400 font-bold text-xl flex items-center justify-center border border-cyan-500/20 shadow-inner shrink-0">
+                                    {selectedUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-bold text-white truncate">{selectedUser.name}</h3>
+                                <p className="text-sm text-slate-400 truncate">{selectedUser.email}</p>
+                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    <Badge variant={getRoleBadge(selectedUser.role_level)}>
+                                        {selectedUser.role_code} (L{selectedUser.role_level})
+                                    </Badge>
+                                    <Badge variant={selectedUser.is_active ? 'success' : 'danger'}>
+                                        {selectedUser.is_active ? 'Active Account' : 'Inactive'}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Role & Access Level</span>
+                                <p className="text-sm font-semibold text-white">{getAccessScope(selectedUser.role_code)}</p>
+                            </div>
+
+                            <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Department Scope</span>
+                                {selectedUser.department ? (
+                                    <Badge variant="info">Dept: {selectedUser.department}</Badge>
+                                ) : (
+                                    <span className="text-sm text-slate-400 italic">All Departments (Unrestricted)</span>
+                                )}
+                            </div>
+
+                            <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Asset Group Scope</span>
+                                {selectedUser.allowed_asset_group ? (
+                                    <Badge variant="warning">Asset: {selectedUser.allowed_asset_group}</Badge>
+                                ) : (
+                                    <span className="text-sm text-slate-400 italic">Full Access (Unrestricted)</span>
+                                )}
+                            </div>
+
+                            <div className="p-3.5 rounded-lg bg-slate-950/40 border border-slate-800/80">
+                                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider block mb-1">Linked Employee Profile</span>
+                                {selectedUser.employee_name ? (
+                                    <div>
+                                        <p className="text-sm font-semibold text-emerald-400">{selectedUser.employee_name}</p>
+                                        {selectedUser.employee_nik && (
+                                            <p className="text-xs text-slate-400 font-mono mt-0.5">NIK: {selectedUser.employee_nik}</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <span className="text-sm text-slate-500 italic">No Employee Linked</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Actions in Modal */}
+                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                            <Button variant="secondary" onClick={() => setViewOpened(false)}>
+                                Close
+                            </Button>
+                            <Button onClick={() => { setViewOpened(false); openEditModal(selectedUser); }}>
+                                Edit User
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );

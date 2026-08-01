@@ -48,10 +48,12 @@ export function RolePermissionsMatrix() {
             }
             setRolePermissions(permMap);
             
-            // Expand first module by default
-            if (DEFAULT_LAUNCHPAD_CONFIG.modules.length > 0) {
-                setExpandedGroups({ [DEFAULT_LAUNCHPAD_CONFIG.modules[0].id]: true });
-            }
+            // Expand all modules by default
+            const initialExpanded: Record<string, boolean> = {};
+            DEFAULT_LAUNCHPAD_CONFIG.modules.forEach(m => {
+                initialExpanded[m.id] = true;
+            });
+            setExpandedGroups(initialExpanded);
         } catch (err) {
             showError('Failed to load roles and permissions', 'Error');
         } finally {
@@ -187,7 +189,11 @@ export function RolePermissionsMatrix() {
                                                                 <td key={role.id} className="p-2 border-r border-border/40">
                                                                     <div className="grid grid-cols-4 gap-1 justify-items-center">
                                                                         {ACTIONS.map(action => {
-                                                                            const perm = permissionMap[`${resource}.${action}`];
+                                                                            const normAction = action === 'view' ? 'read' : action === 'edit' ? 'update' : action;
+                                                                            const perm = permissionMap[`${resource}.${action}`]
+                                                                                || permissionMap[`${resource}.${normAction}`]
+                                                                                || permissionMap[`${menuId}.${action}`]
+                                                                                || permissionMap[`${menuId}.${normAction}`];
                                                                             const hasPermission = perm && rolePermissions[role.id]?.has(perm.id);
                                                                             
                                                                             // Auto-checked for Super Admin
