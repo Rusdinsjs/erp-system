@@ -112,6 +112,8 @@ pub struct User {
     // Profile
     pub phone: Option<String>,
     pub avatar_url: Option<String>,
+    #[sqlx(default)]
+    pub allowed_asset_group: Option<String>,
 
     // Status
     pub is_active: bool,

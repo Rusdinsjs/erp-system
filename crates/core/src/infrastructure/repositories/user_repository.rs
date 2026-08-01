@@ -22,7 +22,7 @@ impl UserRepository {
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
-                u.phone, u.avatar_url,
+                u.phone, u.avatar_url, u.allowed_asset_group,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM users u
@@ -43,7 +43,7 @@ impl UserRepository {
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
-                u.phone, u.avatar_url,
+                u.phone, u.avatar_url, u.allowed_asset_group,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM users u
@@ -129,7 +129,7 @@ impl UserRepository {
                 u.id, u.email, u.password_hash, u.name, 
                 u.role_id, COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
                 u.department, u.department_id, u.organization_id, e.id as employee_id,
-                NULL::text as phone, NULL::text as avatar_url,
+                NULL::text as phone, NULL::text as avatar_url, u.allowed_asset_group,
                 u.is_active, false as email_verified, NULL::timestamptz as last_login_at,
                 u.created_at, u.updated_at
             FROM inserted_user u
