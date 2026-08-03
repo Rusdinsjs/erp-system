@@ -64,7 +64,7 @@ impl UserRepository {
                 u.id, u.email, u.name, 
                 COALESCE(r.code, u.role) as role_code,
                 COALESCE((SELECT MIN(r2.role_level) FROM user_roles ur2 JOIN roles r2 ON ur2.role_id = r2.id WHERE ur2.user_id = u.id), r.role_level, 5) as role_level,
-                u.department, u.department_id, u.is_active, u.last_login_at,
+                u.department, u.department_id, u.is_active, NULL::timestamptz as last_login_at,
                 e.id as employee_id, e.name as employee_name, e.nik as employee_nik, e.photo_url as employee_photo_url,
                 u.allowed_asset_group,
                 COALESCE((

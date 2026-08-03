@@ -13,6 +13,7 @@ import {
     Search
 } from 'lucide-react';
 import type { LifecycleHistory } from '../../api/lifecycle';
+import { getAssetStatusLabel } from '../../config/assetStatusConfig';
 
 interface LifecycleTimelineProps {
     history: LifecycleHistory[];
@@ -46,7 +47,7 @@ export function LifecycleTimeline({ history }: LifecycleTimelineProps) {
     };
 
     const formatStateLabel = (label: string) => {
-        return label.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return getAssetStatusLabel(label);
     };
 
     if (!history || history.length === 0) {

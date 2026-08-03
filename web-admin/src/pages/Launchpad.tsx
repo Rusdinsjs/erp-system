@@ -59,9 +59,9 @@ export default function Launchpad() {
     const canAccessMenu = (menuId: string) => {
         const resource = MENU_TO_RESOURCE[menuId as MenuId] || menuId.replace(/-/g, '_');
 
-        // Special case: 'users' menu in System Admin requires user management capabilities
+        // Special case: 'users' menu in System Admin requires user management capabilities or read/view
         if (menuId === 'users') {
-            return hasPermission('user.create') || hasPermission('user.update') || hasPermission('user.delete') || hasPermission('user.*');
+            return hasPermission('user.create') || hasPermission('user.update') || hasPermission('user.delete') || hasPermission('user.*') || hasPermission('user.read') || hasPermission('user.view');
         }
 
         let hasAccess = hasPermission(`${resource}.read`) || hasPermission(`${resource}.view`) || hasPermission(`${resource}.*`);
@@ -69,6 +69,9 @@ export default function Launchpad() {
         // Fallback checks for resources with alternative names in RBAC
         if (!hasAccess && resource === 'work_order') {
             hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
+        }
+        if (!hasAccess && resource === 'approval_center') {
+            hasAccess = hasPermission('approval_center.read') || hasPermission('approval_center.view') || hasPermission('approval_center.*') || hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost');
         }
 
         return hasAccess;
@@ -120,8 +123,23 @@ export default function Launchpad() {
     const handleCardClick = (card: LaunchpadModuleConfig) => {
         // Set the active module context in the navigation store
         setActiveModule(card.id);
-        // Navigate to the module's default route
-        navigate((card as any).route || card.defaultRoute);
+        
+        const defaultRoute = (card as any).route || card.defaultRoute;
+        const defaultMenuId = defaultRoute.replace(/^\//, '') as MenuId;
+
+        // If user has access to default route or is admin, navigate directly
+        if ((user?.role_level ?? 5) <= 2 || canAccessMenu(defaultMenuId)) {
+            navigate(defaultRoute);
+            return;
+        }
+
+        // Smart Default Route: Navigate to first accessible menu in this module card
+        const accessibleMenu = card.menuIds.find(id => canAccessMenu(id));
+        if (accessibleMenu) {
+            navigate(`/${accessibleMenu}`);
+        } else {
+            navigate(defaultRoute);
+        }
     };
 
     const handleLogout = () => {

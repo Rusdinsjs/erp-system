@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw, LayoutGrid, List, QrCode } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Upload, Eye, Package, CheckCircle, Wrench, Clock, FileText, ArrowUp, ArrowDown, Filter, RotateCcw, LayoutGrid, List, QrCode, FileSpreadsheet } from 'lucide-react';
 import { assetApi } from '../../api/assets';
 import { categoryApi } from '../../api/category';
 import { locationApi } from '../../api/locations';
@@ -11,6 +11,7 @@ import { AssetForm } from '../../components/Assets/AssetForm';
 import { ImportAssetsModal } from '../../components/Assets/ImportAssetsModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import { getAssetStatusLabel } from '../../config/assetStatusConfig';
 import {
     Button,
     Card,
@@ -310,15 +311,56 @@ export default function Assets() {
         return sortOrder === 'asc' ? <ArrowUp size={14} className="ml-1" /> : <ArrowDown size={14} className="ml-1" />;
     };
 
+    const handleExportCSV = () => {
+        if (!assetsData?.data || assetsData.data.length === 0) {
+            showError('Tidak ada data aset untuk diekspor', 'Ekspor Gagal');
+            return;
+        }
+
+        const headers = ['Kode Aset', 'Nama Aset', 'Kategori', 'Lokasi', 'Merek', 'Model', 'Nomor Seri', 'Harga Beli (IDR)', 'Status Operasional'];
+
+        const rows = assetsData.data.map((asset: any) => [
+            `"${asset.asset_code || ''}"`,
+            `"${(asset.name || '').replace(/"/g, '""')}"`,
+            `"${(asset.category_name || '').replace(/"/g, '""')}"`,
+            `"${(asset.location_name || '-').replace(/"/g, '""')}"`,
+            `"${(asset.brand || '-').replace(/"/g, '""')}"`,
+            `"${(asset.model || '-').replace(/"/g, '""')}"`,
+            `"${(asset.serial_number || '-').replace(/"/g, '""')}"`,
+            asset.purchase_price || 0,
+            `"${getAssetStatusLabel(asset.status)}"`
+        ]);
+
+        const csvContent = "\uFEFF" + [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Daftar_Aset_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        success(`Berhasil mengunduh ${assetsData.data.length} data aset ke CSV`, 'Ekspor Selesai');
+    };
+
     return (
-        <div>
-            {/* Header Section */}
-            <div className="flex justify-between items-end mb-8">
+        <div className="p-6 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground tracking-tight">Asset Management</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Asset Inventory</h1>
                     <p className="text-muted-foreground mt-2">Manage company assets, vehicles, and equipment</p>
                 </div>
                 <div className="flex gap-3">
+                    <Button
+                        variant="outline"
+                        leftIcon={<FileSpreadsheet size={18} />}
+                        onClick={handleExportCSV}
+                        className="rounded-xl"
+                    >
+                        Export CSV
+                    </Button>
                     <Button
                         variant="outline"
                         leftIcon={<FileText size={18} />}
@@ -823,20 +865,20 @@ export default function Assets() {
                         <MultiSelect
                             placeholder="Select statuses..."
                             options={[
-                                { value: 'active', label: 'Active (Functional)' },
-                                { value: 'planning', label: 'Planning' },
-                                { value: 'procurement', label: 'Procurement' },
-                                { value: 'received', label: 'Received' },
-                                { value: 'in_inventory', label: 'In Inventory' },
-                                { value: 'in_use', label: 'In Use' },
-                                { value: 'rented_out', label: 'Rented Out' },
-                                { value: 'under_maintenance', label: 'Under Maintenance' },
-                                { value: 'under_repair', label: 'Under Repair' },
-                                { value: 'under_conversion', label: 'Under Conversion' },
-                                { value: 'retired', label: 'Retired' },
-                                { value: 'disposed', label: 'Disposed' },
-                                { value: 'lost_stolen', label: 'Lost/Stolen' },
-                                { value: 'archived', label: 'Archived' },
+                                { value: 'active', label: getAssetStatusLabel('active') },
+                                { value: 'planning', label: getAssetStatusLabel('planning') },
+                                { value: 'procurement', label: getAssetStatusLabel('procurement') },
+                                { value: 'received', label: getAssetStatusLabel('received') },
+                                { value: 'in_inventory', label: getAssetStatusLabel('in_inventory') },
+                                { value: 'in_use', label: getAssetStatusLabel('in_use') },
+                                { value: 'rented_out', label: getAssetStatusLabel('rented_out') },
+                                { value: 'under_maintenance', label: getAssetStatusLabel('under_maintenance') },
+                                { value: 'under_repair', label: getAssetStatusLabel('under_repair') },
+                                { value: 'under_conversion', label: getAssetStatusLabel('under_conversion') },
+                                { value: 'retired', label: getAssetStatusLabel('retired') },
+                                { value: 'disposed', label: getAssetStatusLabel('disposed') },
+                                { value: 'lost_stolen', label: getAssetStatusLabel('lost_stolen') },
+                                { value: 'archived', label: getAssetStatusLabel('archived') },
                             ]}
                             value={statusFilter ? statusFilter.split(',') : []}
                             onChange={(values) => setStatusFilter(values.length ? values.join(',') : null)}

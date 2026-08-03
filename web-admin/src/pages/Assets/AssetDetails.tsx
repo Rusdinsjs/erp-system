@@ -233,26 +233,91 @@ export default function AssetDetails({ assetId }: { assetId?: string }) {
                 <TabsContent value="roi">
                     <Card padding="lg">
                         <CardHeader>
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="text-cyan-400" size={20} />
-                                <CardTitle>Profitability Analysis (ROI)</CardTitle>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <BarChart3 className="text-cyan-400" size={20} />
+                                    <CardTitle>Total Cost of Ownership (TCO) & ROI Analysis</CardTitle>
+                                </div>
+                                {(() => {
+                                    const revenue = Number(asset.total_rental_income || 0);
+                                    const maintenance = Number(asset.total_maintenance_cost || 0);
+                                    const fuel = Number((asset as any).total_fuel_cost || 0);
+                                    const opex = maintenance + fuel;
+                                    const netProfit = revenue - opex;
+
+                                    if (revenue === 0) return <Badge variant="default">Belum Ada Pendapatan</Badge>;
+                                    if (netProfit > 0) return <Badge variant="success">Profit Margin Positif</Badge>;
+                                    return <Badge variant="danger">Beban Operasional Tinggi</Badge>;
+                                })()}
                             </div>
                         </CardHeader>
                         <div className="space-y-8 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <ROIStat label="Total Maintenance Cost" value={asset.total_maintenance_cost || 0} color="red" />
-                                <ROIStat label="Total Rental Income" value={asset.total_rental_income || 0} color="green" />
-                                <ROIStat
-                                    label="Net Profit/Loss"
-                                    value={(asset.total_rental_income || 0) - (asset.total_maintenance_cost || 0)}
-                                    color={(asset.total_rental_income || 0) - (asset.total_maintenance_cost || 0) >= 0 ? "cyan" : "red"}
-                                />
-                            </div>
+                            {/* KPI Metrics */}
+                            {(() => {
+                                const purchasePrice = Number(asset.purchase_price || 0);
+                                const maintenanceCost = Number(asset.total_maintenance_cost || 0);
+                                const fuelCost = Number((asset as any).total_fuel_cost || 0);
+                                const totalOpex = maintenanceCost + fuelCost;
+                                const rentalIncome = Number(asset.total_rental_income || 0);
+                                const netMargin = rentalIncome - totalOpex;
+                                const roiPercent = purchasePrice > 0 ? ((netMargin / purchasePrice) * 100).toFixed(1) : 'N/A';
 
-                            <div className="p-6 rounded-xl bg-muted/50 border border-border text-center">
-                                <p className="text-muted-foreground">Detailed ROI Charts & Breakdowns will be displayed here.</p>
-                                <p className="text-sm text-muted-foreground/70 mt-2">Integrating with Journal & Invoicing data...</p>
-                            </div>
+                                return (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                            <ROIStat label="Investasi Beli (CAPEX)" value={purchasePrice} color="cyan" />
+                                            <ROIStat label="Total Operasional (OPEX)" value={totalOpex} color="red" />
+                                            <ROIStat label="Pendapatan Sewa (Revenue)" value={rentalIncome} color="green" />
+                                            <ROIStat label="Net Profit / Loss Operasional" value={netMargin} color={netMargin >= 0 ? "green" : "red"} />
+                                        </div>
+
+                                        {/* Financial Performance Summary Card */}
+                                        <div className="p-6 rounded-xl bg-card/60 border border-border/60 backdrop-blur space-y-4">
+                                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                                <div>
+                                                    <h4 className="font-bold text-foreground text-sm uppercase tracking-wider">Ringkasan Kinerja Keuangan Aset</h4>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">Analisis biaya perawatan, bahan bakar, dan pendapatan sewa kumulatif</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider block">Return On Investment (ROI)</span>
+                                                    <span className={`text-xl font-extrabold ${Number(roiPercent) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {roiPercent !== 'N/A' ? `${roiPercent}%` : 'N/A'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Cost vs Revenue Visual Bar */}
+                                            <div className="space-y-2 pt-2">
+                                                <div className="flex justify-between text-xs font-semibold text-muted-foreground">
+                                                    <span>Proporsi Biaya vs Pendapatan</span>
+                                                    <span>OPEX: {rentalIncome > 0 ? ((totalOpex / rentalIncome) * 100).toFixed(0) : 0}% dari Pendapatan</span>
+                                                </div>
+                                                <div className="h-3 w-full bg-muted rounded-full overflow-hidden flex">
+                                                    <div
+                                                        className="bg-amber-500 transition-all duration-500"
+                                                        style={{ width: `${rentalIncome > 0 ? Math.min(100, (maintenanceCost / rentalIncome) * 100) : 33}%` }}
+                                                        title={`Maintenance: IDR ${maintenanceCost.toLocaleString('id-ID')}`}
+                                                    />
+                                                    <div
+                                                        className="bg-red-500 transition-all duration-500"
+                                                        style={{ width: `${rentalIncome > 0 ? Math.min(100, (fuelCost / rentalIncome) * 100) : 33}%` }}
+                                                        title={`Fuel: IDR ${fuelCost.toLocaleString('id-ID')}`}
+                                                    />
+                                                    <div
+                                                        className="bg-emerald-500 flex-1 transition-all duration-500"
+                                                        title={`Net Margin: IDR ${netMargin.toLocaleString('id-ID')}`}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+                                                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"/> Maintenance ({new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(maintenanceCost)})</span>
+                                                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"/> Fuel ({new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(fuelCost)})</span>
+                                                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"/> Net Margin</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </Card>
                 </TabsContent>

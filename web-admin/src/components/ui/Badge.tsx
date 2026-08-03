@@ -1,5 +1,6 @@
 // Badge Component - Pure Tailwind
 import { type ReactNode } from 'react';
+import { getAssetStatusLabel, getAssetStatusBadgeVariant } from '../../config/assetStatusConfig';
 
 interface BadgeProps {
     children: ReactNode;
@@ -50,25 +51,6 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
     const statusVariants: Record<string, BadgeProps['variant']> = {
-        // Standard Asset Statuses (match Backend AssetState)
-        planning: 'default',
-        procurement: 'info',
-        received: 'info',
-        in_inventory: 'success', // Replaces 'available'
-        deployed: 'success',     // Replaces 'active'
-        rented_out: 'warning',
-        under_maintenance: 'warning',
-        under_repair: 'warning',
-        under_conversion: 'info',
-        retired: 'default',
-        disposed: 'danger',
-        lost_stolen: 'danger',
-        archived: 'outline',
-
-        // Legacy/Alias mappings (for backward compat only, should migrate data)
-        active: 'success',
-        available: 'success',
-
         // Work order statuses
         pending: 'warning',
         in_progress: 'info',
@@ -89,16 +71,11 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
         overdue: 'danger',
     };
 
-    const variant = statusVariants[status.toLowerCase()] || 'default';
-
-    // Custom formatted labels
-    let displayText = status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    if (status === 'in_inventory') displayText = 'In Inventory';
-    if (status === 'rented_out') displayText = 'Rented Out';
-    if (status === 'lost_stolen') displayText = 'Lost/Stolen';
-    if (status === 'under_maintenance') displayText = 'Under Maintenance';
-    if (status === 'under_repair') displayText = 'Under Repair';
-    if (status === 'under_conversion') displayText = 'Under Conversion';
+    const normalizedKey = status.toLowerCase();
+    const variant = statusVariants[normalizedKey] || getAssetStatusBadgeVariant(normalizedKey);
+    const displayText = statusVariants[normalizedKey] 
+        ? status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : getAssetStatusLabel(normalizedKey);
 
     return (
         <Badge variant={variant} className={className}>

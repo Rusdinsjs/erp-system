@@ -4,7 +4,8 @@ import { useAuthStore } from '../store/useAuthStore';
 interface PermissionGateProps {
     children: ReactNode;
     resource?: string;
-    action?: 'view' | 'create' | 'edit' | 'delete';
+    action?: 'view' | 'read' | 'create' | 'edit' | 'update' | 'delete' | 'approve' | 'all';
+    permission?: string;
     fallbackLevel?: number; // Less than or equal to user level (1 is highest)
     fallback?: ReactNode;
 }
@@ -13,6 +14,7 @@ export function PermissionGate({
     children,
     resource,
     action,
+    permission,
     fallbackLevel,
     fallback = null
 }: PermissionGateProps) {
@@ -24,8 +26,15 @@ export function PermissionGate({
 
     let isAllowed = false;
 
-    // Check RBAC Permission first if provided
-    if (resource && action) {
+    // Check direct permission string e.g. "asset.create"
+    if (permission) {
+        if (hasPermission(permission)) {
+            isAllowed = true;
+        }
+    }
+
+    // Check RBAC Permission resource + action
+    if (!isAllowed && resource && action) {
         if (hasPermission(`${resource}.${action}`)) {
             isAllowed = true;
         }
@@ -38,8 +47,12 @@ export function PermissionGate({
         }
     }
 
-    // If no permission and no fallbackLevel provided, but we require a check, deny
-    if (!isAllowed && (resource || fallbackLevel !== undefined)) {
+    // If no permission parameters were provided at all, allow by default
+    if (!permission && !resource && fallbackLevel === undefined) {
+        isAllowed = true;
+    }
+
+    if (!isAllowed) {
         return <>{fallback}</>;
     }
 

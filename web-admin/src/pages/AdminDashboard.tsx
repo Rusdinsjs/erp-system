@@ -9,7 +9,7 @@ import {
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, TrendingUp,
     Wallet, ShoppingCart, Receipt, History, Wrench, Fuel, Shield, Layers,
-    CheckSquare, Box, Sun, Moon
+    CheckSquare, Box, Sun, Moon, ShieldAlert
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
@@ -18,7 +18,7 @@ import { settingsApi } from '../api/settings';
 import { useTheme } from '../contexts/ThemeContext';
 import { AIChatWidget } from '../components/AI/AIChatWidget';
 import type { MenuId, LaunchpadConfig } from '../config/launchpadConfig';
-import { MENU_TO_RESOURCE } from '../config/launchpadConfig';
+import { MENU_TO_RESOURCE, MENU_LABELS } from '../config/launchpadConfig';
 
 // Import all views
 const DashboardView = lazy(() => import('./Dashboard'));
@@ -666,7 +666,7 @@ export default function AdminDashboard() {
             hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
         }
         if (!hasAccess && resourceId === 'approval_center') {
-            hasAccess = hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost') || true;
+            hasAccess = hasPermission('approval_center.read') || hasPermission('approval_center.view') || hasPermission('approval_center.*') || hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost');
         }
 
         if (!hasAccess) return null;
@@ -721,7 +721,10 @@ export default function AdminDashboard() {
         const visibleMenuIds = getVisibleMenuIds();
 
         const isItemVisible = (entry: NavEntry): boolean => {
-            if (isNavHeader(entry) || isNavGroup(entry)) return false;
+            if (isNavHeader(entry)) return false;
+            if (isNavGroup(entry)) {
+                return entry.children.some(isItemVisible);
+            }
             const item = entry as NavItem;
             const menuId = item.id as MenuId;
             const resourceId = MENU_TO_RESOURCE[menuId] || menuId.replace(/-/g, '_');
@@ -736,10 +739,14 @@ export default function AdminDashboard() {
                 hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
             }
             if (!hasAccess && resourceId === 'approval_center') {
-                hasAccess = hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost') || true;
+                hasAccess = hasPermission('approval_center.read') || hasPermission('approval_center.view') || hasPermission('approval_center.*') || hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost');
             }
 
             if (!hasAccess) {
+                return false;
+            }
+
+            if (item.adminOnly && !isAdmin) {
                 return false;
             }
 
@@ -780,10 +787,9 @@ export default function AdminDashboard() {
 
                 {sidebarOpen && isOpen && (
                     <div className="mt-1 border-l border-border space-y-1 ml-4">
-                        {group.children.map((child) => {
+                        {visibleChildren.map((child) => {
                             if (isNavHeader(child)) return renderNavHeader(child);
                             if (isNavGroup(child)) return renderNavGroup(child);
-                            if (!isItemVisible(child)) return null;
                             return renderNavItem(child as NavItem, true);
                         })}
                     </div>
@@ -792,8 +798,48 @@ export default function AdminDashboard() {
         );
     };
 
+    // Access Denied View
+    const renderAccessDenied = () => (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-card/40 backdrop-blur border border-border/40 rounded-2xl shadow-xl">
+            <div className="w-16 h-16 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-4 border border-red-500/20">
+                <ShieldAlert size={32} />
+            </div>
+            <h2 className="text-xl font-bold text-foreground mb-2">Akses Dibatasi (403 Forbidden)</h2>
+            <p className="text-muted-foreground max-w-md text-sm mb-6">
+                Peran atau hak akses akun Anda tidak memiliki izin untuk membuka modul ini. Silakan hubungi Administrator jika Anda memerlukan akses.
+            </p>
+            <button
+                onClick={() => { setActiveTab('dashboard'); navigate('/dashboard'); }}
+                className="px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-xl text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+            >
+                Kembali ke Dashboard
+            </button>
+        </div>
+    );
+
     // Main Content Renderer
     const renderContent = () => {
+        // Route Authorization Guard
+        if (activeTab !== 'dashboard' && activeTab !== 'profile') {
+            const menuId = activeTab as MenuId;
+            const resourceId = MENU_TO_RESOURCE[menuId] || activeTab.replace(/-/g, '_');
+            
+            let hasAccess = hasPermission(`${resourceId}.read`) || 
+                              hasPermission(`${resourceId}.view`) || 
+                              hasPermission(`${resourceId}.*`);
+
+            if (!hasAccess && resourceId === 'work_order') {
+                hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
+            }
+            if (!hasAccess && resourceId === 'approval_center') {
+                hasAccess = hasPermission('approval_center.read') || hasPermission('approval_center.view') || hasPermission('approval_center.*') || hasPermission('maintenance.approve') || hasPermission('work_order.approve_cost');
+            }
+
+            if (!hasAccess) {
+                return renderAccessDenied();
+            }
+        }
+
         // Special case for deep views
         if (activeTab === 'assets' && selectedAssetId) {
             if (assetViewMode === 'lifecycle') {
@@ -1002,15 +1048,26 @@ export default function AdminDashboard() {
 
                     <Logo className="lg:hidden" collapsed={false} />
 
-                    {/* Back to Launchpad Button (For All Users) */}
-                    <button
-                        onClick={() => { setActiveModule(null); navigate('/launchpad'); }}
-                        className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
-                        title="Kembali ke Menu Utama / Launchpad"
-                    >
-                        <LayoutDashboard size={18} />
-                        <span className="hidden sm:inline">Menu Utama</span>
-                    </button>
+                    {/* Back to Launchpad Button & Breadcrumb */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => { setActiveModule(null); navigate('/launchpad'); }}
+                            className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all"
+                            title="Kembali ke Menu Utama / Launchpad"
+                        >
+                            <LayoutDashboard size={18} />
+                            <span className="hidden sm:inline">Menu Utama</span>
+                        </button>
+
+                        {activeTab !== 'dashboard' && MENU_LABELS[activeTab as MenuId] && (
+                            <>
+                                <span className="text-muted-foreground/40 text-xs hidden sm:inline">/</span>
+                                <span className="text-xs font-semibold text-foreground/80 bg-muted/50 px-2.5 py-1 rounded-md hidden sm:inline border border-border/50">
+                                    {MENU_LABELS[activeTab as MenuId]}
+                                </span>
+                            </>
+                        )}
+                    </div>
 
                     <div className="flex-1" /> {/* Spacer */}
 

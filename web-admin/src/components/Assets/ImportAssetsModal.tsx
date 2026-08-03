@@ -16,31 +16,72 @@ interface ImportAssetsModalProps {
     locations: any[];
 }
 
+const HEADER_ALIASES: Record<string, string> = {
+    asset_code: 'asset_code',
+    kode_aset: 'asset_code',
+    kode: 'asset_code',
+    code: 'asset_code',
+    name: 'name',
+    nama_aset: 'name',
+    nama: 'name',
+    asset_name: 'name',
+    category: 'category',
+    kategori: 'category',
+    category_code: 'category',
+    kode_kategori: 'category',
+    location: 'location',
+    lokasi: 'location',
+    location_code: 'location',
+    kode_lokasi: 'location',
+    brand: 'brand',
+    merek: 'brand',
+    merk: 'brand',
+    model: 'model',
+    tipe: 'model',
+    serial_number: 'serial_number',
+    nomor_seri: 'serial_number',
+    no_seri: 'serial_number',
+    sn: 'serial_number',
+    purchase_price: 'purchase_price',
+    harga_beli: 'purchase_price',
+    harga: 'purchase_price',
+    status: 'status',
+    kondisi: 'status',
+    is_rental: 'is_rental',
+    disewakan: 'is_rental',
+};
+
+const normalizeHeaderKey = (rawKey: string): string => {
+    const clean = rawKey.toLowerCase().trim().replace(/[\s_\-]+/g, '_');
+    return HEADER_ALIASES[clean] || clean;
+};
+
 export function ImportAssetsModal({ opened, onClose, onSuccess, categories, locations }: ImportAssetsModalProps) {
     const [file, setFile] = useState<File | null>(null);
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-
-
-    // Template State
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { success, error: showError } = useToast();
 
-    // Helpers to find IDs by name
-    const findCategoryId = (name: string) => {
+    // Helpers to find IDs by name or code
+    const findCategoryId = (nameOrCode: string) => {
+        if (!nameOrCode) return null;
+        const query = nameOrCode.toLowerCase().trim();
         const cat = categories.find((c: any) =>
-            c.name.toLowerCase() === name.toLowerCase() ||
-            c.code.toLowerCase() === name.toLowerCase()
+            c.name.toLowerCase() === query ||
+            c.code.toLowerCase() === query
         );
         return cat?.id;
     };
 
-    const findLocationId = (name: string) => {
+    const findLocationId = (nameOrCode: string) => {
+        if (!nameOrCode) return null;
+        const query = nameOrCode.toLowerCase().trim();
         const loc = locations.find((l: any) =>
-            l.name.toLowerCase() === name.toLowerCase() ||
-            l.code.toLowerCase() === name.toLowerCase()
+            l.name.toLowerCase() === query ||
+            l.code.toLowerCase() === query
         );
         return loc?.id;
     };
@@ -54,36 +95,49 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                 header: true,
                 skipEmptyLines: true,
                 complete: (results) => {
-                    const processed = results.data.map((row: any) => {
-                        const categoryId = findCategoryId(row.category || '');
+                    const processed = results.data.map((rawRow: any) => {
+                        // Normalize headers dynamically (Bahasa Indonesia & English)
+                        const row: Record<string, any> = {};
+                        Object.keys(rawRow).forEach(k => {
+                            const normalizedKey = normalizeHeaderKey(k);
+                            row[normalizedKey] = rawRow[k];
+                        });
+
+                        const fallbackCat = selectedCategoryId ? categories.find((c: any) => c.id === selectedCategoryId) : null;
+                        const categoryId = findCategoryId(row.category || '') || (selectedCategoryId || null);
+                        const categoryDisplayName = row.category || fallbackCat?.name || fallbackCat?.code || '';
+
                         const locationId = findLocationId(row.location || '');
 
-                        // Extract Custom Attributes (columns starting with 'spec_' or just treated as extra)
-                        // Simple approach: any known field goes to root, others go to specifications
-                        const knownFields = ['asset_code', 'name', 'category', 'location', 'brand', 'model', 'serial_number', 'purchase_price', 'is_rental'];
+                        const knownFields = ['asset_code', 'name', 'category', 'location', 'brand', 'model', 'serial_number', 'purchase_price', 'status', 'is_rental'];
                         const specifications: Record<string, any> = {};
 
                         Object.keys(row).forEach(key => {
                             if (!knownFields.includes(key) && row[key]) {
-                                // removing 'spec_' prefix if present, or just using key
                                 const cleanKey = key.startsWith('spec_') ? key.replace('spec_', '') : key;
                                 specifications[cleanKey] = row[key];
                             }
                         });
 
+                        const assetCode = row.asset_code?.toString().trim();
+                        const assetName = row.name?.toString().trim();
+
                         return {
                             ...row,
+                            asset_code: assetCode,
+                            name: assetName,
+                            category_display: categoryDisplayName,
                             _categoryId: categoryId,
                             _locationId: locationId,
                             _specifications: specifications,
-                            _isValid: !!row.asset_code && !!row.name && !!categoryId
+                            _isValid: !!assetCode && !!assetName && !!categoryId
                         };
                     });
                     setPreviewData(processed);
                 },
                 error: (err) => {
                     console.error('CSV Parse Error:', err);
-                    showError('Failed to parse CSV', 'Error');
+                    showError('Gagal membaca file CSV', 'Error');
                 }
             });
         } else {
@@ -97,26 +151,33 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
 
         setLoading(true);
         try {
-            const assets = validRows.map(row => ({
-                asset_code: row.asset_code,
-                name: row.name,
-                category_id: row._categoryId,
-                location_id: row._locationId || null,
-                brand: row.brand || null,
-                model: row.model || null,
-                purchase_price: row.purchase_price ? parseFloat(row.purchase_price) : null,
-                status: 'active',
-                is_rental: row.is_rental === 'true' || row.is_rental === '1',
-                specifications: Object.keys(row._specifications || {}).length > 0 ? row._specifications : undefined
-            }));
+            const assets = validRows.map(row => {
+                let statusVal = row.status?.toString().toLowerCase().trim() || 'in_inventory';
+                if (statusVal === 'aktif' || statusVal === 'active') statusVal = 'in_use';
+                if (statusVal === 'stok' || statusVal === 'siap gunakan') statusVal = 'in_inventory';
+
+                return {
+                    asset_code: row.asset_code,
+                    name: row.name,
+                    category_id: row._categoryId,
+                    location_id: row._locationId || null,
+                    brand: row.brand || null,
+                    model: row.model || null,
+                    serial_number: row.serial_number || null,
+                    purchase_price: row.purchase_price ? parseFloat(row.purchase_price) : null,
+                    status: statusVal,
+                    is_rental: row.is_rental === 'true' || row.is_rental === '1' || row.is_rental === 'ya',
+                    specifications: Object.keys(row._specifications || {}).length > 0 ? row._specifications : undefined
+                };
+            });
 
             await api.post('/assets/bulk', { assets });
 
-            success(`Successfully imported ${assets.length} assets`, 'Success');
+            success(`Berhasil mengimpor ${assets.length} data aset`, 'Sukses');
             onSuccess();
             handleClose();
         } catch (err: any) {
-            showError(err.response?.data?.message || 'Import failed', 'Error');
+            showError(err.response?.data?.message || 'Gagal mengimpor aset', 'Error');
         } finally {
             setLoading(false);
         }
@@ -129,29 +190,50 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
         onClose();
     };
 
-
-
     const downloadTemplate = () => {
-        const baseHeaders = ['asset_code', 'name', 'category', 'location', 'brand', 'model', 'serial_number', 'purchase_price', 'is_rental'];
+        const baseHeaders = ['kode_aset', 'nama_aset', 'kategori', 'lokasi', 'merek', 'model', 'nomor_seri', 'harga_beli', 'status'];
         let extraHeaders: string[] = [];
+        let sampleValues: string[] = [];
 
         if (selectedCategoryId) {
             const category = categories.find((c: any) => c.id === selectedCategoryId);
             if (category && category.attributes && Array.isArray(category.attributes)) {
                 extraHeaders = category.attributes;
+                sampleValues = extraHeaders.map(attr => {
+                    const cleanAttr = attr.toLowerCase();
+                    if (cleanAttr.includes('jam') || cleanAttr.includes('hour')) return '1500';
+                    if (cleanAttr.includes('plat') || cleanAttr.includes('plate')) return 'B 1234 SJS';
+                    if (cleanAttr.includes('ton') || cleanAttr.includes('kapasitas')) return '20 Ton';
+                    if (cleanAttr.includes('warna') || cleanAttr.includes('color')) return 'Kuning';
+                    if (cleanAttr.includes('tahun') || cleanAttr.includes('year')) return '2023';
+                    return 'Contoh Nilai';
+                });
             }
         }
 
-        // Add 'spec_' prefix to extra headers for clarity in CSV
+        const selectedCat = categories.find((c: any) => c.id === selectedCategoryId);
         const headers = [...baseHeaders, ...extraHeaders.map(h => `spec_${h}`)];
+        const sampleRow = [
+            'AST-101',
+            'Excavator PC200',
+            selectedCat ? (selectedCat.code || selectedCat.name) : (categories[0]?.code || 'EXC'),
+            locations[0]?.name || 'Gudang Utama',
+            'Komatsu',
+            'PC200',
+            'SN-998822',
+            '1500000000',
+            'in_inventory',
+            ...sampleValues
+        ];
 
-        const csvContent = "data:text/csv;charset=utf-8," + headers.join(",");
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), sampleRow.join(",")].join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `import_template_${selectedCategoryId ? 'category_' + selectedCategoryId : 'generic'}.csv`);
+        link.setAttribute("download", `template_import_aset_${selectedCategoryId ? 'kategori' : 'generik'}.csv`);
         document.body.appendChild(link);
         link.click();
+        link.remove();
     };
 
 
@@ -162,7 +244,6 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
             onClose={handleClose}
             title="Batch Import Assets"
             size="3xl"
-        // Footer removed from props, manually added to content below
         >
             <div className="space-y-4">
                 {!file ? (
@@ -181,25 +262,25 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                         <div className="bg-muted/50 p-4 rounded-lg border border-border w-full max-w-lg mb-4">
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-xs text-muted-foreground/80">Select Template by Category (Optional)</label>
+                                    <label className="text-xs text-muted-foreground/80">Pilih Kategori Spesifik (Auto-Fill Fallback & Atribut Khusus)</label>
                                     <Select
                                         value={selectedCategoryId}
                                         onChange={setSelectedCategoryId}
                                         options={[
-                                            { value: '', label: 'Generic (Basic Fields Only)' },
+                                            { value: '', label: 'Generik (Kategori dari kolom CSV)' },
                                             ...categories.map((c: any) => ({
                                                 value: c.id,
-                                                label: c.name
+                                                label: `${c.name} (${c.code || 'ID'})`
                                             }))
                                         ]}
                                     />
                                     <p className="text-[10px] text-muted-foreground/60">
-                                        Selecting a category will add its specific attribute columns (e.g., spec_RAM, spec_Color) to the CSV.
+                                        Memilih kategori akan otomatis mengisi kategori jika kolom CSV kosong & menyertakan kolom atribut spesifiknya.
                                     </p>
                                 </div>
 
                                 <Button className="w-full" variant="outline" onClick={downloadTemplate} leftIcon={<FileSpreadsheet size={16} />}>
-                                    Download Template CSV
+                                    Unduh Template CSV {selectedCategoryId ? 'Kategori Spesifik' : 'Generik'}
                                 </Button>
                             </div>
                         </div>
@@ -217,11 +298,12 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                             <Table>
                                 <TableHead>
                                     <TableRow>
-                                        <TableTh>Status</TableTh>
-                                        <TableTh>Code</TableTh>
-                                        <TableTh>Name</TableTh>
-                                        <TableTh>Category</TableTh>
-                                        <TableTh>Location</TableTh>
+                                        <TableTh>Valid</TableTh>
+                                        <TableTh>Kode</TableTh>
+                                        <TableTh>Nama Aset</TableTh>
+                                        <TableTh>Kategori</TableTh>
+                                        <TableTh>Lokasi</TableTh>
+                                        <TableTh>Spesifikasi Khusus</TableTh>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -236,9 +318,9 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                                             <TableTd>{row.name}</TableTd>
                                             <TableTd>
                                                 {row._categoryId ? (
-                                                    <span className="text-sm">{row.category}</span>
+                                                    <span className="text-sm font-medium text-foreground">{row.category_display || row.category}</span>
                                                 ) : (
-                                                    <Badge variant="danger">Invalid: {row.category}</Badge>
+                                                    <Badge variant="danger">Invalid Kategori: {row.category || 'Kosong'}</Badge>
                                                 )}
                                             </TableTd>
                                             <TableTd>
@@ -249,6 +331,24 @@ export function ImportAssetsModal({ opened, onClose, onSuccess, categories, loca
                                                         <Badge variant="warning">Unknown: {row.location}</Badge>
                                                     )
                                                 ) : <span className="text-muted-foreground">-</span>}
+                                            </TableTd>
+                                            <TableTd>
+                                                {Object.keys(row._specifications || {}).length > 0 ? (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {Object.entries(row._specifications).slice(0, 3).map(([k, v]) => (
+                                                            <Badge key={k} variant="info" size="sm">
+                                                                {k}: {String(v)}
+                                                            </Badge>
+                                                        ))}
+                                                        {Object.keys(row._specifications).length > 3 && (
+                                                            <span className="text-[10px] text-muted-foreground self-center">
+                                                                +{Object.keys(row._specifications).length - 3}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs italic">Generik</span>
+                                                )}
                                             </TableTd>
                                         </TableRow>
                                     ))}

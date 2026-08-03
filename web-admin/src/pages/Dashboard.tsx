@@ -18,6 +18,7 @@ import {
 import { api } from '../api/http';
 import { PageLoading } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
+import { getAssetStatusColor, getAssetStatusLabel } from '../config/assetStatusConfig';
 import { showToast } from '../components/ui/Toast';
 import { LiveActivityFeed } from '../components/dashboard/LiveActivityFeed';
 import { VehicleLegalityWidget } from '../components/dashboard/VehicleLegalityWidget';
@@ -335,40 +336,18 @@ export default function Dashboard() {
                                         nameKey="status"
                                         stroke="none"
                                     >
-                                        {statusDist?.map((entry: any, index: number) => {
-                                            const colors: Record<string, string> = {
-                                                planning: '#94a3b8',
-                                                procurement: '#3b82f6',
-                                                received: '#06b6d4',
-                                                in_inventory: '#10b981',
-                                                available: '#10b981',
-                                                deployed: '#059669',
-                                                in_use: '#059669',
-                                                rented_out: '#f59e0b',
-                                                under_maintenance: '#eab308',
-                                                under_repair: '#d97706',
-                                                under_conversion: '#8b5cf6',
-                                                retired: '#475569',
-                                                disposed: '#737373',
-                                                sold: '#84cc16',
-                                                lost_stolen: '#ef4444',
-                                            };
-                                            return (
-                                                <Cell key={`cell-${index}`} fill={colors[entry.status] || '#64748b'} />
-                                            );
-                                        })}
+                                        {statusDist?.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={getAssetStatusColor(entry.status)} />
+                                        ))}
                                     </Pie>
                                     <Tooltip
                                         contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '16px', color: 'var(--color-foreground)', backdropFilter: 'blur(12px)', fontWeight: 'bold' }}
-                                        formatter={(value: any, name: any) => {
-                                            const formattedName = name === 'planning' ? 'Rent Out' : name.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                                            return [value, formattedName];
-                                        }}
+                                        formatter={(value: any, name: any) => [value, getAssetStatusLabel(name)]}
                                     />
                                     <Legend
                                         iconType="circle"
                                         wrapperStyle={{ fontSize: '10px', paddingTop: '20px', fontWeight: 'bold' }}
-                                        formatter={(value) => value === 'planning' ? 'Rent Out' : value.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                                        formatter={(value) => getAssetStatusLabel(value)}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>

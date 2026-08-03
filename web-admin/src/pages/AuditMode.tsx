@@ -94,8 +94,16 @@ export default function AuditMode() {
     };
 
     const handleSubmit = async () => {
-        if (!assetInput) return;
-        submitMutation.mutate({ assetId: assetInput, status: 'found' });
+        if (!assetInput.trim()) return;
+        const query = assetInput.trim();
+        const matched = assets?.data?.find((a: any) =>
+            a.id.toLowerCase() === query.toLowerCase() ||
+            a.asset_code.toLowerCase() === query.toLowerCase() ||
+            (a.serial_number && a.serial_number.toLowerCase() === query.toLowerCase())
+        );
+
+        const targetId = matched ? matched.id : query;
+        submitMutation.mutate({ assetId: targetId, status: 'found' });
     };
 
     if (isLoadingSession) {
@@ -202,27 +210,27 @@ export default function AuditMode() {
             {/* Scan Input Card */}
             <Card padding="lg">
                 <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white">Scan / Input Asset ID</h3>
+                    <h3 className="text-lg font-semibold text-white">Scan QR / Input Kode Aset</h3>
 
                     <div className="flex items-end gap-3">
                         <div className="flex-1">
                             <Input
-                                label="Asset ID / UUID"
-                                placeholder="Enter asset UUID..."
+                                label="Kode Aset / QR / Serial Number / UUID"
+                                placeholder="Scan tag QR atau ketik kode misal: AST-001..."
                                 value={assetInput}
                                 onChange={(e) => setAssetInput(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
                             />
                         </div>
                         <Button variant="outline" onClick={simulateScan} leftIcon={<QrCode size={16} />}>
-                            Simulate QR
+                            Simulasi Scan QR
                         </Button>
                         <Button
                             onClick={handleSubmit}
                             loading={submitMutation.isPending}
                             leftIcon={<Check size={18} />}
                         >
-                            Submit Found
+                            Tandai Ditemukan
                         </Button>
                     </div>
 
@@ -230,9 +238,9 @@ export default function AuditMode() {
                     <div className="flex items-start gap-3 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
                         <AlertCircle size={20} className="text-cyan-400 flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="font-medium text-cyan-400">Note</p>
+                            <p className="font-medium text-cyan-400">Petunjuk Audit Lapangan</p>
                             <p className="text-sm text-slate-300">
-                                Enter the Asset UUID to mark it as found. In a real mobile app, this would use the camera scanner.
+                                Anda dapat men-scan label QR aset atau mengetikkan Kode Aset (misal: AST-001) maupun Serial Number untuk memverifikasi fisik aset secara instan.
                             </p>
                         </div>
                     </div>

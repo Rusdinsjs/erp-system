@@ -101,7 +101,13 @@ export const useAuthStore = create<AuthState>()(
                 const user = get().user;
                 if (!user) return false;
                 if (user.role_level <= 2) return true; // Admin and Super Admin bypass
-                return user.permissions.includes(permission);
+                if (user.permissions.includes(permission)) return true;
+
+                // Support wildcard matching e.g. "asset.read" matched if user has "asset.*"
+                const [resource] = permission.split('.');
+                if (resource && user.permissions.includes(`${resource}.*`)) return true;
+
+                return false;
             },
             hasRoleLevel: (level: number) => {
                 const user = get().user;

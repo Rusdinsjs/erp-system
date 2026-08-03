@@ -9,6 +9,7 @@ import {
 import { lifecycleApi } from '../../api/lifecycle';
 import { assetApi } from '../../api/assets';
 import { useAuthStore } from '../../store/useAuthStore';
+import { getAssetStatusLabel } from '../../config/assetStatusConfig';
 import { AssetConversionModal } from '../../components/Assets/AssetConversionModal';
 import { CreateLoanModal } from '../../components/Assets/CreateLoanModal';
 import { RetiredModal } from '../../components/Assets/RetiredModal';
@@ -493,7 +494,7 @@ export default function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleP
                                                             {hasPermission ? stateIcons[state.value] : <Lock size={16} />}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-white truncate">{state.label}</p>
+                                                            <p className="font-medium text-white truncate">{getAssetStatusLabel(state.value)}</p>
                                                             {needsApproval && (
                                                                 <span className="text-xs text-amber-400">Needs Approval</span>
                                                             )}

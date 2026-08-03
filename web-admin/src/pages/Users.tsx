@@ -89,7 +89,11 @@ export default function Users() {
         let filtered = [...users];
 
         if (filterRole !== 'all') {
-            filtered = filtered.filter(u => u.role_code === filterRole);
+            filtered = filtered.filter(u => {
+                if (u.role_code === filterRole) return true;
+                const rolesArr = getUserRolesArray(u);
+                return rolesArr.some(r => r.code === filterRole);
+            });
         }
 
         if (filterDepartment !== 'all') {

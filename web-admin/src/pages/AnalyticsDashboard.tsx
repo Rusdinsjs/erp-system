@@ -7,41 +7,14 @@ import {
 import { api } from '../api/http';
 import { LoadingSpinner } from '../components/ui';
 import { DollarSign, PieChart as PieIcon, TrendingUp } from 'lucide-react';
+import { getAssetStatusColor, getAssetStatusLabel } from '../config/assetStatusConfig';
 
-const STATUS_COLORS: Record<string, string> = {
-    planning: '#94a3b8',
-    procurement: '#3b82f6',
-    received: '#06b6d4',
-    in_inventory: '#10b981',
-    available: '#10b981',
-    deployed: '#059669',
-    in_use: '#059669',
-    rented_out: '#f59e0b',
-    under_maintenance: '#eab308',
-    under_repair: '#d97706',
-    under_conversion: '#8b5cf6',
-    retired: '#475569',
-    disposed: '#737373',
-    sold: '#84cc16',
-    lost_stolen: '#ef4444',
-};
+const STATUS_COLORS: Record<string, string> = new Proxy({}, {
+    get: (_, prop: string) => getAssetStatusColor(prop)
+});
 
 const formatStatusLabel = (status: string) => {
-    if (!status) return 'Unknown';
-    const mapping: Record<string, string> = {
-        planning: 'Rent Out',
-        in_inventory: 'In Inventory',
-        available: 'In Inventory',
-        deployed: 'In Use',
-        in_use: 'In Use',
-        under_maintenance: 'Under Maintenance',
-        under_repair: 'Under Repair',
-        under_conversion: 'Under Conversion',
-        lost_stolen: 'Lost/Stolen',
-    };
-
-    if (mapping[status]) return mapping[status];
-    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return getAssetStatusLabel(status);
 };
 
 export default function AnalyticsDashboard() {
