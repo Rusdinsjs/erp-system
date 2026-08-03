@@ -54,6 +54,8 @@ pub struct Employee {
     pub position: Option<String>,
     pub employment_status: String,
     pub user_id: Option<Uuid>,
+    #[sqlx(default)]
+    pub is_account_requested: Option<bool>,
     pub is_active: bool,
     pub photo_url: Option<String>,
 

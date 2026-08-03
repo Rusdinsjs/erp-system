@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search, UserPlus, UserCheck, Eye, Camera, Loader2 } from 'lucide-react';
 import { employeeApi, type Employee, type EmploymentStatus } from '../../api/employee';
+import { usersApi } from '../../api/users';
 import { api } from '../../api/http';
 import { uploadApi } from '../../api/upload';
 import { getImageUrl } from '../../utils/image';
@@ -99,13 +100,24 @@ export default function Employees() {
     const [createUser, setCreateUser] = useState(false);
     const [userPassword, setUserPassword] = useState('');
     const [userRole, setUserRole] = useState('staff');
+    const [roles, setRoles] = useState<any[]>([]);
 
     const { success, error: showError } = useToast();
 
     useEffect(() => {
         loadData();
         fetchDepartments();
+        fetchRoles();
     }, []);
+
+    const fetchRoles = async () => {
+        try {
+            const data = await usersApi.listRoles();
+            setRoles(data);
+        } catch (error) {
+            console.error('Failed to fetch roles:', error);
+        }
+    };
 
     const loadData = async () => {
         setLoading(true);
@@ -155,6 +167,7 @@ export default function Employees() {
         try {
             const payload = {
                 ...formData,
+                is_account_requested: createUser,
                 user_creation: createUser ? {
                     email: formData.email || '',
                     password: userPassword,
@@ -188,6 +201,7 @@ export default function Employees() {
         try {
             const payload = {
                 ...formData,
+                is_account_requested: createUser,
                 user_creation: createUser ? {
                     email: formData.email || '',
                     password: userPassword,
@@ -727,15 +741,22 @@ export default function Employees() {
                                                 label="Role"
                                                 value={userRole}
                                                 onChange={(val) => setUserRole(val || 'staff')}
-                                                options={[
-                                                    { value: 'staff', label: 'Staff' },
-                                                    { value: 'technician', label: 'Technician' },
-                                                    { value: 'manager', label: 'Manager' },
-                                                    { value: 'admin', label: 'Admin' },
-                                                    { value: 'admin_heavy_eq', label: 'Admin Alat Berat' },
-                                                    { value: 'admin_vehicle', label: 'Admin Kendaraan' },
-                                                    { value: 'admin_infra', label: 'Admin Infrastruktur' },
-                                                ]}
+                                                options={
+                                                    roles.length > 0
+                                                        ? roles.map(r => ({
+                                                            value: r.code,
+                                                            label: `${r.name} (L${r.role_level})`
+                                                        }))
+                                                        : [
+                                                            { value: 'staff', label: 'Staff' },
+                                                            { value: 'technician', label: 'Technician' },
+                                                            { value: 'manager', label: 'Manager' },
+                                                            { value: 'admin', label: 'Admin' },
+                                                            { value: 'admin_heavy_eq', label: 'Admin Alat Berat' },
+                                                            { value: 'admin_vehicle', label: 'Admin Kendaraan' },
+                                                            { value: 'admin_infra', label: 'Admin Infrastruktur' },
+                                                        ]
+                                                }
                                             />
                                         </div>
                                     )}

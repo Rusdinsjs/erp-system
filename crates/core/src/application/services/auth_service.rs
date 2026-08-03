@@ -57,14 +57,31 @@ impl AuthService {
         // Update last login
         let _ = self.repository.update_last_login(user.id).await;
 
-        // Fetch permissions from DB
-        let permissions = if let Some(role_id) = user.role_id {
+        // Fetch permissions from DB for all user roles
+        let user_perms = self.rbac_repository.get_user_permissions(user.id).await;
+        let permissions = if let Ok(perms) = user_perms {
+            if !perms.is_empty() {
+                perms.into_iter().map(|p| p.code).collect()
+            } else if let Some(role_id) = user.role_id {
+                self.rbac_repository
+                    .get_permissions_for_role(role_id)
+                    .await
+                    .unwrap_or_default()
+            } else {
+                user.role
+                    .parse::<UserRole>()
+                    .unwrap_or(UserRole::User)
+                    .default_permissions()
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect()
+            }
+        } else if let Some(role_id) = user.role_id {
             self.rbac_repository
                 .get_permissions_for_role(role_id)
                 .await
                 .unwrap_or_default()
         } else {
-            // Fallback for legacy users (should ideally be migrated)
             user.role
                 .parse::<UserRole>()
                 .unwrap_or(UserRole::User)

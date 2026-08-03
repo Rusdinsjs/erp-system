@@ -23,7 +23,7 @@ impl EmployeeRepository {
                 start_date, end_contract_date, is_manager, manager_id,
                 bank_account, bank_name, basic_salary,
                 leave_balance, leave_used,
-                assigned_asset_id, work_area_id
+                assigned_asset_id, work_area_id, is_account_requested
             )
             VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
@@ -31,7 +31,7 @@ impl EmployeeRepository {
                 $19, $20, $21, $22,
                 $23, $24, $25,
                 $26, $27,
-                $28, $29
+                $28, $29, $30
             )
             RETURNING *
             "#,
@@ -66,6 +66,7 @@ impl EmployeeRepository {
         .bind(employee.leave_used)
         .bind(employee.assigned_asset_id)
         .bind(employee.work_area_id)
+        .bind(employee.is_account_requested.unwrap_or(false))
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
@@ -138,21 +139,32 @@ impl EmployeeRepository {
     pub async fn update(&self, employee: &Employee) -> Result<Employee, AppError> {
         let employee = sqlx::query_as::<_, Employee>(
             r#"
-            UPDATE employees
-            SET nik = $2, name = $3, email = $4, phone = $5, 
-                department_id = $6, position = $7, employment_status = $8, 
-                user_id = $9, is_active = $10, photo_url = $11,
-                ktp_number = $12, place_of_birth = $13, date_of_birth = $14, 
-                gender = $15, marital_status = $16, religion = $17, address = $18, blood_type = $19,
-                emergency_contact_name = $20, emergency_contact_phone = $21, emergency_contact_relation = $22,
-                start_date = $23, end_contract_date = $24, is_manager = $25, manager_id = $26,
-                bank_account = $27, bank_name = $28, npwp = $29, bpjs_kesehatan = $30, bpjs_tenaga_kerja = $31, basic_salary = $32,
-                education = $33,
-                leave_balance = $34, leave_used = $35,
-                assigned_asset_id = $36, work_area_id = $37,
-                updated_at = NOW()
-            WHERE id = $1
-            RETURNING *
+            WITH updated_emp AS (
+                UPDATE employees
+                SET nik = $2, name = $3, email = $4, phone = $5, 
+                    department_id = $6, position = $7, employment_status = $8, 
+                    user_id = $9, is_active = $10, photo_url = $11,
+                    ktp_number = $12, place_of_birth = $13, date_of_birth = $14, 
+                    gender = $15, marital_status = $16, religion = $17, address = $18, blood_type = $19,
+                    emergency_contact_name = $20, emergency_contact_phone = $21, emergency_contact_relation = $22,
+                    start_date = $23, end_contract_date = $24, is_manager = $25, manager_id = $26,
+                    bank_account = $27, bank_name = $28, npwp = $29, bpjs_kesehatan = $30, bpjs_tenaga_kerja = $31, basic_salary = $32,
+                    education = $33,
+                    leave_balance = $34, leave_used = $35,
+                    assigned_asset_id = $36, work_area_id = $37,
+                    is_account_requested = COALESCE($38, is_account_requested),
+                    updated_at = NOW()
+                WHERE id = $1
+                RETURNING *
+            ),
+            synced_user AS (
+                UPDATE users
+                SET name = e.name, email = e.email, updated_at = NOW()
+                FROM updated_emp e
+                WHERE users.id = e.user_id
+                RETURNING users.*
+            )
+            SELECT * FROM updated_emp
             "#,
         )
         .bind(employee.id)
@@ -193,6 +205,7 @@ impl EmployeeRepository {
         .bind(employee.leave_used)
         .bind(employee.assigned_asset_id)
         .bind(employee.work_area_id)
+        .bind(employee.is_account_requested)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;

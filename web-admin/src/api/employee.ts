@@ -13,6 +13,7 @@ export interface Employee {
     position?: string;
     employment_status: EmploymentStatus;
     user_id?: string;
+    is_account_requested?: boolean;
     is_active: boolean;
     photo_url?: string;
 

@@ -1,6 +1,6 @@
 //! User Repository
 
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
 use crate::domain::entities::{User, UserSummary};
@@ -58,14 +58,21 @@ impl UserRepository {
     }
 
     pub async fn list(&self, limit: i64, offset: i64) -> Result<Vec<UserSummary>, sqlx::Error> {
-        sqlx::query_as::<_, UserSummary>(
+        let rows = sqlx::query(
             r#"
             SELECT 
                 u.id, u.email, u.name, 
-                COALESCE(r.code, u.role) as role_code, COALESCE(r.role_level, 5) as role_level,
-                u.department, u.department_id, u.is_active,
+                COALESCE(r.code, u.role) as role_code,
+                COALESCE((SELECT MIN(r2.role_level) FROM user_roles ur2 JOIN roles r2 ON ur2.role_id = r2.id WHERE ur2.user_id = u.id), r.role_level, 5) as role_level,
+                u.department, u.department_id, u.is_active, u.last_login_at,
                 e.id as employee_id, e.name as employee_name, e.nik as employee_nik, e.photo_url as employee_photo_url,
-                u.allowed_asset_group
+                u.allowed_asset_group,
+                COALESCE((
+                    SELECT JSONB_AGG(DISTINCT JSONB_BUILD_OBJECT('id', r_all.id, 'code', r_all.code, 'name', r_all.name, 'role_level', r_all.role_level))
+                    FROM user_roles ur_all
+                    JOIN roles r_all ON ur_all.role_id = r_all.id
+                    WHERE ur_all.user_id = u.id
+                ), '[]'::jsonb) as roles
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             LEFT JOIN employees e ON u.id = e.user_id
@@ -76,7 +83,79 @@ impl UserRepository {
         .bind(limit)
         .bind(offset)
         .fetch_all(&self.pool)
-        .await
+        .await?;
+
+        let users = rows
+            .into_iter()
+            .map(|r| UserSummary {
+                id: r.get("id"),
+                email: r.get("email"),
+                name: r.get("name"),
+                role: r.get("role_code"),
+                role_level: r.get::<i32, _>("role_level"),
+                department: r.get("department"),
+                department_id: r.get("department_id"),
+                is_active: r.get("is_active"),
+                employee_id: r.get("employee_id"),
+                employee_name: r.get("employee_name"),
+                employee_nik: r.get("employee_nik"),
+                employee_photo_url: r.get("employee_photo_url"),
+                allowed_asset_group: r.get("allowed_asset_group"),
+                roles: r.try_get::<serde_json::Value, _>("roles").ok(),
+                last_login_at: r.get("last_login_at"),
+            })
+            .collect();
+
+        Ok(users)
+    }
+
+    pub async fn set_user_roles(&self, user_id: Uuid, role_codes: &[String]) -> Result<(), sqlx::Error> {
+        // Clear existing user_roles
+        sqlx::query("DELETE FROM user_roles WHERE user_id = $1")
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+
+        if !role_codes.is_empty() {
+            sqlx::query(
+                r#"
+                INSERT INTO user_roles (user_id, role_id)
+                SELECT $1, id FROM roles WHERE code = ANY($2::text[])
+                ON CONFLICT DO NOTHING
+                "#,
+            )
+            .bind(user_id)
+            .bind(role_codes)
+            .execute(&self.pool)
+            .await?;
+
+            // Update primary role_id on users table to the highest level role
+            sqlx::query(
+                r#"
+                UPDATE users
+                SET role_id = (
+                    SELECT r.id FROM user_roles ur
+                    JOIN roles r ON ur.role_id = r.id
+                    WHERE ur.user_id = $1
+                    ORDER BY r.role_level ASC
+                    LIMIT 1
+                ),
+                role = (
+                    SELECT r.code FROM user_roles ur
+                    JOIN roles r ON ur.role_id = r.id
+                    WHERE ur.user_id = $1
+                    ORDER BY r.role_level ASC
+                    LIMIT 1
+                )
+                WHERE id = $1
+                "#,
+            )
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        }
+
+        Ok(())
     }
 
     pub async fn link_employee(&self, user_id: Uuid, employee_id: Uuid) -> Result<(), sqlx::Error> {
@@ -98,6 +177,15 @@ impl UserRepository {
             .bind(employee_id)
             .execute(&self.pool)
             .await?;
+
+        // Synchronize user.name & avatar_url from linked employee
+        sqlx::query(
+            "UPDATE users SET name = e.name, email = e.email, avatar_url = COALESCE(e.photo_url, users.avatar_url), updated_at = NOW() FROM employees e WHERE users.id = $1 AND e.id = $2"
+        )
+        .bind(user_id)
+        .bind(employee_id)
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
@@ -204,6 +292,13 @@ impl UserRepository {
                     updated_at = NOW()
                 WHERE id = $1
                 RETURNING *
+            ),
+            synced_employee AS (
+                UPDATE employees
+                SET name = u.name, updated_at = NOW()
+                FROM updated_user u
+                WHERE employees.user_id = u.id
+                RETURNING employees.*
             )
             SELECT 
                 u.id, u.email, u.password_hash, u.name, 
@@ -292,5 +387,20 @@ impl UserRepository {
         .bind(avatar_url)
         .fetch_one(&self.pool)
         .await
+    }
+
+    pub async fn deactivate_by_employee_id(&self, employee_id: Uuid) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            UPDATE users
+            SET is_active = false, updated_at = NOW()
+            WHERE id = (SELECT user_id FROM employees WHERE id = $1)
+               OR employee_id = $1
+            "#,
+        )
+        .bind(employee_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }

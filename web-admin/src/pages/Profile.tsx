@@ -1,6 +1,6 @@
 // Profile Page - Pure Tailwind
 import { useState, useEffect } from "react";
-import { User, Lock } from "lucide-react";
+import { User, Lock, Shield } from "lucide-react";
 import { profileApi } from "../api/profile";
 import { useAuthStore } from "../store/useAuthStore";
 import { AvatarUpload } from "../components/AvatarUpload";
@@ -117,6 +117,9 @@ export default function Profile() {
                             <TabsTrigger value="security" icon={<Lock size={14} />}>
                                 Security
                             </TabsTrigger>
+                            <TabsTrigger value="employment" icon={<Shield size={14} />}>
+                                Kepegawaian & Hak Akses
+                            </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="general">
@@ -184,6 +187,52 @@ export default function Profile() {
                                     </Button>
                                 </div>
                             </form>
+                        </TabsContent>
+
+                        <TabsContent value="employment">
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-4 rounded-xl bg-accent/30 border border-border space-y-1">
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Jabatan / Role Utama</p>
+                                        <p className="text-base font-semibold text-foreground">{user?.role || 'Staff'}</p>
+                                        <span className="inline-block px-2 py-0.5 text-xs rounded bg-primary/20 text-primary font-mono">
+                                            Level {user?.role_level ?? 5}
+                                        </span>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-accent/30 border border-border space-y-1">
+                                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Departemen</p>
+                                        <p className="text-base font-semibold text-foreground">{user?.department || 'General / Unassigned'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-semibold text-foreground">Grup Akses Aset (Asset Restriction)</h4>
+                                    <div className="p-3 rounded-lg bg-card border border-border text-sm text-muted-foreground">
+                                        {user?.allowed_asset_group ? (
+                                            <span className="font-mono text-primary font-medium">{user.allowed_asset_group}</span>
+                                        ) : (
+                                            <span>Semua Grup Aset (Tidak Ada Pembatasan)</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h4 className="text-sm font-semibold text-foreground">Daftar Wewenang Sistem (Permissions Matrix)</h4>
+                                    <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-3 rounded-lg bg-card border border-border">
+                                        {user?.permissions && user.permissions.length > 0 ? (
+                                            user.permissions.map((perm, idx) => (
+                                                <span key={idx} className="px-2 py-1 text-xs rounded-md bg-secondary text-secondary-foreground font-mono">
+                                                    {perm}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground italic">
+                                                {user?.role_level && user.role_level <= 2 ? 'Super Admin / Full Access Unrestricted' : 'Viewer / Basic Access Only'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </TabsContent>
                     </Tabs>
                 </Card>

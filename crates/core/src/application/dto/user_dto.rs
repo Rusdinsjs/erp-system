@@ -40,6 +40,7 @@ impl std::fmt::Debug for CreateUserRequest {
 pub struct UpdateUserRequest {
     pub name: Option<String>,
     pub role_code: Option<String>,
+    pub role_codes: Option<Vec<String>>,
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
     pub is_active: Option<bool>,

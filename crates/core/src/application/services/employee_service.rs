@@ -43,6 +43,7 @@ impl EmployeeService {
             position: req.position,
             employment_status: req.employment_status,
             user_id: req.user_id,
+            is_account_requested: Some(req.is_account_requested.unwrap_or(req.user_creation.is_some())),
             is_active: true,
             photo_url: req.photo_url,
 
@@ -161,6 +162,11 @@ impl EmployeeService {
         if let Some(photo) = req.photo_url {
             employee.photo_url = Some(photo);
         }
+        if let Some(req_acc) = req.is_account_requested {
+            employee.is_account_requested = Some(req_acc);
+        } else if req.user_creation.is_some() {
+            employee.is_account_requested = Some(true);
+        }
 
         // Biodata Updates
         if let Some(ktp) = req.ktp_number {
@@ -239,6 +245,15 @@ impl EmployeeService {
         }
 
         self.repository.update(&employee).await?;
+
+        // If employee is deactivated or status is inactive/resigned/terminated, auto-deactivate linked user
+        let is_inactive_status = matches!(
+            employee.employment_status.to_lowercase().as_str(),
+            "resigned" | "terminated" | "inactive" | "non-active"
+        );
+        if !employee.is_active || is_inactive_status {
+            let _ = self.user_service.deactivate_by_employee_id(id).await;
+        }
 
         // Handle User Creation if requested and not linked
         if let Some(user_req) = user_creation_req {

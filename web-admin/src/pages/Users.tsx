@@ -1,8 +1,7 @@
 // Users Page - Pure Tailwind
 import { useEffect, useState } from 'react';
 import { Edit, Trash2, Link, UserCheck, Eye } from 'lucide-react';
-import { usersApi, type UserSummary, type CreateUserRequest, type UpdateUserRequest } from '../api/users';
-import { employeeApi, type Employee } from '../api/employee';
+import { usersApi, type UserSummary, type UpdateUserRequest } from '../api/users';
 import { departmentApi, type Department } from '../api/departments';
 import { getImageUrl } from '../utils/image';
 import {
@@ -25,31 +24,20 @@ interface Role {
     role_level: number;
 }
 
-const initialFormState: CreateUserRequest = {
-    email: '',
-    password: '',
-    name: '',
-    role_code: 'user',
-    employee_id: undefined,
-    allowed_asset_group: undefined,
-};
 
 export default function Users() {
     const [users, setUsers] = useState<UserSummary[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<UserSummary[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
-    const [employees, setEmployees] = useState<Employee[]>([]);
     const [departmentsList, setDepartmentsList] = useState<Department[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const [createOpened, setCreateOpened] = useState(false);
     const [editOpened, setEditOpened] = useState(false);
     const [viewOpened, setViewOpened] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     const [editingUser, setEditingUser] = useState<UserSummary | null>(null);
     const [selectedUser, setSelectedUser] = useState<UserSummary | null>(null);
-    const [formData, setFormData] = useState<CreateUserRequest>(initialFormState);
     const [editFormData, setEditFormData] = useState<UpdateUserRequest>({});
 
     // Filters
@@ -67,10 +55,9 @@ export default function Users() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [usersRes, rolesRes, employeesRes, deptsRes] = await Promise.all([
+            const [usersRes, rolesRes, deptsRes] = await Promise.all([
                 usersApi.list(1, 100),
                 usersApi.listRoles(),
-                employeeApi.list(),
                 departmentApi.list()
             ]);
 
@@ -84,10 +71,6 @@ export default function Users() {
 
             if (Array.isArray(rolesRes)) {
                 setRoles(rolesRes);
-            }
-
-            if (Array.isArray(employeesRes)) {
-                setEmployees(employeesRes);
             }
 
             if (Array.isArray(deptsRes)) {
@@ -128,20 +111,6 @@ export default function Users() {
         setFilteredUsers(filtered);
     }, [users, filterRole, filterDepartment, filterStatus, filterLinked]);
 
-    const handleCreate = async () => {
-        setSubmitting(true);
-        try {
-            await usersApi.create(formData);
-            success('User created successfully', 'Success');
-            setCreateOpened(false);
-            setFormData(initialFormState);
-            loadData();
-        } catch (e: any) {
-            showError(e.response?.data?.message || 'Failed to create user', 'Error');
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const handleUpdate = async () => {
         if (!editingUser) return;
@@ -151,13 +120,12 @@ export default function Users() {
             // Empty strings are sent as null/undefined so backend COALESCE keeps existing value
             const payload: UpdateUserRequest = {
                 name: editFormData.name,
-                role_code: editFormData.role_code,
+                role_code: selectedRoleCodes[0] || editFormData.role_code,
+                role_codes: selectedRoleCodes,
                 is_active: editFormData.is_active,
                 password: editFormData.password || undefined,
-                // Send empty string as '__CLEAR__' sentinel or undefined to retain
                 department: editFormData.department ?? undefined,
                 allowed_asset_group: editFormData.allowed_asset_group ?? undefined,
-                // employee_id: keep as-is (UUID string)
                 employee_id: editFormData.employee_id || undefined,
                 clear_employee_link: editFormData.clear_employee_link,
             };
@@ -192,11 +160,33 @@ export default function Users() {
         setViewOpened(true);
     };
 
+    const getUserRolesArray = (user: UserSummary): Array<{ id?: string; code: string; name: string; role_level: number }> => {
+        if (!user.roles) return [];
+        if (Array.isArray(user.roles)) return user.roles;
+        if (typeof user.roles === 'string') {
+            try {
+                const parsed = JSON.parse(user.roles);
+                if (Array.isArray(parsed)) return parsed;
+            } catch (e) {
+                console.error('Failed to parse user.roles:', e);
+            }
+        }
+        return [];
+    };
+
+    const [selectedRoleCodes, setSelectedRoleCodes] = useState<string[]>([]);
+
     const openEditModal = (user: UserSummary) => {
         setEditingUser(user);
+        const rolesArr = getUserRolesArray(user);
+        const existingRoles = rolesArr.length > 0
+            ? rolesArr.map(r => r.code)
+            : [user.role_code];
+        setSelectedRoleCodes(existingRoles);
         setEditFormData({
             name: user.name,
             role_code: user.role_code,
+            role_codes: existingRoles,
             is_active: user.is_active,
             department: user.department || '',
             allowed_asset_group: user.allowed_asset_group || '',
@@ -228,6 +218,21 @@ export default function Users() {
             case 'user': return 'Basic View Access';
             default: return 'Limited Access';
         }
+    };
+
+    const getRoleLabel = (user?: UserSummary | null) => {
+        if (!user) return 'User (L5)';
+        const roleCode = user.role_code || (user as any).role || '';
+        const foundRole = roles.find(r => r.code === roleCode);
+        if (foundRole) {
+            return `${foundRole.name} (L${foundRole.role_level})`;
+        }
+        if (!roleCode) return `User (L${user.role_level || 5})`;
+        const formattedCode = roleCode
+            .split('_')
+            .map((word: string) => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+            .join(' ');
+        return `${formattedCode} (L${user.role_level || 5})`;
     };
 
     const roleOptions = roles.map(r => ({ value: r.code, label: `${r.name} (L${r.role_level})` }));
@@ -266,13 +271,7 @@ export default function Users() {
         { value: 'INFRASTRUKTUR', label: 'Infrastruktur' },
     ];
 
-    const employeeOptions = [
-        { value: '', label: '-- Not Linked (No Employee) --' },
-        ...employees.map(e => ({
-            value: e.id,
-            label: `${e.name} (NIK: ${e.nik || 'N/A'})`
-        }))
-    ];
+
 
     return (
         <div className="space-y-4">
@@ -281,9 +280,6 @@ export default function Users() {
                     <h1 className="text-2xl font-bold text-white">User Operations</h1>
                     <p className="text-xs text-slate-400 mt-1">Manage system user accounts and their linked employee profiles.</p>
                 </div>
-                <Button onClick={() => setCreateOpened(true)}>
-                    Create User
-                </Button>
             </div>
 
             {/* Filters */}
@@ -352,9 +348,22 @@ export default function Users() {
                                     </TableTd>
                                     <TableTd>{user.email}</TableTd>
                                     <TableTd>
-                                        <Badge variant={getRoleBadge(user.role_level)}>
-                                            {user.role_code}
-                                        </Badge>
+                                         {(() => {
+                                             const rolesArr = getUserRolesArray(user);
+                                             return rolesArr.length > 0 ? (
+                                                 <div className="flex flex-wrap gap-1 max-w-[220px]">
+                                                     {rolesArr.map((r, idx) => (
+                                                         <Badge key={r.code || idx} variant={getRoleBadge(r.role_level)}>
+                                                             {r.name} (L{r.role_level})
+                                                         </Badge>
+                                                     ))}
+                                                 </div>
+                                             ) : (
+                                                 <Badge variant={getRoleBadge(user.role_level)}>
+                                                     {getRoleLabel(user)}
+                                                 </Badge>
+                                             );
+                                         })()}
                                     </TableTd>
                                     <TableTd>
                                         <span className="text-sm text-slate-400">
@@ -369,11 +378,14 @@ export default function Users() {
                                             )}
                                         </div>
                                     </TableTd>
-                                    <TableTd>
-                                        <Badge variant={user.is_active ? 'success' : 'danger'}>
-                                            {user.is_active ? 'Allowed' : 'Denied'}
-                                        </Badge>
-                                    </TableTd>
+                                     <TableTd>
+                                         <Badge variant={user.is_active ? 'success' : 'danger'}>
+                                             {user.is_active ? 'Allowed' : 'Denied'}
+                                         </Badge>
+                                         <p className="text-xs text-slate-400 mt-1">
+                                             {user.last_login_at ? new Date(user.last_login_at).toLocaleString('id-ID') : 'Belum pernah login'}
+                                         </p>
+                                     </TableTd>
                                     <TableTd>
                                         {user.employee_name ? (
                                             <div className="flex items-center gap-2">
@@ -424,98 +436,48 @@ export default function Users() {
                 </div>
             </Card>
 
-            {/* Create Modal */}
-            <Modal isOpen={createOpened} onClose={() => setCreateOpened(false)} title="Create New User">
-                <div className="space-y-4">
-                    <Input
-                        label="Name"
-                        placeholder="Full Name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                    />
-                    <Input
-                        label="Email"
-                        placeholder="email@example.com"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required
-                    />
-                    <Input
-                        label="Password"
-                        placeholder="Password"
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        required
-                    />
-                    <Select
-                        label="Role"
-                        placeholder="Select Role"
-                        value={formData.role_code}
-                        onChange={(val) => setFormData({ ...formData, role_code: val })}
-                        options={roleOptions}
-                    />
-                    <Select
-                        label="Department Restriction"
-                        placeholder="No Restriction"
-                        value={formData.department || ''}
-                        onChange={(val) => setFormData({ ...formData, department: val || undefined })}
-                        options={formDepartmentOptions}
-                    />
-                    <Select
-                        label="Link to Employee (Optional)"
-                        placeholder="Select Employee to link"
-                        value={formData.employee_id || ''}
-                        onChange={(val) => setFormData({ ...formData, employee_id: val || undefined })}
-                        options={employeeOptions}
-                    />
-                    <Select
-                        label="Asset Group Restriction"
-                        placeholder="No Restriction"
-                        value={formData.allowed_asset_group || ''}
-                        onChange={(val) => setFormData({ ...formData, allowed_asset_group: val || undefined })}
-                        options={assetGroupOptions}
-                    />
-                    <Button fullWidth onClick={handleCreate} loading={submitting}>
-                        Create User
-                    </Button>
-                </div>
-            </Modal>
-
             {/* Edit Modal */}
             <Modal isOpen={editOpened} onClose={() => setEditOpened(false)} title="Edit User">
                 <div className="space-y-4">
-                    <Input
-                        label="Name"
-                        value={editFormData.name || ''}
-                        onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                    />
-                    <Select
-                        label="Role"
-                        value={editFormData.role_code || ''}
-                        onChange={(val) => setEditFormData({ ...editFormData, role_code: val })}
-                        options={roleOptions}
-                    />
+                    <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1.5">Roles (Pilih satu atau lebih)</label>
+                        <div className="space-y-2 p-3 rounded-lg bg-slate-950 border border-slate-800 max-h-48 overflow-y-auto">
+                            {roles.map((r) => {
+                                const isChecked = selectedRoleCodes.includes(r.code);
+                                return (
+                                    <label key={r.id || r.code} className="flex items-center gap-2.5 text-sm text-slate-200 cursor-pointer hover:text-white transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={isChecked}
+                                            onChange={(e) => {
+                                                let updated: string[];
+                                                if (e.target.checked) {
+                                                    updated = [...selectedRoleCodes, r.code];
+                                                } else {
+                                                    updated = selectedRoleCodes.filter(c => c !== r.code);
+                                                }
+                                                setSelectedRoleCodes(updated);
+                                                setEditFormData(prev => ({
+                                                    ...prev,
+                                                    role_codes: updated,
+                                                    role_code: updated[0] || 'user'
+                                                }));
+                                            }}
+                                            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
+                                        />
+                                        <span className="font-medium">{r.name}</span>
+                                        <span className="text-xs text-slate-400 font-mono">(L{r.role_level})</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
                     <Select
                         label="Department Restriction"
                         placeholder="No Restriction"
                         value={editFormData.department || ''}
                         onChange={(val) => setEditFormData({ ...editFormData, department: val || undefined })}
                         options={formDepartmentOptions}
-                    />
-                    <Select
-                        label="Linked Employee"
-                        value={editFormData.employee_id || ''}
-                        onChange={(val) => {
-                            if (!val) {
-                                setEditFormData({ ...editFormData, employee_id: undefined, clear_employee_link: true });
-                            } else {
-                                setEditFormData({ ...editFormData, employee_id: val, clear_employee_link: false });
-                            }
-                        }}
-                        options={employeeOptions}
                     />
                     <Select
                         label="Asset Group Restriction"
@@ -564,7 +526,7 @@ export default function Users() {
                                 />
                             ) : (
                                 <div className="w-14 h-14 rounded-full bg-cyan-500/10 text-cyan-400 font-bold text-xl flex items-center justify-center border border-cyan-500/20 shadow-inner shrink-0">
-                                    {selectedUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    {selectedUser?.name ? selectedUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'US'}
                                 </div>
                             )}
                             <div className="flex-1 min-w-0">
@@ -572,7 +534,7 @@ export default function Users() {
                                 <p className="text-sm text-slate-400 truncate">{selectedUser.email}</p>
                                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                     <Badge variant={getRoleBadge(selectedUser.role_level)}>
-                                        {selectedUser.role_code} (L{selectedUser.role_level})
+                                        {getRoleLabel(selectedUser)}
                                     </Badge>
                                     <Badge variant={selectedUser.is_active ? 'success' : 'danger'}>
                                         {selectedUser.is_active ? 'Active Account' : 'Inactive'}

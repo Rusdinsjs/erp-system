@@ -25,10 +25,61 @@ export function MainLayout() {
     };
     const logout = useAuthStore((state) => state.logout);
     const user = useAuthStore((state) => state.user);
+    const hasPermission = useAuthStore((state) => state.hasPermission);
 
     const handleLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    const ROUTE_TO_RESOURCE: Record<string, string> = {
+        '/assets': 'asset',
+        '/assets/lifecycle': 'asset',
+        '/categories': 'category',
+        '/locations': 'location',
+        '/conversions': 'conversion',
+        '/work-orders': 'work_order',
+        '/maintenance-templates': 'maintenance',
+        '/fuel': 'fuel',
+        '/rentals': 'rental',
+        '/loans': 'loan',
+        '/inventory': 'inventory',
+        '/tax-renewals': 'tax_renewal',
+        '/finance': 'finance',
+        '/finance/expenses': 'finance',
+        '/finance/invoices': 'finance',
+        '/finance/bills': 'finance',
+        '/finance/reports': 'finance',
+        '/employees': 'employee',
+        '/departments': 'department',
+        '/clients': 'client',
+        '/attendance': 'attendance',
+        '/leaves': 'leave',
+        '/approvals': 'approval',
+        '/reports': 'report',
+        '/users': 'user',
+        '/roles': 'role',
+        '/audit': 'audit',
+        '/settings': 'setting',
+    };
+
+    const canAccessRoutePath = (path: string, minLevel: number = 5): boolean => {
+        if (!user) return false;
+        if (user.role_level <= 2) return true; // Admin/Super Admin bypass
+
+        const resource = ROUTE_TO_RESOURCE[path];
+        if (!resource) return user.role_level <= minLevel;
+
+        if (path === '/users') {
+            return hasPermission('user.create') || hasPermission('user.update') || hasPermission('user.delete') || hasPermission('user.*') || hasPermission('user.read') || hasPermission('user.view');
+        }
+
+        return (
+            hasPermission(`${resource}.read`) ||
+            hasPermission(`${resource}.view`) ||
+            hasPermission(`${resource}.*`) ||
+            user.role_level <= minLevel
+        );
     };
 
     const navItems = [
@@ -113,38 +164,24 @@ export function MainLayout() {
         },
     ];
 
-    // Filter items based on role
+    // Filter items based on granular permissions & asset group restrictions
     const filteredNavItems = navItems.filter(item => {
-        const userLevel = user?.role_level ?? 5;
-        const requiredLevel = item.minLevel ?? 5;
-
-        // If user level is higher (numerically) than required, strictly deny.
-        // (Remember: Level 1 is highest, 5 is lowest)
-        if (userLevel > requiredLevel) {
-            return false;
-        }
-
-        // If item has children, filter them too
         if (item.children) {
             item.children = item.children.filter(child => {
                 const childLevel = (child as any).minLevel ?? 5;
-
-                // Hide Categories and Locations if the user has an asset group restriction
-                // (This replaces the hardcoded role check with dynamic restriction logic)
                 const hasAssetRestriction = user && !!user.allowed_asset_group;
 
-                if (hasAssetRestriction && [
-                    '/categories', 
-                    '/locations'
-                ].includes(child.path)) {
+                if (hasAssetRestriction && ['/categories', '/locations'].includes(child.path)) {
                     return false;
                 }
 
-                return userLevel <= childLevel;
+                return canAccessRoutePath(child.path, childLevel);
             });
+            // Keep parent if at least one child is accessible
+            return item.children.length > 0;
         }
 
-        return true;
+        return canAccessRoutePath(item.path, item.minLevel ?? 5);
     });
 
 

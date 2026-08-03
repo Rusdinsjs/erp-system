@@ -598,7 +598,7 @@ export default function AdminDashboard() {
                     { type: 'header', label: 'Access Control & Approvals' },
                     ...getGroupItems(adminIds, ['users', 'roles', 'approval-workflow-settings', 'approvals'], ['users', 'roles', 'approval-workflow-settings', 'approvals']),
                     { type: 'header', label: 'System Administration' },
-                    ...getGroupItems(adminIds, ['audit', 'settings', 'profile'], ['audit', 'settings', 'profile']),
+                    ...getGroupItems(adminIds, ['audit', 'settings'], ['audit', 'settings']),
                 ]
             },
         ];
@@ -940,8 +940,12 @@ export default function AdminDashboard() {
                 {/* User & Logout */}
                 <div className="p-4 border-t border-border">
                     {sidebarOpen && (
-                        <div className="mb-4 px-2 flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden border border-border/50 shrink-0">
+                        <button
+                            onClick={() => { setActiveTab('profile'); navigate('/profile'); }}
+                            className="mb-4 px-2 py-1.5 flex items-center gap-3 w-full text-left rounded-xl hover:bg-muted/80 transition-all border border-transparent hover:border-border cursor-pointer group"
+                            title="Buka Profil Saya"
+                        >
+                            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden border border-border/50 shrink-0 group-hover:scale-105 transition-transform">
                                 {user?.avatar_url ? (
                                     <img
                                         src={getImageUrl(user.avatar_url)}
@@ -960,11 +964,11 @@ export default function AdminDashboard() {
                                     />
                                 )}
                             </div>
-                            <div className="min-w-0">
-                                <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{user?.name}</p>
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{user?.role}</p>
                             </div>
-                        </div>
+                        </button>
                     )}
                     <button
                         onClick={handleLogout}
@@ -1044,8 +1048,9 @@ export default function AdminDashboard() {
 
                     {/* User Profile */}
                     <button
-                        onClick={() => setActiveTab('profile')}
-                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded-lg transition-colors border border-transparent hover:border-border"
+                        onClick={() => { setActiveTab('profile'); navigate('/profile'); }}
+                        className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded-lg transition-colors border border-transparent hover:border-border cursor-pointer group"
+                        title="Buka Profil Saya"
                     >
                         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden border border-border/50">
                             {user?.avatar_url ? (

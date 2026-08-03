@@ -12,6 +12,7 @@ pub struct CreateEmployeeRequest {
     pub employment_status: String,
     pub user_id: Option<Uuid>,
     pub photo_url: Option<String>,
+    pub is_account_requested: Option<bool>,
 
     // Extensions
     pub ktp_number: Option<String>,
@@ -46,6 +47,7 @@ pub struct UpdateEmployeeRequest {
     pub user_id: Option<Uuid>,
     pub is_active: Option<bool>,
     pub photo_url: Option<String>,
+    pub is_account_requested: Option<bool>,
 
     // Extensions
     pub ktp_number: Option<String>,

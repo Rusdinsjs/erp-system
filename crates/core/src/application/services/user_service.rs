@@ -124,13 +124,37 @@ impl UserService {
         let allowed_group = req.allowed_asset_group.map(|g| if g.trim().is_empty() { "__CLEAR__".to_string() } else { g });
         let dept = req.department.map(|d| if d.trim().is_empty() { "__CLEAR__".to_string() } else { d });
 
+        // Synchronize user_roles table on role_codes or primary role change FIRST
+        let role_codes_opt = req.role_codes.clone();
+        let mut final_role_code = req.role_code.clone();
+
+        if let Some(role_codes) = role_codes_opt {
+            if let Some(first_code) = role_codes.first() {
+                final_role_code = Some(first_code.clone());
+            }
+            self.repository
+                .set_user_roles(id, &role_codes)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
+        }
+
+        let mut role_id = None;
+        if let Some(code) = final_role_code.clone() {
+            if let Ok(Some(role)) = self.rbac_repo.find_role_by_code(&code).await {
+                role_id = Some(role.id);
+            }
+        }
+
         let updated_user = self
             .repository
             .update(
                 id,
                 req.name,
                 role_id,
-                req.role_code,
+                final_role_code,
                 dept,
                 req.department_id,
                 req.avatar_url,
@@ -142,17 +166,6 @@ impl UserService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?;
-
-        // Synchronize user_roles table on primary role change
-        if let Some(r_id) = role_id {
-            self.rbac_repo
-                .sync_user_role(id, r_id, updated_user.organization_id)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
-                    service: "database".to_string(),
-                    message: e.to_string(),
-                })?;
-        }
 
         // If password needs update
         if let Some(hash) = password_hash {
@@ -297,5 +310,16 @@ impl UserService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })
+    }
+
+    pub async fn deactivate_by_employee_id(&self, employee_id: Uuid) -> DomainResult<()> {
+        self.repository
+            .deactivate_by_employee_id(employee_id)
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+        Ok(())
     }
 }
