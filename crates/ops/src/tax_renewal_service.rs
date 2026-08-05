@@ -372,4 +372,3 @@ impl ModuleApprovalCallback for TaxRenewalService {
         "tax_renewal"
     }
 }
-}

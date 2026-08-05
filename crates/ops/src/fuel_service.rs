@@ -11,6 +11,17 @@ use management_system_core::infrastructure::bus::EventBus;
 use management_system_core::infrastructure::repositories::{FuelAnalyticsData, FuelRepository};
 use management_system_core::domain::entities::{FuelLog, FuelRequestType};
 
+#[derive(Debug, serde::Deserialize)]
+pub struct FuelRequest {
+    pub asset_id: Uuid,
+    pub requested_by: Uuid,
+    pub odometer_reading: Decimal,
+    pub odometer_image_url: String,
+    pub request_type: String,
+    pub requested_value: Decimal,
+    pub driver_id: Option<Uuid>,
+}
+
 #[derive(Clone)]
 pub struct FuelService {
     repo: FuelRepository,

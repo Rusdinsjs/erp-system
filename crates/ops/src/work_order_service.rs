@@ -5,10 +5,10 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::repositories::{
+use management_system_core::infrastructure::repositories::{
     AssetRepository, LifecycleRepository, MaintenanceTemplateRepository, WorkOrderAnalyticsData, WorkOrderRepository,
 };
-use crate::dto::asset_expense_dto::{
+use management_system_core::application::dto::asset_expense_dto::{
     CreateAssetExpenseItemRequest, CreateAssetExpenseRequest,
 };
 use management_system_core::application::services::approval_service::ModuleApprovalCallback;
