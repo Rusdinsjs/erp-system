@@ -82,19 +82,33 @@ impl AssetState {
 
     /// Check if a transition to the target state is valid
     pub fn can_transition_to(&self, target: &AssetState) -> bool {
-        // Special case: Any state can transition to LostStolen
-        if *target == Self::LostStolen {
+        // Special case: Any non-terminal state can transition to LostStolen
+        if *target == Self::LostStolen && !self.is_terminal() {
             return true;
         }
 
         match self {
-            Self::Planning => matches!(target, Self::Procurement),
-            Self::Procurement => matches!(target, Self::Received),
-            Self::Received => matches!(target, Self::InInventory),
-            Self::InInventory => matches!(target, Self::Deployed | Self::RentedOut | Self::Sold),
+            Self::Planning => matches!(target, Self::Procurement | Self::Archived),
+            Self::Procurement => matches!(target, Self::Received | Self::Planning | Self::Archived),
+            Self::Received => matches!(
+                target,
+                Self::InInventory | Self::Deployed | Self::UnderMaintenance | Self::UnderConversion
+            ),
+            Self::InInventory => matches!(
+                target,
+                Self::Deployed
+                    | Self::RentedOut
+                    | Self::UnderMaintenance
+                    | Self::UnderRepair
+                    | Self::UnderConversion
+                    | Self::Retired
+                    | Self::Sold
+            ),
             Self::Deployed => matches!(
                 target,
-                Self::UnderMaintenance
+                Self::InInventory
+                    | Self::RentedOut
+                    | Self::UnderMaintenance
                     | Self::UnderRepair
                     | Self::UnderConversion
                     | Self::Retired
@@ -102,29 +116,72 @@ impl AssetState {
             ),
             Self::RentedOut => matches!(
                 target,
-                Self::InInventory | Self::UnderMaintenance | Self::UnderRepair | Self::Sold
+                Self::InInventory
+                    | Self::Deployed
+                    | Self::UnderMaintenance
+                    | Self::UnderRepair
+                    | Self::UnderConversion
+                    | Self::Sold
             ),
-            Self::UnderMaintenance => matches!(target, Self::Deployed | Self::InInventory),
-            Self::UnderRepair => matches!(target, Self::Deployed | Self::InInventory),
-            Self::UnderConversion => matches!(target, Self::Deployed | Self::InInventory),
-            Self::Retired => matches!(target, Self::Disposed | Self::Sold),
-            Self::Disposed | Self::Sold => false,
-            Self::LostStolen => matches!(target, Self::Archived),
-            Self::Archived => false,
+            Self::UnderMaintenance => matches!(
+                target,
+                Self::Deployed
+                    | Self::InInventory
+                    | Self::UnderRepair
+                    | Self::UnderConversion
+                    | Self::Retired
+            ),
+            Self::UnderRepair => matches!(
+                target,
+                Self::Deployed
+                    | Self::InInventory
+                    | Self::UnderMaintenance
+                    | Self::UnderConversion
+                    | Self::Retired
+            ),
+            Self::UnderConversion => matches!(
+                target,
+                Self::Deployed | Self::InInventory | Self::UnderMaintenance | Self::UnderRepair
+            ),
+            Self::Retired => matches!(
+                target,
+                Self::InInventory | Self::Disposed | Self::Sold | Self::Archived
+            ),
+            Self::Disposed | Self::Sold => matches!(target, Self::Archived),
+            Self::LostStolen => matches!(target, Self::InInventory | Self::Retired | Self::Archived),
+            Self::Archived => matches!(target, Self::InInventory),
         }
     }
 
     /// Get all valid transitions from this state
     pub fn valid_transitions(&self) -> Vec<AssetState> {
-        let mut transitions = vec![Self::LostStolen]; // Always available
+        let mut transitions = Vec::new();
+        if !self.is_terminal() && *self != Self::LostStolen {
+            transitions.push(Self::LostStolen); // Always available for active assets
+        }
 
         match self {
-            Self::Planning => transitions.push(Self::Procurement),
-            Self::Procurement => transitions.push(Self::Received),
-            Self::Received => transitions.push(Self::InInventory),
-            Self::InInventory => transitions.extend([Self::Deployed, Self::RentedOut, Self::Sold]),
+            Self::Planning => transitions.extend([Self::Procurement, Self::Archived]),
+            Self::Procurement => transitions.extend([Self::Received, Self::Planning, Self::Archived]),
+            Self::Received => transitions.extend([
+                Self::InInventory,
+                Self::Deployed,
+                Self::UnderMaintenance,
+                Self::UnderConversion,
+            ]),
+            Self::InInventory => transitions.extend([
+                Self::Deployed,
+                Self::RentedOut,
+                Self::UnderMaintenance,
+                Self::UnderRepair,
+                Self::UnderConversion,
+                Self::Retired,
+                Self::Sold,
+            ]),
             Self::Deployed => {
                 transitions.extend([
+                    Self::InInventory,
+                    Self::RentedOut,
                     Self::UnderMaintenance,
                     Self::UnderRepair,
                     Self::UnderConversion,
@@ -134,18 +191,41 @@ impl AssetState {
             }
             Self::RentedOut => transitions.extend([
                 Self::InInventory,
+                Self::Deployed,
                 Self::UnderMaintenance,
                 Self::UnderRepair,
+                Self::UnderConversion,
                 Self::Sold,
             ]),
-            Self::UnderMaintenance => transitions.push(Self::Deployed),
-            Self::UnderRepair => transitions.push(Self::Deployed),
-            Self::UnderConversion => transitions.push(Self::Deployed),
-            Self::Retired => transitions.extend([Self::Disposed, Self::Sold]),
-            Self::LostStolen => transitions.push(Self::Archived),
-            Self::Disposed | Self::Archived | Self::Sold => {
-                transitions.clear(); // No transitions from terminal states
-            }
+            Self::UnderMaintenance => transitions.extend([
+                Self::Deployed,
+                Self::InInventory,
+                Self::UnderRepair,
+                Self::UnderConversion,
+                Self::Retired,
+            ]),
+            Self::UnderRepair => transitions.extend([
+                Self::Deployed,
+                Self::InInventory,
+                Self::UnderMaintenance,
+                Self::UnderConversion,
+                Self::Retired,
+            ]),
+            Self::UnderConversion => transitions.extend([
+                Self::Deployed,
+                Self::InInventory,
+                Self::UnderMaintenance,
+                Self::UnderRepair,
+            ]),
+            Self::Retired => transitions.extend([
+                Self::InInventory,
+                Self::Disposed,
+                Self::Sold,
+                Self::Archived,
+            ]),
+            Self::Disposed | Self::Sold => transitions.push(Self::Archived),
+            Self::LostStolen => transitions.extend([Self::InInventory, Self::Retired, Self::Archived]),
+            Self::Archived => transitions.push(Self::InInventory),
         }
 
         transitions

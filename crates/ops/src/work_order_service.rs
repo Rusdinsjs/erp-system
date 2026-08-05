@@ -1,23 +1,24 @@
 //! Work Order Service
 
+use async_trait::async_trait;
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use management_system_core::infrastructure::repositories::{
-    LifecycleRepository, MaintenanceTemplateRepository, WorkOrderAnalyticsData, WorkOrderRepository,
+use crate::repositories::{
+    AssetRepository, LifecycleRepository, MaintenanceTemplateRepository, WorkOrderAnalyticsData, WorkOrderRepository,
 };
-use management_system_core::application::dto::asset_expense_dto::{
+use crate::dto::asset_expense_dto::{
     CreateAssetExpenseItemRequest, CreateAssetExpenseRequest,
 };
+use management_system_core::application::services::approval_service::ModuleApprovalCallback;
+use management_system_core::domain::errors::{DomainError, DomainResult};
+use management_system_core::infrastructure::bus::EventBus;
+use management_system_core::infrastructure::cache::{CacheKey, CacheOperations};
 use management_system_core::domain::entities::{
     AssetState, ChecklistItem, WorkOrder, WorkOrderPart, WorkOrderStatus,
 };
-use management_system_core::domain::errors::{DomainError, DomainResult};
-use management_system_core::infrastructure::bus::EventBus;
-use management_system_core::infrastructure::repositories::AssetRepository;
 
-use management_system_core::infrastructure::cache::{CacheKey, CacheOperations};
 use std::sync::Arc;
 
 /// Create work order request
@@ -946,5 +947,66 @@ impl WorkOrderService {
             .await;
 
         Ok(count)
+    }
+}
+
+/// ModuleApprovalCallback implementation for WorkOrderService
+#[async_trait]
+impl ModuleApprovalCallback for WorkOrderService {
+    async fn on_final_approval(
+        &self,
+        request: &management_system_core::infrastructure::repositories::ApprovalRequest,
+        approver_id: Uuid,
+        notes: Option<String>,
+    ) -> DomainResult<()> {
+        // Get the work order ID from the approval request
+        let wo_id = request.resource_id;
+        
+        // Update work order status to approved
+        self.repository
+            .update_status(wo_id, "approved")
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        // Broadcast notification
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_APPROVED", serde_json::json!({ "work_order_id": wo_id, "approver_id": approver_id, "notes": notes }))
+            .await;
+
+        Ok(())
+    }
+
+    async fn on_rejection(
+        &self,
+        request: &management_system_core::infrastructure::repositories::ApprovalRequest,
+        approver_id: Uuid,
+        notes: String,
+    ) -> DomainResult<()> {
+        let wo_id = request.resource_id;
+        
+        // Update work order status to rejected
+        self.repository
+            .update_status(wo_id, "rejected")
+            .await
+            .map_err(|e| DomainError::ExternalServiceError {
+                service: "database".to_string(),
+                message: e.to_string(),
+            })?;
+
+        // Broadcast notification
+        let _ = self
+            .notification_service
+            .broadcast("WORK_ORDER_REJECTED", serde_json::json!({ "work_order_id": wo_id, "approver_id": approver_id, "notes": notes }))
+            .await;
+
+        Ok(())
+    }
+
+    fn module_name(&self) -> &'static str {
+        "work_order"
     }
 }

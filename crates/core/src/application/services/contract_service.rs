@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -14,6 +15,7 @@ use crate::infrastructure::repositories::{
     ContractApprovalRepository, ContractDocumentRepository, ContractRenewalRepository,
     ContractRepository, RentalRepository,
 };
+use crate::application::services::approval_service::ModuleApprovalCallback;
 
 #[derive(Clone)]
 pub struct ContractService {
@@ -877,5 +879,41 @@ impl ContractService {
             total_approval_steps: contract.total_approval_steps,
             delegated_to: contract.delegated_to,
         }
+    }
+}
+
+/// ModuleApprovalCallback implementation for ContractService
+#[async_trait]
+impl ModuleApprovalCallback for ContractService {
+    async fn on_final_approval(
+        &self,
+        request: &crate::infrastructure::repositories::ApprovalRequest,
+        approver_id: Uuid,
+        notes: Option<String>,
+    ) -> DomainResult<()> {
+        let contract_id = request.resource_id;
+        
+        // Approve the contract - this will activate it if it's the final step
+        self.approve_contract(contract_id, approver_id, notes).await?;
+        
+        Ok(())
+    }
+
+    async fn on_rejection(
+        &self,
+        request: &crate::infrastructure::repositories::ApprovalRequest,
+        approver_id: Uuid,
+        notes: String,
+    ) -> DomainResult<()> {
+        let contract_id = request.resource_id;
+        
+        // Reject the contract
+        self.reject_contract(contract_id, approver_id, Some(notes)).await?;
+        
+        Ok(())
+    }
+
+    fn module_name(&self) -> &'static str {
+        "contract"
     }
 }

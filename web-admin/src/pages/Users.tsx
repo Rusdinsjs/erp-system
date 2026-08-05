@@ -122,17 +122,22 @@ export default function Users() {
         try {
             // Build payload – only include fields that have actual values
             // Empty strings are sent as null/undefined so backend COALESCE keeps existing value
-            const payload: UpdateUserRequest = {
-                name: editFormData.name,
-                role_code: selectedRoleCodes[0] || editFormData.role_code,
-                role_codes: selectedRoleCodes,
+            const rawPayload: Record<string, any> = {
+                name: editFormData.name || undefined,
+                role_code: selectedRoleCodes[0] || editFormData.role_code || undefined,
+                role_codes: selectedRoleCodes.length > 0 ? selectedRoleCodes : undefined,
                 is_active: editFormData.is_active,
                 password: editFormData.password || undefined,
-                department: editFormData.department ?? undefined,
-                allowed_asset_group: editFormData.allowed_asset_group ?? undefined,
+                department: editFormData.department || undefined,
+                allowed_asset_group: editFormData.allowed_asset_group || undefined,
                 employee_id: editFormData.employee_id || undefined,
                 clear_employee_link: editFormData.clear_employee_link,
             };
+
+            const payload: UpdateUserRequest = Object.fromEntries(
+                Object.entries(rawPayload).filter(([_, v]) => v !== undefined && v !== '')
+            ) as UpdateUserRequest;
+
             console.log('[handleUpdate] payload:', payload);
             const res = await usersApi.update(editingUser.id, payload);
             console.log('[handleUpdate] response:', res);

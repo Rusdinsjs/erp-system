@@ -160,7 +160,11 @@ impl AppState {
         audit_service.start_event_listener(event_bus.subscribe());
 
         // Create services
-        let approval_service = ApprovalService::new(approval_repo);
+        let approval_repo_arc = std::sync::Arc::new(approval_repo);
+        let mut approval_service = ApprovalService::new(approval_repo_arc.clone());
+        
+        // We need to register callbacks after creating all services
+        // So we'll do it after all services are created
         let asset_service = management_system_assets::AssetService::new(
             asset_repo.clone(),
             journal_repo.clone(),
@@ -319,6 +323,20 @@ impl AppState {
         // File storage and contract document repository
         let file_storage = Arc::new(FileStorage::new("uploads/contracts"));
         let contract_document_repo = Arc::new(ContractDocumentRepository::new(pool.clone()));
+
+        // Register module callbacks in approval service
+        // Work Order
+        approval_service.register_callback(Box::new(work_order_service.clone()));
+        // Loan
+        approval_service.register_callback(Box::new(loan_service.clone()));
+        // Fuel
+        approval_service.register_callback(Box::new(fuel_service.clone()));
+        // Tax Renewal
+        approval_service.register_callback(Box::new(tax_renewal_service.clone()));
+        // Conversion
+        approval_service.register_callback(Box::new(conversion_service.clone()));
+        // Contract
+        approval_service.register_callback(Box::new(contract_service.clone()));
 
         Self {
             asset_service,

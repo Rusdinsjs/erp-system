@@ -96,20 +96,6 @@ impl UserService {
 
     /// Update user
     pub async fn update_user(&self, id: Uuid, req: UpdateUserRequest) -> DomainResult<User> {
-        let mut role_id = None;
-        if let Some(code) = &req.role_code {
-            let role = self
-                .rbac_repo
-                .find_role_by_code(code)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
-                    service: "database".to_string(),
-                    message: e.to_string(),
-                })?
-                .ok_or_else(|| DomainError::bad_request("Invalid role code"))?;
-            role_id = Some(role.id);
-        }
-
         let password_hash = if let Some(pwd) = req.password {
             Some(
                 hash_password(&pwd).map_err(|e| DomainError::ExternalServiceError {
@@ -125,15 +111,30 @@ impl UserService {
         let dept = req.department.map(|d| if d.trim().is_empty() { "__CLEAR__".to_string() } else { d });
 
         // Synchronize user_roles table on role_codes or primary role change FIRST
-        let role_codes_opt = req.role_codes.clone();
-        let mut final_role_code = req.role_code.clone();
+        let role_codes_opt = req.role_codes.as_ref().map(|codes| {
+            codes.iter().map(|code| match code.as_str() {
+                "admin_alat_berat" => "admin_heavy_eq".to_string(),
+                "admin_infrastruktur" => "admin_infra".to_string(),
+                "admin_kendaraan" => "admin_vehicle".to_string(),
+                "administrator" => "admin".to_string(),
+                other => other.to_string(),
+            }).collect::<Vec<String>>()
+        });
 
-        if let Some(role_codes) = role_codes_opt {
+        let mut final_role_code = req.role_code.as_ref().map(|code| match code.as_str() {
+            "admin_alat_berat" => "admin_heavy_eq".to_string(),
+            "admin_infrastruktur" => "admin_infra".to_string(),
+            "admin_kendaraan" => "admin_vehicle".to_string(),
+            "administrator" => "admin".to_string(),
+            other => other.to_string(),
+        });
+
+        if let Some(role_codes) = &role_codes_opt {
             if let Some(first_code) = role_codes.first() {
                 final_role_code = Some(first_code.clone());
             }
             self.repository
-                .set_user_roles(id, &role_codes)
+                .set_user_roles(id, role_codes)
                 .await
                 .map_err(|e| DomainError::ExternalServiceError {
                     service: "database".to_string(),

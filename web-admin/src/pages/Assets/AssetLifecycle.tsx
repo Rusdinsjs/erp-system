@@ -77,6 +77,7 @@ const transitionPermissions: Record<string, number> = {
     'received': 4,
     'in_inventory': 4,
     'deployed': 4,
+    'rented_out': 4,
     'under_maintenance': 4,
     'under_repair': 4,
     'under_conversion': 4,
@@ -233,6 +234,12 @@ export default function AssetLifecycle({ assetId: propAssetId }: AssetLifecycleP
         }
         if (stateValue === 'under_repair') {
             navigate(`/work-orders?asset_id=${assetId}&wo_type=corrective`);
+            return;
+        }
+
+        // SPECIAL HANDLING: Under Conversion -> Open Conversion Modal
+        if (stateValue === 'under_conversion') {
+            setConversionModalOpen(true);
             return;
         }
 

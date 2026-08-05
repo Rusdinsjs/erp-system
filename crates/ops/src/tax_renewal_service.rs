@@ -1,4 +1,6 @@
+use async_trait::async_trait;
 use management_system_finance::FinanceService;
+use management_system_core::application::services::approval_service::ModuleApprovalCallback;
 use management_system_core::domain::entities::{
     CreateBillItemRequest, CreatePurchaseBillRequest, TaxRenewal, UpdateTaxRenewalCostRequest,
     Vendor,
@@ -333,4 +335,41 @@ impl TaxRenewalService {
             .await
             .map_err(|e| DomainError::Database(e.to_string()))
     }
+}
+
+/// ModuleApprovalCallback implementation for TaxRenewalService
+#[async_trait]
+impl ModuleApprovalCallback for TaxRenewalService {
+    async fn on_final_approval(
+        &self,
+        request: &management_system_core::infrastructure::repositories::ApprovalRequest,
+        approver_id: Uuid,
+        notes: Option<String>,
+    ) -> DomainResult<()> {
+        let renewal_id = request.resource_id;
+        
+        // Approve the renewal - this creates a purchase bill
+        self.approve_renewal(renewal_id, notes).await?;
+        
+        Ok(())
+    }
+
+    async fn on_rejection(
+        &self,
+        request: &management_system_core::infrastructure::repositories::ApprovalRequest,
+        _approver_id: Uuid,
+        notes: String,
+    ) -> DomainResult<()> {
+        let renewal_id = request.resource_id;
+        
+        // Reject the renewal
+        self.reject_renewal(renewal_id, Some(notes)).await?;
+        
+        Ok(())
+    }
+
+    fn module_name(&self) -> &'static str {
+        "tax_renewal"
+    }
+}
 }

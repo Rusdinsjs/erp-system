@@ -21,7 +21,15 @@ impl RbacRepository {
     }
 
     pub async fn find_role_by_code(&self, code: &str) -> Result<Option<Role>, sqlx::Error> {
-        sqlx::query_as::<_, Role>("SELECT * FROM roles WHERE code = $1")
+        let canonical_code = match code {
+            "admin_alat_berat" => "admin_heavy_eq",
+            "admin_infrastruktur" => "admin_infra",
+            "admin_kendaraan" => "admin_vehicle",
+            "administrator" => "admin",
+            other => other,
+        };
+        sqlx::query_as::<_, Role>("SELECT * FROM roles WHERE code = $1 OR code = $2 ORDER BY role_level ASC LIMIT 1")
+            .bind(canonical_code)
             .bind(code)
             .fetch_optional(&self.pool)
             .await

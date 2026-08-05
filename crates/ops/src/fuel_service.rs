@@ -1,25 +1,15 @@
 //! Fuel Service
 
+use async_trait::async_trait;
 use chrono::Utc;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
+use management_system_core::application::services::approval_service::ModuleApprovalCallback;
+use management_system_core::domain::errors::DomainResult;
+use management_system_core::infrastructure::bus::EventBus;
 use management_system_core::infrastructure::repositories::{FuelAnalyticsData, FuelRepository};
 use management_system_core::domain::entities::{FuelLog, FuelRequestType};
-use management_system_core::infrastructure::bus::EventBus;
-
-#[derive(Debug, serde::Deserialize)]
-pub struct FuelRequest {
-    pub asset_id: Uuid,
-    pub requested_by: Uuid,
-    pub odometer_reading: Decimal,
-    pub odometer_image_url: String,
-    pub request_type: String,
-    pub requested_value: Decimal,
-    pub driver_id: Option<Uuid>,
-}
-
-use management_system_core::domain::errors::DomainResult;
 
 #[derive(Clone)]
 pub struct FuelService {
@@ -170,5 +160,54 @@ impl FuelService {
         self.repo.get_fuel_analytics().await.map_err(|e| {
             management_system_core::domain::errors::DomainError::Database(e.to_string())
         })
+    }
+}
+
+/// ModuleApprovalCallback implementation for FuelService
+#[async_trait]
+impl ModuleApprovalCallback for FuelService {
+    async fn on_final_approval(
+        &self,
+        request: &management_system_core::infrastructure::repositories::ApprovalRequest,
+        approver_id: Uuid,
+        notes: Option<String>,
+    ) -> DomainResult<()> {
+        let fuel_log_id = request.resource_id;
+        
+        // Generate unique coupon code
+        let now = Utc::now();
+        let coupon_code = format!(
+            "CPN-{}-{}",
+            now.format("%y%m"),
+            &Uuid::new_v4().to_string()[..6].to_uppercase()
+        );
+
+        self.repo
+            .approve(fuel_log_id, approver_id, &coupon_code)
+            .await
+            .map_err(|e| {
+                management_system_core::domain::errors::DomainError::Database(e.to_string())
+            })?;
+
+        Ok(())
+    }
+
+    async fn on_rejection(
+        &self,
+        request: &management_system_core::infrastructure::repositories::ApprovalRequest,
+        _approver_id: Uuid,
+        notes: String,
+    ) -> DomainResult<()> {
+        let fuel_log_id = request.resource_id;
+        
+        self.repo.reject(fuel_log_id, &notes).await.map_err(|e| {
+            management_system_core::domain::errors::DomainError::Database(e.to_string())
+        })?;
+
+        Ok(())
+    }
+
+    fn module_name(&self) -> &'static str {
+        "fuel_request"
     }
 }

@@ -1,11 +1,13 @@
 //! Conversion Service
 //! Business logic for asset conversions
 
+use async_trait::async_trait;
 use crate::application::dto::{CreateConversionRequest, ExecuteConversionRequest};
 use crate::domain::entities::conversion::AssetConversion;
 use crate::domain::entities::AssetHistory;
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{AssetRepository, ConversionRepository};
+use crate::application::services::approval_service::ModuleApprovalCallback;
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -269,5 +271,41 @@ impl ConversionService {
                 message: e.to_string(),
             })?
             .ok_or_else(|| DomainError::not_found("Conversion", id))
+    }
+}
+
+/// ModuleApprovalCallback implementation for ConversionService
+#[async_trait]
+impl ModuleApprovalCallback for ConversionService {
+    async fn on_final_approval(
+        &self,
+        request: &crate::infrastructure::repositories::ApprovalRequest,
+        approver_id: Uuid,
+        _notes: Option<String>,
+    ) -> DomainResult<()> {
+        let conversion_id = request.resource_id;
+        
+        // Approve the conversion request
+        self.approve_request(conversion_id, approver_id).await?;
+        
+        Ok(())
+    }
+
+    async fn on_rejection(
+        &self,
+        request: &crate::infrastructure::repositories::ApprovalRequest,
+        _approver_id: Uuid,
+        _notes: String,
+    ) -> DomainResult<()> {
+        let conversion_id = request.resource_id;
+        
+        // Reject the conversion request
+        self.reject_request(conversion_id).await?;
+        
+        Ok(())
+    }
+
+    fn module_name(&self) -> &'static str {
+        "conversion_request"
     }
 }

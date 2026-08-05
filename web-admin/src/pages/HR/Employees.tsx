@@ -162,10 +162,28 @@ export default function Employees() {
         }
     };
 
+    const cleanPayload = (obj: Record<string, any>) => {
+        const cleaned: Record<string, any> = {};
+        for (const [key, val] of Object.entries(obj)) {
+            // Omit internal frontend or join fields not in DTO
+            if (['created_at', 'updated_at', 'department_name', 'id', 'leave_balance', 'leave_used'].includes(key)) {
+                continue;
+            }
+            if (val === '' || val === null || val === undefined) {
+                continue;
+            }
+            if (typeof val === 'number' && isNaN(val)) {
+                continue;
+            }
+            cleaned[key] = val;
+        }
+        return cleaned;
+    };
+
     const handleCreate = async () => {
         setSubmitting(true);
         try {
-            const payload = {
+            const rawPayload = {
                 ...formData,
                 is_account_requested: createUser,
                 user_creation: createUser ? {
@@ -181,6 +199,7 @@ export default function Employees() {
                 return;
             }
 
+            const payload = cleanPayload(rawPayload);
             await employeeApi.create(payload);
             success('Employee created', 'Success');
             setModalOpen(false);
@@ -189,7 +208,7 @@ export default function Employees() {
             setUserPassword('');
             loadData();
         } catch (e: any) {
-            showError(e.response?.data?.message || 'Failed to create employee', 'Error');
+            showError(e.response?.data?.message || e.message || 'Failed to create employee', 'Error');
         } finally {
             setSubmitting(false);
         }
@@ -199,7 +218,7 @@ export default function Employees() {
         if (!editingEmployee) return;
         setSubmitting(true);
         try {
-            const payload = {
+            const rawPayload = {
                 ...formData,
                 is_account_requested: createUser,
                 user_creation: createUser ? {
@@ -215,6 +234,7 @@ export default function Employees() {
                 return;
             }
 
+            const payload = cleanPayload(rawPayload);
             await employeeApi.update(editingEmployee.id, payload);
             success('Employee updated', 'Success');
             setModalOpen(false);
@@ -222,7 +242,7 @@ export default function Employees() {
             setUserPassword('');
             loadData();
         } catch (e: any) {
-            showError(e.response?.data?.message || 'Failed to update employee', 'Error');
+            showError(e.response?.data?.message || e.message || 'Failed to update employee', 'Error');
         } finally {
             setSubmitting(false);
         }

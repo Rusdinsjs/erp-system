@@ -29,6 +29,10 @@ pub fn approval_routes(_state: AppState) -> Router<AppState> {
             post(approval_handler::reject_request),
         )
         .route(
+            "/api/approvals/:id/delegate",
+            post(approval_handler::delegate_request),
+        )
+        .route(
             "/api/approval/entity-types",
             get(approval_workflow_handler::list_entity_types)
                 .post(approval_workflow_handler::create_entity_type),

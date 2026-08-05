@@ -96,7 +96,6 @@ export function MainLayout() {
                 { label: 'Lifecycle (Audit)', path: '/assets/lifecycle', minLevel: 4 },
                 { label: 'Categories', path: '/categories', minLevel: 4 },
                 { label: 'Locations', path: '/locations', minLevel: 4 },
-                { label: 'Conversions', path: '/conversions', minLevel: 3 },
             ]
         },
 
