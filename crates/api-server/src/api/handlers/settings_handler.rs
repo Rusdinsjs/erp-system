@@ -1,12 +1,12 @@
 use crate::api::server::AppState;
-use management_system_core::application::dto::common::ApiResponse;
-use management_system_core::domain::entities::setting::{Setting, UpdateSettingRequest};
-use management_system_core::domain::entities::UserClaims;
-use management_system_core::shared::errors::AppError;
 use axum::{
     extract::{Path, State},
     Extension, Json,
 };
+use management_system_core::application::dto::common::ApiResponse;
+use management_system_core::domain::entities::setting::{Setting, UpdateSettingRequest};
+use management_system_core::domain::entities::UserClaims;
+use management_system_core::shared::errors::AppError;
 
 /// List all settings (Admin Only)
 #[utoipa::path(

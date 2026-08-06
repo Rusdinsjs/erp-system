@@ -5,10 +5,10 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use crate::application::dto::CreateLoanRequest;
+use crate::application::services::approval_service::ModuleApprovalCallback;
 use crate::domain::entities::{Loan, LoanStatus};
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{AssetRepository, LoanRepository};
-use crate::application::services::approval_service::ModuleApprovalCallback;
 
 #[derive(Clone)]
 pub struct LoanService {
@@ -381,10 +381,10 @@ impl ModuleApprovalCallback for LoanService {
     ) -> DomainResult<()> {
         // Get the loan ID from the approval request
         let loan_id = request.resource_id;
-        
+
         // Approve the loan
         self.approve(loan_id, approver_id).await?;
-        
+
         Ok(())
     }
 
@@ -395,10 +395,10 @@ impl ModuleApprovalCallback for LoanService {
         notes: String,
     ) -> DomainResult<()> {
         let loan_id = request.resource_id;
-        
+
         // Reject the loan
         self.reject(loan_id, Some(notes)).await?;
-        
+
         Ok(())
     }
 

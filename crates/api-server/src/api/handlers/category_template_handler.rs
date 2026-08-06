@@ -1,13 +1,13 @@
 use axum::{
-    extract::{Path, State, Extension},
+    extract::{Extension, Path, State},
     http::StatusCode,
     Json,
 };
 use uuid::Uuid;
 
 use crate::api::server::AppState;
-use management_system_core::domain::entities::CreateCategoryAttributeTemplateRequest;
 use management_system_core::domain::entities::user::UserClaims;
+use management_system_core::domain::entities::CreateCategoryAttributeTemplateRequest;
 use management_system_core::shared::errors::AppError;
 
 /// List all category templates
@@ -25,7 +25,10 @@ pub async fn upsert_category_template(
     Json(request): Json<CreateCategoryAttributeTemplateRequest>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     if claims.role_level > 2 {
-        return Err(AppError::Forbidden("Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola template kategori".to_string()));
+        return Err(AppError::Forbidden(
+            "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola template kategori"
+                .to_string(),
+        ));
     }
     let template = state.category_template_service.upsert(request).await?;
     Ok(Json(serde_json::json!(template)))
@@ -38,7 +41,10 @@ pub async fn delete_category_template(
     Path(category_id): Path<Uuid>,
 ) -> Result<StatusCode, AppError> {
     if claims.role_level > 2 {
-        return Err(AppError::Forbidden("Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola template kategori".to_string()));
+        return Err(AppError::Forbidden(
+            "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola template kategori"
+                .to_string(),
+        ));
     }
     state.category_template_service.delete(category_id).await?;
     Ok(StatusCode::NO_CONTENT)

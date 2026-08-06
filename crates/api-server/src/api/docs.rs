@@ -22,7 +22,7 @@ use utoipa::OpenApi;
             crate::api::handlers::auth_handler::UserInfo,
             management_system_core::application::dto::user_dto::CreateUserRequest,
             management_system_core::domain::entities::User,
-            
+
             // Asset & Common
             management_system_core::domain::entities::asset::Asset,
             management_system_core::domain::entities::asset::AssetSummary,
@@ -32,12 +32,11 @@ use utoipa::OpenApi;
             management_system_core::application::dto::asset_dto::VehicleDetailsDto,
             management_system_core::application::dto::asset_dto::AssetSearchParams,
             management_system_core::infrastructure::repositories::approval_repository::ApprovalRequest,
-            
+
             // Generic Aliases (must match #[aliases(...)] in structs)
             management_system_core::application::dto::common::PaginatedResponseAssetSummary,
             management_system_core::application::dto::common::ApiResponseAsset,
-            // management_system_core::application::dto::common::ApiResponseApprovalRequest, // Need to annotate ApprovalRequest first if we use it
-            
+
             // Dashboard Schemas
             management_system_core::application::dto::dashboard_dto::DashboardStats,
             management_system_core::application::dto::dashboard_dto::AssetStats,

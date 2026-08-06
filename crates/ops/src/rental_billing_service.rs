@@ -9,7 +9,9 @@ use uuid::Uuid;
 use management_system_core::domain::entities::RentalBillingPeriod;
 use management_system_core::domain::errors::{DomainError, DomainResult};
 use management_system_core::infrastructure::bus::EventBus;
-use management_system_core::infrastructure::repositories::{RentalBillingRepository, RentalRepository};
+use management_system_core::infrastructure::repositories::{
+    RentalBillingRepository, RentalRepository,
+};
 
 #[derive(Clone)]
 pub struct RentalBillingService {
@@ -223,11 +225,11 @@ impl RentalBillingService {
             })?;
 
             // Publish Event for Finance (Automated Sales Invoice)
-            let _ =
-                self.event_bus
-                    .publish(management_system_core::domain::events::SystemEvent::RentalInvoiceGenerated(
-                        saved.clone(),
-                    ));
+            let _ = self.event_bus.publish(
+                management_system_core::domain::events::SystemEvent::RentalInvoiceGenerated(
+                    saved.clone(),
+                ),
+            );
 
             saved_periods.push(saved);
         }

@@ -1,8 +1,8 @@
 use crate::domain::entities::AssetState;
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{
-    AssetRepository, FinanceRepository, FuelRepository, LoanRepository, MaintenanceRepository,
-    SettingsRepository, WorkOrderRepository,
+    AssetRepository, FuelRepository, LoanRepository, MaintenanceRepository, SettingsRepository,
+    WorkOrderRepository,
 };
 use chrono::{NaiveDate, Utc};
 use genpdf::{elements, style, Element};
@@ -15,7 +15,7 @@ use std::io::Cursor;
 pub struct ReportService {
     asset_repo: AssetRepository,
     maintenance_repo: MaintenanceRepository,
-    finance_repo: FinanceRepository,
+    pool: sqlx::PgPool,
     settings_repo: SettingsRepository,
     fuel_repo: FuelRepository,
     loan_repo: LoanRepository,
@@ -26,7 +26,7 @@ impl ReportService {
     pub fn new(
         asset_repo: AssetRepository,
         maintenance_repo: MaintenanceRepository,
-        finance_repo: FinanceRepository,
+        pool: sqlx::PgPool,
         settings_repo: SettingsRepository,
         fuel_repo: FuelRepository,
         loan_repo: LoanRepository,
@@ -35,7 +35,7 @@ impl ReportService {
         Self {
             asset_repo,
             maintenance_repo,
-            finance_repo,
+            pool,
             settings_repo,
             fuel_repo,
             loan_repo,
@@ -197,9 +197,12 @@ impl ReportService {
                 .styled(style::Style::new().bold().with_font_size(18)),
         );
         doc.push(
-            elements::Paragraph::new(format!("Generated: {}", Utc::now().format("%Y-%m-%d %H:%M:%S")))
-                .aligned(genpdf::Alignment::Center)
-                .styled(style::Style::new().with_font_size(10)),
+            elements::Paragraph::new(format!(
+                "Generated: {}",
+                Utc::now().format("%Y-%m-%d %H:%M:%S")
+            ))
+            .aligned(genpdf::Alignment::Center)
+            .styled(style::Style::new().with_font_size(10)),
         );
         doc.push(elements::Break::new(1.5));
         let date_str = chrono::Utc::now().format("%Y-%m-%d %H:%M").to_string();
@@ -271,12 +274,25 @@ impl ReportService {
 
     pub async fn get_capex_opex_analysis(
         &self,
-        start_date: Option<NaiveDate>,
-        end_date: Option<NaiveDate>,
-    ) -> DomainResult<Vec<crate::infrastructure::repositories::ExpenseAnalysis>> {
-        self.finance_repo
-            .get_expense_analysis(start_date, end_date)
-            .await
+        _start_date: Option<NaiveDate>,
+        _end_date: Option<NaiveDate>,
+    ) -> DomainResult<Vec<crate::domain::entities::analytics::ExpenseAnalysis>> {
+        let records = sqlx::query_as::<_, crate::domain::entities::analytics::ExpenseAnalysis>(
+            r#"
+            SELECT 
+                DATE_TRUNC('month', date)::date as month,
+                COALESCE(expense_type, 'General') as expense_type,
+                SUM(total_amount) as total_amount
+            FROM expenses
+            GROUP BY DATE_TRUNC('month', date)::date, COALESCE(expense_type, 'General')
+            ORDER BY month DESC, expense_type ASC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        Ok(records)
     }
 
     pub async fn get_asset_status_distribution(
@@ -359,8 +375,8 @@ impl ReportService {
         let mut row = header_table.row();
 
         // Logo
-        let logo_path = "assets/logo.png"; // Backend still uses local file for now, 
-                                          // could be improved to use downloaded company_logo URL
+        let logo_path = "assets/logo.png"; // Backend still uses local file for now,
+                                           // could be improved to use downloaded company_logo URL
         if let Ok(image) = elements::Image::from_path(logo_path) {
             row.push_element(image.with_alignment(genpdf::Alignment::Left));
         } else {
@@ -452,7 +468,8 @@ impl ReportService {
         table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, true));
 
         let mut header_row = table.row();
-        header_row.push_element(elements::Paragraph::new("Date").styled(style::Style::new().bold()));
+        header_row
+            .push_element(elements::Paragraph::new("Date").styled(style::Style::new().bold()));
         header_row
             .push_element(elements::Paragraph::new("Asset").styled(style::Style::new().bold()));
         header_row
@@ -584,13 +601,16 @@ impl ReportService {
         let mut header_row = table.row();
         header_row
             .push_element(elements::Paragraph::new("Number").styled(style::Style::new().bold()));
-        header_row.push_element(elements::Paragraph::new("Asset").styled(style::Style::new().bold()));
-        header_row.push_element(elements::Paragraph::new("Type").styled(style::Style::new().bold()));
+        header_row
+            .push_element(elements::Paragraph::new("Asset").styled(style::Style::new().bold()));
+        header_row
+            .push_element(elements::Paragraph::new("Type").styled(style::Style::new().bold()));
         header_row
             .push_element(elements::Paragraph::new("Priority").styled(style::Style::new().bold()));
         header_row
             .push_element(elements::Paragraph::new("Status").styled(style::Style::new().bold()));
-        header_row.push_element(elements::Paragraph::new("Cost").styled(style::Style::new().bold()));
+        header_row
+            .push_element(elements::Paragraph::new("Cost").styled(style::Style::new().bold()));
         header_row
             .push()
             .map_err(|e| DomainError::internal(e.to_string()))?;
@@ -712,7 +732,8 @@ impl ReportService {
         let mut header_row = table.row();
         header_row
             .push_element(elements::Paragraph::new("Number").styled(style::Style::new().bold()));
-        header_row.push_element(elements::Paragraph::new("Asset").styled(style::Style::new().bold()));
+        header_row
+            .push_element(elements::Paragraph::new("Asset").styled(style::Style::new().bold()));
         header_row
             .push_element(elements::Paragraph::new("Borrower").styled(style::Style::new().bold()));
         header_row

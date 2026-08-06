@@ -109,7 +109,11 @@ impl UserRepository {
         Ok(users)
     }
 
-    pub async fn set_user_roles(&self, user_id: Uuid, role_codes: &[String]) -> Result<(), sqlx::Error> {
+    pub async fn set_user_roles(
+        &self,
+        user_id: Uuid,
+        role_codes: &[String],
+    ) -> Result<(), sqlx::Error> {
         // Clear existing user_roles
         sqlx::query("DELETE FROM user_roles WHERE user_id = $1")
             .bind(user_id)

@@ -1,21 +1,13 @@
 //! Tenant Middleware (QTEN-001)
 
-use axum::{
-    extract::Request,
-    http::StatusCode,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
 use uuid::Uuid;
 
 use management_system_core::domain::entities::UserClaims;
 use management_system_core::domain::tenant::TenantContext;
 
 /// Tenant middleware: extracts mandatory TenantContext from UserClaims and X-Company-ID header
-pub async fn tenant_middleware(
-    mut request: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
+pub async fn tenant_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
     let claims = request
         .extensions()
         .get::<UserClaims>()

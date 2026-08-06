@@ -45,7 +45,13 @@ async fn main() {
         .idle_timeout(std::time::Duration::from_secs(600))
         .connect(&config.database_url)
         .await
-        .unwrap_or_else(|e| panic!("Failed to connect to database at {}: {:?}", config.sanitized_db_url(), e));
+        .unwrap_or_else(|e| {
+            panic!(
+                "Failed to connect to database at {}: {:?}",
+                config.sanitized_db_url(),
+                e
+            )
+        });
 
     tracing::info!("Database connected successfully");
 

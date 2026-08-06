@@ -204,13 +204,13 @@ impl RentalRepository {
 
     /// List active rentals with optional filtering by Asset ID (Operator) or Location ID (Checker)
     pub async fn list_active_filtered(
-        &self, 
-        asset_id: Option<Uuid>, 
-        location_id: Option<Uuid>
+        &self,
+        asset_id: Option<Uuid>,
+        location_id: Option<Uuid>,
     ) -> Result<Vec<Rental>, sqlx::Error> {
         // Logic using standard sqlx::query with branches to avoid dynamic binding complexity
         let rentals = if let Some(aid) = asset_id {
-             sqlx::query(
+            sqlx::query(
                 r#"
                 SELECT DISTINCT
                     r.*, c.name as client_name
@@ -219,14 +219,14 @@ impl RentalRepository {
                 JOIN rental_items ri ON ri.rental_id = r.id
                 WHERE r.status = 'rented_out' AND ri.asset_id = $1
                 ORDER BY r.created_at DESC LIMIT 50
-                "#
+                "#,
             )
             .bind(aid)
             .map(Self::map_rental_row)
             .fetch_all(&self.pool)
             .await?
         } else if let Some(lid) = location_id {
-             sqlx::query(
+            sqlx::query(
                 r#"
                 SELECT DISTINCT
                     r.*, c.name as client_name
@@ -236,15 +236,15 @@ impl RentalRepository {
                 JOIN assets a ON ri.asset_id = a.id
                 WHERE r.status = 'rented_out' AND a.location_id = $1
                 ORDER BY r.created_at DESC LIMIT 50
-                "#
+                "#,
             )
             .bind(lid)
             .map(Self::map_rental_row)
             .fetch_all(&self.pool)
             .await?
         } else {
-             // Default no filter
-             sqlx::query(
+            // Default no filter
+            sqlx::query(
                 r#"
                 SELECT 
                     r.*,
@@ -254,7 +254,7 @@ impl RentalRepository {
                 WHERE r.status = 'rented_out'
                 ORDER BY r.created_at DESC
                 LIMIT 50
-                "#
+                "#,
             )
             .map(Self::map_rental_row)
             .fetch_all(&self.pool)
@@ -264,7 +264,7 @@ impl RentalRepository {
         // Populate items (N+1 efficiency trade-off accepted for simplicity here)
         // Note: We need a mutable rentals list.
         let mut result_rentals = rentals;
-        
+
         for r in &mut result_rentals {
             let items = sqlx::query_as!(
                 RentalItem,
@@ -561,7 +561,7 @@ impl RentalRepository {
             rate.deposit_percentage,
             rate.ma_threshold,
             rate.availability_penalty_multiplier,
-            
+
             rate.rate_basis,
             rate.minimum_hours,
             rate.overtime_multiplier,
@@ -603,7 +603,7 @@ impl RentalRepository {
             rate.deposit_percentage,
             rate.ma_threshold,
             rate.availability_penalty_multiplier,
-            
+
             rate.rate_basis,
             rate.minimum_hours,
             rate.overtime_multiplier,
@@ -817,7 +817,11 @@ impl RentalRepository {
     }
 
     /// Find items active within a date range for Scheduler
-    pub async fn find_items_in_range(&self, start: NaiveDate, end: NaiveDate) -> Result<Vec<RentalScheduleItem>, sqlx::Error> {
+    pub async fn find_items_in_range(
+        &self,
+        start: NaiveDate,
+        end: NaiveDate,
+    ) -> Result<Vec<RentalScheduleItem>, sqlx::Error> {
         sqlx::query_as!(
             RentalScheduleItem,
             r#"

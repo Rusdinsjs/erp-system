@@ -85,10 +85,7 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/assets/:id",
             get(get_asset.layer(axum_middleware::from_fn(require_permission("asset.view"))))
-                .put(
-                    update_asset
-                        .layer(axum_middleware::from_fn(require_permission("asset.edit"))),
-                )
+                .put(update_asset.layer(axum_middleware::from_fn(require_permission("asset.edit"))))
                 .delete(
                     delete_asset
                         .layer(axum_middleware::from_fn(require_permission("asset.delete"))),
@@ -418,7 +415,6 @@ pub fn create_router(state: AppState) -> Router {
             "/api/users/:user_id/roles/:role_code",
             post(assign_role).delete(remove_role),
         )
-
         // Sensors
         .route(
             "/api/assets/:asset_id/sensors/readings",
@@ -447,7 +443,10 @@ pub fn create_router(state: AppState) -> Router {
             get(report_handler::export_maintenance),
         )
         .route("/api/reports/fuel", get(report_handler::export_fuel_csv))
-        .route("/api/reports/fuel/pdf", get(report_handler::export_fuel_pdf))
+        .route(
+            "/api/reports/fuel/pdf",
+            get(report_handler::export_fuel_pdf),
+        )
         .route(
             "/api/reports/work-orders",
             get(report_handler::export_work_orders_csv),
@@ -457,7 +456,10 @@ pub fn create_router(state: AppState) -> Router {
             get(report_handler::export_work_orders_pdf),
         )
         .route("/api/reports/loans", get(report_handler::export_loans_csv))
-        .route("/api/reports/loans/pdf", get(report_handler::export_loans_pdf))
+        .route(
+            "/api/reports/loans/pdf",
+            get(report_handler::export_loans_pdf),
+        )
         .route(
             "/api/reports/finance/capex-opex",
             get(report_handler::get_capex_opex_analysis),
@@ -585,6 +587,8 @@ pub fn create_router(state: AppState) -> Router {
         .merge(public_routes)
         .merge(lookup_routes)
         .merge(protected_routes)
-        .merge(crate::api::routes::settings_routes::settings_routes(state.clone()))
+        .merge(crate::api::routes::settings_routes::settings_routes(
+            state.clone(),
+        ))
         .with_state(state)
 }

@@ -197,7 +197,11 @@ impl User {
     pub fn is_admin(&self) -> bool {
         matches!(
             self.role.parse::<UserRole>(),
-            Ok(UserRole::SuperAdmin) | Ok(UserRole::Admin) | Ok(UserRole::AdminAlatBerat) | Ok(UserRole::AdminKendaraan) | Ok(UserRole::AdminInfrastruktur)
+            Ok(UserRole::SuperAdmin)
+                | Ok(UserRole::Admin)
+                | Ok(UserRole::AdminAlatBerat)
+                | Ok(UserRole::AdminKendaraan)
+                | Ok(UserRole::AdminInfrastruktur)
         )
     }
 }

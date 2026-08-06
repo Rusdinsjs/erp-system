@@ -53,7 +53,9 @@ pub async fn request_transition(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(asset_id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 
@@ -118,7 +120,9 @@ pub async fn transition_asset(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(asset_id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 

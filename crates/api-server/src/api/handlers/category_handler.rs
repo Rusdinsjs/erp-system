@@ -10,10 +10,10 @@ use axum::{
 use uuid::Uuid;
 
 use crate::api::server::AppState;
+use axum::extract::Extension;
 use management_system_core::application::dto::{CreateCategoryRequest, UpdateCategoryRequest};
 use management_system_core::domain::entities::user::UserClaims;
 use management_system_core::shared::errors::AppError;
-use axum::extract::Extension;
 
 /// List all categories
 pub async fn list_categories(
@@ -76,7 +76,9 @@ pub async fn create_category(
     Json(request): Json<CreateCategoryRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), AppError> {
     if claims.role_level > 2 {
-        return Err(AppError::Forbidden("Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola kategori".to_string()));
+        return Err(AppError::Forbidden(
+            "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola kategori".to_string(),
+        ));
     }
     let category = state.category_service.create(request).await?;
     Ok((StatusCode::CREATED, Json(serde_json::json!(category))))
@@ -90,7 +92,9 @@ pub async fn update_category(
     Json(request): Json<UpdateCategoryRequest>,
 ) -> Result<Json<serde_json::Value>, AppError> {
     if claims.role_level > 2 {
-        return Err(AppError::Forbidden("Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola kategori".to_string()));
+        return Err(AppError::Forbidden(
+            "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola kategori".to_string(),
+        ));
     }
     let category = state.category_service.update(id, request).await?;
     Ok(Json(serde_json::json!(category)))
@@ -103,7 +107,9 @@ pub async fn delete_category(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AppError> {
     if claims.role_level > 2 {
-        return Err(AppError::Forbidden("Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola kategori".to_string()));
+        return Err(AppError::Forbidden(
+            "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola kategori".to_string(),
+        ));
     }
     state.category_service.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)

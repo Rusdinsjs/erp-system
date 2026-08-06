@@ -97,9 +97,15 @@ pub async fn approve_request(
         .await?;
 
     // Instantiate Asset if request is APPROVED_L2 (or final level)
-    if request.status.starts_with("APPROVED_L") && request.resource_type == "asset" && request.action_type == "CREATE" {
+    if request.status.starts_with("APPROVED_L")
+        && request.resource_type == "asset"
+        && request.action_type == "CREATE"
+    {
         if let Some(snapshot) = &request.data_snapshot {
-            if let Ok(create_req) = serde_json::from_value::<management_system_core::application::dto::CreateAssetRequest>(snapshot.clone()) {
+            if let Ok(create_req) = serde_json::from_value::<
+                management_system_core::application::dto::CreateAssetRequest,
+            >(snapshot.clone())
+            {
                 let user_id = Uuid::parse_str(&claims.sub).unwrap_or_else(|_| Uuid::nil());
                 let _ = state.asset_service.create(create_req, user_id, 1).await?;
             }
@@ -139,7 +145,13 @@ pub async fn delegate_request(
     // Use unified approval service - all modules now flow through approval_requests table
     let request = state
         .approval_service
-        .delegate_request(id, delegator_id, &role_code, payload.delegated_to, payload.notes)
+        .delegate_request(
+            id,
+            delegator_id,
+            &role_code,
+            payload.delegated_to,
+            payload.notes,
+        )
         .await?;
 
     Ok(Json(ApiResponse::success(request)))

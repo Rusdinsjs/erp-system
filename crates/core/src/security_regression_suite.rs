@@ -16,11 +16,13 @@
 #[cfg(test)]
 mod tests {
     use crate::domain::authz::{
-        ActorContext, AuthzContext, AuthzDecision, AuthorizationEngine, DefaultAuthorizationEngine,
+        ActorContext, AuthorizationEngine, AuthzContext, AuthzDecision, DefaultAuthorizationEngine,
     };
     use crate::domain::errors::DomainError;
     use crate::infrastructure::auth::{LoginLockoutTracker, SessionTracker};
-    use crate::infrastructure::notifications::{NotificationMessage, WebSocketManager, WsSessionInfo};
+    use crate::infrastructure::notifications::{
+        NotificationMessage, WebSocketManager, WsSessionInfo,
+    };
     use crate::infrastructure::repositories::ApprovalWorkflow;
     use crate::shared::config::{sanitize_connection_string, AppConfig};
     use chrono::Utc;
@@ -42,11 +44,18 @@ mod tests {
         let context = AuthzContext::default();
 
         // 1. Unmatched permission fails closed (DENY)
-        let decision = engine.authorize(&unprivileged_actor, "security.role.manage", "system", None, &context);
+        let decision = engine.authorize(
+            &unprivileged_actor,
+            "security.role.manage",
+            "system",
+            None,
+            &context,
+        );
         assert!(matches!(decision, AuthzDecision::Deny(_)));
 
         // 2. Matching permission succeeds (ALLOW)
-        let allowed_decision = engine.authorize(&unprivileged_actor, "view", "asset", None, &context);
+        let allowed_decision =
+            engine.authorize(&unprivileged_actor, "view", "asset", None, &context);
         assert_eq!(allowed_decision, AuthzDecision::Allow);
 
         // 3. SuperAdmin bypasses standard check (ALLOW)
@@ -58,7 +67,8 @@ mod tests {
             organization_id: None,
             company_id: None,
         };
-        let admin_decision = engine.authorize(&super_admin_actor, "any.action", "any", None, &context);
+        let admin_decision =
+            engine.authorize(&super_admin_actor, "any.action", "any", None, &context);
         assert_eq!(admin_decision, AuthzDecision::Allow);
     }
 
@@ -78,7 +88,8 @@ mod tests {
         let target_user_id = Uuid::new_v4();
 
         // 1. Normal user without security.role.manage fails
-        let result = validate_role_mutation(&staff_actor, target_user_id, staff_actor.organization_id);
+        let result =
+            validate_role_mutation(&staff_actor, target_user_id, staff_actor.organization_id);
         assert!(result.is_err());
 
         // 2. Self-escalation attempt fails even for admin
@@ -90,7 +101,11 @@ mod tests {
             organization_id: Some(Uuid::new_v4()),
             company_id: None,
         };
-        let self_result = validate_role_mutation(&admin_actor, admin_actor.user_id, admin_actor.organization_id);
+        let self_result = validate_role_mutation(
+            &admin_actor,
+            admin_actor.user_id,
+            admin_actor.organization_id,
+        );
         assert!(self_result.is_err());
         if let Err(DomainError::BusinessRuleViolation { rule, .. }) = self_result {
             assert_eq!(rule, "SelfEscalationDenied");
@@ -100,7 +115,8 @@ mod tests {
 
         // 3. Cross-tenant mutation fails for non-superadmin
         let other_org_id = Uuid::new_v4();
-        let cross_tenant_result = validate_role_mutation(&admin_actor, target_user_id, Some(other_org_id));
+        let cross_tenant_result =
+            validate_role_mutation(&admin_actor, target_user_id, Some(other_org_id));
         assert!(cross_tenant_result.is_err());
     }
 
@@ -165,17 +181,24 @@ mod tests {
         let unauthorized_actor_id = Uuid::new_v4();
 
         // 1. Unauthorized role transition fails
-        let unauth_result = validate_approval_transition(&request, unauthorized_actor_id, "staff", &workflow);
+        let unauth_result =
+            validate_approval_transition(&request, unauthorized_actor_id, "staff", &workflow);
         assert!(unauth_result.is_err());
 
         // 2. Authorized role succeeds
-        let auth_result = validate_approval_transition(&request, unauthorized_actor_id, "manager", &workflow);
+        let auth_result =
+            validate_approval_transition(&request, unauthorized_actor_id, "manager", &workflow);
         assert!(auth_result.is_ok());
 
         // 3. Double approval on terminal state REJECTED fails
         let mut rejected_req = request.clone();
         rejected_req.status = "REJECTED".to_string();
-        let double_appr_result = validate_approval_transition(&rejected_req, unauthorized_actor_id, "manager", &workflow);
+        let double_appr_result = validate_approval_transition(
+            &rejected_req,
+            unauthorized_actor_id,
+            "manager",
+            &workflow,
+        );
         assert!(double_appr_result.is_err());
     }
 
@@ -234,13 +257,21 @@ mod tests {
         let user_id = Uuid::new_v4();
         let old_token_iat = Utc::now().timestamp() - 60;
 
-        assert!(!tracker.is_user_token_invalidated(user_id, old_token_iat).await);
+        assert!(
+            !tracker
+                .is_user_token_invalidated(user_id, old_token_iat)
+                .await
+        );
 
         // Admin revokes user role / invalidates active sessions
         tracker.invalidate_user_sessions(user_id).await;
 
         // Active token issued before invalidation is blocked
-        assert!(tracker.is_user_token_invalidated(user_id, old_token_iat).await);
+        assert!(
+            tracker
+                .is_user_token_invalidated(user_id, old_token_iat)
+                .await
+        );
     }
 
     // --- QSEC-009: Login Lockout & Brute-Force Protection ---
@@ -272,16 +303,22 @@ mod tests {
     #[test]
     fn test_qsec_011_postgres_scram_config() {
         let hba_content = include_str!("../../../postgres/pg_hba.conf");
-        assert!(!hba_content.contains("trust"), "pg_hba.conf must NOT contain 'trust' authentication!");
-        assert!(hba_content.contains("scram-sha-256"), "pg_hba.conf must enforce scram-sha-256!");
+        assert!(
+            !hba_content.contains("trust"),
+            "pg_hba.conf must NOT contain 'trust' authentication!"
+        );
+        assert!(
+            hba_content.contains("scram-sha-256"),
+            "pg_hba.conf must enforce scram-sha-256!"
+        );
     }
 
     // --- QTEN-001 & QTEN-007: Repository Scope Enforcement & Tenant Isolation ---
     #[test]
     fn test_qten_007_repository_scope_enforcement() {
-        use crate::domain::tenant::{QueryScope, TenantContext};
-        use crate::domain::request_context::RequestContext;
         use crate::domain::entities::UserClaims;
+        use crate::domain::request_context::RequestContext;
+        use crate::domain::tenant::{QueryScope, TenantContext};
 
         let tenant_a = Uuid::new_v4();
         let tenant_b = Uuid::new_v4();
@@ -316,27 +353,58 @@ mod tests {
             jti: Uuid::new_v4().to_string(),
         };
 
-        let req_ctx_no_cmp = RequestContext::new(&claims, ctx_a.clone(), None, None, None, None).unwrap();
+        let req_ctx_no_cmp =
+            RequestContext::new(&claims, ctx_a.clone(), None, None, None, None).unwrap();
         assert!(req_ctx_no_cmp.require_active_company().is_err());
 
-        let req_ctx_with_cmp = RequestContext::new(&claims, ctx_a, Some(company_id), None, None, None).unwrap();
-        assert_eq!(req_ctx_with_cmp.require_active_company().unwrap(), company_id);
+        let req_ctx_with_cmp =
+            RequestContext::new(&claims, ctx_a, Some(company_id), None, None, None).unwrap();
+        assert_eq!(
+            req_ctx_with_cmp.require_active_company().unwrap(),
+            company_id
+        );
     }
 
     // --- QTEN-008 & QTEN-009: Tenant A/B and Company A1/A2 Isolation Test Suite ---
     #[test]
     fn test_qten_009_multi_tenant_company_isolation_suite() {
-        use crate::domain::tenant::TenantContext;
         use crate::domain::entities::Company;
-        use crate::domain::intercompany::{validate_company_mutation_boundary, IntercompanyTransferDocument};
+        use crate::domain::intercompany::{
+            validate_company_mutation_boundary, IntercompanyTransferDocument,
+        };
+        use crate::domain::tenant::TenantContext;
 
         // Fixtures: Tenant A with Company A1 & Company A2; Tenant B with Company B1
         let tenant_a_id = Uuid::new_v4();
         let tenant_b_id = Uuid::new_v4();
 
-        let company_a1 = Company::new(tenant_a_id, "CMP-A1".to_string(), "Company A1".to_string(), None, None, None, None);
-        let company_a2 = Company::new(tenant_a_id, "CMP-A2".to_string(), "Company A2".to_string(), None, None, None, None);
-        let company_b1 = Company::new(tenant_b_id, "CMP-B1".to_string(), "Company B1".to_string(), None, None, None, None);
+        let company_a1 = Company::new(
+            tenant_a_id,
+            "CMP-A1".to_string(),
+            "Company A1".to_string(),
+            None,
+            None,
+            None,
+            None,
+        );
+        let company_a2 = Company::new(
+            tenant_a_id,
+            "CMP-A2".to_string(),
+            "Company A2".to_string(),
+            None,
+            None,
+            None,
+            None,
+        );
+        let company_b1 = Company::new(
+            tenant_b_id,
+            "CMP-B1".to_string(),
+            "Company B1".to_string(),
+            None,
+            None,
+            None,
+            None,
+        );
 
         let ctx_tenant_a = TenantContext::new(tenant_a_id, Some(company_a1.id));
         let ctx_tenant_b = TenantContext::new(tenant_b_id, Some(company_b1.id));
@@ -359,8 +427,14 @@ mod tests {
             "ASSET_TRANSFER".to_string(),
             "ASSET".to_string(),
             Uuid::new_v4(),
-        ).unwrap();
+        )
+        .unwrap();
 
-        assert!(validate_company_mutation_boundary(company_a1.id, company_a2.id, Some(transfer_doc.id)).is_ok());
+        assert!(validate_company_mutation_boundary(
+            company_a1.id,
+            company_a2.id,
+            Some(transfer_doc.id)
+        )
+        .is_ok());
     }
 }

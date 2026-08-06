@@ -16,7 +16,10 @@ pub struct ActorContext {
 
 impl ActorContext {
     pub fn from_claims(claims: &crate::domain::entities::UserClaims) -> Self {
-        let org_id = claims.org.as_deref().and_then(|id| Uuid::parse_str(id).ok());
+        let org_id = claims
+            .org
+            .as_deref()
+            .and_then(|id| Uuid::parse_str(id).ok());
         Self {
             user_id: claims.user_id(),
             role: claims.role.clone(),
@@ -113,18 +116,25 @@ impl AuthorizationEngine for DefaultAuthorizationEngine {
             }
             // Support view/read & edit/update aliases
             let norm_user = p.replace(".view", ".read").replace(".edit", ".update");
-            let norm_req = required_perm.replace(".view", ".read").replace(".edit", ".update");
+            let norm_req = required_perm
+                .replace(".view", ".read")
+                .replace(".edit", ".update");
             norm_user == norm_req
         });
 
         if !has_permission {
-            return AuthzDecision::Deny(format!("Access Denied: missing permission '{}'", required_perm));
+            return AuthzDecision::Deny(format!(
+                "Access Denied: missing permission '{}'",
+                required_perm
+            ));
         }
 
         // 4. Multi-tenancy / Cross-company validation
         if let (Some(actor_company), Some(res_company)) = (actor.company_id, context.company_id) {
             if actor_company != res_company && !actor.is_admin() {
-                return AuthzDecision::Deny("Access Denied: cross-company isolation constraint violated".to_string());
+                return AuthzDecision::Deny(
+                    "Access Denied: cross-company isolation constraint violated".to_string(),
+                );
             }
         }
 

@@ -4,13 +4,13 @@
 //! 1. Control Plane Database (Tenant directory, provisioning metadata, global audit)
 //! 2. Tenant Business Plane Databases (Isolated database pool per tenant/site)
 
+use crate::domain::errors::{DomainError, DomainResult};
+use crate::domain::tenant::TenantContext;
+use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use sqlx::PgPool;
 use uuid::Uuid;
-use crate::domain::tenant::TenantContext;
-use crate::domain::errors::{DomainError, DomainResult};
 
 /// Control Plane vs Isolated Tenant Business Database Connection Resolver (QTEN-002)
 #[derive(Clone)]

@@ -83,7 +83,13 @@ impl MaintenanceTemplateService {
         instructions: Option<String>,
         expected_result: Option<String>,
     ) -> DomainResult<TemplateTask> {
-        let task = TemplateTask::new(template_id, task_number, description, instructions, expected_result);
+        let task = TemplateTask::new(
+            template_id,
+            task_number,
+            description,
+            instructions,
+            expected_result,
+        );
         self.repository
             .add_task(&task)
             .await
@@ -133,24 +139,18 @@ impl MaintenanceTemplateService {
                 task.instructions,
                 task.expected_result,
             );
-            let _ = self
-                .repository
-                .add_task(&new_task)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
+            let _ = self.repository.add_task(&new_task).await.map_err(|e| {
+                DomainError::ExternalServiceError {
                     service: "database".to_string(),
                     message: e.to_string(),
-                })?;
+                }
+            })?;
         }
 
         Ok(created_template)
     }
 
-    pub async fn reorder_tasks(
-        &self,
-        _template_id: Uuid,
-        task_ids: Vec<Uuid>,
-    ) -> DomainResult<()> {
+    pub async fn reorder_tasks(&self, _template_id: Uuid, task_ids: Vec<Uuid>) -> DomainResult<()> {
         for (idx, task_id) in task_ids.iter().enumerate() {
             self.repository
                 .update_task_number(*task_id, (idx + 1) as i32)

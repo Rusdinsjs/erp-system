@@ -1,14 +1,14 @@
 use crate::api::handlers::work_order_handler::{check_role, ROLE_SUPERVISOR};
 use crate::api::responses::ApiResponse;
 use crate::api::server::AppState;
-use management_system_core::domain::entities::{
-    MaintenanceTemplate, MaintenanceTemplateWithTasks, TemplateTask, UserClaims as Claims,
-};
-use management_system_core::shared::errors::AppError;
 use axum::{
     extract::{Path, State},
     Extension, Json,
 };
+use management_system_core::domain::entities::{
+    MaintenanceTemplate, MaintenanceTemplateWithTasks, TemplateTask, UserClaims as Claims,
+};
+use management_system_core::shared::errors::AppError;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -149,10 +149,7 @@ pub async fn get_maintenance_template_versions(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<MaintenanceTemplate>>, AppError> {
-    let versions = state
-        .maintenance_template_service
-        .get_versions(id)
-        .await?;
+    let versions = state.maintenance_template_service.get_versions(id).await?;
     Ok(Json(versions))
 }
 

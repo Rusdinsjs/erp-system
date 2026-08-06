@@ -14,17 +14,17 @@
 
 #[cfg(test)]
 mod kernel_unit_tests {
-    use uuid::Uuid;
-    use rust_decimal::Decimal;
-    use rust_decimal::RoundingStrategy;
-    use crate::domain::document::{
-        Amendable, Cancellable, DocumentHeader, DocumentLine, DocumentMetadata, DocumentStatus,
-        HasLines, SourceRef, Submittable,
-    };
     use crate::domain::audit_trail::AuditAction;
+    use crate::domain::document::{
+        validate_header_line_relationship, Amendable, Cancellable, DocumentHeader, DocumentLine,
+        DocumentMetadata, DocumentStatus, LifecycleEnvelope, Submittable,
+    };
     use crate::domain::errors::DomainError;
     use crate::domain::outbox::{OutboxEntry, OutboxStatus};
     use crate::infrastructure::database::CommandContext;
+    use rust_decimal::Decimal;
+    use rust_decimal::RoundingStrategy;
+    use uuid::Uuid;
 
     // ─── Test fixtures ────────────────────────────────────────────────────────
 
@@ -34,12 +34,12 @@ mod kernel_unit_tests {
     }
 
     impl DocumentHeader for MockInvoice {
-        fn metadata(&self) -> &DocumentMetadata { &self.meta }
-        fn metadata_mut(&mut self) -> &mut DocumentMetadata { &mut self.meta }
-    }
-
-    impl HasLines<MockInvoiceLine> for MockInvoice {
-        fn lines(&self) -> &[MockInvoiceLine] { &self.lines }
+        fn metadata(&self) -> &DocumentMetadata {
+            &self.meta
+        }
+        fn metadata_mut(&mut self) -> &mut DocumentMetadata {
+            &mut self.meta
+        }
     }
 
     struct MockInvoiceLine {
@@ -50,10 +50,12 @@ mod kernel_unit_tests {
     }
 
     impl DocumentLine for MockInvoiceLine {
-        fn line_id(&self) -> Uuid { self.id }
-        fn header_id(&self) -> Uuid { self.header_id }
-        fn line_order(&self) -> i32 { self.order }
-        fn description(&self) -> &str { &self.desc }
+        fn line_id(&self) -> Uuid {
+            self.id
+        }
+        fn header_id(&self) -> Uuid {
+            self.header_id
+        }
     }
 
     fn make_invoice() -> MockInvoice {
@@ -61,29 +63,55 @@ mod kernel_unit_tests {
         let company_id = Uuid::new_v4();
         let actor_id = Uuid::new_v4();
         MockInvoice {
-            meta: DocumentMetadata::new(tenant_id, Some(company_id), "INV-TEST-001".to_string(), actor_id),
+            meta: DocumentMetadata::new(
+                tenant_id,
+                Some(company_id),
+                "INV-TEST-001".to_string(),
+                actor_id,
+            ),
             lines: vec![],
         }
     }
 
-    // ─── QARC-002 & QARC-003: Capability Lifecycle & State Separation ─────────
+    // ─── QARC-002, QARC-003 & 3R.1-001: Capability Lifecycle & State Separation ───
 
     #[test]
-    fn test_initial_state_is_draft_version_1() {
-        let inv = make_invoice();
-        assert_eq!(inv.status(), DocumentStatus::Draft);
-        assert_eq!(inv.version(), 1);
-        assert!(inv.meta.status.is_mutable());
+    fn test_plain_document_metadata_has_no_automatic_lifecycle_behavior() {
+        // 3R.1-001: Plain DocumentMetadata is purely domain-neutral.
+        // It carries metadata only (id, version, actor audit, etc.) without automatic submit/cancel/amend methods.
+        let tenant_id = Uuid::new_v4();
+        let actor_id = Uuid::new_v4();
+        let meta = DocumentMetadata::new(tenant_id, None, "MASTER-001".to_string(), actor_id);
+
+        assert_eq!(meta.version, 1);
+        assert_eq!(meta.document_number, "MASTER-001");
+        assert_eq!(meta.amended_from_id, None);
+        // Verified: Plain DocumentMetadata has no status field or automatic submit/cancel methods.
+    }
+
+    #[test]
+    fn test_opt_in_lifecycle_envelope_initial_state_is_draft() {
+        let tenant_id = Uuid::new_v4();
+        let actor_id = Uuid::new_v4();
+        let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+        let envelope = LifecycleEnvelope::new(meta);
+
+        assert_eq!(envelope.status, DocumentStatus::Draft);
+        assert_eq!(envelope.metadata.version, 1);
+        assert!(envelope.status.is_mutable());
     }
 
     #[test]
     fn test_submittable_capability_increments_version() {
-        let mut inv = make_invoice();
-        let actor = Uuid::new_v4();
-        inv.meta.submit(actor).unwrap();
-        assert_eq!(inv.status(), DocumentStatus::Submitted);
-        assert_eq!(inv.version(), 2);
-        assert!(!inv.meta.status.is_mutable());
+        let tenant_id = Uuid::new_v4();
+        let actor_id = Uuid::new_v4();
+        let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+        let mut envelope = LifecycleEnvelope::new(meta);
+
+        envelope.submit(actor_id).unwrap();
+        assert_eq!(envelope.status, DocumentStatus::Submitted);
+        assert_eq!(envelope.metadata.version, 2);
+        assert!(!envelope.status.is_mutable());
     }
 
     #[test]
@@ -98,39 +126,56 @@ mod kernel_unit_tests {
 
     #[test]
     fn test_invalid_transition_submit_after_submitted_is_rejected() {
-        let mut inv = make_invoice();
-        let actor = Uuid::new_v4();
-        inv.meta.submit(actor).unwrap();
-        let err = inv.meta.submit(actor);
+        let tenant_id = Uuid::new_v4();
+        let actor_id = Uuid::new_v4();
+        let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+        let mut envelope = LifecycleEnvelope::new(meta);
+
+        envelope.submit(actor_id).unwrap();
+        let err = envelope.submit(actor_id);
         assert!(err.is_err(), "Double-submit must be rejected");
     }
 
     #[test]
     fn test_cancellable_capability_records_reason() {
-        let mut inv = make_invoice();
-        let actor = Uuid::new_v4();
-        inv.meta.submit(actor).unwrap();
-        inv.meta.cancel(actor, "Wrong vendor".to_string()).unwrap();
-        assert_eq!(inv.status(), DocumentStatus::Cancelled);
-        assert_eq!(inv.meta.cancellation_reason.as_deref(), Some("Wrong vendor"));
-        assert_eq!(inv.meta.cancelled_by, Some(actor));
+        let tenant_id = Uuid::new_v4();
+        let actor_id = Uuid::new_v4();
+        let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+        let mut envelope = LifecycleEnvelope::new(meta);
+
+        envelope.submit(actor_id).unwrap();
+        envelope
+            .cancel(actor_id, "Wrong vendor".to_string())
+            .unwrap();
+        assert_eq!(envelope.status, DocumentStatus::Cancelled);
+        assert_eq!(
+            envelope.metadata.cancellation_reason.as_deref(),
+            Some("Wrong vendor")
+        );
+        assert_eq!(envelope.metadata.cancelled_by, Some(actor_id));
     }
 
     #[test]
     fn test_amendable_capability_creates_linked_draft() {
-        let mut inv = make_invoice();
-        let actor = Uuid::new_v4();
-        inv.meta.submit(actor).unwrap();
-        inv.meta.cancel(actor, "error".to_string()).unwrap();
+        let tenant_id = Uuid::new_v4();
+        let actor_id = Uuid::new_v4();
+        let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+        let mut envelope = LifecycleEnvelope::new(meta);
 
-        let new_meta = inv.meta.amend(actor, "INV-TEST-001-R1".to_string()).unwrap();
+        envelope.submit(actor_id).unwrap();
+        envelope.cancel(actor_id, "error".to_string()).unwrap();
+
+        let new_envelope = envelope.amend(actor_id, "DOC-001-R1".to_string()).unwrap();
 
         // Original document stays Cancelled (QARC-003 semantics)
-        assert_eq!(inv.status(), DocumentStatus::Cancelled);
+        assert_eq!(envelope.status, DocumentStatus::Cancelled);
         // Replacement document is a new Draft linked via amended_from_id
-        assert_eq!(new_meta.status, DocumentStatus::Draft);
-        assert_eq!(new_meta.amended_from_id, Some(inv.document_id()));
-        assert_eq!(new_meta.document_number, "INV-TEST-001-R1");
+        assert_eq!(new_envelope.status, DocumentStatus::Draft);
+        assert_eq!(
+            new_envelope.metadata.amended_from_id,
+            Some(envelope.metadata.id)
+        );
+        assert_eq!(new_envelope.metadata.document_number, "DOC-001-R1");
     }
 
     // ─── QKRN-003: Optimistic Concurrency ─────────────────────────────────────
@@ -147,9 +192,10 @@ mod kernel_unit_tests {
     fn test_stale_version_is_rejected_with_concurrency_conflict() {
         let tenant = Uuid::new_v4();
         let actor = Uuid::new_v4();
-        let mut doc = DocumentMetadata::new(tenant, None, "DOC-002".to_string(), actor);
-        doc.submit(actor).unwrap(); // version → 2
-        let err = doc.verify_version(1).unwrap_err();
+        let doc = DocumentMetadata::new(tenant, None, "DOC-002".to_string(), actor);
+        let mut envelope = LifecycleEnvelope::new(doc);
+        envelope.submit(actor).unwrap(); // version → 2
+        let err = envelope.metadata.verify_version(1).unwrap_err();
         match err {
             DomainError::BusinessRuleViolation { rule, .. } => {
                 assert_eq!(rule, "ConcurrencyConflict");
@@ -193,7 +239,7 @@ mod kernel_unit_tests {
             order: 0,
             desc: "Service fee".to_string(),
         });
-        assert!(inv.validate_lines().is_ok());
+        assert!(validate_header_line_relationship(&inv, &inv.lines).is_ok());
     }
 
     #[test]
@@ -205,12 +251,12 @@ mod kernel_unit_tests {
             order: 0,
             desc: "Orphan line".to_string(),
         });
-        let err = inv.validate_lines().unwrap_err();
+        let err = validate_header_line_relationship(&inv, &inv.lines).unwrap_err();
         match err {
             DomainError::BusinessRuleViolation { rule, .. } => {
-                assert_eq!(rule, "LineHeaderMismatch");
+                assert_eq!(rule, "MismatchedHeaderLineID");
             }
-            other => panic!("Expected LineHeaderMismatch, got {:?}", other),
+            other => panic!("Expected MismatchedHeaderLineID, got {:?}", other),
         }
     }
 
@@ -236,28 +282,6 @@ mod kernel_unit_tests {
         let val = Decimal::new(1255, 2); // 12.55
         let rounded = val.round_dp_with_strategy(1, RoundingStrategy::MidpointNearestEven);
         assert_eq!(rounded, Decimal::new(126, 1)); // 12.6
-    }
-
-    // ─── QKRN-008: SourceRef Construction ────────────────────────────────────
-
-    #[test]
-    fn test_source_ref_from_header() {
-        let doc_id = Uuid::new_v4();
-        let src = SourceRef::from_header("INVOICE", doc_id);
-        assert_eq!(src.source_type, "INVOICE");
-        assert_eq!(src.source_id, doc_id);
-        assert!(src.source_line_id.is_none());
-        assert!(src.voucher_ref.is_none());
-    }
-
-    #[test]
-    fn test_source_ref_from_line_with_voucher() {
-        let doc_id = Uuid::new_v4();
-        let line_id = Uuid::new_v4();
-        let src = SourceRef::from_line("BILL", doc_id, line_id)
-            .with_voucher("CHQ-12345");
-        assert_eq!(src.source_line_id, Some(line_id));
-        assert_eq!(src.voucher_ref.as_deref(), Some("CHQ-12345"));
     }
 
     // ─── QKRN-009: AuditAction Enum ──────────────────────────────────────────

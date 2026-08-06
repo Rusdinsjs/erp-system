@@ -54,17 +54,20 @@ impl LoginLockoutTracker {
         let key_lower = key.trim().to_lowercase();
         let mut records = self.records.lock().await;
 
-        let entry = records.entry(key_lower.clone()).or_insert_with(|| FailedAttemptRecord {
-            count: 0,
-            last_failed_at: Utc::now(),
-            locked_until: None,
-        });
+        let entry = records
+            .entry(key_lower.clone())
+            .or_insert_with(|| FailedAttemptRecord {
+                count: 0,
+                last_failed_at: Utc::now(),
+                locked_until: None,
+            });
 
         entry.count += 1;
         entry.last_failed_at = Utc::now();
 
         if entry.count >= MAX_FAILED_ATTEMPTS {
-            entry.locked_until = Some(Utc::now() + chrono::Duration::seconds(LOCKOUT_DURATION_SECS));
+            entry.locked_until =
+                Some(Utc::now() + chrono::Duration::seconds(LOCKOUT_DURATION_SECS));
             tracing::warn!(
                 "SECURITY AUDIT BRUTE-FORCE LOCKOUT: Key '{}' locked out for 15 minutes after {} failed attempts",
                 key_lower,

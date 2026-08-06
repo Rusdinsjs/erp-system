@@ -5,10 +5,10 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use chrono::NaiveDate;
 use management_system_core::domain::entities::analytics::AssetStatusStats;
 use management_system_core::domain::entities::asset_details::VehicleDetails;
 use management_system_core::domain::entities::{Asset, AssetDocument, AssetHistory, AssetSummary};
-use chrono::NaiveDate;
 
 /// Asset repository
 #[derive(Clone)]

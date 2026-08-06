@@ -1,9 +1,9 @@
+use crate::api::middleware::rbac::require_permission;
 use axum::{
+    middleware as axum_middleware,
     routing::{get, put},
     Router,
-    middleware as axum_middleware,
 };
-use crate::api::middleware::rbac::require_permission;
 
 use crate::api::handlers::tax_renewal_handler;
 use crate::api::server::AppState;

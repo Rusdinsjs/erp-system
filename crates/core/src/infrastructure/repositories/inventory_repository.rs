@@ -60,7 +60,7 @@ impl InventoryRepository {
                  inventory_account_id = COALESCE($4, inventory_account_id), 
                  expense_account_id = COALESCE($5, expense_account_id),
                  updated_at = NOW()
-             WHERE id = $1 RETURNING *"
+             WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(name)
@@ -133,7 +133,10 @@ impl InventoryRepository {
 
         query_builder.push(" ORDER BY name");
 
-        query_builder.build_query_as::<InventoryItem>().fetch_all(&self.pool).await
+        query_builder
+            .build_query_as::<InventoryItem>()
+            .fetch_all(&self.pool)
+            .await
     }
 
     pub async fn update_stock(
@@ -170,7 +173,7 @@ impl InventoryRepository {
                  max_stock = COALESCE($5, max_stock),
                  is_active = COALESCE($6, is_active),
                  updated_at = NOW()
-             WHERE id = $1 RETURNING *"
+             WHERE id = $1 RETURNING *",
         )
         .bind(id)
         .bind(name)
@@ -184,10 +187,12 @@ impl InventoryRepository {
 
     pub async fn delete_item(&self, id: Uuid) -> Result<bool, sqlx::Error> {
         // We usually do soft delete for items that have history
-        let result = sqlx::query("UPDATE inventory_items SET is_active = false, updated_at = NOW() WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        let result = sqlx::query(
+            "UPDATE inventory_items SET is_active = false, updated_at = NOW() WHERE id = $1",
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
         Ok(result.rows_affected() > 0)
     }
 

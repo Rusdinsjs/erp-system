@@ -326,7 +326,8 @@ pub fn validate_role_mutation(
     if actor.user_id == target_user_id {
         return Err(DomainError::BusinessRuleViolation {
             rule: "SelfEscalationDenied".to_string(),
-            message: "Self-escalation or self-modification of roles is strictly prohibited".to_string(),
+            message: "Self-escalation or self-modification of roles is strictly prohibited"
+                .to_string(),
         });
     }
 
@@ -428,4 +429,3 @@ mod tests {
         assert!(result.is_ok());
     }
 }
-

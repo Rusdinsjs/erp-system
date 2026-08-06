@@ -12,8 +12,16 @@ use crate::domain::tenant::TenantContext;
 pub trait CostCenterRepository: Send + Sync {
     async fn find_by_id(&self, id: Uuid, ctx: &TenantContext) -> DomainResult<Option<CostCenter>>;
     async fn find_by_tenant_id(&self, ctx: &TenantContext) -> DomainResult<Vec<CostCenter>>;
-    async fn create(&self, cost_center: &CostCenter, ctx: &TenantContext) -> DomainResult<CostCenter>;
-    async fn update(&self, cost_center: &CostCenter, ctx: &TenantContext) -> DomainResult<CostCenter>;
+    async fn create(
+        &self,
+        cost_center: &CostCenter,
+        ctx: &TenantContext,
+    ) -> DomainResult<CostCenter>;
+    async fn update(
+        &self,
+        cost_center: &CostCenter,
+        ctx: &TenantContext,
+    ) -> DomainResult<CostCenter>;
 }
 
 pub struct PgCostCenterRepository {
@@ -36,7 +44,7 @@ impl CostCenterRepository for PgCostCenterRepository {
                        manager_id, status, created_at, updated_at, deleted_at
                 FROM cost_centers
                 WHERE id = $1 AND deleted_at IS NULL
-                "#
+                "#,
             )
             .bind(id)
             .fetch_optional(&self.pool)
@@ -48,7 +56,7 @@ impl CostCenterRepository for PgCostCenterRepository {
                        manager_id, status, created_at, updated_at, deleted_at
                 FROM cost_centers
                 WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
-                "#
+                "#,
             )
             .bind(id)
             .bind(ctx.tenant_id)
@@ -68,7 +76,7 @@ impl CostCenterRepository for PgCostCenterRepository {
                 FROM cost_centers
                 WHERE deleted_at IS NULL
                 ORDER BY code ASC
-                "#
+                "#,
             )
             .fetch_all(&self.pool)
             .await
@@ -80,7 +88,7 @@ impl CostCenterRepository for PgCostCenterRepository {
                 FROM cost_centers
                 WHERE tenant_id = $1 AND deleted_at IS NULL
                 ORDER BY code ASC
-                "#
+                "#,
             )
             .bind(ctx.tenant_id)
             .fetch_all(&self.pool)
@@ -90,7 +98,11 @@ impl CostCenterRepository for PgCostCenterRepository {
         query.map_err(|e| DomainError::Database(e.to_string()))
     }
 
-    async fn create(&self, cost_center: &CostCenter, ctx: &TenantContext) -> DomainResult<CostCenter> {
+    async fn create(
+        &self,
+        cost_center: &CostCenter,
+        ctx: &TenantContext,
+    ) -> DomainResult<CostCenter> {
         ctx.enforce_boundary(cost_center.tenant_id)?;
 
         let created = sqlx::query_as::<_, CostCenter>(
@@ -102,7 +114,7 @@ impl CostCenterRepository for PgCostCenterRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id, tenant_id, company_id, code, name, parent_id,
                       manager_id, status, created_at, updated_at, deleted_at
-            "#
+            "#,
         )
         .bind(cost_center.id)
         .bind(cost_center.tenant_id)
@@ -122,7 +134,11 @@ impl CostCenterRepository for PgCostCenterRepository {
         Ok(created)
     }
 
-    async fn update(&self, cost_center: &CostCenter, ctx: &TenantContext) -> DomainResult<CostCenter> {
+    async fn update(
+        &self,
+        cost_center: &CostCenter,
+        ctx: &TenantContext,
+    ) -> DomainResult<CostCenter> {
         ctx.enforce_boundary(cost_center.tenant_id)?;
 
         let updated = sqlx::query_as::<_, CostCenter>(
@@ -138,7 +154,7 @@ impl CostCenterRepository for PgCostCenterRepository {
             WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
             RETURNING id, tenant_id, company_id, code, name, parent_id,
                       manager_id, status, created_at, updated_at, deleted_at
-            "#
+            "#,
         )
         .bind(cost_center.id)
         .bind(cost_center.tenant_id)

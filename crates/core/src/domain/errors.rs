@@ -141,7 +141,11 @@ impl std::error::Error for DomainError {}
 pub type DomainResult<T> = Result<T, DomainError>;
 
 // Implement IntoResponse for DomainError
-use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde_json::json;
 
 impl IntoResponse for DomainError {

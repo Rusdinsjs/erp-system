@@ -137,7 +137,9 @@ pub async fn export_dashboard_pdf(
             ),
             (
                 axum::http::header::CONTENT_DISPOSITION,
-                axum::http::HeaderValue::from_static("attachment; filename=\"dashboard_summary.pdf\""),
+                axum::http::HeaderValue::from_static(
+                    "attachment; filename=\"dashboard_summary.pdf\"",
+                ),
             ),
         ]),
         pdf_bytes,

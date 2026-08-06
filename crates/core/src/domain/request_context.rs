@@ -3,10 +3,10 @@
 //! Encapsulates authenticated user, session, tenant/site, active company,
 //! locale/timezone, and request correlation ID across request execution bounds.
 
-use uuid::Uuid;
 use crate::domain::entities::UserClaims;
-use crate::domain::tenant::TenantContext;
 use crate::domain::errors::{DomainError, DomainResult};
+use crate::domain::tenant::TenantContext;
+use uuid::Uuid;
 
 /// Immutable Request Execution Context carried through handler, service, and repository parameters (QTEN-003)
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,6 +117,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(ctx_with_company.require_active_company().unwrap(), company_id);
+        assert_eq!(
+            ctx_with_company.require_active_company().unwrap(),
+            company_id
+        );
     }
 }

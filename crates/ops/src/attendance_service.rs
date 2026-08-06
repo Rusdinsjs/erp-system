@@ -6,7 +6,9 @@ use chrono::{DateTime, Local, NaiveTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use management_system_core::domain::entities::{AttendanceRecord, CheckInRequest, CheckOutRequest, TodayAttendanceStatus};
+use management_system_core::domain::entities::{
+    AttendanceRecord, CheckInRequest, CheckOutRequest, TodayAttendanceStatus,
+};
 use management_system_core::shared::errors::{AppError, AppResult};
 
 use super::geofence_service::GeofenceService;
@@ -20,7 +22,7 @@ impl AttendanceService {
         employee_id: Uuid,
     ) -> AppResult<TodayAttendanceStatus> {
         let today = Local::now().date_naive();
-        
+
         let record = sqlx::query_as::<_, AttendanceRecord>(
             r#"
             SELECT ar.*,
@@ -32,7 +34,7 @@ impl AttendanceService {
               AND DATE(ar.check_in_time AT TIME ZONE 'Asia/Jakarta') = $2
             ORDER BY ar.check_in_time DESC
             LIMIT 1
-            "#
+            "#,
         )
         .bind(employee_id)
         .bind(today)
@@ -41,8 +43,14 @@ impl AttendanceService {
         .map_err(|e| AppError::Database(e.to_string()))?;
 
         Ok(TodayAttendanceStatus {
-            has_checked_in: record.as_ref().map(|r| r.check_in_time.is_some()).unwrap_or(false),
-            has_checked_out: record.as_ref().map(|r| r.check_out_time.is_some()).unwrap_or(false),
+            has_checked_in: record
+                .as_ref()
+                .map(|r| r.check_in_time.is_some())
+                .unwrap_or(false),
+            has_checked_out: record
+                .as_ref()
+                .map(|r| r.check_out_time.is_some())
+                .unwrap_or(false),
             check_in_time: record.as_ref().and_then(|r| r.check_in_time),
             check_out_time: record.as_ref().and_then(|r| r.check_out_time),
             check_in_status: record.as_ref().and_then(|r| r.check_in_status.clone()),
@@ -60,10 +68,14 @@ impl AttendanceService {
         // 1. Check if already checked in today
         let today_status = Self::get_today_status(pool, employee_id).await?;
         if today_status.has_checked_in && !today_status.has_checked_out {
-            return Err(AppError::BadRequest("Already checked in today. Please check out first.".into()));
+            return Err(AppError::BadRequest(
+                "Already checked in today. Please check out first.".into(),
+            ));
         }
         if today_status.has_checked_in && today_status.has_checked_out {
-            return Err(AppError::BadRequest("Already completed attendance for today.".into()));
+            return Err(AppError::BadRequest(
+                "Already completed attendance for today.".into(),
+            ));
         }
 
         // 2. Get employee's office location
@@ -82,7 +94,8 @@ impl AttendanceService {
         .ok_or_else(|| AppError::NotFound("Employee not found".into()))?;
 
         // 3. Validate geofence if office location is set
-        if let (Some(office_lat), Some(office_long), Some(radius)) = (office.1, office.2, office.3) {
+        if let (Some(office_lat), Some(office_long), Some(radius)) = (office.1, office.2, office.3)
+        {
             let validation = GeofenceService::validate_checkin_location(
                 request.latitude,
                 request.longitude,
@@ -113,7 +126,7 @@ impl AttendanceService {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-            "#
+            "#,
         )
         .bind(employee_id)
         .bind(now)
@@ -138,7 +151,7 @@ impl AttendanceService {
     ) -> AppResult<AttendanceRecord> {
         // 1. Get today's attendance record
         let today_status = Self::get_today_status(pool, employee_id).await?;
-        
+
         if !today_status.has_checked_in {
             return Err(AppError::BadRequest("You haven't checked in today.".into()));
         }
@@ -146,7 +159,8 @@ impl AttendanceService {
             return Err(AppError::BadRequest("Already checked out today.".into()));
         }
 
-        let record_id = today_status.record
+        let record_id = today_status
+            .record
             .ok_or_else(|| AppError::NotFound("Attendance record not found".into()))?
             .id;
 
@@ -166,7 +180,7 @@ impl AttendanceService {
                 check_out_photo_url = $7
             WHERE id = $1
             RETURNING *
-            "#
+            "#,
         )
         .bind(record_id)
         .bind(now)
@@ -199,7 +213,7 @@ impl AttendanceService {
             WHERE ar.employee_id = $1
             ORDER BY ar.check_in_time DESC
             LIMIT $2 OFFSET $3
-            "#
+            "#,
         )
         .bind(employee_id)
         .bind(limit)
@@ -214,7 +228,7 @@ impl AttendanceService {
     /// Get all attendance for today (admin)
     pub async fn get_all_today(pool: &PgPool) -> AppResult<Vec<AttendanceRecord>> {
         let today = Local::now().date_naive();
-        
+
         let records = sqlx::query_as::<_, AttendanceRecord>(
             r#"
             SELECT ar.*,
@@ -224,7 +238,7 @@ impl AttendanceService {
             JOIN employees e ON e.id = ar.employee_id
             WHERE DATE(ar.check_in_time AT TIME ZONE 'Asia/Jakarta') = $1
             ORDER BY ar.check_in_time DESC
-            "#
+            "#,
         )
         .bind(today)
         .fetch_all(pool)
@@ -242,7 +256,7 @@ impl AttendanceService {
     ) -> AppResult<String> {
         if let Some(location_id) = office_location_id {
             let office = sqlx::query_as::<_, (Option<NaiveTime>, Option<i32>)>(
-                "SELECT check_in_time, check_in_tolerance FROM locations WHERE id = $1"
+                "SELECT check_in_time, check_in_tolerance FROM locations WHERE id = $1",
             )
             .bind(location_id)
             .fetch_optional(pool)
@@ -252,9 +266,10 @@ impl AttendanceService {
             if let Some((Some(scheduled_time), tolerance)) = office {
                 let local_time = check_in_time.with_timezone(&chrono_tz::Asia::Jakarta);
                 let check_in_naive = local_time.time();
-                
+
                 let tolerance_minutes = tolerance.unwrap_or(30);
-                let late_threshold = scheduled_time + chrono::Duration::minutes(tolerance_minutes as i64);
+                let late_threshold =
+                    scheduled_time + chrono::Duration::minutes(tolerance_minutes as i64);
 
                 if check_in_naive > late_threshold {
                     return Ok("late".to_string());

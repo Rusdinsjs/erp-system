@@ -30,17 +30,17 @@ pub enum AuditAction {
 impl AuditAction {
     pub fn as_str(&self) -> &'static str {
         match self {
-            AuditAction::Create  => "CREATE",
-            AuditAction::Update  => "UPDATE",
-            AuditAction::Submit  => "SUBMIT",
-            AuditAction::Post    => "POST",
-            AuditAction::Cancel  => "CANCEL",
-            AuditAction::Amend   => "AMEND",
+            AuditAction::Create => "CREATE",
+            AuditAction::Update => "UPDATE",
+            AuditAction::Submit => "SUBMIT",
+            AuditAction::Post => "POST",
+            AuditAction::Cancel => "CANCEL",
+            AuditAction::Amend => "AMEND",
             AuditAction::Approve => "APPROVE",
-            AuditAction::Reject  => "REJECT",
-            AuditAction::Reopen  => "REOPEN",
-            AuditAction::Delete  => "DELETE",
-            AuditAction::Custom  => "CUSTOM",
+            AuditAction::Reject => "REJECT",
+            AuditAction::Reopen => "REOPEN",
+            AuditAction::Delete => "DELETE",
+            AuditAction::Custom => "CUSTOM",
         }
     }
 }

@@ -4,7 +4,9 @@ use axum::{
 };
 
 use crate::api::server::AppState;
-use management_system_core::application::dto::{ApiResponse, ChangePasswordRequest, UpdateProfileRequest};
+use management_system_core::application::dto::{
+    ApiResponse, ChangePasswordRequest, UpdateProfileRequest,
+};
 use management_system_core::domain::entities::{User, UserClaims as Claims};
 use management_system_core::shared::errors::AppError;
 

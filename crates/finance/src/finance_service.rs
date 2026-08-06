@@ -2,7 +2,7 @@ use chrono::Utc;
 use rust_decimal::prelude::ToPrimitive;
 use uuid::Uuid;
 
-use management_system_core::infrastructure::repositories::FinanceRepository;
+use crate::repositories::FinanceRepository;
 use crate::AssetExpenseService;
 use crate::JournalService;
 use management_system_core::domain::entities::{
@@ -119,12 +119,26 @@ impl FinanceService {
         id: Uuid,
         req: UpdateAccountRequest,
     ) -> DomainResult<ChartOfAccount> {
-        let updated = self
+        let mut account = self
             .repo
-            .update_account(id, req.name, req.parent_id, req.is_active, req.description)
-            .await?;
+            .get_account_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::not_found("ChartOfAccount", id))?;
 
-        updated.ok_or_else(|| DomainError::not_found("ChartOfAccount", id))
+        if let Some(name) = req.name {
+            account.name = name;
+        }
+        if let Some(parent_id) = req.parent_id {
+            account.parent_id = Some(parent_id);
+        }
+        if let Some(is_active) = req.is_active {
+            account.is_active = is_active;
+        }
+        if let Some(desc) = req.description {
+            account.description = Some(desc);
+        }
+
+        self.repo.update_account(&account).await
     }
 
     pub async fn delete_account(&self, _id: Uuid) -> DomainResult<()> {
@@ -247,7 +261,15 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        if req.items.is_empty() {
+            return Err(DomainError::validation(
+                "items",
+                "Sales invoice requires at least one line item",
+            ));
+        }
+
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let invoice = management_system_core::domain::entities::SalesInvoice {
             id: Uuid::new_v4(),
             invoice_number: req.invoice_number.clone(),
@@ -267,16 +289,24 @@ impl FinanceService {
 
         // 1. Find Accounts (Piutang & Penjualan)
         let receivable_acc = self.find_by_code("1-1300").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 1-1300 (Piutang Usaha) not found")
+            DomainError::business_rule(
+                "Missing Account",
+                "Account 1-1300 (Piutang Usaha) not found",
+            )
         })?;
         let sales_acc = self.find_by_code("4-1100").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 4-1100 (Pendapatan Penjualan) not found")
+            DomainError::business_rule(
+                "Missing Account",
+                "Account 4-1100 (Pendapatan Penjualan) not found",
+            )
         })?;
 
         // 2. Begin UnitOfWork transaction boundary (QARC-007)
-        let mut uow = management_system_core::infrastructure::database::UnitOfWork::begin(self.repo.pool()).await?;
+        let mut uow =
+            management_system_core::infrastructure::database::UnitOfWork::begin(self.repo.pool())
+                .await?;
 
-        // 3. Persist Sales Invoice Header AND Lines atomically (QARC-008)
+        // 3. Persist Sales Invoice Header AND Lines atomically (QARC-008 & 3R.1-004)
         let (mut created_invoice, _created_items) = self
             .repo
             .create_sales_invoice_with_uow(&mut uow, &invoice, &req.items)
@@ -295,7 +325,10 @@ impl FinanceService {
                 lines: vec![
                     management_system_core::domain::entities::journal::CreateJournalLineRequest {
                         account_id: receivable_acc.id,
-                        description: Some(format!("Piutang Penjualan {}", created_invoice.invoice_number)),
+                        description: Some(format!(
+                            "Piutang Penjualan {}",
+                            created_invoice.invoice_number
+                        )),
                         debit: total,
                         credit: rust_decimal::Decimal::ZERO,
                     },
@@ -311,8 +344,11 @@ impl FinanceService {
                 ],
             };
 
-        let journal = self.journal_service.create_entry_with_uow(&mut uow, journal_req, None).await?;
-        
+        let journal = self
+            .journal_service
+            .create_entry_with_uow(&mut uow, journal_req, None)
+            .await?;
+
         // Link journal entry id and commit transaction
         sqlx::query("UPDATE sales_invoices SET journal_entry_id = $1 WHERE id = $2")
             .bind(journal.header.id)
@@ -344,10 +380,7 @@ impl FinanceService {
     ) -> DomainResult<management_system_core::domain::entities::SalesInvoiceDetailResponse> {
         let invoice = self.get_sales_invoice(id).await?;
         let items = self.repo.get_sales_invoice_items(id).await?;
-        Ok(management_system_core::domain::entities::SalesInvoiceDetailResponse {
-            invoice,
-            items,
-        })
+        Ok(management_system_core::domain::entities::SalesInvoiceDetailResponse { invoice, items })
     }
 
     pub async fn update_sales_invoice(
@@ -355,8 +388,16 @@ impl FinanceService {
         id: Uuid,
         req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
+        if req.items.is_empty() {
+            return Err(DomainError::validation(
+                "items",
+                "Sales invoice requires at least one line item",
+            ));
+        }
+
         let mut invoice = self.get_sales_invoice(id).await?;
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
 
         invoice.invoice_number = req.invoice_number;
         invoice.client_id = req.client_id;
@@ -367,7 +408,17 @@ impl FinanceService {
         invoice.total_amount = total;
         invoice.attachment_url = req.attachment_url;
 
-        self.repo.update_sales_invoice(&invoice).await
+        // Atomically update header + replace line items in UnitOfWork (3R.1-004)
+        let mut uow =
+            management_system_core::infrastructure::database::UnitOfWork::begin(self.repo.pool())
+                .await?;
+        let (updated_invoice, _updated_items) = self
+            .repo
+            .update_sales_invoice_with_uow(&mut uow, &invoice, &req.items)
+            .await?;
+        uow.commit().await?;
+
+        Ok(updated_invoice)
     }
 
     pub async fn delete_sales_invoice(&self, id: Uuid) -> DomainResult<()> {
@@ -378,7 +429,8 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreatePurchaseBillRequest,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseBill> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let mut bill = management_system_core::domain::entities::PurchaseBill {
             id: Uuid::new_v4(),
             bill_number: req.bill_number.clone(),
@@ -560,7 +612,8 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreateSalesQuoteRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesQuote> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let quote = management_system_core::domain::entities::SalesQuote {
             id: Uuid::new_v4(),
             quote_number: req.quote_number,
@@ -587,7 +640,8 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreateSalesOrderRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesOrder> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let order = management_system_core::domain::entities::SalesOrder {
             id: Uuid::new_v4(),
             order_number: req.order_number,
@@ -641,7 +695,8 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreatePurchaseQuoteRequest,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseQuote> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let quote = management_system_core::domain::entities::PurchaseQuote {
             id: Uuid::new_v4(),
             quote_number: req.quote_number,
@@ -668,7 +723,8 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreatePurchaseOrderRequest,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseOrder> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let order = management_system_core::domain::entities::PurchaseOrder {
             id: Uuid::new_v4(),
             order_number: req.order_number,
@@ -745,7 +801,10 @@ impl FinanceService {
                         period,
                     ) => {
                         if let Err(e) = service.handle_rental_invoice_generated(period).await {
-                            tracing::error!("Failed to process RentalInvoiceGenerated event: {:?}", e);
+                            tracing::error!(
+                                "Failed to process RentalInvoiceGenerated event: {:?}",
+                                e
+                            );
                         }
                     }
                     _ => {}

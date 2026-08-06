@@ -1,12 +1,12 @@
 use crate::api::server::AppState;
-use management_system_core::application::dto::{
-    ContractTemplateResponse, CreateContractTemplateRequest, UpdateContractTemplateRequest,
-};
-use management_system_core::domain::errors::DomainResult;
 use axum::{
     extract::{Path, State},
     Json,
 };
+use management_system_core::application::dto::{
+    ContractTemplateResponse, CreateContractTemplateRequest, UpdateContractTemplateRequest,
+};
+use management_system_core::domain::errors::DomainResult;
 use uuid::Uuid;
 
 pub async fn create_template(

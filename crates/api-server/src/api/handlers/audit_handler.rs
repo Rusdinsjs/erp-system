@@ -6,12 +6,12 @@ use axum::{
 use uuid::Uuid;
 
 use crate::api::server::AppState;
+use axum::extract::Extension;
 use management_system_core::application::dto::{ApiResponse, AuditLogQuery, PaginatedResponse};
 use management_system_core::domain::entities::audit::AuditSession;
 use management_system_core::domain::entities::user::UserClaims;
 use management_system_core::domain::entities::AuditLogEntry;
 use management_system_core::shared::errors::AppError;
-use axum::extract::Extension;
 
 /// Start a new audit session
 pub async fn start_audit_session(
@@ -82,7 +82,8 @@ pub async fn submit_audit_record(
     Extension(claims): Extension<UserClaims>,
     Path(session_id): Path<Uuid>,
     Json(payload): Json<SubmitRecordRequest>,
-) -> Result<Json<ApiResponse<management_system_core::domain::entities::audit::AuditRecord>>, AppError> {
+) -> Result<Json<ApiResponse<management_system_core::domain::entities::audit::AuditRecord>>, AppError>
+{
     let allowed_group = match claims.role.as_str() {
         "admin_alat_berat" | "admin_heavy_eq" => Some("ALAT_BERAT"),
         "admin_kendaraan" | "admin_vehicle" => Some("KENDARAAN"),
@@ -90,9 +91,14 @@ pub async fn submit_audit_record(
         _ => None,
     };
     if let Some(group) = allowed_group {
-        let asset_group = state.asset_service.get_asset_group(payload.asset_id).await?;
+        let asset_group = state
+            .asset_service
+            .get_asset_group(payload.asset_id)
+            .await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 

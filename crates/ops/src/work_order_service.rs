@@ -5,18 +5,19 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use management_system_core::infrastructure::repositories::{
-    AssetRepository, LifecycleRepository, MaintenanceTemplateRepository, WorkOrderAnalyticsData, WorkOrderRepository,
-};
 use management_system_core::application::dto::asset_expense_dto::{
     CreateAssetExpenseItemRequest, CreateAssetExpenseRequest,
 };
 use management_system_core::application::services::approval_service::ModuleApprovalCallback;
+use management_system_core::domain::entities::{
+    AssetState, ChecklistItem, WorkOrder, WorkOrderPart, WorkOrderStatus,
+};
 use management_system_core::domain::errors::{DomainError, DomainResult};
 use management_system_core::infrastructure::bus::EventBus;
 use management_system_core::infrastructure::cache::{CacheKey, CacheOperations};
-use management_system_core::domain::entities::{
-    AssetState, ChecklistItem, WorkOrder, WorkOrderPart, WorkOrderStatus,
+use management_system_core::infrastructure::repositories::{
+    AssetRepository, LifecycleRepository, MaintenanceTemplateRepository, WorkOrderAnalyticsData,
+    WorkOrderRepository,
 };
 
 use std::sync::Arc;
@@ -961,7 +962,7 @@ impl ModuleApprovalCallback for WorkOrderService {
     ) -> DomainResult<()> {
         // Get the work order ID from the approval request
         let wo_id = request.resource_id;
-        
+
         // Update work order status to approved
         self.repository
             .update_status(wo_id, "approved")
@@ -987,7 +988,7 @@ impl ModuleApprovalCallback for WorkOrderService {
         notes: String,
     ) -> DomainResult<()> {
         let wo_id = request.resource_id;
-        
+
         // Update work order status to rejected
         self.repository
             .update_status(wo_id, "rejected")

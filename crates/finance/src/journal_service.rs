@@ -1,11 +1,12 @@
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
+use crate::repositories::FinanceRepository;
 use management_system_core::domain::entities::journal::{
     CreateJournalEntryRequest, JournalEntry, JournalEntryDetail,
 };
 use management_system_core::domain::errors::{DomainError, DomainResult};
-use management_system_core::infrastructure::repositories::{FinanceRepository, JournalRepository};
+use management_system_core::infrastructure::repositories::JournalRepository;
 
 #[derive(Clone)]
 pub struct JournalService {

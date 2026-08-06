@@ -126,7 +126,7 @@ impl ApprovalRepository {
         entity_type: &str,
     ) -> Result<Option<ApprovalWorkflow>, sqlx::Error> {
         sqlx::query_as::<_, ApprovalWorkflow>(
-            "SELECT * FROM approval_workflows WHERE entity_type = $1 AND is_active = true LIMIT 1"
+            "SELECT * FROM approval_workflows WHERE entity_type = $1 AND is_active = true LIMIT 1",
         )
         .bind(entity_type)
         .fetch_optional(&self.pool)
@@ -179,7 +179,10 @@ impl ApprovalRepository {
     }
 
     // Get pending requests for a specific role (matches workflow level_n_role)
-    pub async fn list_pending_by_role(&self, role_code: &str) -> Result<Vec<ApprovalRequest>, sqlx::Error> {
+    pub async fn list_pending_by_role(
+        &self,
+        role_code: &str,
+    ) -> Result<Vec<ApprovalRequest>, sqlx::Error> {
         sqlx::query_as::<_, ApprovalRequest>(
             r#"
             SELECT ar.*, u.name as requester_name
@@ -293,7 +296,10 @@ impl ApprovalRepository {
     }
 
     // Log approval history
-    pub async fn log_history(&self, history: &ApprovalHistory) -> Result<ApprovalHistory, sqlx::Error> {
+    pub async fn log_history(
+        &self,
+        history: &ApprovalHistory,
+    ) -> Result<ApprovalHistory, sqlx::Error> {
         sqlx::query_as::<_, ApprovalHistory>(
             r#"
             INSERT INTO approval_histories (
@@ -316,7 +322,10 @@ impl ApprovalRepository {
     }
 
     // Get approval request with history
-    pub async fn find_by_id_with_history(&self, id: Uuid) -> Result<Option<(ApprovalRequest, Vec<ApprovalHistory>)>, sqlx::Error> {
+    pub async fn find_by_id_with_history(
+        &self,
+        id: Uuid,
+    ) -> Result<Option<(ApprovalRequest, Vec<ApprovalHistory>)>, sqlx::Error> {
         let request = self.find_by_id(id).await?;
         if let Some(req) = request {
             let history = sqlx::query_as::<_, ApprovalHistory>(
@@ -336,7 +345,10 @@ impl ApprovalRepository {
     }
 
     // List pending with module details (enriched for UI)
-    pub async fn list_pending_enriched(&self, role_code: &str) -> Result<Vec<ApprovalRequest>, sqlx::Error> {
+    pub async fn list_pending_enriched(
+        &self,
+        role_code: &str,
+    ) -> Result<Vec<ApprovalRequest>, sqlx::Error> {
         sqlx::query_as::<_, ApprovalRequest>(
             r#"
             SELECT ar.*, u.name as requester_name
@@ -383,7 +395,11 @@ impl ApprovalRepository {
     }
 
     // Mark final approval
-    pub async fn mark_final_approval(&self, id: Uuid, approver_id: Uuid) -> Result<(), sqlx::Error> {
+    pub async fn mark_final_approval(
+        &self,
+        id: Uuid,
+        approver_id: Uuid,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query(
             r#"
             UPDATE approval_requests 

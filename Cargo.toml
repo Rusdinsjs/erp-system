@@ -32,7 +32,7 @@ chrono = { version = "0.4", features = ["serde"] }
 chrono-tz = "0.10"
 
 # Financial
-rust_decimal = { version = "1.35", features = ["serde-float"] }
+rust_decimal = { version = "1.35", features = ["serde-with-str"] }
 rust_decimal_macros = "1.35"
 
 # UUID

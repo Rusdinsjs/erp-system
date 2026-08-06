@@ -102,6 +102,7 @@ export interface SalesInvoice {
     total_amount: number | string;
     amount_paid: number | string;
     status: string;
+    posting_status?: string;
     journal_entry_id?: string | null;
     created_at: string;
     attachment_url?: string;

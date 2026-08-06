@@ -71,7 +71,7 @@ pub struct AccountTreeNode {
     pub children: Vec<AccountTreeNode>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct GeneralLedgerEntry {
     pub date: chrono::NaiveDate,
     pub transaction_number: String,
@@ -82,7 +82,7 @@ pub struct GeneralLedgerEntry {
     pub balance: Decimal,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct TrialBalanceEntry {
     pub account_id: Uuid,
     pub account_code: String,
@@ -92,7 +92,7 @@ pub struct TrialBalanceEntry {
     pub credit: Decimal,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct FinancialReportEntry {
     pub account_code: String,
     pub account_name: String,

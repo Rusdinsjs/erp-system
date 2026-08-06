@@ -38,7 +38,7 @@ impl CompanyRepository for PgCompanyRepository {
                        status, created_at, updated_at, deleted_at
                 FROM companies
                 WHERE id = $1 AND deleted_at IS NULL
-                "#
+                "#,
             )
             .bind(id)
             .fetch_optional(&self.pool)
@@ -52,7 +52,7 @@ impl CompanyRepository for PgCompanyRepository {
                        status, created_at, updated_at, deleted_at
                 FROM companies
                 WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
-                "#
+                "#,
             )
             .bind(id)
             .bind(ctx.tenant_id)
@@ -74,7 +74,7 @@ impl CompanyRepository for PgCompanyRepository {
                 FROM companies
                 WHERE deleted_at IS NULL
                 ORDER BY code ASC
-                "#
+                "#,
             )
             .fetch_all(&self.pool)
             .await
@@ -88,7 +88,7 @@ impl CompanyRepository for PgCompanyRepository {
                 FROM companies
                 WHERE tenant_id = $1 AND deleted_at IS NULL
                 ORDER BY code ASC
-                "#
+                "#,
             )
             .bind(ctx.tenant_id)
             .fetch_all(&self.pool)
@@ -114,7 +114,7 @@ impl CompanyRepository for PgCompanyRepository {
                       base_currency, country, address, phone, email,
                       default_bank_account_id, fiscal_year_start_month,
                       status, created_at, updated_at, deleted_at
-            "#
+            "#,
         )
         .bind(company.id)
         .bind(company.tenant_id)
@@ -164,7 +164,7 @@ impl CompanyRepository for PgCompanyRepository {
                       base_currency, country, address, phone, email,
                       default_bank_account_id, fiscal_year_start_month,
                       status, created_at, updated_at, deleted_at
-            "#
+            "#,
         )
         .bind(company.id)
         .bind(company.tenant_id)

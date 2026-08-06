@@ -70,7 +70,10 @@ impl MaintenanceTemplateRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn get_versions(&self, template_id: Uuid) -> Result<Vec<MaintenanceTemplate>, sqlx::Error> {
+    pub async fn get_versions(
+        &self,
+        template_id: Uuid,
+    ) -> Result<Vec<MaintenanceTemplate>, sqlx::Error> {
         sqlx::query_as::<_, MaintenanceTemplate>(
             "SELECT * FROM maintenance_templates 
              WHERE id = $1 
@@ -84,10 +87,11 @@ impl MaintenanceTemplateRepository {
     }
 
     pub async fn deactivate_version(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("UPDATE maintenance_templates SET is_active = false WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        let result =
+            sqlx::query("UPDATE maintenance_templates SET is_active = false WHERE id = $1")
+                .bind(id)
+                .execute(&self.pool)
+                .await?;
         Ok(result.rows_affected() > 0)
     }
 
@@ -125,12 +129,17 @@ impl MaintenanceTemplateRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    pub async fn update_task_number(&self, task_id: Uuid, new_number: i32) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("UPDATE maintenance_template_tasks SET task_number = $2 WHERE id = $1")
-            .bind(task_id)
-            .bind(new_number)
-            .execute(&self.pool)
-            .await?;
+    pub async fn update_task_number(
+        &self,
+        task_id: Uuid,
+        new_number: i32,
+    ) -> Result<bool, sqlx::Error> {
+        let result =
+            sqlx::query("UPDATE maintenance_template_tasks SET task_number = $2 WHERE id = $1")
+                .bind(task_id)
+                .bind(new_number)
+                .execute(&self.pool)
+                .await?;
         Ok(result.rows_affected() > 0)
     }
 }

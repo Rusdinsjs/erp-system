@@ -72,14 +72,14 @@ impl UserService {
         user.department_id = req.department_id;
         user.organization_id = req.organization_id;
 
-        let created_user = self
-            .repository
-            .create(&user)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?;
+        let created_user =
+            self.repository
+                .create(&user)
+                .await
+                .map_err(|e| DomainError::ExternalServiceError {
+                    service: "database".to_string(),
+                    message: e.to_string(),
+                })?;
 
         if let Some(emp_id) = req.employee_id {
             self.repository
@@ -107,18 +107,33 @@ impl UserService {
             None
         };
 
-        let allowed_group = req.allowed_asset_group.map(|g| if g.trim().is_empty() { "__CLEAR__".to_string() } else { g });
-        let dept = req.department.map(|d| if d.trim().is_empty() { "__CLEAR__".to_string() } else { d });
+        let allowed_group = req.allowed_asset_group.map(|g| {
+            if g.trim().is_empty() {
+                "__CLEAR__".to_string()
+            } else {
+                g
+            }
+        });
+        let dept = req.department.map(|d| {
+            if d.trim().is_empty() {
+                "__CLEAR__".to_string()
+            } else {
+                d
+            }
+        });
 
         // Synchronize user_roles table on role_codes or primary role change FIRST
         let role_codes_opt = req.role_codes.as_ref().map(|codes| {
-            codes.iter().map(|code| match code.as_str() {
-                "admin_alat_berat" => "admin_heavy_eq".to_string(),
-                "admin_infrastruktur" => "admin_infra".to_string(),
-                "admin_kendaraan" => "admin_vehicle".to_string(),
-                "administrator" => "admin".to_string(),
-                other => other.to_string(),
-            }).collect::<Vec<String>>()
+            codes
+                .iter()
+                .map(|code| match code.as_str() {
+                    "admin_alat_berat" => "admin_heavy_eq".to_string(),
+                    "admin_infrastruktur" => "admin_infra".to_string(),
+                    "admin_kendaraan" => "admin_vehicle".to_string(),
+                    "administrator" => "admin".to_string(),
+                    other => other.to_string(),
+                })
+                .collect::<Vec<String>>()
         });
 
         let mut final_role_code = req.role_code.as_ref().map(|code| match code.as_str() {
@@ -181,13 +196,12 @@ impl UserService {
 
         // Handle employee linking / unlinking
         if req.clear_employee_link == Some(true) {
-            self.repository
-                .unlink_employee(id)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
+            self.repository.unlink_employee(id).await.map_err(|e| {
+                DomainError::ExternalServiceError {
                     service: "database".to_string(),
                     message: e.to_string(),
-                })?;
+                }
+            })?;
         } else if let Some(emp_id) = req.employee_id {
             self.repository
                 .link_employee(id, emp_id)

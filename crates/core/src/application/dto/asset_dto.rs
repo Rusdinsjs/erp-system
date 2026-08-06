@@ -142,7 +142,7 @@ pub struct CreateAssetRequest {
     pub residual_value: Option<Decimal>,
     pub useful_life_months: Option<i32>,
     pub notes: Option<String>,
-    
+
     // General Details (assets.txt additions)
     pub description: Option<String>,
     pub acquisition_method: Option<String>,

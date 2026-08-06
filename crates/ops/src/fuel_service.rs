@@ -6,10 +6,10 @@ use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use management_system_core::application::services::approval_service::ModuleApprovalCallback;
+use management_system_core::domain::entities::{FuelLog, FuelRequestType};
 use management_system_core::domain::errors::DomainResult;
 use management_system_core::infrastructure::bus::EventBus;
 use management_system_core::infrastructure::repositories::{FuelAnalyticsData, FuelRepository};
-use management_system_core::domain::entities::{FuelLog, FuelRequestType};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct FuelRequest {
@@ -184,7 +184,7 @@ impl ModuleApprovalCallback for FuelService {
         notes: Option<String>,
     ) -> DomainResult<()> {
         let fuel_log_id = request.resource_id;
-        
+
         // Generate unique coupon code
         let now = Utc::now();
         let coupon_code = format!(
@@ -210,7 +210,7 @@ impl ModuleApprovalCallback for FuelService {
         notes: String,
     ) -> DomainResult<()> {
         let fuel_log_id = request.resource_id;
-        
+
         self.repo.reject(fuel_log_id, &notes).await.map_err(|e| {
             management_system_core::domain::errors::DomainError::Database(e.to_string())
         })?;

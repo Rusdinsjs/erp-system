@@ -51,12 +51,19 @@ pub async fn login(
 
     // QSEC-009: Check lockout status before proceeding with authentication
     if let Err(msg) = state.lockout_tracker.check_lockout(&email_clean).await {
-        tracing::warn!("SECURITY AUDIT LOGIN_BLOCKED: Email={} Reason=AccountLocked", email_clean);
+        tracing::warn!(
+            "SECURITY AUDIT LOGIN_BLOCKED: Email={} Reason=AccountLocked",
+            email_clean
+        );
         return Err(AppError::Forbidden(msg));
     }
 
     // Attempt authentication
-    match state.auth_service.login(&email_clean, &payload.password).await {
+    match state
+        .auth_service
+        .login(&email_clean, &payload.password)
+        .await
+    {
         Ok((user, token)) => {
             state.lockout_tracker.record_success(&email_clean).await;
 
@@ -81,7 +88,10 @@ pub async fn login(
             }))
         }
         Err(err) => {
-            let (count, is_locked) = state.lockout_tracker.record_failed_attempt(&email_clean).await;
+            let (count, is_locked) = state
+                .lockout_tracker
+                .record_failed_attempt(&email_clean)
+                .await;
             tracing::warn!(
                 "SECURITY AUDIT LOGIN_FAILED: Email={} FailedCount={} Locked={} Error={:?}",
                 email_clean,
@@ -107,7 +117,13 @@ pub async fn login(
 pub async fn register(
     State(state): State<AppState>,
     Json(payload): Json<management_system_core::application::dto::user_dto::CreateUserRequest>,
-) -> Result<(axum::http::StatusCode, Json<management_system_core::domain::entities::User>), AppError> {
+) -> Result<
+    (
+        axum::http::StatusCode,
+        Json<management_system_core::domain::entities::User>,
+    ),
+    AppError,
+> {
     if !state.allow_public_registration {
         return Err(AppError::Forbidden(
             "Public self-registration is disabled in production. Please contact an administrator for an invitation.".to_string(),

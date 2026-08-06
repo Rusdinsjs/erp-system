@@ -47,7 +47,8 @@ impl AppConfig {
     }
 
     pub fn is_production(&self) -> bool {
-        self.environment.eq_ignore_ascii_case("production") || self.environment.eq_ignore_ascii_case("prod")
+        self.environment.eq_ignore_ascii_case("production")
+            || self.environment.eq_ignore_ascii_case("prod")
     }
 
     /// Return sanitized database URL with password masked out (QSEC-010)

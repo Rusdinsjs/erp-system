@@ -175,32 +175,50 @@ impl AssetRepository {
             let vendor_name: Option<String> = r.get("vendor_name");
 
             // Fetch additional details
-            let land_details = sqlx::query_as::<_, crate::domain::entities::asset_details::LandDetails>("SELECT * FROM land_details WHERE asset_id = $1")
+            let land_details = sqlx::query_as::<
+                _,
+                crate::domain::entities::asset_details::LandDetails,
+            >("SELECT * FROM land_details WHERE asset_id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+            let building_details =
+                sqlx::query_as::<_, crate::domain::entities::asset_details::BuildingDetails>(
+                    "SELECT * FROM building_details WHERE asset_id = $1",
+                )
                 .bind(id)
                 .fetch_optional(&self.pool)
                 .await?;
 
-            let building_details = sqlx::query_as::<_, crate::domain::entities::asset_details::BuildingDetails>("SELECT * FROM building_details WHERE asset_id = $1")
+            let heavy_equipment_details =
+                sqlx::query_as::<_, crate::domain::entities::asset_details::HeavyEquipmentDetails>(
+                    "SELECT * FROM heavy_equipment_details WHERE asset_id = $1",
+                )
                 .bind(id)
                 .fetch_optional(&self.pool)
                 .await?;
 
-            let heavy_equipment_details = sqlx::query_as::<_, crate::domain::entities::asset_details::HeavyEquipmentDetails>("SELECT * FROM heavy_equipment_details WHERE asset_id = $1")
+            let machine_details = sqlx::query_as::<
+                _,
+                crate::domain::entities::asset_details::MachineDetails,
+            >("SELECT * FROM machine_details WHERE asset_id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+            let inventory_details =
+                sqlx::query_as::<_, crate::domain::entities::asset_details::InventoryDetails>(
+                    "SELECT * FROM inventory_details WHERE asset_id = $1",
+                )
                 .bind(id)
                 .fetch_optional(&self.pool)
                 .await?;
 
-            let machine_details = sqlx::query_as::<_, crate::domain::entities::asset_details::MachineDetails>("SELECT * FROM machine_details WHERE asset_id = $1")
-                .bind(id)
-                .fetch_optional(&self.pool)
-                .await?;
-
-            let inventory_details = sqlx::query_as::<_, crate::domain::entities::asset_details::InventoryDetails>("SELECT * FROM inventory_details WHERE asset_id = $1")
-                .bind(id)
-                .fetch_optional(&self.pool)
-                .await?;
-
-            let furniture_details = sqlx::query_as::<_, crate::domain::entities::asset_details::FurnitureDetails>("SELECT * FROM furniture_details WHERE asset_id = $1")
+            let furniture_details =
+                sqlx::query_as::<_, crate::domain::entities::asset_details::FurnitureDetails>(
+                    "SELECT * FROM furniture_details WHERE asset_id = $1",
+                )
                 .bind(id)
                 .fetch_optional(&self.pool)
                 .await?;
@@ -685,7 +703,7 @@ impl AssetRepository {
                 njop_value = EXCLUDED.njop_value,
                 gps_coordinates = EXCLUDED.gps_coordinates,
                 boundaries = EXCLUDED.boundaries
-            "#
+            "#,
         )
         .bind(details.asset_id)
         .bind(&details.certificate_number)
@@ -727,7 +745,7 @@ impl AssetRepository {
                 imb_number = EXCLUDED.imb_number,
                 slf_number = EXCLUDED.slf_number,
                 slf_expiry = EXCLUDED.slf_expiry
-            "#
+            "#,
         )
         .bind(details.asset_id)
         .bind(details.land_asset_id)
@@ -765,7 +783,7 @@ impl AssetRepository {
                 hour_meter = EXCLUDED.hour_meter,
                 certification_number = EXCLUDED.certification_number,
                 certification_expiry = EXCLUDED.certification_expiry
-            "#
+            "#,
         )
         .bind(details.asset_id)
         .bind(&details.equipment_type)
@@ -797,7 +815,7 @@ impl AssetRepository {
                 installation_year = EXCLUDED.installation_year,
                 operating_hours = EXCLUDED.operating_hours,
                 energy_source = EXCLUDED.energy_source
-            "#
+            "#,
         )
         .bind(details.asset_id)
         .bind(&details.machine_type)
@@ -825,7 +843,7 @@ impl AssetRepository {
                 warranty_expiry = EXCLUDED.warranty_expiry,
                 os_license = EXCLUDED.os_license,
                 mac_address = EXCLUDED.mac_address
-            "#
+            "#,
         )
         .bind(details.asset_id)
         .bind(&details.inventory_type)
@@ -853,7 +871,7 @@ impl AssetRepository {
                 dimensions = EXCLUDED.dimensions,
                 color = EXCLUDED.color,
                 capacity = EXCLUDED.capacity
-            "#
+            "#,
         )
         .bind(details.asset_id)
         .bind(&details.furniture_type)

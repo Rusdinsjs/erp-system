@@ -1,8 +1,8 @@
+use chrono::Utc;
 use management_system_core::application::dto::{CreateLeaveRequest, RejectLeaveRequest};
 use management_system_core::domain::entities::leave::LeaveRequest;
 use management_system_core::infrastructure::repositories::{EmployeeRepository, LeaveRepository};
 use management_system_core::shared::errors::AppError;
-use chrono::Utc;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -59,7 +59,9 @@ impl LeaveService {
 
         if req.status != "pending" {
             return Err(AppError::Domain(
-                management_system_core::domain::errors::DomainError::bad_request("Leave request is not pending"),
+                management_system_core::domain::errors::DomainError::bad_request(
+                    "Leave request is not pending",
+                ),
             ));
         }
 
@@ -94,7 +96,9 @@ impl LeaveService {
 
         if req.status != "pending" {
             return Err(AppError::Domain(
-                management_system_core::domain::errors::DomainError::bad_request("Leave request is not pending"),
+                management_system_core::domain::errors::DomainError::bad_request(
+                    "Leave request is not pending",
+                ),
             ));
         }
 

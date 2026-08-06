@@ -1,7 +1,7 @@
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{
     approval_repository::scan_approval_request::CreateApprovalRequest,
-    approval_repository::{ApprovalHistory, ApprovalRequest, ApprovalRepository},
+    approval_repository::{ApprovalHistory, ApprovalRepository, ApprovalRequest},
 };
 use async_trait::async_trait;
 use chrono::Utc;
@@ -73,19 +73,29 @@ impl ApprovalService {
         data: Option<JsonValue>,
     ) -> DomainResult<ApprovalRequest> {
         const VALID_ENTITY_TYPES: &[&str] = &[
-            "asset", "work_order", "loan", "lifecycle_transition",
-            "rental_request", "timesheet_verification", "conversion_request",
-            "fuel_request", "tax_renewal",
+            "asset",
+            "work_order",
+            "loan",
+            "lifecycle_transition",
+            "rental_request",
+            "timesheet_verification",
+            "conversion_request",
+            "fuel_request",
+            "tax_renewal",
         ];
 
         if !VALID_ENTITY_TYPES.contains(&resource_type) {
             return Err(DomainError::validation(
                 "resource_type",
-                &format!("Invalid entity type: {}. Valid types: {:?}", resource_type, VALID_ENTITY_TYPES),
+                &format!(
+                    "Invalid entity type: {}. Valid types: {:?}",
+                    resource_type, VALID_ENTITY_TYPES
+                ),
             ));
         }
 
-        let workflow = self.repository
+        let workflow = self
+            .repository
             .find_workflow_by_entity(resource_type)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
@@ -95,7 +105,12 @@ impl ApprovalService {
 
         let (workflow_id, required_levels) = match workflow {
             Some(w) => (Some(w.id), Some(w.approval_levels)),
-            None => return Err(DomainError::validation("workflow", "No active workflow found for this entity")),
+            None => {
+                return Err(DomainError::validation(
+                    "workflow",
+                    "No active workflow found for this entity",
+                ))
+            }
         };
 
         let req = CreateApprovalRequest {
@@ -121,7 +136,8 @@ impl ApprovalService {
         // Find workflows where user's role matches any approval level
         // Super admin bypasses all checks
         if user_role_code == "super_admin" {
-            return self.repository
+            return self
+                .repository
                 .list_pending_all_levels()
                 .await
                 .map_err(|e| DomainError::ExternalServiceError {
@@ -167,20 +183,23 @@ impl ApprovalService {
             .ok_or_else(|| DomainError::not_found("ApprovalRequest", request_id.to_string()))?;
 
         // Fetch workflow
-        let workflow = self.repository
+        let workflow = self
+            .repository
             .find_workflow_by_entity(&request.resource_type)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?
-            .ok_or_else(|| DomainError::validation("workflow", "No active workflow found for this entity"))?;
+            .ok_or_else(|| {
+                DomainError::validation("workflow", "No active workflow found for this entity")
+            })?;
 
         // QSEC-004: Validate approval transition eligibility & terminal state
         validate_approval_transition(&request, approver_id, &role_code, &workflow)?;
 
         let is_final = request.current_approval_level >= workflow.approval_levels;
-        
+
         let status = if is_final {
             format!("APPROVED_FINAL")
         } else {
@@ -190,7 +209,13 @@ impl ApprovalService {
         let previous_status = request.status.clone();
 
         self.repository
-            .update_status(request_id, &status, request.current_approval_level, Some(approver_id), notes.clone())
+            .update_status(
+                request_id,
+                &status,
+                request.current_approval_level,
+                Some(approver_id),
+                notes.clone(),
+            )
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
@@ -220,7 +245,9 @@ impl ApprovalService {
                     message: e.to_string(),
                 })?;
         } else {
-            self.repository.mark_final_approval(request_id, approver_id).await
+            self.repository
+                .mark_final_approval(request_id, approver_id)
+                .await
                 .map_err(|e| DomainError::ExternalServiceError {
                     service: "database".to_string(),
                     message: e.to_string(),
@@ -228,14 +255,18 @@ impl ApprovalService {
 
             if let Some(module) = &request.module_callback {
                 if let Some(callback) = self.get_callback(module) {
-                    let updated_request = self.repository.find_by_id(request_id).await
-                        .map_err(|e| DomainError::ExternalServiceError {
-                            service: "database".to_string(),
-                            message: e.to_string(),
+                    let updated_request =
+                        self.repository.find_by_id(request_id).await.map_err(|e| {
+                            DomainError::ExternalServiceError {
+                                service: "database".to_string(),
+                                message: e.to_string(),
+                            }
                         })?;
-                    
+
                     if let Some(req) = updated_request {
-                        callback.on_final_approval(&req, approver_id, notes).await
+                        callback
+                            .on_final_approval(&req, approver_id, notes)
+                            .await
                             .map_err(|e| DomainError::ExternalServiceError {
                                 service: "database".to_string(),
                                 message: format!("Module callback failed: {}", e),
@@ -252,9 +283,7 @@ impl ApprovalService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?
-            .ok_or_else(|| {
-                DomainError::not_found("Approval request", request_id.to_string())
-            })
+            .ok_or_else(|| DomainError::not_found("Approval request", request_id.to_string()))
     }
 
     pub async fn reject_request(
@@ -274,21 +303,25 @@ impl ApprovalService {
             })?
             .ok_or_else(|| DomainError::not_found("ApprovalRequest", request_id.to_string()))?;
 
-        let workflow = self.repository
+        let workflow = self
+            .repository
             .find_workflow_by_entity(&request.resource_type)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?
-            .ok_or_else(|| DomainError::validation("workflow", "No active workflow found for this entity"))?;
+            .ok_or_else(|| {
+                DomainError::validation("workflow", "No active workflow found for this entity")
+            })?;
 
         // QSEC-004: Validate rejection authorization & terminal state
         validate_approval_transition(&request, approver_id, role_code, &workflow)?;
 
         let previous_status = request.status.clone();
 
-        let updated_request = self.repository
+        let updated_request = self
+            .repository
             .update_status(
                 request_id,
                 "REJECTED",
@@ -318,7 +351,9 @@ impl ApprovalService {
 
         if let Some(module) = &request.module_callback {
             if let Some(callback) = self.get_callback(module) {
-                callback.on_rejection(&request, approver_id, notes).await
+                callback
+                    .on_rejection(&request, approver_id, notes)
+                    .await
                     .map_err(|e| DomainError::ExternalServiceError {
                         service: "database".to_string(),
                         message: format!("Module callback failed: {}", e),
@@ -348,14 +383,17 @@ impl ApprovalService {
             })?
             .ok_or_else(|| DomainError::not_found("ApprovalRequest", request_id.to_string()))?;
 
-        let workflow = self.repository
+        let workflow = self
+            .repository
             .find_workflow_by_entity(&request.resource_type)
             .await
             .map_err(|e| DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?
-            .ok_or_else(|| DomainError::validation("workflow", "No active workflow found for this entity"))?;
+            .ok_or_else(|| {
+                DomainError::validation("workflow", "No active workflow found for this entity")
+            })?;
 
         // QSEC-004: Validate delegation authorization & state
         validate_approval_transition(&request, delegator_id, role_code, &workflow)?;
@@ -406,9 +444,7 @@ impl ApprovalService {
                 service: "database".to_string(),
                 message: e.to_string(),
             })?
-            .ok_or_else(|| {
-                DomainError::not_found("Approval request", request_id.to_string())
-            })
+            .ok_or_else(|| DomainError::not_found("Approval request", request_id.to_string()))
     }
 
     pub async fn find_active_request(
@@ -583,4 +619,3 @@ mod tests {
         assert!(result.is_ok());
     }
 }
-

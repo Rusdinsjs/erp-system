@@ -176,10 +176,11 @@ impl ClientRepository {
 
     /// Soft delete (deactivate) a client
     pub async fn soft_delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("UPDATE clients SET is_active = false, updated_at = NOW() WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        let result =
+            sqlx::query("UPDATE clients SET is_active = false, updated_at = NOW() WHERE id = $1")
+                .bind(id)
+                .execute(&self.pool)
+                .await?;
         Ok(result.rows_affected() > 0)
     }
 
@@ -187,15 +188,42 @@ impl ClientRepository {
     pub async fn force_delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
         let mut tx = self.pool.begin().await?;
 
-        let _ = sqlx::query("DELETE FROM sales_invoices WHERE client_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM sales_shipments WHERE client_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM sales_orders WHERE client_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM sales_quotes WHERE client_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM purchase_bills WHERE vendor_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM purchase_orders WHERE vendor_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM purchase_quotes WHERE vendor_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM rentals WHERE client_id = $1").bind(id).execute(&mut *tx).await;
-        let _ = sqlx::query("DELETE FROM rental_contracts WHERE client_id = $1").bind(id).execute(&mut *tx).await;
+        let _ = sqlx::query("DELETE FROM sales_invoices WHERE client_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM sales_shipments WHERE client_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM sales_orders WHERE client_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM sales_quotes WHERE client_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM purchase_bills WHERE vendor_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM purchase_orders WHERE vendor_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM purchase_quotes WHERE vendor_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM rentals WHERE client_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
+        let _ = sqlx::query("DELETE FROM rental_contracts WHERE client_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await;
 
         let result = sqlx::query("DELETE FROM clients WHERE id = $1")
             .bind(id)

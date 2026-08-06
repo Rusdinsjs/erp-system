@@ -7,7 +7,6 @@ use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use management_system_core::infrastructure::repositories::RentalRepository;
 use management_system_core::application::dto::{
     ApproveRentalRequest, CreateRentalRateRequest, CreateRentalRequest, DispatchRentalRequest,
     RejectRentalRequest, RentalScheduleItem, ReturnRentalRequest, UpdateRentalRateRequest,
@@ -17,6 +16,7 @@ use management_system_core::domain::entities::{
     AssetState, Rental, RentalItem, RentalRate, RentalStatus,
 };
 use management_system_core::domain::errors::{DomainError, DomainResult};
+use management_system_core::infrastructure::repositories::RentalRepository;
 use management_system_core::infrastructure::repositories::{
     AssetRepository, ClientRepository, EmployeeRepository,
 };
@@ -583,14 +583,12 @@ impl RentalService {
     /// Delete a rental order
     pub async fn delete_rental(&self, id: Uuid) -> DomainResult<()> {
         let _existing = self.find_rental(id).await?;
-        let deleted = self
-            .rental_repo
-            .delete_rental(id)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
+        let deleted = self.rental_repo.delete_rental(id).await.map_err(|e| {
+            DomainError::ExternalServiceError {
                 service: "database".to_string(),
                 message: e.to_string(),
-            })?;
+            }
+        })?;
 
         if deleted {
             Ok(())

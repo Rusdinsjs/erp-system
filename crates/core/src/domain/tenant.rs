@@ -1,15 +1,15 @@
 //! Explicit Tenant & Company Context Kernel (QTEN-001 & QTEN-002)
 
-use uuid::Uuid;
 use crate::domain::entities::UserClaims;
 use crate::domain::errors::{DomainError, DomainResult};
+use uuid::Uuid;
 
 /// Explicit Tenant & Company Context carried through handler, service, and repository layers (QTEN-001)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TenantContext {
     pub tenant_id: Uuid,          // Primary Organization / Tenant ID
-    pub company_id: Option<Uuid>,    // Selected Operating Company ID (if multi-company)
-    pub is_super_tenant: bool,       // System / SuperAdmin global scope
+    pub company_id: Option<Uuid>, // Selected Operating Company ID (if multi-company)
+    pub is_super_tenant: bool,    // System / SuperAdmin global scope
 }
 
 impl TenantContext {
@@ -49,8 +49,8 @@ impl TenantContext {
             .as_ref()
             .ok_or_else(|| DomainError::unauthorized("missing_tenant_context"))?;
 
-        let tenant_id = Uuid::parse_str(org_str)
-            .map_err(|_| DomainError::unauthorized("invalid_tenant_id"))?;
+        let tenant_id =
+            Uuid::parse_str(org_str).map_err(|_| DomainError::unauthorized("invalid_tenant_id"))?;
 
         Ok(Self {
             tenant_id,
@@ -160,7 +160,8 @@ mod tests {
         assert_eq!(audit_clause, "a.organization_id = $1");
 
         // Super tenant audit scope
-        let super_audit_scope = QueryScope::new(TenantContext::super_tenant()).with_include_deleted(true);
+        let super_audit_scope =
+            QueryScope::new(TenantContext::super_tenant()).with_include_deleted(true);
         assert_eq!(super_audit_scope.build_where_clause(None), "1=1");
     }
 }

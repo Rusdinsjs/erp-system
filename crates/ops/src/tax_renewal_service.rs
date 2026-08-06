@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use management_system_finance::FinanceService;
+use chrono::{NaiveDate, Utc};
 use management_system_core::application::services::approval_service::ModuleApprovalCallback;
 use management_system_core::domain::entities::{
     CreateBillItemRequest, CreatePurchaseBillRequest, TaxRenewal, UpdateTaxRenewalCostRequest,
@@ -9,7 +9,7 @@ use management_system_core::domain::errors::DomainError;
 use management_system_core::infrastructure::repositories::{
     AssetRepository, TaxRenewalRepository, VendorRepository,
 };
-use chrono::{NaiveDate, Utc};
+use management_system_finance::FinanceService;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -345,10 +345,10 @@ impl ModuleApprovalCallback for TaxRenewalService {
         notes: Option<String>,
     ) -> Result<(), DomainError> {
         let renewal_id = request.resource_id;
-        
+
         // Approve the renewal - this creates a purchase bill
         self.approve_renewal(renewal_id, notes).await?;
-        
+
         Ok(())
     }
 
@@ -359,10 +359,10 @@ impl ModuleApprovalCallback for TaxRenewalService {
         notes: String,
     ) -> Result<(), DomainError> {
         let renewal_id = request.resource_id;
-        
+
         // Reject the renewal
         self.reject_renewal(renewal_id, Some(notes)).await?;
-        
+
         Ok(())
     }
 

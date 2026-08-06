@@ -9,13 +9,13 @@ use crate::application::dto::contract_dto::{
     DelegateApprovalRequest, RenewalOptionsResponse, RenewalRequest, RenewalResponse,
     UpdateContractRequest,
 };
+use crate::application::services::approval_service::ModuleApprovalCallback;
 use crate::domain::entities::{ContractApproval, ContractRenewal, RentalContract};
 use crate::domain::errors::{DomainError, DomainResult};
 use crate::infrastructure::repositories::{
     ContractApprovalRepository, ContractDocumentRepository, ContractRenewalRepository,
     ContractRepository, RentalRepository,
 };
-use crate::application::services::approval_service::ModuleApprovalCallback;
 
 #[derive(Clone)]
 pub struct ContractService {
@@ -892,10 +892,11 @@ impl ModuleApprovalCallback for ContractService {
         notes: Option<String>,
     ) -> DomainResult<()> {
         let contract_id = request.resource_id;
-        
+
         // Approve the contract - this will activate it if it's the final step
-        self.approve_contract(contract_id, approver_id, notes).await?;
-        
+        self.approve_contract(contract_id, approver_id, notes)
+            .await?;
+
         Ok(())
     }
 
@@ -906,10 +907,11 @@ impl ModuleApprovalCallback for ContractService {
         notes: String,
     ) -> DomainResult<()> {
         let contract_id = request.resource_id;
-        
+
         // Reject the contract
-        self.reject_contract(contract_id, approver_id, Some(notes)).await?;
-        
+        self.reject_contract(contract_id, approver_id, Some(notes))
+            .await?;
+
         Ok(())
     }
 

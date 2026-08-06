@@ -57,7 +57,12 @@ pub async fn create_role(
 
     let role = state
         .rbac_service
-        .create_role(&payload.code, &payload.name, description, payload.role_level)
+        .create_role(
+            &payload.code,
+            &payload.name,
+            description,
+            payload.role_level,
+        )
         .await?;
 
     Ok(Json(role))
@@ -177,7 +182,10 @@ pub async fn assign_role(
     Path((target_user_id, role_code)): Path<(Uuid, String)>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let actor = management_system_core::domain::authz::ActorContext::from_claims(&claims);
-    let target_org = claims.org.as_deref().and_then(|id| Uuid::parse_str(id).ok());
+    let target_org = claims
+        .org
+        .as_deref()
+        .and_then(|id| Uuid::parse_str(id).ok());
 
     state
         .rbac_service
@@ -185,7 +193,10 @@ pub async fn assign_role(
         .await?;
 
     // QSEC-008: Invalidate active sessions of target user immediately
-    state.session_tracker.invalidate_user_sessions(target_user_id).await;
+    state
+        .session_tracker
+        .invalidate_user_sessions(target_user_id)
+        .await;
 
     Ok(Json(ApiResponse::success_with_message((), "Role assigned")))
 }
@@ -196,7 +207,10 @@ pub async fn remove_role(
     Path((target_user_id, role_code)): Path<(Uuid, String)>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
     let actor = management_system_core::domain::authz::ActorContext::from_claims(&claims);
-    let target_org = claims.org.as_deref().and_then(|id| Uuid::parse_str(id).ok());
+    let target_org = claims
+        .org
+        .as_deref()
+        .and_then(|id| Uuid::parse_str(id).ok());
 
     state
         .rbac_service
@@ -204,7 +218,10 @@ pub async fn remove_role(
         .await?;
 
     // QSEC-008: Invalidate active sessions of target user immediately
-    state.session_tracker.invalidate_user_sessions(target_user_id).await;
+    state
+        .session_tracker
+        .invalidate_user_sessions(target_user_id)
+        .await;
 
     Ok(Json(ApiResponse::success_with_message((), "Role removed")))
 }

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { toDecimalString, multiplyDecimal, calculateInvoiceTotal, deriveInvoiceStates } from '../utils/decimal';
+import { toDecimalString, multiplyDecimalStrings, calculateInvoiceTotalString, deriveInvoiceStates } from '../utils/decimal';
 import type { CreateSalesInvoiceRequest, SalesInvoice } from '../types/finance';
 
-describe('QARC-011 Frontend Contract & Unit Tests', () => {
-    describe('Decimal Serialization & Exactness', () => {
+describe('QARC-011 & 3R.1-003 Frontend Contract & Unit Tests', () => {
+    describe('Exact Decimal Serialization & String Arithmetic (3R.1-003)', () => {
         it('preserves exact decimal string formatting without floating point loss', () => {
             expect(toDecimalString(1500000.5)).toBe('1500000.50');
             expect(toDecimalString('125.75')).toBe('125.75');
@@ -11,19 +11,28 @@ describe('QARC-011 Frontend Contract & Unit Tests', () => {
             expect(toDecimalString(null)).toBe('0.00');
         });
 
-        it('multiplies quantity and unit price deterministically', () => {
-            expect(multiplyDecimal(3, 33.33)).toBe(99.99);
-            expect(multiplyDecimal('10', '150.50')).toBe(1505);
-            expect(multiplyDecimal(0.1, 0.2)).toBe(0.02);
+        it('handles exact 0.1 + 0.2 and 1.005 rounding without binary float precision errors', () => {
+            // 1.005 in binary float rounding
+            expect(toDecimalString('1.005')).toBe('1.01');
+            expect(toDecimalString(1.005)).toBe('1.01');
+
+            // Exact multiplication
+            expect(multiplyDecimalStrings('0.1', '0.2')).toBe('0.02');
+            expect(multiplyDecimalStrings('3', '33.33')).toBe('99.99');
         });
 
-        it('calculates exact sum of multiple line items', () => {
+        it('handles large values > Number.MAX_SAFE_INTEGER with decimal fraction without loss', () => {
+            const largeVal = '9007199254740993.01';
+            expect(toDecimalString(largeVal)).toBe('9007199254740993.01');
+        });
+
+        it('calculates exact sum of multiple line items as string', () => {
             const items = [
                 { quantity: 2, unit_price: 50000 },
                 { quantity: 3, unit_price: 25000 },
-                { quantity: 1, unit_price: 12500.5 }
+                { quantity: 1, unit_price: '12500.50' }
             ];
-            expect(calculateInvoiceTotal(items)).toBe(187500.5);
+            expect(calculateInvoiceTotalString(items)).toBe('187500.50');
         });
     });
 
@@ -44,11 +53,11 @@ describe('QARC-011 Frontend Contract & Unit Tests', () => {
             expect(payload.items).toHaveLength(2);
             expect(payload.items[0].description).toBe('Consulting Fee');
             expect(payload.items[1].quantity).toBe(1);
-            expect(calculateInvoiceTotal(payload.items)).toBe(2000000);
+            expect(calculateInvoiceTotalString(payload.items)).toBe('2000000.00');
         });
     });
 
-    describe('Separated State Representation (QARC-011)', () => {
+    describe('Separated State Representation (QARC-011 & 3R.1-006)', () => {
         it('derives correct separated states for a draft unpaid invoice', () => {
             const inv: Partial<SalesInvoice> = {
                 status: 'draft',
@@ -62,25 +71,28 @@ describe('QARC-011 Frontend Contract & Unit Tests', () => {
             expect(states.posting).toBe('unposted');
         });
 
-        it('derives correct separated states for a posted partially-paid invoice', () => {
+        it('does NOT infer posted state from journal_entry_id proxy (3R.1-006)', () => {
+            // An invoice with a draft journal entry id is UNPOSTED if posting_status is not 'posted'
             const inv: Partial<SalesInvoice> = {
                 status: 'submitted',
                 total_amount: 1000000,
                 amount_paid: 500000,
-                journal_entry_id: 'je-789'
+                journal_entry_id: 'je-789',
+                posting_status: 'unposted'
             };
             const states = deriveInvoiceStates(inv);
             expect(states.lifecycle).toBe('submitted');
             expect(states.payment).toBe('partially_paid');
-            expect(states.posting).toBe('posted');
+            expect(states.posting).toBe('unposted'); // 3R.1-006 requirement verified!
         });
 
-        it('derives correct separated states for a posted fully-paid invoice', () => {
+        it('derives posted state ONLY when posting_status is explicitly posted', () => {
             const inv: Partial<SalesInvoice> = {
                 status: 'submitted',
                 total_amount: 1000000,
                 amount_paid: 1000000,
-                journal_entry_id: 'je-789'
+                journal_entry_id: 'je-789',
+                posting_status: 'posted'
             };
             const states = deriveInvoiceStates(inv);
             expect(states.lifecycle).toBe('submitted');
@@ -110,7 +122,7 @@ describe('QARC-011 Frontend Contract & Unit Tests', () => {
                 client_id: 'client-abc',
                 date: '2026-08-06',
                 due_date: '2026-08-20',
-                subject: 'Project Phase 3R',
+                subject: 'Project Phase 3R.1',
                 subtotal: 1000000,
                 tax: 0,
                 total_amount: 1000000,

@@ -1,10 +1,10 @@
 use crate::api::server::AppState;
-use management_system_core::domain::entities::Location;
 use axum::{
-    extract::{Path, State, Extension},
+    extract::{Extension, Path, State},
     response::Json,
 };
 use management_system_core::domain::entities::user::UserClaims;
+use management_system_core::domain::entities::Location;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -72,7 +72,9 @@ pub async fn create_location(
     if claims.role_level > 2 {
         return Err((
             axum::http::StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" })),
+            Json(
+                json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" }),
+            ),
         ));
     }
     let location = Location {
@@ -108,7 +110,9 @@ pub async fn update_location(
     if claims.role_level > 2 {
         return Err((
             axum::http::StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" })),
+            Json(
+                json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" }),
+            ),
         ));
     }
     // For update, we might need to fetch existing first to keep created_at, or just overwrite.
@@ -151,7 +155,9 @@ pub async fn delete_location(
     if claims.role_level > 2 {
         return Err((
             axum::http::StatusCode::FORBIDDEN,
-            Json(json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" })),
+            Json(
+                json!({ "error": "Hanya Super Admin (L1) dan Manager (L2) yang dapat mengelola lokasi" }),
+            ),
         ));
     }
     state

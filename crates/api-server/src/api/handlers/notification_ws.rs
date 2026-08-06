@@ -1,7 +1,7 @@
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        Query, State, WebSocketUpgrade, Request,
+        Query, Request, State, WebSocketUpgrade,
     },
     http::{header, StatusCode},
     response::IntoResponse,
@@ -39,7 +39,9 @@ pub async fn ws_handler(
     let token_str = match token {
         Some(t) => t,
         None => {
-            tracing::warn!("WebSocket Handshake REJECTED: Anonymous connection attempt without token");
+            tracing::warn!(
+                "WebSocket Handshake REJECTED: Anonymous connection attempt without token"
+            );
             return Err(StatusCode::UNAUTHORIZED);
         }
     };
@@ -48,7 +50,10 @@ pub async fn ws_handler(
     let claims = match decode_token(&token_str, &state.jwt_config) {
         Ok(c) => c,
         Err(e) => {
-            tracing::warn!("WebSocket Handshake REJECTED: Invalid/expired token: {:?}", e);
+            tracing::warn!(
+                "WebSocket Handshake REJECTED: Invalid/expired token: {:?}",
+                e
+            );
             return Err(StatusCode::UNAUTHORIZED);
         }
     };
@@ -69,7 +74,10 @@ async fn handle_socket(
     let session_id = Uuid::new_v4();
     let user_id = claims.user_id();
 
-    let org_id = claims.org.as_deref().and_then(|id| Uuid::parse_str(id).ok());
+    let org_id = claims
+        .org
+        .as_deref()
+        .and_then(|id| Uuid::parse_str(id).ok());
 
     // Register authenticated session with user & tenant context
     let session_info = WsSessionInfo {
@@ -82,7 +90,10 @@ async fn handle_socket(
     };
 
     state.ws_manager.register(session_info).await;
-    info!("Authenticated WebSocket connected: session={} user={}", session_id, user_id);
+    info!(
+        "Authenticated WebSocket connected: session={} user={}",
+        session_id, user_id
+    );
 
     // Spawn send task
     let mut send_task = tokio::spawn(async move {
@@ -108,5 +119,8 @@ async fn handle_socket(
     }
 
     state.ws_manager.unregister(&session_id).await;
-    info!("WebSocket disconnected: session={} user={}", session_id, user_id);
+    info!(
+        "WebSocket disconnected: session={} user={}",
+        session_id, user_id
+    );
 }

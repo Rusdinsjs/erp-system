@@ -11,11 +11,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::api::server::AppState;
-use management_system_ops::AttendanceService;
 use management_system_core::domain::entities::{
     AttendanceRecord, CheckInRequest, CheckOutRequest, TodayAttendanceStatus, UserClaims,
 };
 use management_system_core::shared::errors::AppError;
+use management_system_ops::AttendanceService;
 
 /// Query params for attendance history
 #[derive(Debug, Deserialize)]

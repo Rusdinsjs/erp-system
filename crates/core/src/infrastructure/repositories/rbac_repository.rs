@@ -28,11 +28,13 @@ impl RbacRepository {
             "administrator" => "admin",
             other => other,
         };
-        sqlx::query_as::<_, Role>("SELECT * FROM roles WHERE code = $1 OR code = $2 ORDER BY role_level ASC LIMIT 1")
-            .bind(canonical_code)
-            .bind(code)
-            .fetch_optional(&self.pool)
-            .await
+        sqlx::query_as::<_, Role>(
+            "SELECT * FROM roles WHERE code = $1 OR code = $2 ORDER BY role_level ASC LIMIT 1",
+        )
+        .bind(canonical_code)
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
     }
 
     // --- Permission Methods ---
@@ -272,12 +274,10 @@ impl RbacRepository {
 
     /// Delete a role (only non-system roles)
     pub async fn delete_role(&self, role_id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query(
-            "DELETE FROM roles WHERE id = $1 AND is_system = false",
-        )
-        .bind(role_id)
-        .execute(&self.pool)
-        .await?;
+        let result = sqlx::query("DELETE FROM roles WHERE id = $1 AND is_system = false")
+            .bind(role_id)
+            .execute(&self.pool)
+            .await?;
         Ok(result.rows_affected() > 0)
     }
 

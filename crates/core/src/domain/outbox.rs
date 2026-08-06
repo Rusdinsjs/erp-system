@@ -28,11 +28,11 @@ pub enum OutboxStatus {
 impl OutboxStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
-            OutboxStatus::Pending     => "PENDING",
-            OutboxStatus::Processing  => "PROCESSING",
-            OutboxStatus::Completed   => "COMPLETED",
-            OutboxStatus::Failed      => "FAILED",
-            OutboxStatus::DeadLetter  => "DEAD_LETTER",
+            OutboxStatus::Pending => "PENDING",
+            OutboxStatus::Processing => "PROCESSING",
+            OutboxStatus::Completed => "COMPLETED",
+            OutboxStatus::Failed => "FAILED",
+            OutboxStatus::DeadLetter => "DEAD_LETTER",
         }
     }
 }

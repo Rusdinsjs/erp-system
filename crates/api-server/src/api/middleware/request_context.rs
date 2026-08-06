@@ -1,11 +1,6 @@
 //! Request Execution Context Middleware (QTEN-003)
 
-use axum::{
-    extract::Request,
-    http::StatusCode,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
 use uuid::Uuid;
 
 use management_system_core::domain::entities::UserClaims;

@@ -96,13 +96,12 @@ impl IdempotencyStore {
         .map_err(|e| DomainError::Database(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            let row: (String,) = sqlx::query_as(
-                "SELECT status FROM idempotency_log WHERE idempotency_key = $1",
-            )
-            .bind(&ctx.idempotency_key)
-            .fetch_one(uow.conn())
-            .await
-            .map_err(|e| DomainError::Database(e.to_string()))?;
+            let row: (String,) =
+                sqlx::query_as("SELECT status FROM idempotency_log WHERE idempotency_key = $1")
+                    .bind(&ctx.idempotency_key)
+                    .fetch_one(uow.conn())
+                    .await
+                    .map_err(|e| DomainError::Database(e.to_string()))?;
 
             if row.0 == "COMPLETED" {
                 return Ok(false);

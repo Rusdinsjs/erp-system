@@ -148,7 +148,9 @@ impl AssetState {
                 Self::InInventory | Self::Disposed | Self::Sold | Self::Archived
             ),
             Self::Disposed | Self::Sold => matches!(target, Self::Archived),
-            Self::LostStolen => matches!(target, Self::InInventory | Self::Retired | Self::Archived),
+            Self::LostStolen => {
+                matches!(target, Self::InInventory | Self::Retired | Self::Archived)
+            }
             Self::Archived => matches!(target, Self::InInventory),
         }
     }
@@ -162,7 +164,9 @@ impl AssetState {
 
         match self {
             Self::Planning => transitions.extend([Self::Procurement, Self::Archived]),
-            Self::Procurement => transitions.extend([Self::Received, Self::Planning, Self::Archived]),
+            Self::Procurement => {
+                transitions.extend([Self::Received, Self::Planning, Self::Archived])
+            }
             Self::Received => transitions.extend([
                 Self::InInventory,
                 Self::Deployed,
@@ -224,7 +228,9 @@ impl AssetState {
                 Self::Archived,
             ]),
             Self::Disposed | Self::Sold => transitions.push(Self::Archived),
-            Self::LostStolen => transitions.extend([Self::InInventory, Self::Retired, Self::Archived]),
+            Self::LostStolen => {
+                transitions.extend([Self::InInventory, Self::Retired, Self::Archived])
+            }
             Self::Archived => transitions.push(Self::InInventory),
         }
 

@@ -68,7 +68,10 @@ impl ApprovalEntityTypeRepository {
         Ok(rec)
     }
 
-    pub async fn create(&self, payload: CreateEntityTypeRequest) -> DomainResult<ApprovalEntityType> {
+    pub async fn create(
+        &self,
+        payload: CreateEntityTypeRequest,
+    ) -> DomainResult<ApprovalEntityType> {
         let valid_value = payload
             .value
             .to_lowercase()

@@ -76,7 +76,12 @@ pub async fn list_assets(
 
     let result = state
         .asset_service
-        .list(params.page(), params.per_page(), department_filter, asset_group_filter)
+        .list(
+            params.page(),
+            params.per_page(),
+            department_filter,
+            asset_group_filter,
+        )
         .await?;
     Ok(Json(result))
 }
@@ -103,9 +108,13 @@ pub async fn search_assets(
     }
 
     match claims.role.as_str() {
-        "admin_alat_berat" | "admin_heavy_eq" => params.asset_group = Some("ALAT_BERAT".to_string()),
+        "admin_alat_berat" | "admin_heavy_eq" => {
+            params.asset_group = Some("ALAT_BERAT".to_string())
+        }
         "admin_kendaraan" | "admin_vehicle" => params.asset_group = Some("KENDARAAN".to_string()),
-        "admin_infrastruktur" | "admin_infra" => params.asset_group = Some("INFRASTRUKTUR".to_string()),
+        "admin_infrastruktur" | "admin_infra" => {
+            params.asset_group = Some("INFRASTRUKTUR".to_string())
+        }
         _ => {
             if params.asset_group.is_none() {
                 params.asset_group = claims.allowed_asset_group.clone();
@@ -143,7 +152,9 @@ pub async fn get_asset(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 
@@ -293,7 +304,9 @@ pub async fn update_asset(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 
@@ -333,7 +346,9 @@ pub async fn sell_asset(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 
@@ -391,7 +406,9 @@ pub async fn delete_asset(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 
@@ -430,7 +447,9 @@ pub async fn add_document_to_asset(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 
@@ -488,7 +507,9 @@ pub async fn get_asset_documents(
     if let Some(group) = allowed_group {
         let asset_group = state.asset_service.get_asset_group(id).await?;
         if asset_group.as_deref() != Some(group) {
-            return Err(AppError::Forbidden("Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string()));
+            return Err(AppError::Forbidden(
+                "Akses ditolak: Aset ini di luar wewenang kategori kelompok aset Anda".to_string(),
+            ));
         }
     }
 

@@ -20,14 +20,15 @@ use management_system_core::infrastructure::repositories::LeaveRepository;
 use management_system_core::infrastructure::repositories::{
     ApprovalRepository, AssetExpenseRepository, AssetRepository, AuditRepository,
     CategoryRepository, CategoryTemplateRepository, ClientRepository, ContractDocumentRepository,
-    ConversionRepository, EmployeeRepository, FinanceRepository, FuelRepository,
-    InventoryRepository, JournalRepository, LifecycleRepository, LoanRepository,
-    MaintenanceRepository, MaintenanceTemplateRepository, NotificationRepository, RbacRepository,
-    RentalRepository, SensorRepository, SettingsRepository, TaxRenewalRepository,
-    TimesheetRepository, UserRepository, VendorRepository, WorkOrderRepository,
+    ConversionRepository, EmployeeRepository, FuelRepository, InventoryRepository,
+    JournalRepository, LifecycleRepository, LoanRepository, MaintenanceRepository,
+    MaintenanceTemplateRepository, NotificationRepository, RbacRepository, RentalRepository,
+    SensorRepository, SettingsRepository, TaxRenewalRepository, TimesheetRepository,
+    UserRepository, VendorRepository, WorkOrderRepository,
 };
 use management_system_core::infrastructure::storage::FileStorage;
 use management_system_core::shared::utils::jwt::JwtConfig;
+use management_system_finance::repositories::FinanceRepository;
 use management_system_finance::{AssetExpenseService, DepreciationService, JournalService};
 use management_system_ops::{FuelService, RentalService, TaxRenewalService, TimesheetService};
 use std::sync::Arc;
@@ -164,7 +165,7 @@ impl AppState {
         // Create services
         let approval_repo_arc = std::sync::Arc::new(approval_repo);
         let mut approval_service = ApprovalService::new(approval_repo_arc.clone());
-        
+
         // We need to register callbacks after creating all services
         // So we'll do it after all services are created
         let asset_service = management_system_assets::AssetService::new(
@@ -207,7 +208,8 @@ impl AppState {
         );
         let contract_template_service =
             ContractTemplateService::new(contract_template_repo.clone());
-        let loan_service = LoanService::new(loan_repo.clone(), asset_repo.clone(), event_bus.clone());
+        let loan_service =
+            LoanService::new(loan_repo.clone(), asset_repo.clone(), event_bus.clone());
         let maintenance_service = MaintenanceService::new(
             maintenance_repo.clone(),
             asset_repo.clone(),
@@ -295,7 +297,7 @@ impl AppState {
         let report_service = ReportService::new(
             asset_repo.clone(),
             maintenance_repo.clone(),
-            finance_repo.clone(),
+            pool.clone(),
             (*settings_repo).clone(),
             fuel_repo.clone(),
             loan_repo.clone(),
@@ -390,7 +392,8 @@ impl AppState {
                 .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
                 .unwrap_or(false),
             session_tracker: management_system_core::infrastructure::auth::SessionTracker::new(),
-            lockout_tracker: management_system_core::infrastructure::auth::LoginLockoutTracker::new(),
+            lockout_tracker: management_system_core::infrastructure::auth::LoginLockoutTracker::new(
+            ),
         }
     }
 }

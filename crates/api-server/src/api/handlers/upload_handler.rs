@@ -22,7 +22,10 @@ pub async fn upload_file(
     State(_state): State<AppState>,
     mut multipart: Multipart,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(">>> [API] Authenticated file upload request from user {}...", claims.sub);
+    tracing::info!(
+        ">>> [API] Authenticated file upload request from user {}...",
+        claims.sub
+    );
     let mut uploaded_file = None;
 
     while let Some(field) = multipart
@@ -135,7 +138,11 @@ pub async fn get_private_file(
     Extension(claims): Extension<UserClaims>,
     Path(file_path): Path<String>,
 ) -> Result<impl IntoResponse, AppError> {
-    tracing::info!("Private file fetch requested by user {} for path: {}", claims.sub, file_path);
+    tracing::info!(
+        "Private file fetch requested by user {} for path: {}",
+        claims.sub,
+        file_path
+    );
 
     // Prevent directory traversal attacks
     let safe_path = file_path.trim_start_matches('/');
@@ -159,7 +166,10 @@ pub async fn get_private_file(
 
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, mime_type.parse().unwrap());
-    headers.insert(header::CACHE_CONTROL, "private, max-age=3600".parse().unwrap());
+    headers.insert(
+        header::CACHE_CONTROL,
+        "private, max-age=3600".parse().unwrap(),
+    );
 
     Ok((headers, contents))
 }

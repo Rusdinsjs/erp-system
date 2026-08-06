@@ -58,7 +58,9 @@ pub fn require_permission(
                 }
                 // Support aliases between .view/.read and .edit/.update
                 let norm_user = p.replace(".view", ".read").replace(".edit", ".update");
-                let norm_req = permission.replace(".view", ".read").replace(".edit", ".update");
+                let norm_req = permission
+                    .replace(".view", ".read")
+                    .replace(".edit", ".update");
                 norm_user == norm_req
             });
 
@@ -70,18 +72,20 @@ pub fn require_permission(
                     permission,
                     claims.permissions
                 );
-                
+
                 let body = serde_json::json!({
                     "error": format!("Permission denied: {}", permission),
                     "code": "FORBIDDEN"
                 });
-                
+
                 let response = axum::response::Response::builder()
                     .status(StatusCode::FORBIDDEN)
                     .header(axum::http::header::CONTENT_TYPE, "application/json")
-                    .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+                    .body(axum::body::Body::from(
+                        serde_json::to_string(&body).unwrap(),
+                    ))
                     .unwrap();
-                
+
                 Ok(response)
             }
         })
@@ -103,13 +107,15 @@ pub async fn admin_only_middleware(request: Request, next: Next) -> Result<Respo
             "error": "Admin access required",
             "code": "FORBIDDEN_ADMIN"
         });
-        
+
         let response = axum::response::Response::builder()
             .status(StatusCode::FORBIDDEN)
             .header(axum::http::header::CONTENT_TYPE, "application/json")
-            .body(axum::body::Body::from(serde_json::to_string(&body).unwrap()))
+            .body(axum::body::Body::from(
+                serde_json::to_string(&body).unwrap(),
+            ))
             .unwrap();
-        
+
         Ok(response)
     }
 }

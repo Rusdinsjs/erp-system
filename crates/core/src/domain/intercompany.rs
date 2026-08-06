@@ -3,10 +3,10 @@
 //! Enforces explicit transfer document requirement for cross-company stock/asset/GL operations.
 //! Silent cross-company writes are strictly prohibited.
 
+use crate::domain::errors::{DomainError, DomainResult};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::domain::errors::{DomainError, DomainResult};
 
 /// Explicit Intercompany Transfer Document (QTEN-008)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -19,7 +19,7 @@ pub struct IntercompanyTransferDocument {
     pub transfer_type: String, // "ASSET_TRANSFER", "STOCK_TRANSFER", "INTERCOMPANY_SALE"
     pub resource_type: String,
     pub resource_id: Uuid,
-    pub status: String,        // "DRAFT", "SUBMITTED", "APPROVED", "COMPLETED", "REJECTED"
+    pub status: String, // "DRAFT", "SUBMITTED", "APPROVED", "COMPLETED", "REJECTED"
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

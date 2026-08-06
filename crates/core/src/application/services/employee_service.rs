@@ -43,7 +43,10 @@ impl EmployeeService {
             position: req.position,
             employment_status: req.employment_status,
             user_id: req.user_id,
-            is_account_requested: Some(req.is_account_requested.unwrap_or(req.user_creation.is_some())),
+            is_account_requested: Some(
+                req.is_account_requested
+                    .unwrap_or(req.user_creation.is_some()),
+            ),
             is_active: true,
             photo_url: req.photo_url,
 
