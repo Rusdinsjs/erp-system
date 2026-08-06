@@ -216,49 +216,98 @@ mod architecture_tests {
     }
 
     #[test]
-    fn test_3r_1_1_003_core_kernel_must_not_contain_business_entities() {
+    fn test_allowlist_core_kernel_entities_services_repositories() {
         let core_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-        // Strict guard against business knowledge leaking back into the generic Platform Kernel
-        let forbidden = [
-            "pub struct Lead {",
-            "pub struct Opportunity {",
-            "pub struct Project {",
-            "pub struct HrEmployeeRecord {",
-            "pub struct PayrollSlip {",
-            "pub struct SupportTicket {",
-            "pub struct Bom {",
-            "pub struct ProductionOrder {",
-            "pub struct QualityInspection {",
-            "pub struct PosProfile {",
-            "pub struct PosShift {",
-            "pub struct IndonesianTaxInvoice {",
-            "pub struct WithholdingCertificate {",
-            "pub struct IntercompanyTransferDocument {",
+
+        let allowed_entities = [
+            "approval_entity_type.rs",
+            "approval_workflow.rs",
+            "audit.rs",
+            "audit_log.rs",
+            "company.rs",
+            "cost_center.rs",
+            "department.rs",
+            "mod.rs",
+            "notification.rs",
+            "organization.rs",
+            "rbac.rs",
+            "setting.rs",
+            "tier_config.rs",
+            "user.rs",
         ];
+
+        let allowed_services = [
+            "approval_entity_type_service.rs",
+            "approval_service.rs",
+            "approval_workflow_service.rs",
+            "audit_service.rs",
+            "auth_service.rs",
+            "data_service.rs",
+            "email_service.rs",
+            "location_service.rs",
+            "mod.rs",
+            "notification_service.rs",
+            "rbac_service.rs",
+            "settings_service.rs",
+            "user_service.rs",
+        ];
+
+        let allowed_repositories = [
+            "approval_entity_type_repository.rs",
+            "approval_repository.rs",
+            "approval_workflow_repository.rs",
+            "audit_repository.rs",
+            "audit_trail_repository.rs",
+            "company_repository.rs",
+            "cost_center_repository.rs",
+            "location_repository.rs",
+            "mod.rs",
+            "naming_series_repository.rs",
+            "notification_repository.rs",
+            "outbox_repository.rs",
+            "rbac_repository.rs",
+            "settings_repository.rs",
+            "user_repository.rs",
+        ];
+
         let mut violations = Vec::new();
 
-        fn scan(dir: &Path, forbidden: &[&str], violations: &mut Vec<String>) {
-            for entry in fs::read_dir(dir).expect("read core source") {
-                let path = entry.expect("read core entry").path();
-                if path.is_dir() {
-                    scan(&path, forbidden, violations);
-                } else if path.extension().and_then(|ext| ext.to_str()) == Some("rs")
-                    && !path.ends_with("architecture_boundary_tests.rs")
-                {
-                    let source = fs::read_to_string(&path).expect("read core source file");
-                    for token in forbidden {
-                        if source.contains(token) {
-                            violations.push(format!("{} contains forbidden business token: {token}", path.display()));
-                        }
-                    }
+        // 1. Verify entities directory against allowlist
+        let entities_dir = core_src.join("domain").join("entities");
+        if let Ok(entries) = fs::read_dir(&entities_dir) {
+            for entry in entries.flatten() {
+                let filename = entry.file_name().to_string_lossy().to_string();
+                if !allowed_entities.contains(&filename.as_str()) {
+                    violations.push(format!("Unallowed entity in core kernel: {}", filename));
                 }
             }
         }
 
-        scan(&core_src, &forbidden, &mut violations);
+        // 2. Verify services directory against allowlist
+        let services_dir = core_src.join("application").join("services");
+        if let Ok(entries) = fs::read_dir(&services_dir) {
+            for entry in entries.flatten() {
+                let filename = entry.file_name().to_string_lossy().to_string();
+                if !allowed_services.contains(&filename.as_str()) {
+                    violations.push(format!("Unallowed service in core kernel: {}", filename));
+                }
+            }
+        }
+
+        // 3. Verify repositories directory against allowlist
+        let repos_dir = core_src.join("infrastructure").join("repositories");
+        if let Ok(entries) = fs::read_dir(&repos_dir) {
+            for entry in entries.flatten() {
+                let filename = entry.file_name().to_string_lossy().to_string();
+                if !allowed_repositories.contains(&filename.as_str()) {
+                    violations.push(format!("Unallowed repository in core kernel: {}", filename));
+                }
+            }
+        }
+
         assert!(
             violations.is_empty(),
-            "Core Kernel contains business-specific knowledge: {:#?}",
+            "Core Kernel contains non-allowlisted business files: {:#?}",
             violations
         );
     }

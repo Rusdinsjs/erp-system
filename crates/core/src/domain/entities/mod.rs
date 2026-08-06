@@ -1,91 +1,33 @@
-//! Domain Entities
+//! Domain Entities - Generic Platform Primitives Only (QARC-005 & 3R.1.1-002)
 //!
-//! Core business entities representing the main concepts in the asset management domain.
+//! Platform Kernel contains ONLY generic platform capability entities.
+//! Business-specific entities belong strictly to their respective bounded contexts.
 
-pub mod analytics;
 pub mod approval_entity_type;
 pub mod approval_workflow;
-pub mod asset;
-pub mod asset_details;
-pub mod asset_expense;
-pub mod asset_lifecycle;
-pub mod attendance;
 pub mod audit;
 pub mod audit_log;
-pub mod category;
-pub mod category_attribute_template;
-pub mod client;
 pub mod company;
-pub mod contract_approval;
-pub mod contract_document;
-pub mod contract_renewal;
-pub mod contract_template;
-pub mod conversion;
 pub mod cost_center;
 pub mod department;
-pub mod employee;
-pub mod fuel;
-pub mod inventory;
-pub mod leave;
-pub mod loan;
-pub mod location;
-pub mod maintenance_template;
-
-pub mod maintenance;
 pub mod notification;
 pub mod organization;
 pub mod rbac;
-pub mod rental;
-pub mod rental_billing;
-pub mod rental_contract;
-pub mod rental_timesheet;
-pub mod sensor;
 pub mod setting;
-pub mod tax_renewal;
 pub mod tier_config;
 pub mod user;
-pub mod vendor;
-pub mod work_order;
 
 pub use approval_entity_type::*;
 pub use approval_workflow::*;
-pub use asset::{Asset, AssetHistory, AssetSummary};
-pub use asset_details::*;
-pub use asset_expense::*;
-pub use asset_lifecycle::*;
-pub use attendance::*;
 pub use audit::*;
 pub use audit_log::{AuditLog, AuditLogEntry};
-pub use category::Category;
-pub use category_attribute_template::*;
-pub use client::*;
 pub use company::*;
-pub use contract_approval::*;
-pub use contract_document::*;
-pub use contract_renewal::*;
-pub use contract_template::*;
 pub use cost_center::*;
 pub use department::*;
-pub use employee::*;
-pub use fuel::*;
-pub use inventory::*;
-pub use leave::*;
-pub use loan::*;
-pub use location::Location;
-pub use maintenance::*;
-pub use maintenance::{MaintenanceRecord, MaintenanceType};
-pub use maintenance_template::*;
 pub use notification::*;
 pub use organization::*;
 pub use rbac::*;
-pub use rental::*;
-pub use rental_billing::*;
-pub use rental_contract::*;
-pub use rental_timesheet::*;
-pub use sensor::*;
-pub use tax_renewal::*;
+pub use setting::*;
 pub use tier_config::{Tier, TierBreakdown, TierConfig};
 pub use user::User;
 pub use user::*;
-pub use vendor::*;
-pub use work_order::*;

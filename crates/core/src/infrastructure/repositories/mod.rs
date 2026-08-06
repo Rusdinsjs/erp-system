@@ -1,88 +1,34 @@
-//! Repositories Module
-//!
-//! Data access layer implementations.
+//! Repositories Module - Generic Platform Data Access Primitives Only
 
 pub mod approval_entity_type_repository;
 pub mod approval_repository;
 pub mod approval_workflow_repository;
-pub mod asset_expense_repository;
-pub mod asset_repository;
 pub mod audit_repository;
 pub mod audit_trail_repository;
-pub mod category_repository;
-pub mod category_template_repository;
-pub mod client_repository;
 pub mod company_repository;
-pub mod contract_approval_repository;
-pub mod contract_document_repository;
-pub mod contract_renewal_repository;
-pub mod contract_repository;
-pub mod contract_template_repository;
-pub mod conversion_repository;
 pub mod cost_center_repository;
-pub mod employee_repository;
-pub mod fuel_repository;
-pub mod inventory_repository;
-pub mod leave_repository;
-pub mod lifecycle_repository;
-pub mod loan_repository;
 pub mod location_repository;
-pub mod maintenance_repository;
-pub mod maintenance_template_repository;
 pub mod naming_series_repository;
 pub mod notification_repository;
 pub mod outbox_repository;
 pub mod rbac_repository;
-pub mod rental_billing_repository;
-pub mod rental_repository;
-pub mod sensor_repository;
 pub mod settings_repository;
-pub mod tax_renewal_repository;
-pub mod timesheet_repository;
 pub mod user_repository;
-pub mod vendor_repository;
-pub mod work_order_repository;
 
 pub use approval_entity_type_repository::*;
 pub use approval_repository::*;
 pub use approval_workflow_repository::*;
-pub use asset_expense_repository::*;
-pub use asset_repository::*;
 pub use audit_repository::*;
 pub use audit_trail_repository::*;
-pub use category_repository::*;
-pub use category_template_repository::*;
-pub use client_repository::*;
 pub use company_repository::*;
-pub use contract_approval_repository::*;
-pub use contract_document_repository::*;
-pub use contract_renewal_repository::*;
-pub use contract_repository::*;
-pub use contract_template_repository::*;
-pub use conversion_repository::*;
 pub use cost_center_repository::*;
-pub use employee_repository::*;
-pub use fuel_repository::*;
-pub use inventory_repository::*;
-pub use leave_repository::*;
-pub use lifecycle_repository::*;
-pub use loan_repository::*;
 pub use location_repository::*;
-pub use maintenance_repository::*;
-pub use maintenance_template_repository::*;
 pub use naming_series_repository::*;
 pub use notification_repository::*;
 pub use outbox_repository::*;
 pub use rbac_repository::*;
-pub use rental_billing_repository::*;
-pub use rental_repository::*;
-pub use sensor_repository::*;
 pub use settings_repository::*;
-pub use tax_renewal_repository::*;
-pub use timesheet_repository::*;
 pub use user_repository::*;
-pub use vendor_repository::*;
-pub use work_order_repository::*;
 
 /// Base repository trait
 #[async_trait::async_trait]
