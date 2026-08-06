@@ -44,7 +44,7 @@ impl From<JournalEntryRow> for JournalEntry {
 #[derive(Debug, sqlx::FromRow)]
 struct JournalLineRow {
     id: Uuid,
-    header_id: Uuid,
+    journal_entry_id: Uuid,
     account_id: Uuid,
     description: Option<String>,
     debit: Decimal,
@@ -55,7 +55,7 @@ impl From<JournalLineRow> for JournalLine {
     fn from(r: JournalLineRow) -> Self {
         Self {
             id: r.id,
-            journal_entry_id: r.header_id,
+            journal_entry_id: r.journal_entry_id,
             account_id: r.account_id,
             description: r.description,
             debit: r.debit,
@@ -126,10 +126,10 @@ impl JournalRepository {
             let line_row = sqlx::query_as::<_, JournalLineRow>(
                 r#"
                 INSERT INTO journal_lines (
-                    id, header_id, account_id, description, debit, credit
+                    id, journal_entry_id, account_id, description, debit, credit
                 )
                 VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING id, header_id, account_id, description, debit, credit
+                RETURNING id, journal_entry_id, account_id, description, debit, credit
                 "#,
             )
             .bind(line_id)
@@ -190,7 +190,7 @@ impl JournalRepository {
 
         let header: JournalEntry = header_row.into();
 
-        sqlx::query("DELETE FROM journal_lines WHERE header_id = $1")
+        sqlx::query("DELETE FROM journal_lines WHERE journal_entry_id = $1")
             .bind(journal_id)
             .execute(uow.conn())
             .await
@@ -202,10 +202,10 @@ impl JournalRepository {
             let line_row = sqlx::query_as::<_, JournalLineRow>(
                 r#"
                 INSERT INTO journal_lines (
-                    id, header_id, account_id, description, debit, credit
+                    id, journal_entry_id, account_id, description, debit, credit
                 )
                 VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING id, header_id, account_id, description, debit, credit
+                RETURNING id, journal_entry_id, account_id, description, debit, credit
                 "#,
             )
             .bind(line_id)
@@ -248,9 +248,9 @@ impl JournalRepository {
 
         let line_rows = sqlx::query_as::<_, JournalLineRow>(
             r#"
-            SELECT id, header_id, account_id, description, debit, credit
+            SELECT id, journal_entry_id, account_id, description, debit, credit
             FROM journal_lines
-            WHERE header_id = $1
+            WHERE journal_entry_id = $1
             "#,
         )
         .bind(id)

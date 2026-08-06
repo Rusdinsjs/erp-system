@@ -148,14 +148,14 @@ async fn create_persists_header_lines_journal_audit_outbox_and_idempotency(pool:
 
     let journal_id = created.journal_entry_id.unwrap();
     let debit: Decimal = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE header_id = $1",
+        "SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE journal_entry_id = $1",
     )
     .bind(journal_id)
     .fetch_one(&pool)
     .await
     .unwrap();
     let credit: Decimal = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE header_id = $1",
+        "SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE journal_entry_id = $1",
     )
     .bind(journal_id)
     .fetch_one(&pool)
@@ -219,14 +219,14 @@ async fn update_add_remove_lines_and_rebuild_draft_effect_atomically(pool: PgPoo
     assert_eq!(detail.items[0].description, "replacement");
     assert_eq!(detail.items[1].description, "added");
     let debit: Decimal = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE header_id = $1",
+        "SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE journal_entry_id = $1",
     )
     .bind(journal_id)
     .fetch_one(&pool)
     .await
     .unwrap();
     let credit: Decimal = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE header_id = $1",
+        "SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE journal_entry_id = $1",
     )
     .bind(journal_id)
     .fetch_one(&pool)
