@@ -8,8 +8,8 @@ ALTER TABLE assets ADD COLUMN IF NOT EXISTS company_id UUID;
 CREATE INDEX IF NOT EXISTS idx_assets_company_id ON assets(company_id);
 
 -- 2. Add company_id column to Work Orders
-ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS company_id UUID;
-CREATE INDEX IF NOT EXISTS idx_work_orders_company_id ON work_orders(company_id);
+ALTER TABLE maintenance_work_orders ADD COLUMN IF NOT EXISTS company_id UUID;
+CREATE INDEX IF NOT EXISTS idx_maintenance_work_orders_company_id ON maintenance_work_orders(company_id);
 
 -- 3. Add company_id column to Rental Contracts
 ALTER TABLE rental_contracts ADD COLUMN IF NOT EXISTS company_id UUID;
@@ -53,7 +53,7 @@ BEGIN
     SELECT id INTO default_cmp_id FROM companies LIMIT 1;
     IF default_cmp_id IS NOT NULL THEN
         UPDATE assets SET company_id = default_cmp_id WHERE company_id IS NULL;
-        UPDATE work_orders SET company_id = default_cmp_id WHERE company_id IS NULL;
+        UPDATE maintenance_work_orders SET company_id = default_cmp_id WHERE company_id IS NULL;
         UPDATE rental_contracts SET company_id = default_cmp_id WHERE company_id IS NULL;
     END IF;
 END

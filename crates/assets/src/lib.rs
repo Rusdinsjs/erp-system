@@ -1,4 +1,8 @@
+pub mod domain;
 pub mod repositories;
+
+pub use domain::*;
+pub use repositories::*;
 
 pub mod asset_service;
 pub mod category_service;

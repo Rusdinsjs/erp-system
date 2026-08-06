@@ -702,7 +702,7 @@ impl FinanceRepository {
     pub async fn list_accounts(&self) -> DomainResult<Vec<ChartOfAccount>> {
         let rows = sqlx::query_as::<_, ChartOfAccountRow>(
             r#"
-            SELECT id, code, name, account_type, normal_balance, parent_id, is_active, description, currency, created_at, updated_at
+            SELECT id, code, name, account_type::text AS account_type, normal_balance::text AS normal_balance, parent_id, is_active, description, currency, created_at, updated_at
             FROM chart_of_accounts
             ORDER BY code ASC
             "#,
@@ -717,7 +717,7 @@ impl FinanceRepository {
     pub async fn get_account_by_id(&self, id: Uuid) -> DomainResult<Option<ChartOfAccount>> {
         let row = sqlx::query_as::<_, ChartOfAccountRow>(
             r#"
-            SELECT id, code, name, account_type, normal_balance, parent_id, is_active, description, currency, created_at, updated_at
+            SELECT id, code, name, account_type::text AS account_type, normal_balance::text AS normal_balance, parent_id, is_active, description, currency, created_at, updated_at
             FROM chart_of_accounts
             WHERE id = $1
             "#,
@@ -733,7 +733,7 @@ impl FinanceRepository {
     pub async fn get_account_by_code(&self, code: &str) -> DomainResult<Option<ChartOfAccount>> {
         let row = sqlx::query_as::<_, ChartOfAccountRow>(
             r#"
-            SELECT id, code, name, account_type, normal_balance, parent_id, is_active, description, currency, created_at, updated_at
+            SELECT id, code, name, account_type::text AS account_type, normal_balance::text AS normal_balance, parent_id, is_active, description, currency, created_at, updated_at
             FROM chart_of_accounts
             WHERE code = $1
             "#,
@@ -762,8 +762,8 @@ impl FinanceRepository {
         let row = sqlx::query_as::<_, ChartOfAccountRow>(
             r#"
             INSERT INTO chart_of_accounts (id, code, name, account_type, normal_balance, parent_id, is_active, description, currency, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING id, code, name, account_type, normal_balance, parent_id, is_active, description, currency, created_at, updated_at
+            VALUES ($1, $2, $3, $4::account_type, $5::normal_balance, $6, $7, $8, $9, $10, $11)
+            RETURNING id, code, name, account_type::text AS account_type, normal_balance::text AS normal_balance, parent_id, is_active, description, currency, created_at, updated_at
             "#,
         )
         .bind(account.id)
@@ -790,7 +790,7 @@ impl FinanceRepository {
             UPDATE chart_of_accounts
             SET name = $1, parent_id = $2, is_active = $3, description = $4, updated_at = NOW()
             WHERE id = $5
-            RETURNING id, code, name, account_type, normal_balance, parent_id, is_active, description, currency, created_at, updated_at
+            RETURNING id, code, name, account_type::text AS account_type, normal_balance::text AS normal_balance, parent_id, is_active, description, currency, created_at, updated_at
             "#,
         )
         .bind(&account.name)

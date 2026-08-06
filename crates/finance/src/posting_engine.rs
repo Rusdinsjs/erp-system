@@ -201,8 +201,33 @@ impl AccountingPostingEngine {
         reversal_date: chrono::NaiveDate,
         created_by: Option<Uuid>,
     ) -> DomainResult<Vec<GLEntry>> {
-        let originals: Vec<GLEntry> = sqlx::query_as!(
-            GLEntry,
+        #[derive(sqlx::FromRow)]
+        struct GLEntryRow {
+            id: Uuid,
+            company_id: Uuid,
+            posting_date: chrono::NaiveDate,
+            posting_datetime: chrono::DateTime<chrono::Utc>,
+            account_id: Uuid,
+            party_type: Option<String>,
+            party_id: Option<Uuid>,
+            cost_center_id: Option<Uuid>,
+            project_id: Option<Uuid>,
+            currency: String,
+            exchange_rate: Decimal,
+            debit: Decimal,
+            credit: Decimal,
+            debit_in_account_currency: Decimal,
+            credit_in_account_currency: Decimal,
+            voucher_type: String,
+            voucher_no: String,
+            voucher_id: Uuid,
+            is_reversal: bool,
+            reversal_source_id: Option<Uuid>,
+            created_at: chrono::DateTime<chrono::Utc>,
+            created_by: Option<Uuid>,
+        }
+
+        let rows: Vec<GLEntryRow> = sqlx::query_as::<_, GLEntryRow>(
             r#"
             SELECT
                 id, company_id, posting_date, posting_datetime, account_id,
@@ -213,13 +238,41 @@ impl AccountingPostingEngine {
             FROM gl_entries
             WHERE company_id = $1 AND voucher_type = $2 AND voucher_id = $3 AND is_reversal = FALSE
             "#,
-            company_id,
-            voucher_type,
-            voucher_id
         )
+        .bind(company_id)
+        .bind(voucher_type)
+        .bind(voucher_id)
         .fetch_all(&mut **tx)
         .await
-        .map_err(|e| DomainError::internal(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::internal(e.to_string()))?;
+
+        let originals: Vec<GLEntry> = rows
+            .into_iter()
+            .map(|r| GLEntry {
+                id: r.id,
+                company_id: r.company_id,
+                posting_date: r.posting_date,
+                posting_datetime: r.posting_datetime,
+                account_id: r.account_id,
+                party_type: r.party_type,
+                party_id: r.party_id,
+                cost_center_id: r.cost_center_id,
+                project_id: r.project_id,
+                currency: r.currency,
+                exchange_rate: r.exchange_rate,
+                debit: r.debit,
+                credit: r.credit,
+                debit_in_account_currency: r.debit_in_account_currency,
+                credit_in_account_currency: r.credit_in_account_currency,
+                voucher_type: r.voucher_type,
+                voucher_no: r.voucher_no,
+                voucher_id: r.voucher_id,
+                is_reversal: r.is_reversal,
+                reversal_source_id: r.reversal_source_id,
+                created_at: r.created_at,
+                created_by: r.created_by,
+            })
+            .collect();
 
         if originals.is_empty() {
             return Err(DomainError::business_rule(

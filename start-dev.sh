@@ -19,6 +19,7 @@ load_env() {
 if [ -f .env ]; then
     load_env .env
     export DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@localhost:${DB_PORT:-5434}/${DB_NAME:-management_system}
+    export MIGRATION_DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@localhost:${DB_PORT:-5434}/${DB_NAME:-management_system}
     export REDIS_URL=redis://localhost:${REDIS_PORT:-6382}
     export JWT_SECRET=${JWT_SECRET:-management-system-secret-key-change-in-production}
     echo -e "${GREEN}Environment loaded from .env${NC}"
@@ -27,6 +28,7 @@ else
     cp .env.example .env
     load_env .env
     export DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@localhost:${DB_PORT:-5434}/${DB_NAME:-management_system}
+    export MIGRATION_DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@localhost:${DB_PORT:-5434}/${DB_NAME:-management_system}
     export REDIS_URL=redis://localhost:${REDIS_PORT:-6382}
     export JWT_SECRET=${JWT_SECRET:-management-system-secret-key-change-in-production}
 fi

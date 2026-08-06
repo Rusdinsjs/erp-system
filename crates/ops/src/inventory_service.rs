@@ -17,6 +17,8 @@ use rust_decimal::Decimal;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::stock_posting_engine::StockPostingEngine;
+
 pub type DomainResult<T> = Result<T, DomainError>;
 
 #[derive(Clone)]
@@ -24,6 +26,7 @@ pub struct InventoryService {
     repository: Arc<InventoryRepository>,
     journal_service: JournalService,
     notification_service: NotificationService,
+    stock_engine: Option<StockPostingEngine>,
 }
 
 impl InventoryService {
@@ -36,7 +39,79 @@ impl InventoryService {
             repository,
             journal_service,
             notification_service,
+            stock_engine: None,
         }
+    }
+
+    pub fn with_stock_engine(
+        repository: Arc<InventoryRepository>,
+        journal_service: JournalService,
+        notification_service: NotificationService,
+        stock_engine: StockPostingEngine,
+    ) -> Self {
+        Self {
+            repository,
+            journal_service,
+            notification_service,
+            stock_engine: Some(stock_engine),
+        }
+    }
+
+    /// QSTK-015 Rebuild Bin Projections from immutable Stock Ledger Entries
+    pub async fn rebuild_bin_projections(&self, company_id: Uuid) -> DomainResult<usize> {
+        sqlx::query("UPDATE bins SET actual_qty = 0.0000, stock_value = 0.0000, updated_at = NOW() WHERE company_id = $1")
+            .bind(company_id)
+            .execute(self.repository.pool())
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        #[derive(sqlx::FromRow)]
+        struct BinAgg {
+            warehouse_id: Uuid,
+            item_id: Uuid,
+            total_qty: Decimal,
+            total_val: Decimal,
+        }
+
+        let aggs = sqlx::query_as::<_, BinAgg>(
+            r#"
+            SELECT
+                warehouse_id,
+                item_id,
+                COALESCE(SUM(actual_qty_delta), 0.0000) AS total_qty,
+                COALESCE(SUM(stock_value_delta), 0.0000) AS total_val
+            FROM stock_ledger_entries
+            WHERE company_id = $1 AND is_cancelled = FALSE
+            GROUP BY warehouse_id, item_id
+            "#,
+        )
+        .bind(company_id)
+        .fetch_all(self.repository.pool())
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        let count = aggs.len();
+
+        for agg in aggs {
+            sqlx::query(
+                r#"
+                INSERT INTO bins (company_id, warehouse_id, item_id, actual_qty, reserved_qty, ordered_qty, stock_value, updated_at)
+                VALUES ($1, $2, $3, $4, 0.0000, 0.0000, $5, NOW())
+                ON CONFLICT (company_id, warehouse_id, item_id)
+                DO UPDATE SET actual_qty = EXCLUDED.actual_qty, stock_value = EXCLUDED.stock_value, updated_at = NOW()
+                "#,
+            )
+            .bind(company_id)
+            .bind(agg.warehouse_id)
+            .bind(agg.item_id)
+            .bind(agg.total_qty)
+            .bind(agg.total_val)
+            .execute(self.repository.pool())
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?;
+        }
+
+        Ok(count)
     }
 
     pub async fn create_category(

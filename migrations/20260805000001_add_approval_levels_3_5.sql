@@ -2,6 +2,8 @@
 -- This enables full 5-level approval workflow support
 
 ALTER TABLE approval_requests 
+ADD COLUMN IF NOT EXISTS workflow_id UUID,
+ADD COLUMN IF NOT EXISTS required_levels INTEGER DEFAULT 1,
 ADD COLUMN IF NOT EXISTS approved_by_l3 UUID REFERENCES users(id),
 ADD COLUMN IF NOT EXISTS approved_at_l3 TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS notes_l3 TEXT,

@@ -103,9 +103,9 @@ impl JournalRepository {
             INSERT INTO journal_entries (
                 transaction_number, date, description, reference, status, created_by
             )
-            VALUES ($1, $2, $3, $4, 'draft', $5)
+            VALUES ($1, $2, $3, $4, 'draft'::journal_status, $5)
             RETURNING 
-                id, transaction_number, date, description, reference, status,
+                id, transaction_number, date, description, reference, status::text AS status,
                 created_by, created_at, updated_at
             "#,
         )
@@ -153,7 +153,7 @@ impl JournalRepository {
         req: &CreateJournalEntryRequest,
     ) -> DomainResult<JournalEntryDetail> {
         let current_status: Option<(String,)> =
-            sqlx::query_as("SELECT status FROM journal_entries WHERE id = $1 FOR UPDATE")
+            sqlx::query_as("SELECT status::text FROM journal_entries WHERE id = $1 FOR UPDATE")
                 .bind(journal_id)
                 .fetch_optional(uow.conn())
                 .await
@@ -176,7 +176,7 @@ impl JournalRepository {
             SET date = $1, description = $2, reference = $3, updated_at = NOW()
             WHERE id = $4
             RETURNING 
-                id, transaction_number, date, description, reference, status,
+                id, transaction_number, date, description, reference, status::text AS status,
                 created_by, created_at, updated_at
             "#,
         )
@@ -230,7 +230,7 @@ impl JournalRepository {
         let header_row = sqlx::query_as::<_, JournalEntryRow>(
             r#"
             SELECT 
-                id, transaction_number, date, description, reference, status,
+                id, transaction_number, date, description, reference, status::text AS status,
                 created_by, created_at, updated_at
             FROM journal_entries
             WHERE id = $1
@@ -267,7 +267,7 @@ impl JournalRepository {
         let rows = sqlx::query_as::<_, JournalEntryRow>(
             r#"
             SELECT 
-                id, transaction_number, date, description, reference, status,
+                id, transaction_number, date, description, reference, status::text AS status,
                 created_by, created_at, updated_at
             FROM journal_entries
             ORDER BY created_at DESC
@@ -285,7 +285,7 @@ impl JournalRepository {
             JournalStatus::Draft => "draft",
             JournalStatus::Posted => "posted",
         };
-        sqlx::query("UPDATE journal_entries SET status = $1, updated_at = NOW() WHERE id = $2")
+        sqlx::query("UPDATE journal_entries SET status = $1::journal_status, updated_at = NOW() WHERE id = $2")
             .bind(status_str)
             .bind(id)
             .execute(&self.pool)
@@ -304,7 +304,7 @@ impl JournalRepository {
             JournalStatus::Draft => "draft",
             JournalStatus::Posted => "posted",
         };
-        sqlx::query("UPDATE journal_entries SET status = $1, updated_at = NOW() WHERE id = $2")
+        sqlx::query("UPDATE journal_entries SET status = $1::journal_status, updated_at = NOW() WHERE id = $2")
             .bind(status_str)
             .bind(id)
             .execute(uow.conn())

@@ -1,4 +1,10 @@
+pub mod domain;
 pub mod repositories;
+pub mod stock_posting_engine;
+
+pub use domain::*;
+pub use repositories::*;
+pub use stock_posting_engine::*;
 
 pub mod attendance_service;
 pub mod fuel_service;

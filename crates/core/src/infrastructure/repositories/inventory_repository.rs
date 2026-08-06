@@ -12,6 +12,10 @@ impl InventoryRepository {
         Self { pool }
     }
 
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
+    }
+
     // --- Categories ---
 
     pub async fn create_category(

@@ -97,4 +97,22 @@ impl OutboxEntry {
         self.max_attempts = n;
         self
     }
+
+    /// Record a failed attempt, computing exponential backoff next_attempt_at or transitioning to DeadLetter if max_attempts reached (QEVT-001).
+    pub fn mark_failed(&mut self, error: &str) {
+        self.attempt_count += 1;
+        self.last_error = Some(error.to_string());
+        if self.attempt_count >= self.max_attempts {
+            self.status = OutboxStatus::DeadLetter.as_str().to_string();
+        } else {
+            self.status = OutboxStatus::Failed.as_str().to_string();
+            let backoff_secs = 5 * (2_i64.pow((self.attempt_count - 1) as u32));
+            self.next_attempt_at = Utc::now() + chrono::Duration::seconds(backoff_secs);
+        }
+    }
+
+    /// Mark outbox entry as completed (QEVT-001).
+    pub fn mark_completed(&mut self) {
+        self.status = OutboxStatus::Completed.as_str().to_string();
+    }
 }

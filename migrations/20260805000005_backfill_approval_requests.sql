@@ -126,7 +126,7 @@ SELECT
     fl.requested_by,
     jsonb_build_object(
         'asset_id', fl.asset_id,
-        'asset_name', fl.asset_name,
+        'asset_name', a.name,
         'odometer_reading', fl.odometer_reading,
         'request_type', fl.request_type,
         'requested_value', fl.requested_value,
@@ -139,6 +139,7 @@ SELECT
     fl.created_at,
     fl.updated_at
 FROM fuel_logs fl
+JOIN assets a ON a.id = fl.asset_id
 JOIN approval_workflows aw ON aw.entity_type = 'fuel_request' AND aw.is_active = true
 WHERE fl.status = 'requested'
 AND NOT EXISTS (
@@ -160,11 +161,10 @@ SELECT
     'tax_renewal',
     tr.id,
     'tax_renewal',
-    tr.created_by,
+    (SELECT id FROM users LIMIT 1),
     jsonb_build_object(
         'asset_id', tr.asset_id,
-        'asset_name', tr.asset_name,
-        'license_plate', tr.license_plate,
+        'asset_name', a.name,
         'document_type', tr.document_type,
         'current_expiry', tr.current_expiry,
         'renewal_cost', tr.renewal_cost
@@ -175,7 +175,8 @@ SELECT
     jsonb_build_object('tax_renewal_id', tr.id),
     tr.created_at,
     tr.updated_at
-FROM tax_renewals tr
+FROM asset_tax_renewals tr
+JOIN assets a ON a.id = tr.asset_id
 JOIN approval_workflows aw ON aw.entity_type = 'tax_renewal' AND aw.is_active = true
 WHERE tr.status = 'PENDING_APPROVAL'
 AND NOT EXISTS (

@@ -29,6 +29,7 @@ pub struct FinanceService {
     asset_repo: AssetRepository,
     rental_repo: RentalRepository,
     event_bus: EventBus,
+    accounting_engine: Option<crate::posting_engine::AccountingPostingEngine>,
 }
 
 impl FinanceService {
@@ -67,7 +68,44 @@ impl FinanceService {
             asset_repo,
             rental_repo,
             event_bus,
+            accounting_engine: None,
         }
+    }
+
+    pub fn with_accounting_engine(
+        mut self,
+        accounting_engine: crate::posting_engine::AccountingPostingEngine,
+    ) -> Self {
+        self.accounting_engine = Some(accounting_engine);
+        self
+    }
+
+    pub async fn allocate_payment(
+        &self,
+        req: AllocatePaymentRequest,
+    ) -> DomainResult<PaymentAllocation> {
+        if req.allocated_amount <= rust_decimal::Decimal::ZERO {
+            return Err(DomainError::business_rule(
+                "InvalidAllocationAmount",
+                "Allocated amount must be greater than 0",
+            ));
+        }
+
+        let allocation = PaymentAllocation {
+            id: Uuid::new_v4(),
+            payment_entry_id: req.payment_entry_id,
+            invoice_type: req.invoice_type,
+            invoice_id: req.invoice_id,
+            allocated_amount: req.allocated_amount,
+            created_at: Utc::now(),
+        };
+
+        Ok(allocation)
+    }
+
+    /// Financial Report Provider: Trial Balance (QRPT-003)
+    pub async fn get_trial_balance_report(&self) -> DomainResult<Vec<TrialBalanceEntry>> {
+        self.repo.get_trial_balance().await
     }
 
     // --- Chart of Accounts Management ---
