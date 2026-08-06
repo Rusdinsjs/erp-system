@@ -1,3 +1,4 @@
+use rust_decimal::prelude::ToPrimitive;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -186,12 +187,12 @@ impl FinanceRepository {
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
 
-        let mut balance = 0.0;
+        let mut balance = rust_decimal::Decimal::ZERO;
         let entries = recs
             .into_iter()
             .map(|r| {
-                let debit = r.debit;
-                let credit = r.credit;
+                let debit = rust_decimal::Decimal::from_f64_retain(r.debit).unwrap_or_default();
+                let credit = rust_decimal::Decimal::from_f64_retain(r.credit).unwrap_or_default();
                 balance += debit - credit;
                 GeneralLedgerEntry {
                     date: r.date,
@@ -235,8 +236,8 @@ impl FinanceRepository {
                 account_code: r.account_code,
                 account_name: r.account_name,
                 account_type: r.account_type,
-                debit: r.total_debit,
-                credit: r.total_credit,
+                debit: rust_decimal::Decimal::from_f64_retain(r.total_debit).unwrap_or_default(),
+                credit: rust_decimal::Decimal::from_f64_retain(r.total_credit).unwrap_or_default(),
             })
             .collect();
 
@@ -248,8 +249,7 @@ impl FinanceRepository {
     pub async fn list_sales_invoices(
         &self,
     ) -> DomainResult<Vec<management_system_core::domain::entities::SalesInvoice>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::SalesInvoice,
+        let recs = sqlx::query!(
             r#"
             SELECT id, invoice_number, client_id, date, due_date, subject, 
                    subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
@@ -262,14 +262,33 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let invoices = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::SalesInvoice {
+                id: r.id,
+                invoice_number: r.invoice_number,
+                client_id: r.client_id,
+                date: r.date,
+                due_date: r.due_date,
+                subject: r.subject,
+                subtotal: rust_decimal::Decimal::from_f64_retain(r.subtotal).unwrap_or_default(),
+                tax: rust_decimal::Decimal::from_f64_retain(r.tax).unwrap_or_default(),
+                total_amount: rust_decimal::Decimal::from_f64_retain(r.total_amount).unwrap_or_default(),
+                amount_paid: rust_decimal::Decimal::from_f64_retain(r.amount_paid).unwrap_or_default(),
+                status: r.status,
+                journal_entry_id: r.journal_entry_id,
+                created_at: r.created_at,
+                attachment_url: r.attachment_url,
+            })
+            .collect();
+        Ok(invoices)
     }
 
     pub async fn list_purchase_bills(
         &self,
     ) -> DomainResult<Vec<management_system_core::domain::entities::PurchaseBill>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::PurchaseBill,
+        let recs = sqlx::query!(
             r#"
             SELECT id, bill_number, vendor_id, date, due_date, 
                    total_amount::FLOAT8 as "total_amount!", amount_paid::FLOAT8 as "amount_paid!", 
@@ -281,12 +300,29 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let bills = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::PurchaseBill {
+                id: r.id,
+                bill_number: r.bill_number,
+                vendor_id: r.vendor_id,
+                date: r.date,
+                due_date: r.due_date,
+                total_amount: rust_decimal::Decimal::from_f64_retain(r.total_amount).unwrap_or_default(),
+                amount_paid: rust_decimal::Decimal::from_f64_retain(r.amount_paid).unwrap_or_default(),
+                status: r.status,
+                budget_type: r.budget_type,
+                journal_entry_id: r.journal_entry_id,
+                created_at: r.created_at,
+                attachment_url: r.attachment_url,
+            })
+            .collect();
+        Ok(bills)
     }
 
     pub async fn list_expenses(&self) -> DomainResult<Vec<management_system_core::domain::entities::Expense>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::Expense,
+        let recs = sqlx::query!(
             r#"
             SELECT id, expense_number, date, pay_from_account_id, recipient, 
                    total_amount::FLOAT8 as "total_amount!", status, expense_type, 
@@ -298,14 +334,30 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let expenses = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::Expense {
+                id: r.id,
+                expense_number: r.expense_number,
+                date: r.date,
+                pay_from_account_id: r.pay_from_account_id,
+                recipient: r.recipient,
+                total_amount: rust_decimal::Decimal::from_f64_retain(r.total_amount).unwrap_or_default(),
+                status: r.status,
+                expense_type: r.expense_type,
+                journal_entry_id: r.journal_entry_id,
+                attachment_url: r.attachment_url,
+                created_at: r.created_at,
+            })
+            .collect();
+        Ok(expenses)
     }
 
     pub async fn list_cash_bank_transactions(
         &self,
     ) -> DomainResult<Vec<management_system_core::domain::entities::CashBankTransaction>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::CashBankTransaction,
+        let recs = sqlx::query!(
             r#"
             SELECT id, transaction_number, transaction_type, date, 
                    amount::FLOAT8 as "amount!", from_account_id, to_account_id, 
@@ -317,7 +369,25 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let txs = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::CashBankTransaction {
+                id: r.id,
+                transaction_number: r.transaction_number,
+                transaction_type: r.transaction_type,
+                date: r.date,
+                amount: rust_decimal::Decimal::from_f64_retain(r.amount).unwrap_or_default(),
+                from_account_id: r.from_account_id,
+                to_account_id: r.to_account_id,
+                account_id: r.account_id,
+                contact_name: r.contact_name,
+                description: r.description,
+                journal_entry_id: r.journal_entry_id,
+                created_at: r.created_at,
+            })
+            .collect();
+        Ok(txs)
     }
 
     pub async fn delete_sales_invoice(&self, id: Uuid) -> DomainResult<()> {
@@ -356,8 +426,7 @@ impl FinanceRepository {
         &self,
         tx: &management_system_core::domain::entities::CashBankTransaction,
     ) -> DomainResult<management_system_core::domain::entities::CashBankTransaction> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::CashBankTransaction,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO cash_bank_transactions (
                 id, transaction_number, transaction_type, date, amount, 
@@ -372,7 +441,7 @@ impl FinanceRepository {
             tx.transaction_number,
             tx.transaction_type,
             tx.date,
-            tx.amount as f64,
+            tx.amount,
             tx.from_account_id,
             tx.to_account_id,
             tx.account_id,
@@ -382,15 +451,28 @@ impl FinanceRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::CashBankTransaction {
+            id: rec.id,
+            transaction_number: rec.transaction_number,
+            transaction_type: rec.transaction_type,
+            date: rec.date,
+            amount: rust_decimal::Decimal::from_f64_retain(rec.amount).unwrap_or_default(),
+            from_account_id: rec.from_account_id,
+            to_account_id: rec.to_account_id,
+            account_id: rec.account_id,
+            contact_name: rec.contact_name,
+            description: rec.description,
+            journal_entry_id: rec.journal_entry_id,
+            created_at: rec.created_at,
+        })
     }
 
     pub async fn create_expense(
         &self,
         expense: &management_system_core::domain::entities::Expense,
     ) -> DomainResult<management_system_core::domain::entities::Expense> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::Expense,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO expenses (
                 id, expense_number, date, pay_from_account_id, recipient, total_amount, 
@@ -406,7 +488,7 @@ impl FinanceRepository {
             expense.date,
             expense.pay_from_account_id,
             expense.recipient,
-            expense.total_amount as f64,
+            expense.total_amount,
             expense.status,
             expense.expense_type,
             expense.attachment_url
@@ -414,15 +496,27 @@ impl FinanceRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::Expense {
+            id: rec.id,
+            expense_number: rec.expense_number,
+            date: rec.date,
+            pay_from_account_id: rec.pay_from_account_id,
+            recipient: rec.recipient,
+            total_amount: rust_decimal::Decimal::from_f64_retain(rec.total_amount).unwrap_or_default(),
+            status: rec.status,
+            expense_type: rec.expense_type,
+            journal_entry_id: rec.journal_entry_id,
+            attachment_url: rec.attachment_url,
+            created_at: rec.created_at,
+        })
     }
 
     pub async fn create_sales_invoice(
         &self,
         invoice: &management_system_core::domain::entities::SalesInvoice,
     ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::SalesInvoice,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO sales_invoices (
                 id, invoice_number, client_id, date, due_date, subject, 
@@ -440,25 +534,40 @@ impl FinanceRepository {
             invoice.date,
             invoice.due_date,
             invoice.subject,
-            invoice.subtotal as f64,
-            invoice.tax as f64,
-            invoice.total_amount as f64,
-            invoice.amount_paid as f64,
+            invoice.subtotal,
+            invoice.tax,
+            invoice.total_amount,
+            invoice.amount_paid,
             invoice.status,
             invoice.attachment_url
         )
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::SalesInvoice {
+            id: rec.id,
+            invoice_number: rec.invoice_number,
+            client_id: rec.client_id,
+            date: rec.date,
+            due_date: rec.due_date,
+            subject: rec.subject,
+            subtotal: rust_decimal::Decimal::from_f64_retain(rec.subtotal).unwrap_or_default(),
+            tax: rust_decimal::Decimal::from_f64_retain(rec.tax).unwrap_or_default(),
+            total_amount: rust_decimal::Decimal::from_f64_retain(rec.total_amount).unwrap_or_default(),
+            amount_paid: rust_decimal::Decimal::from_f64_retain(rec.amount_paid).unwrap_or_default(),
+            status: rec.status,
+            journal_entry_id: rec.journal_entry_id,
+            created_at: rec.created_at,
+            attachment_url: rec.attachment_url,
+        })
     }
 
     pub async fn create_purchase_bill(
         &self,
         bill: &management_system_core::domain::entities::PurchaseBill,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseBill> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::PurchaseBill,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO purchase_bills (
                 id, bill_number, vendor_id, date, due_date, total_amount, amount_paid, status, budget_type, attachment_url
@@ -473,8 +582,8 @@ impl FinanceRepository {
             bill.vendor_id,
             bill.date,
             bill.due_date,
-            bill.total_amount as f64,
-            bill.amount_paid as f64,
+            bill.total_amount,
+            bill.amount_paid,
             bill.status,
             bill.budget_type,
             bill.attachment_url
@@ -482,7 +591,21 @@ impl FinanceRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::PurchaseBill {
+            id: rec.id,
+            bill_number: rec.bill_number,
+            vendor_id: rec.vendor_id,
+            date: rec.date,
+            due_date: rec.due_date,
+            total_amount: rust_decimal::Decimal::from_f64_retain(rec.total_amount).unwrap_or_default(),
+            amount_paid: rust_decimal::Decimal::from_f64_retain(rec.amount_paid).unwrap_or_default(),
+            status: rec.status,
+            budget_type: rec.budget_type,
+            journal_entry_id: rec.journal_entry_id,
+            created_at: rec.created_at,
+            attachment_url: rec.attachment_url,
+        })
     }
 
     // --- New Sales Modules ---
@@ -490,8 +613,7 @@ impl FinanceRepository {
     pub async fn list_sales_quotes(
         &self,
     ) -> DomainResult<Vec<management_system_core::domain::entities::SalesQuote>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::SalesQuote,
+        let recs = sqlx::query!(
             r#"
             SELECT id, quote_number, client_id, date, expiry_date, subject, 
                    subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
@@ -503,15 +625,31 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let quotes = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::SalesQuote {
+                id: r.id,
+                quote_number: r.quote_number,
+                client_id: r.client_id,
+                date: r.date,
+                expiry_date: r.expiry_date,
+                subject: r.subject,
+                subtotal: rust_decimal::Decimal::from_f64_retain(r.subtotal).unwrap_or_default(),
+                tax: rust_decimal::Decimal::from_f64_retain(r.tax).unwrap_or_default(),
+                total_amount: rust_decimal::Decimal::from_f64_retain(r.total_amount).unwrap_or_default(),
+                status: r.status,
+                created_at: r.created_at,
+            })
+            .collect();
+        Ok(quotes)
     }
 
     pub async fn create_sales_quote(
         &self,
         quote: &management_system_core::domain::entities::SalesQuote,
     ) -> DomainResult<management_system_core::domain::entities::SalesQuote> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::SalesQuote,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO sales_quotes (
                 id, quote_number, client_id, date, expiry_date, subject, 
@@ -528,22 +666,34 @@ impl FinanceRepository {
             quote.date,
             quote.expiry_date,
             quote.subject,
-            quote.subtotal as f64,
-            quote.tax as f64,
-            quote.total_amount as f64,
+            quote.subtotal,
+            quote.tax,
+            quote.total_amount,
             quote.status
         )
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::SalesQuote {
+            id: rec.id,
+            quote_number: rec.quote_number,
+            client_id: rec.client_id,
+            date: rec.date,
+            expiry_date: rec.expiry_date,
+            subject: rec.subject,
+            subtotal: rust_decimal::Decimal::from_f64_retain(rec.subtotal).unwrap_or_default(),
+            tax: rust_decimal::Decimal::from_f64_retain(rec.tax).unwrap_or_default(),
+            total_amount: rust_decimal::Decimal::from_f64_retain(rec.total_amount).unwrap_or_default(),
+            status: rec.status,
+            created_at: rec.created_at,
+        })
     }
 
     pub async fn list_sales_orders(
         &self,
     ) -> DomainResult<Vec<management_system_core::domain::entities::SalesOrder>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::SalesOrder,
+        let recs = sqlx::query!(
             r#"
             SELECT id, order_number, quote_id, client_id, date, delivery_date, subject, 
                    subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
@@ -555,15 +705,32 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let orders = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::SalesOrder {
+                id: r.id,
+                order_number: r.order_number,
+                quote_id: r.quote_id,
+                client_id: r.client_id,
+                date: r.date,
+                delivery_date: r.delivery_date,
+                subject: r.subject,
+                subtotal: rust_decimal::Decimal::from_f64_retain(r.subtotal).unwrap_or_default(),
+                tax: rust_decimal::Decimal::from_f64_retain(r.tax).unwrap_or_default(),
+                total_amount: rust_decimal::Decimal::from_f64_retain(r.total_amount).unwrap_or_default(),
+                status: r.status,
+                created_at: r.created_at,
+            })
+            .collect();
+        Ok(orders)
     }
 
     pub async fn create_sales_order(
         &self,
         order: &management_system_core::domain::entities::SalesOrder,
     ) -> DomainResult<management_system_core::domain::entities::SalesOrder> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::SalesOrder,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO sales_orders (
                 id, order_number, quote_id, client_id, date, delivery_date, subject, 
@@ -581,15 +748,29 @@ impl FinanceRepository {
             order.date,
             order.delivery_date,
             order.subject,
-            order.subtotal as f64,
-            order.tax as f64,
-            order.total_amount as f64,
+            order.subtotal,
+            order.tax,
+            order.total_amount,
             order.status
         )
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::SalesOrder {
+            id: rec.id,
+            order_number: rec.order_number,
+            quote_id: rec.quote_id,
+            client_id: rec.client_id,
+            date: rec.date,
+            delivery_date: rec.delivery_date,
+            subject: rec.subject,
+            subtotal: rust_decimal::Decimal::from_f64_retain(rec.subtotal).unwrap_or_default(),
+            tax: rust_decimal::Decimal::from_f64_retain(rec.tax).unwrap_or_default(),
+            total_amount: rust_decimal::Decimal::from_f64_retain(rec.total_amount).unwrap_or_default(),
+            status: rec.status,
+            created_at: rec.created_at,
+        })
     }
 
     pub async fn list_sales_shipments(
@@ -642,8 +823,7 @@ impl FinanceRepository {
     pub async fn list_purchase_quotes(
         &self,
     ) -> DomainResult<Vec<management_system_core::domain::entities::PurchaseQuote>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::PurchaseQuote,
+        let recs = sqlx::query!(
             r#"
             SELECT id, quote_number, vendor_id, date, expiry_date, subject, 
                    subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
@@ -655,15 +835,31 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let quotes = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::PurchaseQuote {
+                id: r.id,
+                quote_number: r.quote_number,
+                vendor_id: r.vendor_id,
+                date: r.date,
+                expiry_date: r.expiry_date,
+                subject: r.subject,
+                subtotal: rust_decimal::Decimal::from_f64_retain(r.subtotal).unwrap_or_default(),
+                tax: rust_decimal::Decimal::from_f64_retain(r.tax).unwrap_or_default(),
+                total_amount: rust_decimal::Decimal::from_f64_retain(r.total_amount).unwrap_or_default(),
+                status: r.status,
+                created_at: r.created_at,
+            })
+            .collect();
+        Ok(quotes)
     }
 
     pub async fn create_purchase_quote(
         &self,
         quote: &management_system_core::domain::entities::PurchaseQuote,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseQuote> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::PurchaseQuote,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO purchase_quotes (
                 id, quote_number, vendor_id, date, expiry_date, subject, 
@@ -680,23 +876,35 @@ impl FinanceRepository {
             quote.date,
             quote.expiry_date,
             quote.subject,
-            quote.subtotal as f64,
-            quote.tax as f64,
-            quote.total_amount as f64,
+            quote.subtotal,
+            quote.tax,
+            quote.total_amount,
             quote.status,
             quote.created_at
         )
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::PurchaseQuote {
+            id: rec.id,
+            quote_number: rec.quote_number,
+            vendor_id: rec.vendor_id,
+            date: rec.date,
+            expiry_date: rec.expiry_date,
+            subject: rec.subject,
+            subtotal: rust_decimal::Decimal::from_f64_retain(rec.subtotal).unwrap_or_default(),
+            tax: rust_decimal::Decimal::from_f64_retain(rec.tax).unwrap_or_default(),
+            total_amount: rust_decimal::Decimal::from_f64_retain(rec.total_amount).unwrap_or_default(),
+            status: rec.status,
+            created_at: rec.created_at,
+        })
     }
 
     pub async fn list_purchase_orders(
         &self,
     ) -> DomainResult<Vec<management_system_core::domain::entities::PurchaseOrder>> {
-        let recs = sqlx::query_as!(
-            management_system_core::domain::entities::PurchaseOrder,
+        let recs = sqlx::query!(
             r#"
             SELECT id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
                    subtotal::FLOAT8 as "subtotal!", tax::FLOAT8 as "tax!", 
@@ -708,15 +916,33 @@ impl FinanceRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(recs)
+
+        let orders = recs
+            .into_iter()
+            .map(|r| management_system_core::domain::entities::PurchaseOrder {
+                id: r.id,
+                order_number: r.order_number,
+                purchase_quote_id: r.purchase_quote_id,
+                vendor_id: r.vendor_id,
+                date: r.date,
+                delivery_date: r.delivery_date,
+                subject: r.subject,
+                subtotal: rust_decimal::Decimal::from_f64_retain(r.subtotal).unwrap_or_default(),
+                tax: rust_decimal::Decimal::from_f64_retain(r.tax).unwrap_or_default(),
+                total_amount: rust_decimal::Decimal::from_f64_retain(r.total_amount).unwrap_or_default(),
+                status: r.status,
+                budget_type: r.budget_type,
+                created_at: r.created_at,
+            })
+            .collect();
+        Ok(orders)
     }
 
     pub async fn create_purchase_order(
         &self,
         order: &management_system_core::domain::entities::PurchaseOrder,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseOrder> {
-        let rec = sqlx::query_as!(
-            management_system_core::domain::entities::PurchaseOrder,
+        let rec = sqlx::query!(
             r#"
             INSERT INTO purchase_orders (
                 id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, 
@@ -734,9 +960,9 @@ impl FinanceRepository {
             order.date,
             order.delivery_date,
             order.subject,
-            order.subtotal as f64,
-            order.tax as f64,
-            order.total_amount as f64,
+            order.subtotal,
+            order.tax,
+            order.total_amount,
             order.status,
             order.budget_type,
             order.created_at
@@ -744,7 +970,22 @@ impl FinanceRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
-        Ok(rec)
+
+        Ok(management_system_core::domain::entities::PurchaseOrder {
+            id: rec.id,
+            order_number: rec.order_number,
+            purchase_quote_id: rec.purchase_quote_id,
+            vendor_id: rec.vendor_id,
+            date: rec.date,
+            delivery_date: rec.delivery_date,
+            subject: rec.subject,
+            subtotal: rust_decimal::Decimal::from_f64_retain(rec.subtotal).unwrap_or_default(),
+            tax: rust_decimal::Decimal::from_f64_retain(rec.tax).unwrap_or_default(),
+            total_amount: rust_decimal::Decimal::from_f64_retain(rec.total_amount).unwrap_or_default(),
+            status: rec.status,
+            budget_type: rec.budget_type,
+            created_at: rec.created_at,
+        })
     }
 
     pub async fn list_purchase_shipments(

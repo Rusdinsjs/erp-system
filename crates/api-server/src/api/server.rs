@@ -2,7 +2,6 @@
 
 use sqlx::PgPool;
 use tower_http::cors::CorsLayer;
-use tower_http::services::ServeDir;
 use utoipa::OpenApi;
 
 // use crate::api::middleware::security_headers::security_headers_middleware;
@@ -83,6 +82,9 @@ pub struct AppState {
     pub pool: PgPool,
     pub ws_manager: Arc<management_system_core::infrastructure::notifications::WebSocketManager>,
     pub jwt_config: JwtConfig, // Added for middleware access
+    pub allow_public_registration: bool,
+    pub session_tracker: management_system_core::infrastructure::auth::SessionTracker,
+    pub lockout_tracker: management_system_core::infrastructure::auth::LoginLockoutTracker,
 }
 
 impl AppState {
@@ -384,6 +386,11 @@ impl AppState {
             ws_manager,
             tax_renewal_service,
             jwt_config: jwt_config.clone(),
+            allow_public_registration: std::env::var("ALLOW_PUBLIC_REGISTRATION")
+                .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
+                .unwrap_or(false),
+            session_tracker: management_system_core::infrastructure::auth::SessionTracker::new(),
+            lockout_tracker: management_system_core::infrastructure::auth::LoginLockoutTracker::new(),
         }
     }
 }
@@ -395,7 +402,6 @@ pub fn create_app(state: AppState) -> axum::Router {
             "/api-docs/openapi.json",
             crate::api::docs::ApiDoc::openapi(),
         ))
-        .nest_service("/api/uploads", ServeDir::new("uploads"))
         .layer(axum::middleware::from_fn(
             crate::api::middleware::rate_limit::rate_limit_middleware,
         ))

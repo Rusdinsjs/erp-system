@@ -1,3 +1,4 @@
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -6,7 +7,7 @@ pub struct AssetExpense {
     pub id: Uuid,
     pub asset_id: Uuid,
     pub description: String,
-    pub amount: f64,
+    pub amount: Decimal,
     pub date: chrono::NaiveDate,
     pub vendor_name: Option<String>,
     pub invoice_number: Option<String>,
@@ -28,6 +29,6 @@ pub struct AssetExpenseItem {
     pub id: Uuid,
     pub expense_id: Uuid,
     pub description: String,
-    pub amount: f64,
+    pub amount: Decimal,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }

@@ -1,25 +1,28 @@
 use axum::{
-    extract::{Multipart, State},
+    extract::{Multipart, Path, State},
+    http::{header, HeaderMap},
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use chrono::Utc;
 use serde_json::json;
-use std::path::Path;
+use std::path::{Path as StdPath, PathBuf};
 use tokio::fs;
 use uuid::Uuid;
 
 use crate::api::server::AppState;
+use management_system_core::domain::entities::UserClaims;
 use management_system_core::shared::{AppError, AppResult};
 
 const MAX_UPLOAD_SIZE: u64 = 10 * 1024 * 1024; // 10MB
 
-/// Upload a file
+/// Upload a file (QSEC-006: Authenticated file upload)
 pub async fn upload_file(
-    State(_state): State<AppState>, // Not currently used, but good for future expansion
+    Extension(claims): Extension<UserClaims>,
+    State(_state): State<AppState>,
     mut multipart: Multipart,
 ) -> AppResult<impl IntoResponse> {
-    tracing::info!(">>> [API] Incoming file upload request...");
+    tracing::info!(">>> [API] Authenticated file upload request from user {}...", claims.sub);
     let mut uploaded_file = None;
 
     while let Some(field) = multipart
@@ -45,7 +48,7 @@ pub async fn upload_file(
             }
 
             // Determine extension
-            let ext = Path::new(&file_name)
+            let ext = StdPath::new(&file_name)
                 .extension()
                 .and_then(|e| e.to_str())
                 .unwrap_or("bin")
@@ -58,25 +61,22 @@ pub async fn upload_file(
                 let ext_clone = ext.clone();
 
                 let result = tokio::task::spawn_blocking(move || {
-                    // Try to load image
                     match image::load_from_memory(&data_clone) {
                         Ok(img) => {
-                            // Resize if larger than 1280px
                             let resized = if img.width() > 1280 || img.height() > 1280 {
                                 img.resize(1280, 1280, image::imageops::FilterType::Lanczos3)
                             } else {
                                 img
                             };
 
-                            // Encode as WebP (Lossy quality 80)
                             let mut comp_bytes: Vec<u8> = Vec::new();
                             let mut cursor = std::io::Cursor::new(&mut comp_bytes);
                             match resized.write_to(&mut cursor, image::ImageFormat::WebP) {
                                 Ok(_) => (comp_bytes.into(), "webp".to_string()),
-                                Err(_) => (data_clone, ext_clone), // Fallback to original
+                                Err(_) => (data_clone, ext_clone),
                             }
                         }
-                        Err(_) => (data_clone, ext_clone), // Fallback if load fails
+                        Err(_) => (data_clone, ext_clone),
                     }
                 })
                 .await
@@ -96,25 +96,18 @@ pub async fn upload_file(
                 now.format("%d")
             );
 
-            // Generate unique ID
             let file_id = Uuid::new_v4();
             let new_filename = format!("{}.{}", file_id, final_ext);
             let file_path = format!("{}/{}", relative_dir, new_filename);
 
-            // Ensure directory exists
             fs::create_dir_all(&relative_dir)
                 .await
                 .map_err(|e| AppError::Internal(format!("Failed to create directory: {}", e)))?;
 
-            // Save file
             fs::write(&file_path, &final_data)
                 .await
                 .map_err(|e| AppError::Internal(format!("Failed to save file: {}", e)))?;
 
-            // URL for frontend (relative to base URL)
-            // Note: `api/uploads` is served statically in server.rs
-            // The ServeDir mounts "uploads" directory to "/api/uploads"
-            // So if file is at "uploads/2024/01/01/file.jpg", URL is "/api/uploads/2024/01/01/file.jpg"
             let url = format!("/api/{}", file_path);
 
             uploaded_file = Some(json!({
@@ -122,10 +115,10 @@ pub async fn upload_file(
                 "url": url,
                 "original_name": file_name,
                 "content_type": content_type,
-                "size": final_data.len()
+                "size": final_data.len(),
+                "uploaded_by": claims.user_id()
             }));
 
-            // Only process the first file field
             break;
         }
     }
@@ -135,4 +128,38 @@ pub async fn upload_file(
     } else {
         Err(AppError::BadRequest("No file field found".to_string()))
     }
+}
+
+/// Private file download service (QSEC-006: Authenticated file access)
+pub async fn get_private_file(
+    Extension(claims): Extension<UserClaims>,
+    Path(file_path): Path<String>,
+) -> Result<impl IntoResponse, AppError> {
+    tracing::info!("Private file fetch requested by user {} for path: {}", claims.sub, file_path);
+
+    // Prevent directory traversal attacks
+    let safe_path = file_path.trim_start_matches('/');
+    if safe_path.contains("..") || safe_path.contains("\\") {
+        return Err(AppError::BadRequest("Invalid file path".to_string()));
+    }
+
+    let full_path = PathBuf::from("uploads").join(safe_path);
+
+    if !full_path.exists() || !full_path.is_file() {
+        return Err(AppError::NotFound("File not found".to_string()));
+    }
+
+    let contents = fs::read(&full_path)
+        .await
+        .map_err(|e| AppError::Internal(format!("Failed to read file: {}", e)))?;
+
+    let mime_type = mime_guess::from_path(&full_path)
+        .first_or_octet_stream()
+        .to_string();
+
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, mime_type.parse().unwrap());
+    headers.insert(header::CACHE_CONTROL, "private, max-age=3600".parse().unwrap());
+
+    Ok((headers, contents))
 }

@@ -197,10 +197,10 @@ export function MainLayout() {
                 <div className="h-16 flex items-center px-6 border-b border-border shrink-0 overflow-hidden whitespace-nowrap">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xl shrink-0">
-                            A
+                            E
                         </div>
                         <span className={`font-bold text-lg text-foreground transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
-                            Management System
+                            ERPQu
                         </span>
                     </div>
                 </div>

@@ -29,7 +29,7 @@ async fn main() {
 
     // Load configuration
     let config = AppConfig::from_env();
-    tracing::info!("DEBUG: Database Config URL: {}", config.database_url); // Warning: prints secrets in dev, ok for local debug
+    tracing::info!("Database Connection Target: {}", config.sanitized_db_url());
 
     tracing::info!(
         "Starting Management System ERP v{}",
@@ -45,7 +45,7 @@ async fn main() {
         .idle_timeout(std::time::Duration::from_secs(600))
         .connect(&config.database_url)
         .await
-        .unwrap_or_else(|_| panic!("Failed to connect to database at {}", config.database_url));
+        .unwrap_or_else(|e| panic!("Failed to connect to database at {}: {:?}", config.sanitized_db_url(), e));
 
     tracing::info!("Database connected successfully");
 

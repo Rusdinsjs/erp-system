@@ -9,5 +9,10 @@ uploads/
 *.webp
 *.zip
 *.tmp
-*.log
+
+# Environment & Secrets (QSEC-010)
+.env
+*.env
+!.env.example
+
 

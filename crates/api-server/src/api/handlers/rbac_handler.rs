@@ -173,19 +173,38 @@ pub async fn get_user_permissions(
 
 pub async fn assign_role(
     State(state): State<AppState>,
-    Path((user_id, role_code)): Path<(Uuid, String)>,
+    Extension(claims): Extension<UserClaims>,
+    Path((target_user_id, role_code)): Path<(Uuid, String)>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
+    let actor = management_system_core::domain::authz::ActorContext::from_claims(&claims);
+    let target_org = claims.org.as_deref().and_then(|id| Uuid::parse_str(id).ok());
+
     state
         .rbac_service
-        .assign_role(user_id, &role_code, None, None)
+        .assign_role_secure(&actor, target_user_id, target_org, &role_code)
         .await?;
+
+    // QSEC-008: Invalidate active sessions of target user immediately
+    state.session_tracker.invalidate_user_sessions(target_user_id).await;
+
     Ok(Json(ApiResponse::success_with_message((), "Role assigned")))
 }
 
 pub async fn remove_role(
     State(state): State<AppState>,
-    Path((user_id, role_code)): Path<(Uuid, String)>,
+    Extension(claims): Extension<UserClaims>,
+    Path((target_user_id, role_code)): Path<(Uuid, String)>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
-    state.rbac_service.remove_role(user_id, &role_code).await?;
+    let actor = management_system_core::domain::authz::ActorContext::from_claims(&claims);
+    let target_org = claims.org.as_deref().and_then(|id| Uuid::parse_str(id).ok());
+
+    state
+        .rbac_service
+        .remove_role_secure(&actor, target_user_id, target_org, &role_code)
+        .await?;
+
+    // QSEC-008: Invalidate active sessions of target user immediately
+    state.session_tracker.invalidate_user_sessions(target_user_id).await;
+
     Ok(Json(ApiResponse::success_with_message((), "Role removed")))
 }

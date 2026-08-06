@@ -26,6 +26,7 @@ pub struct Asset {
     pub location_id: Option<Uuid>,
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
+    pub company_id: Option<Uuid>,
     pub assigned_to: Option<Uuid>,
     pub vendor_id: Option<Uuid>,
 
@@ -97,6 +98,7 @@ impl Asset {
             location_id: None,
             department: None,
             department_id: None,
+            company_id: None,
             assigned_to: None,
             vendor_id: None,
             is_rental: false,

@@ -1,5 +1,6 @@
 //! Finance Entities
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::Type;
 use uuid::Uuid;
@@ -36,6 +37,8 @@ pub struct ChartOfAccount {
     pub updated_at: DateTime<Utc>,
 }
 
+pub type Account = ChartOfAccount;
+
 #[derive(Debug, Deserialize)]
 pub struct CreateAccountRequest {
     pub code: String,
@@ -55,26 +58,28 @@ pub struct UpdateAccountRequest {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountTreeNode {
     pub id: Uuid,
-    pub code: String,
-    pub name: String,
+    pub account_code: String,
+    pub account_name: String,
     pub account_type: AccountType,
     pub normal_balance: NormalBalance,
+    pub parent_id: Option<Uuid>,
     pub is_active: bool,
     pub currency: String,
     pub children: Vec<AccountTreeNode>,
 }
+
 #[derive(Debug, Serialize)]
 pub struct GeneralLedgerEntry {
     pub date: chrono::NaiveDate,
     pub transaction_number: String,
     pub header_description: String,
     pub line_description: Option<String>,
-    pub debit: f64,
-    pub credit: f64,
-    pub balance: f64,
+    pub debit: Decimal,
+    pub credit: Decimal,
+    pub balance: Decimal,
 }
 
 #[derive(Debug, Serialize)]
@@ -83,15 +88,15 @@ pub struct TrialBalanceEntry {
     pub account_code: String,
     pub account_name: String,
     pub account_type: AccountType,
-    pub debit: f64,
-    pub credit: f64,
+    pub debit: Decimal,
+    pub credit: Decimal,
 }
 
 #[derive(Debug, Serialize)]
 pub struct FinancialReportEntry {
     pub account_code: String,
     pub account_name: String,
-    pub balance: f64,
+    pub balance: Decimal,
 }
 
 // --- Operational Finance Entities ---
@@ -104,10 +109,10 @@ pub struct SalesInvoice {
     pub date: chrono::NaiveDate,
     pub due_date: Option<chrono::NaiveDate>,
     pub subject: Option<String>,
-    pub subtotal: f64,
-    pub tax: f64,
-    pub total_amount: f64,
-    pub amount_paid: f64,
+    pub subtotal: Decimal,
+    pub tax: Decimal,
+    pub total_amount: Decimal,
+    pub amount_paid: Decimal,
     pub status: String,
     pub journal_entry_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -119,9 +124,9 @@ pub struct SalesInvoiceItem {
     pub id: Uuid,
     pub invoice_id: Uuid,
     pub description: String,
-    pub quantity: f64,
-    pub unit_price: f64,
-    pub total_price: f64,
+    pub quantity: Decimal,
+    pub unit_price: Decimal,
+    pub total_price: Decimal,
     pub account_id: Option<Uuid>,
 }
 
@@ -132,8 +137,8 @@ pub struct PurchaseBill {
     pub vendor_id: Uuid,
     pub date: chrono::NaiveDate,
     pub due_date: Option<chrono::NaiveDate>,
-    pub total_amount: f64,
-    pub amount_paid: f64,
+    pub total_amount: Decimal,
+    pub amount_paid: Decimal,
     pub status: String,
     pub budget_type: String,
     pub journal_entry_id: Option<Uuid>,
@@ -148,7 +153,7 @@ pub struct Expense {
     pub date: chrono::NaiveDate,
     pub pay_from_account_id: Uuid,
     pub recipient: Option<String>,
-    pub total_amount: f64,
+    pub total_amount: Decimal,
     pub status: String,
     pub expense_type: String, // OPEX or CAPEX
     pub journal_entry_id: Option<Uuid>,
@@ -162,7 +167,7 @@ pub struct CashBankTransaction {
     pub transaction_number: String,
     pub transaction_type: String, // transfer, receive, send
     pub date: chrono::NaiveDate,
-    pub amount: f64,
+    pub amount: Decimal,
     pub from_account_id: Option<Uuid>,
     pub to_account_id: Option<Uuid>,
     pub account_id: Option<Uuid>,
@@ -180,9 +185,9 @@ pub struct SalesQuote {
     pub date: chrono::NaiveDate,
     pub expiry_date: Option<chrono::NaiveDate>,
     pub subject: Option<String>,
-    pub subtotal: f64,
-    pub tax: f64,
-    pub total_amount: f64,
+    pub subtotal: Decimal,
+    pub tax: Decimal,
+    pub total_amount: Decimal,
     pub status: String,
     pub created_at: DateTime<Utc>,
 }
@@ -196,9 +201,9 @@ pub struct SalesOrder {
     pub date: chrono::NaiveDate,
     pub delivery_date: Option<chrono::NaiveDate>,
     pub subject: Option<String>,
-    pub subtotal: f64,
-    pub tax: f64,
-    pub total_amount: f64,
+    pub subtotal: Decimal,
+    pub tax: Decimal,
+    pub total_amount: Decimal,
     pub status: String,
     pub created_at: DateTime<Utc>,
 }
@@ -226,9 +231,9 @@ pub struct PurchaseQuote {
     pub date: chrono::NaiveDate,
     pub expiry_date: Option<chrono::NaiveDate>,
     pub subject: Option<String>,
-    pub subtotal: f64,
-    pub tax: f64,
-    pub total_amount: f64,
+    pub subtotal: Decimal,
+    pub tax: Decimal,
+    pub total_amount: Decimal,
     pub status: String,
     pub created_at: DateTime<Utc>,
 }
@@ -252,9 +257,9 @@ pub struct PurchaseOrder {
     pub date: chrono::NaiveDate,
     pub delivery_date: Option<chrono::NaiveDate>,
     pub subject: Option<String>,
-    pub subtotal: f64,
-    pub tax: f64,
-    pub total_amount: f64,
+    pub subtotal: Decimal,
+    pub tax: Decimal,
+    pub total_amount: Decimal,
     pub status: String,
     pub budget_type: String, // OPEX or CAPEX
     pub created_at: DateTime<Utc>,
@@ -309,8 +314,8 @@ pub struct CreateSalesInvoiceRequest {
 #[derive(Debug, Deserialize)]
 pub struct CreateInvoiceItemRequest {
     pub description: String,
-    pub quantity: f64,
-    pub unit_price: f64,
+    pub quantity: Decimal,
+    pub unit_price: Decimal,
     pub account_id: Option<Uuid>,
 }
 
@@ -329,8 +334,8 @@ pub struct CreatePurchaseBillRequest {
 #[derive(Debug, Deserialize)]
 pub struct CreateBillItemRequest {
     pub description: String,
-    pub quantity: f64,
-    pub unit_price: f64,
+    pub quantity: Decimal,
+    pub unit_price: Decimal,
     pub account_id: Option<Uuid>,
 }
 
@@ -350,7 +355,7 @@ pub struct CreateExpenseRequest {
 pub struct CreateExpenseItemRequest {
     pub account_id: Uuid,
     pub description: Option<String>,
-    pub amount: f64,
+    pub amount: Decimal,
 }
 
 #[derive(Debug, Deserialize)]
@@ -358,7 +363,7 @@ pub struct CreateCashBankTransactionRequest {
     pub transaction_number: Option<String>,
     pub transaction_type: String,
     pub date: chrono::NaiveDate,
-    pub amount: f64,
+    pub amount: Decimal,
     pub from_account_id: Option<Uuid>,
     pub to_account_id: Option<Uuid>,
     pub account_id: Option<Uuid>,

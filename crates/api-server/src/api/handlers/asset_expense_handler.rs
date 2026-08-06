@@ -130,7 +130,7 @@ pub async fn reject_expense(
 
     let expense = state
         .asset_expense_service
-        .reject_expense(id, user_id, notes)
+        .reject_expense(id, user_id, &claims.role, notes)
         .await?;
 
     Ok(Json(expense))

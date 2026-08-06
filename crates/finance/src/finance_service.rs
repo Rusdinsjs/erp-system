@@ -97,10 +97,11 @@ impl FinanceService {
                 let children = Self::build_tree(accounts, Some(acc.id));
                 nodes.push(AccountTreeNode {
                     id: acc.id,
-                    code: acc.code.clone(),
-                    name: acc.name.clone(),
+                    account_code: acc.code.clone(),
+                    account_name: acc.name.clone(),
                     account_type: acc.account_type,
                     normal_balance: acc.normal_balance,
+                    parent_id: acc.parent_id,
                     is_active: acc.is_active,
                     currency: acc.currency.clone(),
                     children,
@@ -109,7 +110,7 @@ impl FinanceService {
         }
 
         // Sort by code just to be safe, though Repo already sorts
-        nodes.sort_by(|a, b| a.code.cmp(&b.code));
+        nodes.sort_by(|a, b| a.account_code.cmp(&b.account_code));
         nodes
     }
 
@@ -121,14 +122,16 @@ impl FinanceService {
         let updated = self
             .repo
             .update_account(id, req.name, req.parent_id, req.is_active, req.description)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })?;
+            .await?;
 
         updated.ok_or_else(|| DomainError::not_found("ChartOfAccount", id))
     }
+
+    pub async fn delete_account(&self, _id: Uuid) -> DomainResult<()> {
+        Ok(())
+    }
+
+    // --- Reporting ---
 
     pub async fn get_general_ledger(
         &self,
@@ -168,7 +171,7 @@ impl FinanceService {
                     | management_system_core::domain::entities::AccountType::Equity => {
                         e.credit - e.debit
                     }
-                    _ => 0.0,
+                    _ => rust_decimal::Decimal::ZERO,
                 };
                 FinancialReportEntry {
                     account_code: e.account_code,
@@ -201,7 +204,7 @@ impl FinanceService {
                     management_system_core::domain::entities::AccountType::Expense => {
                         e.debit - e.credit
                     }
-                    _ => 0.0,
+                    _ => rust_decimal::Decimal::ZERO,
                 };
                 FinancialReportEntry {
                     account_code: e.account_code,
@@ -244,7 +247,7 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
-        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let mut invoice = management_system_core::domain::entities::SalesInvoice {
             id: Uuid::new_v4(),
             invoice_number: req.invoice_number.clone(),
@@ -253,9 +256,9 @@ impl FinanceService {
             due_date: req.due_date,
             subject: req.subject.clone(),
             subtotal: total,
-            tax: 0.0,
+            tax: rust_decimal::Decimal::ZERO,
             total_amount: total,
-            amount_paid: 0.0,
+            amount_paid: rust_decimal::Decimal::ZERO,
             status: "draft".to_string(),
             journal_entry_id: None,
             created_at: Utc::now(),
@@ -272,8 +275,7 @@ impl FinanceService {
         })?;
 
         // 2. Prepare Journal Entry
-        use rust_decimal::prelude::FromPrimitive;
-        let decimal_total = rust_decimal::Decimal::from_f64(total).unwrap_or_default();
+        let decimal_total = total;
 
         let journal_req =
             management_system_core::domain::entities::journal::CreateJournalEntryRequest {
@@ -327,7 +329,7 @@ impl FinanceService {
         req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
         let mut invoice = self.get_sales_invoice(id).await?;
-        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
 
         invoice.invoice_number = req.invoice_number;
         invoice.client_id = req.client_id;
@@ -349,7 +351,7 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreatePurchaseBillRequest,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseBill> {
-        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let mut bill = management_system_core::domain::entities::PurchaseBill {
             id: Uuid::new_v4(),
             bill_number: req.bill_number.clone(),
@@ -357,7 +359,7 @@ impl FinanceService {
             date: req.date,
             due_date: req.due_date,
             total_amount: total,
-            amount_paid: 0.0,
+            amount_paid: rust_decimal::Decimal::ZERO,
             status: "draft".to_string(),
             budget_type: req.budget_type.unwrap_or_else(|| "OPEX".to_string()),
             journal_entry_id: None,
@@ -393,8 +395,7 @@ impl FinanceService {
         };
 
         // 2. Prepare Journal Entry
-        use rust_decimal::prelude::FromPrimitive;
-        let decimal_total = rust_decimal::Decimal::from_f64(total).unwrap_or_default();
+        let decimal_total = total;
 
         let journal_req =
             management_system_core::domain::entities::journal::CreateJournalEntryRequest {
@@ -429,7 +430,7 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreateExpenseRequest,
     ) -> DomainResult<management_system_core::domain::entities::Expense> {
-        let total: f64 = req.items.iter().map(|i| i.amount).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.amount).sum();
         let mut expense = management_system_core::domain::entities::Expense {
             id: Uuid::new_v4(),
             expense_number: req.expense_number.clone(),
@@ -447,10 +448,9 @@ impl FinanceService {
         // --- Automated Journaling Logic ---
         // For Expenses, we can have multiple items (different expense categories)
         let mut lines = Vec::new();
-        use rust_decimal::prelude::FromPrimitive;
 
         for item in &req.items {
-            let decimal_amount = rust_decimal::Decimal::from_f64(item.amount).unwrap_or_default();
+            let decimal_amount = item.amount;
             lines.push(
                 management_system_core::domain::entities::journal::CreateJournalLineRequest {
                     account_id: item.account_id,
@@ -466,7 +466,7 @@ impl FinanceService {
         }
 
         // Kredit Kas/Bank
-        let decimal_total = rust_decimal::Decimal::from_f64(total).unwrap_or_default();
+        let decimal_total = total;
         lines.push(
             management_system_core::domain::entities::journal::CreateJournalLineRequest {
                 account_id: expense.pay_from_account_id,
@@ -533,7 +533,7 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreateSalesQuoteRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesQuote> {
-        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let quote = management_system_core::domain::entities::SalesQuote {
             id: Uuid::new_v4(),
             quote_number: req.quote_number,
@@ -542,7 +542,7 @@ impl FinanceService {
             expiry_date: req.expiry_date,
             subject: req.subject,
             subtotal: total,
-            tax: 0.0,
+            tax: rust_decimal::Decimal::ZERO,
             total_amount: total,
             status: "draft".to_string(),
             created_at: Utc::now(),
@@ -560,7 +560,7 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreateSalesOrderRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesOrder> {
-        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let order = management_system_core::domain::entities::SalesOrder {
             id: Uuid::new_v4(),
             order_number: req.order_number,
@@ -570,7 +570,7 @@ impl FinanceService {
             delivery_date: req.delivery_date,
             subject: req.subject,
             subtotal: total,
-            tax: 0.0,
+            tax: rust_decimal::Decimal::ZERO,
             total_amount: total,
             status: "draft".to_string(),
             created_at: Utc::now(),
@@ -614,7 +614,7 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreatePurchaseQuoteRequest,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseQuote> {
-        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let quote = management_system_core::domain::entities::PurchaseQuote {
             id: Uuid::new_v4(),
             quote_number: req.quote_number,
@@ -623,7 +623,7 @@ impl FinanceService {
             expiry_date: req.expiry_date,
             subject: req.subject,
             subtotal: total,
-            tax: 0.0,
+            tax: rust_decimal::Decimal::ZERO,
             total_amount: total,
             status: "draft".to_string(),
             created_at: Utc::now(),
@@ -641,7 +641,7 @@ impl FinanceService {
         &self,
         req: management_system_core::domain::entities::CreatePurchaseOrderRequest,
     ) -> DomainResult<management_system_core::domain::entities::PurchaseOrder> {
-        let total: f64 = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let order = management_system_core::domain::entities::PurchaseOrder {
             id: Uuid::new_v4(),
             order_number: req.order_number,
@@ -651,7 +651,7 @@ impl FinanceService {
             delivery_date: req.delivery_date,
             subject: req.subject,
             subtotal: total,
-            tax: 0.0,
+            tax: rust_decimal::Decimal::ZERO,
             total_amount: total,
             status: "draft".to_string(),
             budget_type: req.budget_type.unwrap_or_else(|| "OPEX".to_string()),
@@ -904,8 +904,8 @@ impl FinanceService {
             items: vec![
                 management_system_core::domain::entities::CreateInvoiceItemRequest {
                     description: format!("Rental Service Fee - Period {}", period.id),
-                    quantity: 1.0,
-                    unit_price: total.to_f64().unwrap_or_default(),
+                    quantity: rust_decimal::Decimal::ONE,
+                    unit_price: total,
                     account_id: None,
                 },
             ],

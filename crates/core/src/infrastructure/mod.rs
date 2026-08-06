@@ -15,3 +15,7 @@ pub use bus::*;
 pub use repositories::*;
 pub mod notifications;
 pub mod pdf;
+pub mod auth;
+pub use auth::*;
+pub mod tenant_db;
+pub use tenant_db::*;

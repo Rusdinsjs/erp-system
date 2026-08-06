@@ -116,11 +116,12 @@ pub async fn reject_request(
     Json(payload): Json<RejectRequestDto>,
 ) -> Result<Json<ApiResponse<ApprovalRequest>>, AppError> {
     let approver_id = claims.user_id();
+    let role_code = claims.role.clone();
 
     // Use unified approval service - all modules now flow through approval_requests table
     let request = state
         .approval_service
-        .reject_request(id, approver_id, payload.notes)
+        .reject_request(id, approver_id, &role_code, payload.notes)
         .await?;
 
     Ok(Json(ApiResponse::success(request)))
@@ -133,11 +134,12 @@ pub async fn delegate_request(
     Json(payload): Json<DelegateRequestDto>,
 ) -> Result<Json<ApiResponse<ApprovalRequest>>, AppError> {
     let delegator_id = claims.user_id();
+    let role_code = claims.role.clone();
 
     // Use unified approval service - all modules now flow through approval_requests table
     let request = state
         .approval_service
-        .delegate_request(id, delegator_id, payload.delegated_to, payload.notes)
+        .delegate_request(id, delegator_id, &role_code, payload.delegated_to, payload.notes)
         .await?;
 
     Ok(Json(ApiResponse::success(request)))

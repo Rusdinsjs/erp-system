@@ -29,12 +29,30 @@ pub async fn auth_middleware(
 
     let config = &state.jwt_config;
 
-    let _claims: UserClaims = decode_token(token, config).map_err(|e| {
+    let claims: UserClaims = decode_token(token, config).map_err(|e| {
         tracing::error!("Auth Middleware Decode Error: {:?}", e);
         StatusCode::UNAUTHORIZED
     })?;
 
-    request.extensions_mut().insert(_claims);
+    // QSEC-008: Check JTI token revocation & user session invalidation (e.g. role mutation)
+    if state.session_tracker.is_jti_revoked(&claims.jti).await {
+        tracing::warn!("Auth Middleware: Blocked revoked JTI token: {}", claims.jti);
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    if state
+        .session_tracker
+        .is_user_token_invalidated(claims.user_id(), claims.iat)
+        .await
+    {
+        tracing::warn!(
+            "Auth Middleware: Blocked token for user {} invalidated by role/security mutation",
+            claims.sub
+        );
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    request.extensions_mut().insert(claims);
 
     Ok(next.run(request).await)
 }

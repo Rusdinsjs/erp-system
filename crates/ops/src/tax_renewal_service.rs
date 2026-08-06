@@ -208,8 +208,6 @@ impl TaxRenewalService {
             "Missing renewal cost",
         ))?;
 
-        let cost_f64 = rust_decimal::prelude::ToPrimitive::to_f64(&cost).unwrap_or(0.0);
-
         // Find "Utang Biaya Legal Armada" (2-1140)
         let payable_account = self
             .finance_service
@@ -233,8 +231,8 @@ impl TaxRenewalService {
                         .unwrap_or("Unknown Asset".to_string()),
                     renewal.current_expiry
                 ),
-                quantity: 1.0,
-                unit_price: cost_f64,
+                quantity: rust_decimal::Decimal::ONE,
+                unit_price: cost,
                 account_id: None, // Let Finance Service auto-select expense account
             }],
             attachment_url: renewal.invoice_attachment.clone(),
@@ -345,7 +343,7 @@ impl ModuleApprovalCallback for TaxRenewalService {
         request: &management_system_core::infrastructure::repositories::ApprovalRequest,
         approver_id: Uuid,
         notes: Option<String>,
-    ) -> DomainResult<()> {
+    ) -> Result<(), DomainError> {
         let renewal_id = request.resource_id;
         
         // Approve the renewal - this creates a purchase bill
@@ -359,7 +357,7 @@ impl ModuleApprovalCallback for TaxRenewalService {
         request: &management_system_core::infrastructure::repositories::ApprovalRequest,
         _approver_id: Uuid,
         notes: String,
-    ) -> DomainResult<()> {
+    ) -> Result<(), DomainError> {
         let renewal_id = request.resource_id;
         
         // Reject the renewal

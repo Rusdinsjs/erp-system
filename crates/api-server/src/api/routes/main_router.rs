@@ -23,12 +23,6 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(health_check))
         .route("/api/auth/login", post(login))
         .route("/api/auth/register", post(register))
-        .route(
-            "/api/upload",
-            post(upload_handler::upload_file).layer(tower_http::limit::RequestBodyLimitLayer::new(
-                10 * 1024 * 1024,
-            )),
-        )
         .route("/ws", get(notification_ws::ws_handler));
 
     // Lookup routes
@@ -41,8 +35,15 @@ pub fn create_router(state: AppState) -> Router {
             get(list_maintenance_types),
         );
 
-    // Protected routes
+    // Protected routes (QSEC-006: Private file uploads & access)
     let protected_routes = Router::new()
+        .route(
+            "/api/upload",
+            post(upload_handler::upload_file).layer(tower_http::limit::RequestBodyLimitLayer::new(
+                10 * 1024 * 1024,
+            )),
+        )
+        .route("/api/uploads/*path", get(upload_handler::get_private_file))
         // Assets
         .route(
             "/api/assets/expiring",
@@ -565,6 +566,16 @@ pub fn create_router(state: AppState) -> Router {
             crate::api::routes::maintenance_routes::maintenance_routes(),
         )
         .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes())
+        .route(
+            "/api/test/email",
+            axum::routing::post(crate::api::handlers::test_handler::send_test_email),
+        )
+        .layer(axum_middleware::from_fn(
+            crate::api::middleware::request_context::request_context_middleware,
+        ))
+        .layer(axum_middleware::from_fn(
+            crate::api::middleware::tenant::tenant_middleware,
+        ))
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
@@ -575,9 +586,5 @@ pub fn create_router(state: AppState) -> Router {
         .merge(lookup_routes)
         .merge(protected_routes)
         .merge(crate::api::routes::settings_routes::settings_routes(state.clone()))
-        .route(
-            "/api/test/email",
-            axum::routing::post(crate::api::handlers::test_handler::send_test_email),
-        )
         .with_state(state)
 }

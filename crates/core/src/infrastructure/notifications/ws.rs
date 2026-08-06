@@ -5,7 +5,6 @@ use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, error};
 use uuid::Uuid;
 
-// Alias to avoid naming conflicts with top-level modules if any
 use axum::extract::ws as ax_ws;
 
 /// A message sent to a specific user or broadcasted
@@ -15,9 +14,20 @@ pub struct NotificationMessage {
     pub payload: serde_json::Value,
 }
 
-/// The global manager for WebSocket connections
+/// Authenticated WebSocket Session Metadata (QSEC-005)
+#[derive(Clone)]
+pub struct WsSessionInfo {
+    pub session_id: Uuid,
+    pub user_id: Uuid,
+    pub role: String,
+    pub organization_id: Option<Uuid>,
+    pub company_id: Option<Uuid>,
+    pub tx: mpsc::UnboundedSender<Message>,
+}
+
+/// The global manager for authenticated WebSocket connections
 pub struct WebSocketManager {
-    pub sessions: Mutex<HashMap<Uuid, mpsc::UnboundedSender<Message>>>,
+    pub sessions: Mutex<HashMap<Uuid, WsSessionInfo>>,
 }
 
 impl Default for WebSocketManager {
@@ -33,7 +43,45 @@ impl WebSocketManager {
         }
     }
 
-    /// Broadcast a message to ALL connected clients
+    /// Register authenticated session
+    pub async fn register(&self, session: WsSessionInfo) {
+        let mut sessions = self.sessions.lock().await;
+        sessions.insert(session.session_id, session);
+    }
+
+    /// Unregister session on disconnect
+    pub async fn unregister(&self, session_id: &Uuid) {
+        let mut sessions = self.sessions.lock().await;
+        sessions.remove(session_id);
+    }
+
+    /// Send notification targeted strictly to a specific user (User A cannot receive User B's notifications)
+    pub async fn send_to_user(&self, target_user_id: Uuid, msg: &NotificationMessage) -> bool {
+        let json = match serde_json::to_string(msg) {
+            Ok(j) => j,
+            Err(e) => {
+                error!("Failed to serialize user notification: {}", e);
+                return false;
+            }
+        };
+
+        let sessions = self.sessions.lock().await;
+        let mut sent_count = 0;
+        for session in sessions.values() {
+            if session.user_id == target_user_id {
+                if session.tx.send(Message::Text(json.clone())).is_ok() {
+                    sent_count += 1;
+                }
+            }
+        }
+        debug!(
+            "Sent notification '{}' to target user {} across {} active sockets",
+            msg.event_type, target_user_id, sent_count
+        );
+        sent_count > 0
+    }
+
+    /// Broadcast non-sensitive events to authenticated clients only
     pub async fn broadcast(&self, msg: &NotificationMessage) {
         let json = match serde_json::to_string(msg) {
             Ok(j) => j,
@@ -44,13 +92,11 @@ impl WebSocketManager {
         };
 
         let sessions = self.sessions.lock().await;
-        for (_id, tx) in sessions.iter() {
-            if let Err(_disconnected) = tx.send(Message::Text(json.clone())) {
-                // The tx is disconnected
-            }
+        for session in sessions.values() {
+            let _ = session.tx.send(Message::Text(json.clone()));
         }
         debug!(
-            "Broadcasted event '{}' to {} clients",
+            "Broadcasted event '{}' to {} authenticated clients",
             msg.event_type,
             sessions.len()
         );

@@ -120,6 +120,7 @@ impl AssetExpenseService {
         &self,
         expense_id: Uuid,
         approver_id: Uuid,
+        role_code: &str,
         notes: String,
     ) -> DomainResult<AssetExpenseResponse> {
         // 1. Find active approval request
@@ -136,7 +137,7 @@ impl AssetExpenseService {
 
         // 2. Reject via ApprovalService
         self.approval_service
-            .reject_request(approval_req.id, approver_id, notes)
+            .reject_request(approval_req.id, approver_id, role_code, notes)
             .await?;
 
         // 3. Update Expense Status

@@ -14,7 +14,7 @@ export const Logo: React.FC<LogoProps> = ({ collapsed, className = "" }) => {
         queryFn: settingsApi.getPublic
     });
 
-    const appName = publicSettings?.app_name || 'Management System';
+    const appName = publicSettings?.app_name || 'ERPQu';
     const companyLogo = publicSettings?.company_logo;
     const companyName = publicSettings?.company_name || appName;
 
