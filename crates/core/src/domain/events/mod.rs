@@ -1,74 +1,36 @@
 //! System Events for Event-Driven Architecture (QARC-005 & 3R.1.1-002)
-use crate::domain::entities::fuel::FuelLog;
-use crate::domain::entities::rental_billing::RentalBillingPeriod;
-use crate::domain::entities::work_order::WorkOrder;
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+/// Generic System Event Envelope
+/// Platform Kernel should not contain business-specific events (e.g. Loan, Fuel, Maintenance).
+/// Instead, bounded contexts publish BusinessEvents with generic JSON payloads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event_type", content = "payload")]
 pub enum SystemEvent {
-    // Loan Events
-    LoanRequested {
-        loan_id: Uuid,
-        asset_id: Uuid,
-        asset_name: String,
-        borrower_id: Option<Uuid>,
+    /// A generic business event emitted by a bounded context
+    BusinessEvent {
+        event_name: String,
+        payload: serde_json::Value,
     },
-    LoanApproved {
-        loan_id: Uuid,
-        asset_id: Uuid,
-        asset_name: String,
-        borrower_id: Option<Uuid>,
+    
+    /// Platform-level system alert (e.g., low disk space, provisioning failed)
+    SystemAlert {
+        alert_name: String,
+        message: String,
     },
-    LoanRejected {
-        loan_id: Uuid,
-        asset_id: Uuid,
-        asset_name: String,
-        borrower_id: Option<Uuid>,
-        reason: Option<String>,
+    
+    /// Generic notification request that can be processed by NotificationService
+    NotificationRequested {
+        user_id: uuid::Uuid,
+        title: String,
+        message: String,
+        reference_type: Option<String>,
+        reference_id: Option<uuid::Uuid>,
     },
-    LoanCheckedOut {
-        loan_id: Uuid,
-        asset_id: Uuid,
-        borrower_id: Option<Uuid>,
-    },
-    LoanReturned {
-        loan_id: Uuid,
-        asset_id: Uuid,
-        borrower_id: Option<Uuid>,
-    },
-    LoanOverdue {
-        loan_id: Uuid,
-        borrower_id: Option<Uuid>,
-        asset_name: String,
-        days_overdue: i64,
-    },
-
-    // Inventory & Ops Events
-    LowStockAlert {
-        item_name: String,
-        current_qty: Decimal,
-        min_qty: Decimal,
-    },
-
-    // Asset Events
-    AssetCreated {
-        asset_id: Uuid,
-        asset_name: String,
-    },
-    AssetUpdated {
-        asset_id: Uuid,
-        asset_name: String,
-    },
-
-    // Fuel Events
-    FuelLogCreated(Box<FuelLog>),
-
-    // Maintenance Events
-    WorkOrderCreated(Box<WorkOrder>),
-
-    // Rental Events
-    RentalBillingGenerated(Box<RentalBillingPeriod>),
+    
+    /// Generic broadcast request for WebSocket clients
+    WebSocketBroadcast {
+        topic: String,
+        payload: serde_json::Value,
+    }
 }

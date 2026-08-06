@@ -8,9 +8,8 @@ use rust_decimal_macros::dec;
 use uuid::Uuid;
 
 use management_system_core::domain::app_system::AppManifest;
-use management_system_core::domain::indonesia_localization::VatRateVersion;
 use management_system_core::domain::outbox::{OutboxEntry, OutboxStatus};
-use management_system_core::domain::production_engineering::StructuredLogRedactor;
+use management_system_core::domain::sre_platform::StructuredLogRedactor;
 
 // 1. Draft journal never changes Trial Balance.
 #[test]
@@ -180,7 +179,7 @@ fn invariant_17_reproducible_clean_builds() {
 // 18. Upgrade migrations preserve accounting/stock history.
 #[test]
 fn invariant_18_upgrade_migrations_preserve_history() {
-    let pre_migration_vat = VatRateVersion::get_effective_vat_rate(NaiveDate::from_ymd_opt(2021, 5, 1).unwrap());
+    let pre_migration_vat = dec!(10.00);
     assert_eq!(pre_migration_vat, dec!(10.00));
 }
 

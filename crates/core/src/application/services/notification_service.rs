@@ -359,77 +359,30 @@ impl NotificationService {
             tracing::info!("Notification Service event listener started");
             while let Ok(event) = receiver.recv().await {
                 match event {
-                    crate::domain::events::SystemEvent::LoanRequested {
-                        loan_id,
-                        asset_name,
-                        ..
-                    } => {
-                        let _ = service
-                            .broadcast(
-                                "LOAN_CREATED",
-                                json!({ "id": loan_id, "asset_name": asset_name }),
-                            )
-                            .await;
+                    crate::domain::events::SystemEvent::BusinessEvent { event_name, payload: _payload } => {
+                        tracing::debug!("NotificationService ignoring BusinessEvent: {}", event_name);
+                        // In a real implementation, NotificationService would subscribe to
+                        // NotificationRequested events instead of hardcoding business logic here.
                     }
-                    crate::domain::events::SystemEvent::LoanApproved {
-                        loan_id,
-                        borrower_id: Some(uid),
-                        asset_name,
-                        ..
-                    } => {
-                        let _ = service
-                            .notify_loan_approved(uid, &asset_name, loan_id)
-                            .await;
-                    }
-                    crate::domain::events::SystemEvent::LoanRejected {
-                        loan_id,
-                        asset_name,
-                        borrower_id: Some(uid),
-                        reason,
-                        ..
+                    crate::domain::events::SystemEvent::NotificationRequested {
+                        user_id,
+                        title,
+                        message,
+                        reference_type,
+                        reference_id,
                     } => {
                         let _ = service
                             .create(
-                                uid,
-                                &format!("Loan Rejected: {}", asset_name),
-                                &format!(
-                                    "Your loan request for {} has been rejected. Reason: {}",
-                                    asset_name,
-                                    reason.unwrap_or_else(|| "No reason provided".to_string())
-                                ),
-                                Some("loan"),
-                                Some(loan_id),
+                                user_id,
+                                &title,
+                                &message,
+                                reference_type.as_deref(),
+                                reference_id,
                             )
                             .await;
                     }
-                    crate::domain::events::SystemEvent::LoanCheckedOut { loan_id, .. } => {
-                        let _ = service
-                            .broadcast("LOAN_CHECKOUT", json!({ "id": loan_id }))
-                            .await;
-                    }
-                    crate::domain::events::SystemEvent::LoanReturned { loan_id, .. } => {
-                        let _ = service
-                            .broadcast("LOAN_RETURNED", json!({ "id": loan_id }))
-                            .await;
-                    }
-                    crate::domain::events::SystemEvent::LoanOverdue {
-                        loan_id,
-                        borrower_id: Some(uid),
-                        asset_name,
-                        days_overdue,
-                    } => {
-                        let _ = service
-                            .notify_loan_overdue(uid, &asset_name, days_overdue, loan_id)
-                            .await;
-                    }
-                    crate::domain::events::SystemEvent::LowStockAlert {
-                        item_name,
-                        current_qty,
-                        min_qty,
-                    } => {
-                        let _ = service
-                            .notify_low_stock(&item_name, current_qty, min_qty)
-                            .await;
+                    crate::domain::events::SystemEvent::WebSocketBroadcast { topic, payload } => {
+                        let _ = service.broadcast(&topic, payload).await;
                     }
                     _ => {}
                 }

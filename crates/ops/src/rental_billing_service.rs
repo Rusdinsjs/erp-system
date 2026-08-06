@@ -226,9 +226,10 @@ impl RentalBillingService {
 
             // Publish Event for Finance (Automated Sales Invoice)
             self.event_bus.publish(
-                management_system_core::domain::events::SystemEvent::RentalBillingGenerated(
-                    Box::new(saved.clone()),
-                ),
+                management_system_core::domain::events::SystemEvent::BusinessEvent {
+                    event_name: "RentalBillingGenerated".to_string(),
+                    payload: serde_json::to_value(&saved).unwrap_or_default(),
+                },
             );
 
             saved_periods.push(saved);

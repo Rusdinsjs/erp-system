@@ -145,9 +145,10 @@ impl FuelService {
             if let Ok(Some(log)) = self.repo.find_by_id(id).await {
                 // Publish Event for Finance (Automated Journal & Asset Expense)
                 self.event_bus.publish(
-                    management_system_core::domain::events::SystemEvent::FuelLogCreated(Box::new(
-                        log,
-                    )),
+                    management_system_core::domain::events::SystemEvent::BusinessEvent {
+                        event_name: "FuelLogCreated".to_string(),
+                        payload: serde_json::to_value(&log).unwrap_or_default(),
+                    },
                 );
             }
         }

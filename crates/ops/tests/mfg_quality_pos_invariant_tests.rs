@@ -10,7 +10,7 @@ use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use uuid::Uuid;
 
-use management_system_core::domain::manufacturing_pos::{
+use management_system_ops::domain::manufacturing_pos::{
     BomItem, PosShift, ProductionOrder, QualityInspection,
 };
 

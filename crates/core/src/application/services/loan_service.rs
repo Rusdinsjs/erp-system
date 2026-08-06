@@ -70,11 +70,14 @@ impl LoanService {
 
         // Publish Event
         self.event_bus
-            .publish(crate::domain::events::SystemEvent::LoanRequested {
-                loan_id: created_loan.id,
-                asset_id: created_loan.asset_id,
-                asset_name: asset.name.clone(),
-                borrower_id: created_loan.borrower_id,
+            .publish(crate::domain::events::SystemEvent::BusinessEvent {
+                event_name: "LoanRequested".to_string(),
+                payload: serde_json::json!({
+                    "loan_id": created_loan.id,
+                    "asset_id": created_loan.asset_id,
+                    "asset_name": asset.name,
+                    "borrower_id": Some(created_loan.borrower_id)
+                }),
             });
 
         Ok(created_loan)
@@ -167,11 +170,14 @@ impl LoanService {
 
         // Publish Event
         self.event_bus
-            .publish(crate::domain::events::SystemEvent::LoanApproved {
-                loan_id: updated_loan.id,
-                asset_id: updated_loan.asset_id,
-                asset_name,
-                borrower_id: updated_loan.borrower_id,
+            .publish(crate::domain::events::SystemEvent::BusinessEvent {
+                event_name: "LoanApproved".to_string(),
+                payload: serde_json::json!({
+                    "loan_id": updated_loan.id,
+                    "asset_id": updated_loan.asset_id,
+                    "asset_name": asset_name,
+                    "borrower_id": updated_loan.borrower_id,
+                }),
             });
 
         Ok(updated_loan)
@@ -211,12 +217,15 @@ impl LoanService {
 
         // Publish Event
         self.event_bus
-            .publish(crate::domain::events::SystemEvent::LoanRejected {
-                loan_id: updated_loan.id,
-                asset_id: updated_loan.asset_id,
-                asset_name,
-                borrower_id: updated_loan.borrower_id,
-                reason,
+            .publish(crate::domain::events::SystemEvent::BusinessEvent {
+                event_name: "LoanRejected".to_string(),
+                payload: serde_json::json!({
+                    "loan_id": updated_loan.id,
+                    "asset_id": updated_loan.asset_id,
+                    "asset_name": asset_name,
+                    "borrower_id": updated_loan.borrower_id,
+                    "reason": reason,
+                }),
             });
 
         Ok(updated_loan)
@@ -253,10 +262,13 @@ impl LoanService {
 
         // Publish Event
         self.event_bus
-            .publish(crate::domain::events::SystemEvent::LoanCheckedOut {
-                loan_id: updated_loan.id,
-                asset_id: updated_loan.asset_id,
-                borrower_id: updated_loan.borrower_id,
+            .publish(crate::domain::events::SystemEvent::BusinessEvent {
+                event_name: "LoanCheckedOut".to_string(),
+                payload: serde_json::json!({
+                    "loan_id": updated_loan.id,
+                    "asset_id": updated_loan.asset_id,
+                    "borrower_id": updated_loan.borrower_id,
+                }),
             });
 
         Ok(updated_loan)
@@ -297,10 +309,13 @@ impl LoanService {
 
         // Publish Event
         self.event_bus
-            .publish(crate::domain::events::SystemEvent::LoanReturned {
-                loan_id: updated_loan.id,
-                asset_id: updated_loan.asset_id,
-                borrower_id: updated_loan.borrower_id,
+            .publish(crate::domain::events::SystemEvent::BusinessEvent {
+                event_name: "LoanReturned".to_string(),
+                payload: serde_json::json!({
+                    "loan_id": updated_loan.id,
+                    "asset_id": updated_loan.asset_id,
+                    "borrower_id": updated_loan.borrower_id,
+                }),
             });
 
         Ok(updated_loan)
@@ -345,11 +360,14 @@ impl LoanService {
 
                 if days_overdue > 0 {
                     self.event_bus
-                        .publish(crate::domain::events::SystemEvent::LoanOverdue {
-                            loan_id: loan.id,
-                            borrower_id: Some(borrower_id),
-                            asset_name,
-                            days_overdue,
+                        .publish(crate::domain::events::SystemEvent::BusinessEvent {
+                            event_name: "LoanOverdue".to_string(),
+                            payload: serde_json::json!({
+                                "loan_id": loan.id,
+                                "borrower_id": Some(borrower_id),
+                                "asset_name": asset_name,
+                                "days_overdue": days_overdue,
+                            }),
                         });
                 }
             }

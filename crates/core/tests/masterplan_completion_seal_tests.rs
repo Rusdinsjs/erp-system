@@ -8,7 +8,7 @@ use rust_decimal_macros::dec;
 use uuid::Uuid;
 
 use management_system_core::domain::document::DocumentStatus;
-use management_system_core::domain::production_engineering::StructuredLogRedactor;
+use management_system_core::domain::sre_platform::StructuredLogRedactor;
 
 #[test]
 fn test_section_31_what_erpqu_is_ready_means() {

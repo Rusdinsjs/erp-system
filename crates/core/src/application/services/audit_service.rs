@@ -123,41 +123,22 @@ impl AuditService {
             tracing::info!("Audit Service event listener started");
             while let Ok(event) = receiver.recv().await {
                 match event {
-                    crate::domain::events::SystemEvent::LoanRequested {
-                        loan_id,
-                        asset_id,
-                        borrower_id,
-                        ..
-                    } => {
+                    crate::domain::events::SystemEvent::BusinessEvent { event_name, payload } => {
+                        // Dynamically extract ID and actor from payload if present, to auto-log
+                        let id = payload.get("id").or_else(|| payload.get("loan_id")).and_then(|v| uuid::Uuid::parse_str(v.as_str().unwrap_or("")).ok()).unwrap_or_else(uuid::Uuid::new_v4);
+                        let actor_id = payload.get("actor_id").or_else(|| payload.get("user_id")).and_then(|v| uuid::Uuid::parse_str(v.as_str().unwrap_or("")).ok());
+                        
                         let _ = service
                             .repository
                             .create_log(
-                                "loans",
-                                loan_id,
-                                "CREATE_REQUEST",
-                                serde_json::json!({ "asset_id": asset_id, "borrower_id": borrower_id }),
-                                borrower_id, // Assuming borrower is the actor/subject
+                                "business_event",
+                                id,
+                                &event_name,
+                                payload,
+                                actor_id,
                             )
                             .await;
                     }
-                    crate::domain::events::SystemEvent::LoanApproved {
-                        loan_id,
-                        asset_id,
-                        borrower_id,
-                        ..
-                    } => {
-                        let _ = service
-                            .repository
-                            .create_log(
-                                "loans",
-                                loan_id,
-                                "APPROVE",
-                                serde_json::json!({ "asset_id": asset_id, "borrower_id": borrower_id }),
-                                None, // Ideally approver_id should be in event
-                            )
-                            .await;
-                    }
-                    // Add more mappings as needed
                     _ => {}
                 }
             }

@@ -611,9 +611,10 @@ impl WorkOrderService {
         // Labor Journaling (Internal Allocation)
         // MOVED TO FinanceService via EventBus
         self.event_bus.publish(
-            management_system_core::domain::events::SystemEvent::WorkOrderCreated(Box::new(
-                updated.clone(),
-            )),
+            management_system_core::domain::events::SystemEvent::BusinessEvent {
+                event_name: "WorkOrderCreated".to_string(),
+                payload: serde_json::to_value(&wo).unwrap_or_default(),
+            },
         );
 
         // Real-time broadcast

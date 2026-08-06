@@ -214,4 +214,52 @@ mod architecture_tests {
             }
         }
     }
+
+    #[test]
+    fn test_3r_1_1_003_core_kernel_must_not_contain_business_entities() {
+        let core_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        // Strict guard against business knowledge leaking back into the generic Platform Kernel
+        let forbidden = [
+            "pub struct Lead {",
+            "pub struct Opportunity {",
+            "pub struct Project {",
+            "pub struct HrEmployeeRecord {",
+            "pub struct PayrollSlip {",
+            "pub struct SupportTicket {",
+            "pub struct Bom {",
+            "pub struct ProductionOrder {",
+            "pub struct QualityInspection {",
+            "pub struct PosProfile {",
+            "pub struct PosShift {",
+            "pub struct IndonesianTaxInvoice {",
+            "pub struct WithholdingCertificate {",
+            "pub struct IntercompanyTransferDocument {",
+        ];
+        let mut violations = Vec::new();
+
+        fn scan(dir: &Path, forbidden: &[&str], violations: &mut Vec<String>) {
+            for entry in fs::read_dir(dir).expect("read core source") {
+                let path = entry.expect("read core entry").path();
+                if path.is_dir() {
+                    scan(&path, forbidden, violations);
+                } else if path.extension().and_then(|ext| ext.to_str()) == Some("rs")
+                    && !path.ends_with("architecture_boundary_tests.rs")
+                {
+                    let source = fs::read_to_string(&path).expect("read core source file");
+                    for token in forbidden {
+                        if source.contains(token) {
+                            violations.push(format!("{} contains forbidden business token: {token}", path.display()));
+                        }
+                    }
+                }
+            }
+        }
+
+        scan(&core_src, &forbidden, &mut violations);
+        assert!(
+            violations.is_empty(),
+            "Core Kernel contains business-specific knowledge: {:#?}",
+            violations
+        );
+    }
 }
