@@ -164,7 +164,7 @@ impl UserService {
             }
         }
 
-        let updated_user = self
+        let _updated_user = self
             .repository
             .update(
                 id,

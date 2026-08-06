@@ -2,6 +2,7 @@
 //!
 //! Owned strictly by `crates/finance`. Contains NO sqlx persistence attributes.
 
+use super::journal::JournalStatus;
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -67,6 +68,7 @@ pub struct AccountTreeNode {
     pub name: String,
     pub account_type: AccountType,
     pub normal_balance: NormalBalance,
+    #[serde(with = "rust_decimal::serde::str")]
     pub balance: Decimal,
     pub currency: String,
     pub children: Vec<AccountTreeNode>,
@@ -78,8 +80,11 @@ pub struct GeneralLedgerEntry {
     pub transaction_number: String,
     pub header_description: String,
     pub line_description: Option<String>,
+    #[serde(with = "rust_decimal::serde::str")]
     pub debit: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub credit: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub balance: Decimal,
 }
 
@@ -89,7 +94,9 @@ pub struct TrialBalanceEntry {
     pub account_code: String,
     pub account_name: String,
     pub account_type: AccountType,
+    #[serde(with = "rust_decimal::serde::str")]
     pub debit: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub credit: Decimal,
 }
 
@@ -97,7 +104,16 @@ pub struct TrialBalanceEntry {
 pub struct FinancialReportEntry {
     pub account_code: String,
     pub account_name: String,
+    #[serde(with = "rust_decimal::serde::str")]
     pub balance: Decimal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpenseAnalysis {
+    pub month: NaiveDate,
+    pub expense_type: String,
+    #[serde(with = "rust_decimal::serde::str")]
+    pub total_amount: Decimal,
 }
 
 // --- Operational Finance Entities ---
@@ -110,12 +126,17 @@ pub struct SalesInvoice {
     pub date: NaiveDate,
     pub due_date: Option<NaiveDate>,
     pub subject: Option<String>,
+    #[serde(with = "rust_decimal::serde::str")]
     pub subtotal: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub tax: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub total_amount: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount_paid: Decimal,
     pub status: String,
     pub journal_entry_id: Option<Uuid>,
+    pub journal_status: Option<JournalStatus>,
     pub created_at: DateTime<Utc>,
     pub attachment_url: Option<String>,
 }
@@ -125,21 +146,26 @@ pub struct SalesInvoiceItem {
     pub id: Uuid,
     pub invoice_id: Uuid,
     pub description: String,
+    #[serde(with = "rust_decimal::serde::str")]
     pub quantity: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub unit_price: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub total_price: Decimal,
     pub account_id: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateInvoiceItemRequest {
     pub description: String,
+    #[serde(with = "rust_decimal::serde::str")]
     pub quantity: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub unit_price: Decimal,
     pub account_id: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSalesInvoiceRequest {
     pub invoice_number: String,
     pub client_id: Uuid,
@@ -152,6 +178,7 @@ pub struct CreateSalesInvoiceRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SalesInvoiceDetailResponse {
+    #[serde(flatten)]
     pub invoice: SalesInvoice,
     pub items: Vec<SalesInvoiceItem>,
 }
@@ -163,7 +190,9 @@ pub struct PurchaseBill {
     pub vendor_id: Uuid,
     pub date: NaiveDate,
     pub due_date: Option<NaiveDate>,
+    #[serde(with = "rust_decimal::serde::str")]
     pub total_amount: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount_paid: Decimal,
     pub status: String,
     pub budget_type: String,
@@ -198,6 +227,7 @@ pub struct Expense {
     pub date: NaiveDate,
     pub pay_from_account_id: Uuid,
     pub recipient: String,
+    #[serde(with = "rust_decimal::serde::str")]
     pub total_amount: Decimal,
     pub status: String,
     pub expense_type: Option<String>,
@@ -223,6 +253,7 @@ pub struct CashBankTransaction {
     pub transaction_number: String,
     pub transaction_type: String,
     pub date: NaiveDate,
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount: Decimal,
     pub from_account_id: Option<Uuid>,
     pub to_account_id: Option<Uuid>,
@@ -238,6 +269,7 @@ pub struct CreateCashBankTransactionRequest {
     pub transaction_number: Option<String>,
     pub transaction_type: String,
     pub date: NaiveDate,
+    #[serde(with = "rust_decimal::serde::str")]
     pub amount: Decimal,
     pub from_account_id: Option<Uuid>,
     pub to_account_id: Option<Uuid>,

@@ -68,10 +68,10 @@ impl WebSocketManager {
         let sessions = self.sessions.lock().await;
         let mut sent_count = 0;
         for session in sessions.values() {
-            if session.user_id == target_user_id {
-                if session.tx.send(Message::Text(json.clone())).is_ok() {
-                    sent_count += 1;
-                }
+            if session.user_id == target_user_id
+                && session.tx.send(Message::Text(json.clone())).is_ok()
+            {
+                sent_count += 1;
             }
         }
         debug!(

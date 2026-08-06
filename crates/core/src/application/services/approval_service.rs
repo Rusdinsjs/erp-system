@@ -60,8 +60,8 @@ impl ApprovalService {
         }
     }
 
-    fn get_callback(&self, module: &str) -> Option<&Box<dyn ModuleApprovalCallback>> {
-        self.callbacks.get(module)
+    fn get_callback(&self, module: &str) -> Option<&dyn ModuleApprovalCallback> {
+        self.callbacks.get(module).map(|b| b.as_ref())
     }
 
     pub async fn create_request(
@@ -201,7 +201,7 @@ impl ApprovalService {
         let is_final = request.current_approval_level >= workflow.approval_levels;
 
         let status = if is_final {
-            format!("APPROVED_FINAL")
+            "APPROVED_FINAL".to_string()
         } else {
             format!("APPROVED_L{}", request.current_approval_level)
         };

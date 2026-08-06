@@ -4,6 +4,7 @@ import { financeApi } from '../../api/finance';
 import { Search, Calendar, ArrowLeftRight, BookOpen } from 'lucide-react';
 import { Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableSkeleton } from '../../components/ui';
 import dayjs from 'dayjs';
+import { compareDecimalStrings, formatCurrencyIDR } from '../../utils/decimal';
 
 export default function GeneralLedger() {
     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
@@ -124,14 +125,14 @@ export default function GeneralLedger() {
                                                 )}
                                             </TableTd>
                                             <TableTd align="right" className="font-mono font-bold text-emerald-500">
-                                                {entry.debit > 0 ? entry.debit.toLocaleString('id-ID') : '-'}
+                                                {compareDecimalStrings(entry.debit, '0') > 0 ? formatCurrencyIDR(entry.debit) : '-'}
                                             </TableTd>
                                             <TableTd align="right" className="font-mono font-bold text-rose-500">
-                                                {entry.credit > 0 ? entry.credit.toLocaleString('id-ID') : '-'}
+                                                {compareDecimalStrings(entry.credit, '0') > 0 ? formatCurrencyIDR(entry.credit) : '-'}
                                             </TableTd>
                                             <TableTd align="right">
                                                 <span className="font-mono font-bold bg-muted/30 px-3 py-1.5 rounded-lg border border-border">
-                                                    {entry.balance.toLocaleString('id-ID')}
+                                                    {formatCurrencyIDR(entry.balance)}
                                                 </span>
                                             </TableTd>
                                         </TableRow>

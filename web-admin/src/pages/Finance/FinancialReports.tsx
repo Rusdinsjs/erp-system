@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { FileBarChart, PieChart, TrendingUp, Landmark } from 'lucide-react';
+import { compareDecimalStrings, formatCurrencyIDR, sumDecimalStrings } from '../../utils/decimal';
 
 export default function FinancialReports() {
     const [reportType, setReportType] = useState<'balance-sheet' | 'income-statement'>('balance-sheet');
@@ -18,7 +19,8 @@ export default function FinancialReports() {
         enabled: reportType === 'income-statement'
     });
 
-    const totalBalance = (reportType === 'balance-sheet' ? balanceSheet : incomeStatement)?.reduce((sum, item) => sum + item.balance, 0) || 0;
+    const report = reportType === 'balance-sheet' ? balanceSheet : incomeStatement;
+    const totalBalance = sumDecimalStrings(report?.map((item) => item.balance) ?? []);
 
     return (
         <div className="space-y-6">
@@ -77,7 +79,7 @@ export default function FinancialReports() {
                                                 Memuat data...
                                             </td>
                                         </tr>
-                                    ) : (reportType === 'balance-sheet' ? balanceSheet : incomeStatement)?.map((item) => (
+                                    ) : report?.map((item) => (
                                         <tr key={item.account_code} className="hover:bg-muted/50 group transition-colors">
                                             <td className="px-6 py-4 text-muted-foreground font-mono text-xs group-hover:text-primary transition-colors">
                                                 {item.account_code}
@@ -85,8 +87,8 @@ export default function FinancialReports() {
                                             <td className="px-6 py-4 text-foreground font-medium">
                                                 {item.account_name}
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-semibold ${item.balance >= 0 ? 'text-foreground' : 'text-destructive'}`}>
-                                                {item.balance.toLocaleString('id-ID')}
+                                            <td className={`px-6 py-4 text-right font-semibold ${compareDecimalStrings(item.balance, '0') >= 0 ? 'text-foreground' : 'text-destructive'}`}>
+                                                {formatCurrencyIDR(item.balance)}
                                             </td>
                                         </tr>
                                     ))}
@@ -96,8 +98,8 @@ export default function FinancialReports() {
                                         <td colSpan={2} className="px-6 py-4 text-right font-bold text-foreground uppercase text-sm">
                                             {reportType === 'balance-sheet' ? 'Total Ekuitas / Kekayaan' : 'Laba/Rugi Bersih'}
                                         </td>
-                                        <td className={`px-6 py-4 text-right font-bold text-lg ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                                            {totalBalance.toLocaleString('id-ID')}
+                                        <td className={`px-6 py-4 text-right font-bold text-lg ${compareDecimalStrings(totalBalance, '0') >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                                            {formatCurrencyIDR(totalBalance)}
                                         </td>
                                     </tr>
                                 </tfoot>

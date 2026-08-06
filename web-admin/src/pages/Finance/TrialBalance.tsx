@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { financeApi } from '../../api/finance';
 import { Scale, Download } from 'lucide-react';
+import { compareDecimalStrings, formatCurrencyIDR, sumDecimalStrings } from '../../utils/decimal';
 
 export default function TrialBalance() {
     const { data: tb, isLoading } = useQuery({
@@ -8,8 +9,8 @@ export default function TrialBalance() {
         queryFn: financeApi.getTrialBalance
     });
 
-    const totalDebit = tb?.reduce((sum, item) => sum + item.debit, 0) || 0;
-    const totalCredit = tb?.reduce((sum, item) => sum + item.credit, 0) || 0;
+    const totalDebit = sumDecimalStrings(tb?.map((item) => item.debit) ?? []);
+    const totalCredit = sumDecimalStrings(tb?.map((item) => item.credit) ?? []);
 
     return (
         <div className="space-y-6">
@@ -43,7 +44,7 @@ export default function TrialBalance() {
                                     </td>
                                 </tr>
                             ) : tb && tb.length > 0 ? (
-                                tb.filter(item => item.debit > 0 || item.credit > 0).map((item) => (
+                                tb.filter(item => compareDecimalStrings(item.debit, '0') > 0 || compareDecimalStrings(item.credit, '0') > 0).map((item) => (
                                     <tr key={item.account_id} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-6 py-4 text-primary font-mono text-sm font-medium">
                                             {item.account_code}
@@ -52,10 +53,10 @@ export default function TrialBalance() {
                                             {item.account_name}
                                         </td>
                                         <td className="px-6 py-4 text-right text-emerald-500 font-medium">
-                                            {item.debit > 0 ? item.debit.toLocaleString('id-ID') : '-'}
+                                            {compareDecimalStrings(item.debit, '0') > 0 ? formatCurrencyIDR(item.debit) : '-'}
                                         </td>
                                         <td className="px-6 py-4 text-right text-rose-500 font-medium">
-                                            {item.credit > 0 ? item.credit.toLocaleString('id-ID') : '-'}
+                                            {compareDecimalStrings(item.credit, '0') > 0 ? formatCurrencyIDR(item.credit) : '-'}
                                         </td>
                                     </tr>
                                 ))
@@ -71,17 +72,17 @@ export default function TrialBalance() {
                             <tr className="border-t-2 border-border">
                                 <td colSpan={2} className="px-6 py-4 font-bold text-foreground text-right">TOTAL</td>
                                 <td className="px-6 py-4 text-right text-emerald-500 font-bold border-l border-border">
-                                    {totalDebit.toLocaleString('id-ID')}
+                                    {formatCurrencyIDR(totalDebit)}
                                 </td>
                                 <td className="px-6 py-4 text-right text-rose-500 font-bold border-l border-border">
-                                    {totalCredit.toLocaleString('id-ID')}
+                                    {formatCurrencyIDR(totalCredit)}
                                 </td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
 
-                {totalDebit !== totalCredit && !isLoading && (
+                {compareDecimalStrings(totalDebit, totalCredit) !== 0 && !isLoading && (
                     <div className="bg-destructive/10 border-t border-destructive/20 p-4 flex items-center gap-3 text-destructive text-sm">
                         <Scale size={20} />
                         <span>Perhatian: Neraca saldo tidak seimbang. Silakan periksa kembali jurnal umum Anda.</span>

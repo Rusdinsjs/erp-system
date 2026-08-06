@@ -24,7 +24,7 @@ mod tests {
         NotificationMessage, WebSocketManager, WsSessionInfo,
     };
     use crate::infrastructure::repositories::ApprovalWorkflow;
-    use crate::shared::config::{sanitize_connection_string, AppConfig};
+    use crate::shared::config::sanitize_connection_string;
     use chrono::Utc;
     use tokio::sync::mpsc;
     use uuid::Uuid;

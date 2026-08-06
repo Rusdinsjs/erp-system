@@ -21,10 +21,10 @@ use management_system_core::infrastructure::repositories::{
     ApprovalRepository, AssetExpenseRepository, AssetRepository, AuditRepository,
     CategoryRepository, CategoryTemplateRepository, ClientRepository, ContractDocumentRepository,
     ConversionRepository, EmployeeRepository, FuelRepository, InventoryRepository,
-    LifecycleRepository, LoanRepository, MaintenanceRepository,
-    MaintenanceTemplateRepository, NotificationRepository, RbacRepository, RentalRepository,
-    SensorRepository, SettingsRepository, TaxRenewalRepository, TimesheetRepository,
-    UserRepository, VendorRepository, WorkOrderRepository,
+    LifecycleRepository, LoanRepository, MaintenanceRepository, MaintenanceTemplateRepository,
+    NotificationRepository, RbacRepository, RentalRepository, SensorRepository, SettingsRepository,
+    TaxRenewalRepository, TimesheetRepository, UserRepository, VendorRepository,
+    WorkOrderRepository,
 };
 use management_system_core::infrastructure::storage::FileStorage;
 use management_system_core::shared::utils::jwt::JwtConfig;
@@ -297,7 +297,6 @@ impl AppState {
         let report_service = ReportService::new(
             asset_repo.clone(),
             maintenance_repo.clone(),
-            pool.clone(),
             (*settings_repo).clone(),
             fuel_repo.clone(),
             loan_repo.clone(),

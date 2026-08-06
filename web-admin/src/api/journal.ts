@@ -1,11 +1,12 @@
 import { api } from './http';
+import type { DecimalString } from '../utils/decimal';
 
 export interface JournalLine {
     id: string;
     account_id: string;
     description?: string;
-    debit: number;
-    credit: number;
+    debit: DecimalString;
+    credit: DecimalString;
 }
 
 export interface JournalEntry {
@@ -27,8 +28,8 @@ export interface JournalEntryDetail {
 export interface CreateJournalLineRequest {
     account_id: string;
     description?: string;
-    debit: number;
-    credit: number;
+    debit: DecimalString;
+    credit: DecimalString;
 }
 
 export interface CreateJournalEntryRequest {

@@ -1,8 +1,6 @@
+use crate::domain::entities::journal::{CreateJournalEntryRequest, CreateJournalLineRequest};
 use crate::JournalService;
 use chrono::{NaiveDate, Utc};
-use crate::domain::entities::journal::{
-    CreateJournalEntryRequest, CreateJournalLineRequest,
-};
 use management_system_core::domain::errors::{DomainError, DomainResult};
 use management_system_core::infrastructure::repositories::{AssetRepository, CategoryRepository};
 use rust_decimal::Decimal;
@@ -183,7 +181,10 @@ impl DepreciationService {
             };
 
             let tx_num = format!("DEP-{}", Uuid::new_v4().to_string()[..8].to_uppercase());
-            let entry = self.journal_service.create_journal_entry(tx_num, journal_req, None).await?;
+            let entry = self
+                .journal_service
+                .create_journal_entry(tx_num, journal_req, None)
+                .await?;
 
             // 5. Log it (TODO: Create logs table repository/method, for now just log to stdout/tracing)
             tracing::info!(

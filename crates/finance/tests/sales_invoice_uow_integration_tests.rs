@@ -4,10 +4,7 @@ use chrono::NaiveDate;
 use rust_decimal_macros::dec;
 use uuid::Uuid;
 
-use management_system_core::domain::entities::{
-    CreateInvoiceItemRequest, CreateSalesInvoiceRequest,
-};
-use management_system_core::domain::errors::DomainError;
+use management_system_finance::{CreateInvoiceItemRequest, CreateSalesInvoiceRequest};
 
 #[test]
 fn test_3r_1_004_empty_invoice_lines_rejected_on_create() {
@@ -27,7 +24,7 @@ fn test_3r_1_004_empty_invoice_lines_rejected_on_create() {
 
 #[test]
 fn test_3r_1_004_multiple_invoice_lines_calculation_exactness() {
-    let items = vec![
+    let items = [
         CreateInvoiceItemRequest {
             description: "Consulting".to_string(),
             quantity: dec!(10.00),

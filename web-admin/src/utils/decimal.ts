@@ -1,147 +1,138 @@
-/**
- * QARC-011, 3R.1-003 & 3R.1.1-003 Exact Decimal Utilities for Frontend Contract Alignment
- *
- * Provides exact, precision-safe decimal arithmetic using string scaling and BigInt/integer math
- * without binary floating-point roundtrip loss (parseFloat/Math.round).
- */
-
+/** Precision-safe decimal helpers for Finance UI. Financial truth stays as strings. */
 export type DecimalString = string;
 
-/**
- * Normalizes input value into an exact decimal string representation with given scale (default 2).
- * Example: "1500000.5" -> "1500000.50", "1.005" -> "1.01", "0" -> "0.00"
- */
-export function toDecimalString(val: string | number | null | undefined, scale = 2): DecimalString {
-    if (val === null || val === undefined || val === '') return '0.00';
-    const str = typeof val === 'number' ? val.toString() : val.trim();
-    if (!str || str === 'NaN') return '0.00';
+const DECIMAL_RE = /^([+-]?)(\d+)(?:\.(\d+))?$/;
 
-    const negative = str.startsWith('-');
-    const cleanStr = negative ? str.slice(1) : str;
-    const parts = cleanStr.split('.');
-    let integerPart = parts[0] || '0';
-    let fractionalPart = parts[1] || '';
+type Parts = { coefficient: bigint; scale: number };
 
-    // Pad or round fractional part deterministically using BigInt
-    if (fractionalPart.length < scale) {
-        fractionalPart = fractionalPart.padEnd(scale, '0');
-    } else if (fractionalPart.length > scale) {
-        const roundDigit = parseInt(fractionalPart[scale], 10);
-        let currentScaleValue = BigInt(fractionalPart.slice(0, scale) || '0');
-        if (roundDigit >= 5) {
-            currentScaleValue += 1n;
-        }
-        fractionalPart = currentScaleValue.toString().padStart(scale, '0');
-        if (fractionalPart.length > scale) {
-            // Carry over to integer part
-            integerPart = (BigInt(integerPart) + 1n).toString();
-            fractionalPart = fractionalPart.slice(1);
-        }
+function parseDecimal(value: DecimalString): Parts {
+    const raw = value.trim();
+    const match = DECIMAL_RE.exec(raw);
+    if (!match) throw new Error(`Invalid decimal value: ${value}`);
+
+    const sign = match[1] === '-' ? -1n : 1n;
+    const integer = match[2];
+    const fraction = match[3] ?? '';
+    return {
+        coefficient: sign * BigInt(integer + fraction),
+        scale: fraction.length,
+    };
+}
+
+function pow10(scale: number): bigint {
+    if (!Number.isInteger(scale) || scale < 0) throw new Error(`Invalid decimal scale: ${scale}`);
+    return 10n ** BigInt(scale);
+}
+
+function rescale(parts: Parts, targetScale: number): bigint {
+    if (parts.scale === targetScale) return parts.coefficient;
+    if (parts.scale < targetScale) {
+        return parts.coefficient * pow10(targetScale - parts.scale);
     }
 
-    const result = `${integerPart}.${fractionalPart}`;
-    return negative ? `-${result}` : result;
+    const divisor = pow10(parts.scale - targetScale);
+    const absolute = parts.coefficient < 0n ? -parts.coefficient : parts.coefficient;
+    const quotient = absolute / divisor;
+    const remainder = absolute % divisor;
+    const rounded = remainder * 2n >= divisor ? quotient + 1n : quotient;
+    return parts.coefficient < 0n ? -rounded : rounded;
 }
 
-/**
- * Multiplies quantity and unitPrice deterministically using scaled BigInt arithmetic.
- */
-export function multiplyDecimalStrings(qty: DecimalString | number, price: DecimalString | number, scale = 2): DecimalString {
-    const qStr = toDecimalString(qty, scale);
-    const pStr = toDecimalString(price, scale);
+function formatScaled(coefficient: bigint, scale: number): DecimalString {
+    const negative = coefficient < 0n;
+    const absolute = negative ? -coefficient : coefficient;
+    if (scale === 0) return `${negative ? '-' : ''}${absolute}`;
 
-    const qInt = BigInt(qStr.replace('.', ''));
-    const pInt = BigInt(pStr.replace('.', ''));
-
-    // (q * 10^scale) * (p * 10^scale) = (q * p) * 10^(2*scale)
-    const product = qInt * pInt;
-
-    // Scale back down to single scale factor
-    const divisor = BigInt(10 ** scale);
-    const halfDivisor = divisor / 2n;
-    const roundedProduct = (product + halfDivisor) / divisor;
-
-    const strProduct = roundedProduct.toString().padStart(scale + 1, '0');
-    const splitIdx = strProduct.length - scale;
-    const intPart = strProduct.slice(0, splitIdx) || '0';
-    const fracPart = strProduct.slice(splitIdx);
-
-    return `${intPart}.${fracPart}`;
+    const digits = absolute.toString().padStart(scale + 1, '0');
+    const split = digits.length - scale;
+    return `${negative ? '-' : ''}${digits.slice(0, split)}.${digits.slice(split)}`;
 }
 
-/**
- * Computes exact sum of invoice items (quantity * unit_price) as a string.
- */
-export function calculateInvoiceTotalString(items: { quantity: DecimalString | number; unit_price: DecimalString | number }[]): DecimalString {
-    let totalScaled = 0n;
-    const scale = 2;
-
-    for (const item of items) {
-        const lineTotalStr = multiplyDecimalStrings(item.quantity, item.unit_price, scale);
-        const lineScaled = BigInt(lineTotalStr.replace('.', ''));
-        totalScaled += lineScaled;
-    }
-
-    const strTotal = totalScaled.toString().padStart(scale + 1, '0');
-    const splitIdx = strTotal.length - scale;
-    const intPart = strTotal.slice(0, splitIdx) || '0';
-    const fracPart = strTotal.slice(splitIdx);
-
-    return `${intPart}.${fracPart}`;
+export function toDecimalString(value: DecimalString, scale = 2): DecimalString {
+    return formatScaled(rescale(parseDecimal(value), scale), scale);
 }
 
-/**
- * Formats a DecimalString for display with thousands separators without precision loss.
- * Example: "1500000.50" -> "1,500,000.50"
- */
-export function formatDecimalDisplay(val: DecimalString | number | null | undefined, currency = 'IDR'): string {
-    const decStr = toDecimalString(val);
-    const parts = decStr.split('.');
-    const integerWithCommas = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const formatted = `${integerWithCommas}.${parts[1]}`;
-    return currency ? `${currency} ${formatted}` : formatted;
+export function addDecimalStrings(a: DecimalString, b: DecimalString, scale = 4): DecimalString {
+    return formatScaled(rescale(parseDecimal(a), scale) + rescale(parseDecimal(b), scale), scale);
 }
 
-/**
- * Derives explicit Invoice States (Lifecycle, Payment, Posting) authoritatively without proxying journal_entry_id.
- */
+export function subtractDecimalStrings(a: DecimalString, b: DecimalString, scale = 4): DecimalString {
+    return formatScaled(rescale(parseDecimal(a), scale) - rescale(parseDecimal(b), scale), scale);
+}
+
+export function sumDecimalStrings(values: readonly DecimalString[], scale = 4): DecimalString {
+    const total = values.reduce((sum, value) => sum + rescale(parseDecimal(value), scale), 0n);
+    return formatScaled(total, scale);
+}
+
+export function compareDecimalStrings(a: DecimalString, b: DecimalString): number {
+    const left = parseDecimal(a);
+    const right = parseDecimal(b);
+    const scale = Math.max(left.scale, right.scale);
+    const l = rescale(left, scale);
+    const r = rescale(right, scale);
+    return l < r ? -1 : l > r ? 1 : 0;
+}
+
+export function multiplyDecimalStrings(
+    quantity: DecimalString,
+    unitPrice: DecimalString,
+    outputScale = 4,
+): DecimalString {
+    const q = parseDecimal(quantity);
+    const p = parseDecimal(unitPrice);
+    return formatScaled(
+        rescale({ coefficient: q.coefficient * p.coefficient, scale: q.scale + p.scale }, outputScale),
+        outputScale,
+    );
+}
+
+export function calculateInvoiceTotalString(
+    items: readonly { quantity: DecimalString; unit_price: DecimalString }[],
+): DecimalString {
+    return sumDecimalStrings(items.map((item) => multiplyDecimalStrings(item.quantity, item.unit_price)), 4);
+}
+
+/** Display-only formatter. It never converts the authoritative value to JS number. */
+export function formatCurrencyIDR(value: DecimalString): string {
+    const normalized = toDecimalString(value, 2);
+    const negative = normalized.startsWith('-');
+    const unsigned = negative ? normalized.slice(1) : normalized;
+    const [integer, fraction] = unsigned.split('.');
+    const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `${negative ? '-' : ''}Rp${grouped},${fraction}`;
+}
+
 export interface InvoiceStateRepresentation {
-    lifecycleState: 'draft' | 'submitted' | 'cancelled';
-    paymentState: 'unpaid' | 'partially_paid' | 'paid';
-    postingState: 'unposted' | 'posted';
+    lifecycle: 'draft' | 'submitted' | 'cancelled';
+    payment: 'unpaid' | 'partially_paid' | 'paid';
+    journal: 'none' | 'draft' | 'posted';
 }
 
 export function deriveInvoiceStates(invoice: {
     status?: string;
-    posting_status?: string;
-    total_amount?: DecimalString | number;
-    amount_paid?: DecimalString | number;
-    journal_entry_id?: string | null;
+    total_amount?: DecimalString;
+    amount_paid?: DecimalString;
+    journal_status?: 'draft' | 'posted' | null;
 }): InvoiceStateRepresentation {
-    const rawStatus = (invoice.status || 'draft').toLowerCase();
-    const lifecycleState: 'draft' | 'submitted' | 'cancelled' =
-        rawStatus === 'submitted' ? 'submitted' : rawStatus === 'cancelled' ? 'cancelled' : 'draft';
+    const rawStatus = (invoice.status ?? 'draft').toLowerCase();
+    const lifecycle = rawStatus === 'submitted'
+        ? 'submitted'
+        : rawStatus === 'cancelled'
+            ? 'cancelled'
+            : 'draft';
 
-    const totalStr = toDecimalString(invoice.total_amount);
-    const paidStr = toDecimalString(invoice.amount_paid);
-
-    const totalScaled = BigInt(totalStr.replace('.', ''));
-    const paidScaled = BigInt(paidStr.replace('.', ''));
-
-    let paymentState: 'unpaid' | 'partially_paid' | 'paid' = 'unpaid';
-    if (paidScaled >= totalScaled && totalScaled > 0n) {
-        paymentState = 'paid';
-    } else if (paidScaled > 0n) {
-        paymentState = 'partially_paid';
-    }
-
-    // Authoritative posting state from explicit posting_status attribute (3R.1.1-006)
-    const postingState: 'unposted' | 'posted' =
-        invoice.posting_status === 'posted' ? 'posted' : 'unposted';
+    const total = invoice.total_amount ?? '0.0000';
+    const paid = invoice.amount_paid ?? '0.0000';
+    const payment = compareDecimalStrings(total, '0') > 0 && compareDecimalStrings(paid, total) >= 0
+        ? 'paid'
+        : compareDecimalStrings(paid, '0') > 0
+            ? 'partially_paid'
+            : 'unpaid';
 
     return {
-        lifecycleState,
-        paymentState,
-        postingState,
+        lifecycle,
+        payment,
+        journal: invoice.journal_status ?? 'none',
     };
 }

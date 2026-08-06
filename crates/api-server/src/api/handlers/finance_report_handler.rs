@@ -51,7 +51,10 @@ pub async fn get_balance_sheet(State(state): State<AppState>) -> Result<Json<Val
 }
 
 pub async fn get_income_statement(State(state): State<AppState>) -> Result<Json<Value>, AppError> {
-    let i_s = state.finance_service.get_income_statement(None, None).await?;
+    let i_s = state
+        .finance_service
+        .get_income_statement(None, None)
+        .await?;
 
     Ok(Json(json!({
         "success": true,

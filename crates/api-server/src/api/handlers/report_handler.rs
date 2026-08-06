@@ -85,7 +85,7 @@ pub async fn get_capex_opex_analysis(
     Query(params): Query<AnalysisParams>,
 ) -> Response {
     match state
-        .report_service
+        .finance_service
         .get_capex_opex_analysis(params.start_date, params.end_date)
         .await
     {

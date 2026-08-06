@@ -1,278 +1,569 @@
-//! Real PostgreSQL Database Integration Tests (3R.1.1-004, 3R.1.1-005 & 3R.1.1-007)
-//!
-//! Connects to an actual PostgreSQL database via `PgPool`, executes production
-//! repository/service operations inside `UnitOfWork` transactions, and asserts
-//! persisted rows and rollback behavior on failures.
+//! Real PostgreSQL integration tests. These tests intentionally fail to start when
+//! SQLx cannot provision an isolated test database; there is no skip-by-return path.
 
 use chrono::NaiveDate;
+use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use management_system_core::domain::audit_trail::{AuditAction, DocumentAuditEntry};
-use management_system_core::domain::errors::DomainError;
-use management_system_core::domain::outbox::OutboxEntry;
+use management_system_core::application::services::approval_service::ApprovalService;
 use management_system_core::infrastructure::bus::EventBus;
-use management_system_core::infrastructure::database::{CommandContext, IdempotencyStore, UnitOfWork};
 use management_system_core::infrastructure::repositories::{
-    AssetRepository, AuditTrailStore, OutboxStore, RentalRepository,
+    approval_repository::ApprovalRepository, AssetExpenseRepository, AssetRepository,
+    RentalRepository,
 };
 use management_system_finance::domain::entities::*;
 use management_system_finance::repositories::{FinanceRepository, JournalRepository};
 use management_system_finance::{AssetExpenseService, FinanceService, JournalService};
 
-async fn get_test_pool() -> Option<PgPool> {
-    let url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/asset_management".to_string());
-    PgPool::connect(&url).await.ok()
-}
-
-#[tokio::test]
-async fn test_real_db_sales_invoice_create_and_lines_atomicity() {
-    let pool = match get_test_pool().await {
-        Some(p) => p,
-        None => {
-            eprintln!("SKIP: PostgreSQL test database not available");
-            return;
-        }
-    };
-
-    let actor_id = Uuid::new_v4();
-    let company_id = Uuid::new_v4();
-    let client_id = Uuid::new_v4();
-    let idempotency_key = format!("IDEM-CREATE-{}", Uuid::new_v4());
-
+fn service(pool: &PgPool) -> FinanceService {
     let finance_repo = FinanceRepository::new(pool.clone());
     let journal_repo = JournalRepository::new(pool.clone());
-    let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
     let asset_repo = AssetRepository::new(pool.clone());
-    let rental_repo = RentalRepository::new(pool.clone());
-    let asset_expense_service = AssetExpenseService::new(
-        management_system_finance::repositories::AssetExpenseRepository::new(pool.clone()),
-        asset_repo.clone(),
-    );
-    let event_bus = EventBus::new();
-
-    let service = FinanceService::new(
+    let approval_repo = ApprovalRepository::new(pool.clone());
+    let approval_service = ApprovalService::new(std::sync::Arc::new(approval_repo));
+    FinanceService::new(
         finance_repo.clone(),
         journal_repo.clone(),
-        journal_service,
-        asset_expense_service,
+        JournalService::new(journal_repo, finance_repo),
+        AssetExpenseService::new(
+            AssetExpenseRepository::new(pool.clone()),
+            asset_repo.clone(),
+            approval_service,
+        ),
         asset_repo,
-        rental_repo,
-        event_bus,
-    );
+        RentalRepository::new(pool.clone()),
+        EventBus::new(16),
+    )
+}
 
-    let req = CreateSalesInvoiceRequest {
-        invoice_number: format!("INV/TEST/{}", &Uuid::new_v4().to_string()[..8]),
+async fn seed_client(pool: &PgPool) -> Uuid {
+    let id = Uuid::new_v4();
+    sqlx::query("INSERT INTO clients (id, client_code, name) VALUES ($1, $2, $3)")
+        .bind(id)
+        .bind(format!("TEST-{}", &id.to_string()[..8]))
+        .bind("3R.1.1 Test Client")
+        .execute(pool)
+        .await
+        .expect("seed client");
+    id
+}
+
+fn request(client_id: Uuid, invoice_number: String, amount: Decimal) -> CreateSalesInvoiceRequest {
+    CreateSalesInvoiceRequest {
+        invoice_number,
         client_id,
         date: NaiveDate::from_ymd_opt(2026, 8, 6).unwrap(),
         due_date: Some(NaiveDate::from_ymd_opt(2026, 8, 20).unwrap()),
-        subject: Some("Real DB Test Invoice".to_string()),
-        items: vec![
-            CreateInvoiceItemRequest {
-                description: "Item 1".to_string(),
-                quantity: dec!(10.00),
-                unit_price: dec!(150000.50),
-                account_id: None,
-            },
-            CreateInvoiceItemRequest {
-                description: "Item 2".to_string(),
-                quantity: dec!(2.00),
-                unit_price: dec!(250000.25),
-                account_id: None,
-            },
-        ],
-        attachment_url: None,
-    };
-
-    let result = service.create_sales_invoice(actor_id, company_id, idempotency_key.clone(), req).await;
-    assert!(result.is_ok(), "Failed to create sales invoice: {:?}", result.err());
-
-    let invoice = result.unwrap();
-    assert_eq!(invoice.total_amount, dec!(2000005.50));
-
-    // Query persisted DB state to verify atomicity
-    let detail = service.get_sales_invoice_detail(invoice.id).await.unwrap();
-    assert_eq!(detail.items.len(), 2);
-    assert_eq!(detail.items[0].total_price, dec!(1500005.00));
-    assert_eq!(detail.items[1].total_price, dec!(500000.50));
-}
-
-#[tokio::test]
-async fn test_real_db_sales_invoice_update_atomicity_and_consistency() {
-    let pool = match get_test_pool().await {
-        Some(p) => p,
-        None => return,
-    };
-
-    let actor_id = Uuid::new_v4();
-    let company_id = Uuid::new_v4();
-    let client_id = Uuid::new_v4();
-
-    let finance_repo = FinanceRepository::new(pool.clone());
-    let journal_repo = JournalRepository::new(pool.clone());
-    let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
-    let asset_repo = AssetRepository::new(pool.clone());
-    let rental_repo = RentalRepository::new(pool.clone());
-    let asset_expense_service = AssetExpenseService::new(
-        management_system_finance::repositories::AssetExpenseRepository::new(pool.clone()),
-        asset_repo.clone(),
-    );
-    let event_bus = EventBus::new();
-
-    let service = FinanceService::new(
-        finance_repo.clone(),
-        journal_repo.clone(),
-        journal_service,
-        asset_expense_service,
-        asset_repo,
-        rental_repo,
-        event_bus,
-    );
-
-    let create_req = CreateSalesInvoiceRequest {
-        invoice_number: format!("INV/UPD/{}", &Uuid::new_v4().to_string()[..8]),
-        client_id,
-        date: NaiveDate::from_ymd_opt(2026, 8, 6).unwrap(),
-        due_date: None,
-        subject: Some("Original Subject".to_string()),
+        subject: Some("3R.1.1 DB integration".to_string()),
         items: vec![CreateInvoiceItemRequest {
-            description: "Initial Line".to_string(),
-            quantity: dec!(1.00),
-            unit_price: dec!(1000.00),
+            description: "Line A".to_string(),
+            quantity: dec!(1.0000),
+            unit_price: amount,
             account_id: None,
         }],
         attachment_url: None,
-    };
+    }
+}
 
-    let created = service.create_sales_invoice(actor_id, company_id, format!("IDEM-UPD-1-{}", Uuid::new_v4()), create_req).await.unwrap();
-    assert_eq!(created.total_amount, dec!(1000.00));
+fn number(prefix: &str) -> String {
+    format!("{prefix}/{}", &Uuid::new_v4().to_string()[..8])
+}
 
-    // Update with modified amount and extra lines (3R.1.1-004)
-    let update_req = CreateSalesInvoiceRequest {
+async fn install_fail_trigger(pool: &PgPool, table: &str, trigger: &str) {
+    let function = format!("fail_{trigger}");
+    let function_sql = format!(
+        r#"
+        CREATE OR REPLACE FUNCTION {function}() RETURNS trigger AS $$
+        BEGIN
+            RAISE EXCEPTION 'forced 3R.1.1 failure: {table}';
+        END;
+        $$ LANGUAGE plpgsql
+        "#
+    );
+    sqlx::query(&function_sql)
+        .execute(pool)
+        .await
+        .expect("install failure function");
+    let trigger_sql = format!(
+        "CREATE TRIGGER {trigger} BEFORE INSERT ON {table} FOR EACH ROW EXECUTE FUNCTION {function}()"
+    );
+    sqlx::query(&trigger_sql)
+        .execute(pool)
+        .await
+        .expect("install failure trigger");
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn create_persists_header_lines_journal_audit_outbox_and_idempotency(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    let invoice_number = number("INV/CREATE");
+    let created = service(&pool)
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM"),
+            CreateSalesInvoiceRequest {
+                items: vec![
+                    CreateInvoiceItemRequest {
+                        description: "A".to_string(),
+                        quantity: dec!(2.0000),
+                        unit_price: dec!(1500.1250),
+                        account_id: None,
+                    },
+                    CreateInvoiceItemRequest {
+                        description: "B".to_string(),
+                        quantity: dec!(1.0000),
+                        unit_price: dec!(2000.2500),
+                        account_id: None,
+                    },
+                ],
+                ..request(client, invoice_number, dec!(0))
+            },
+        )
+        .await
+        .expect("create invoice");
+
+    assert_eq!(created.total_amount, dec!(5000.5000));
+    assert_eq!(created.journal_status, Some(JournalStatus::Draft));
+    let line_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoice_items WHERE invoice_id = $1")
+            .bind(created.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let audit_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM document_audit_trail WHERE document_id = $1")
+            .bind(created.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let outbox_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM outbox WHERE source_id = $1")
+        .bind(created.id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!((line_count, audit_count, outbox_count), (2, 1, 1));
+
+    let journal_id = created.journal_entry_id.unwrap();
+    let debit: Decimal = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE header_id = $1",
+    )
+    .bind(journal_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let credit: Decimal = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE header_id = $1",
+    )
+    .bind(journal_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(debit, created.total_amount);
+    assert_eq!(credit, created.total_amount);
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn update_add_remove_lines_and_rebuild_draft_effect_atomically(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    let svc = service(&pool);
+    let created = svc
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM"),
+            request(client, number("INV/UPDATE"), dec!(1000.0000)),
+        )
+        .await
+        .unwrap();
+    let journal_id = created.journal_entry_id.unwrap();
+
+    let update = CreateSalesInvoiceRequest {
         invoice_number: created.invoice_number.clone(),
-        client_id,
+        client_id: client,
         date: created.date,
         due_date: created.due_date,
-        subject: Some("Updated Subject".to_string()),
+        subject: Some("updated".to_string()),
         items: vec![
             CreateInvoiceItemRequest {
-                description: "Updated Line 1".to_string(),
-                quantity: dec!(2.00),
-                unit_price: dec!(1500.00),
+                description: "replacement".to_string(),
+                quantity: dec!(2),
+                unit_price: dec!(1500.2500),
                 account_id: None,
             },
             CreateInvoiceItemRequest {
-                description: "New Line 2".to_string(),
-                quantity: dec!(1.00),
-                unit_price: dec!(2000.00),
+                description: "added".to_string(),
+                quantity: dec!(1),
+                unit_price: dec!(2000.5000),
                 account_id: None,
             },
         ],
         attachment_url: None,
     };
+    let updated = svc
+        .update_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM"),
+            created.id,
+            update,
+        )
+        .await
+        .unwrap();
+    assert_eq!(updated.total_amount, dec!(5001.0000));
 
-    let updated = service.update_sales_invoice(actor_id, company_id, format!("IDEM-UPD-2-{}", Uuid::new_v4()), created.id, update_req).await.unwrap();
-    assert_eq!(updated.total_amount, dec!(5000.00)); // 2*1500 + 1*2000 = 5000
-
-    // Assert DB persistence consistency (source invoice + lines + journal effect consistent)
-    let detail = service.get_sales_invoice_detail(created.id).await.unwrap();
-    assert_eq!(detail.invoice.subject.as_deref(), Some("Updated Subject"));
+    let detail = svc.get_sales_invoice_detail(created.id).await.unwrap();
     assert_eq!(detail.items.len(), 2);
-    assert_eq!(detail.items[0].description, "Updated Line 1");
-    assert_eq!(detail.items[1].description, "New Line 2");
+    assert_eq!(detail.items[0].description, "replacement");
+    assert_eq!(detail.items[1].description, "added");
+    let debit: Decimal = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE header_id = $1",
+    )
+    .bind(journal_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let credit: Decimal = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE header_id = $1",
+    )
+    .bind(journal_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(debit, updated.total_amount);
+    assert_eq!(credit, updated.total_amount);
 }
 
-#[tokio::test]
-async fn test_real_db_empty_invoice_items_rejected() {
-    let pool = match get_test_pool().await {
-        Some(p) => p,
-        None => return,
-    };
-
-    let actor_id = Uuid::new_v4();
-    let company_id = Uuid::new_v4();
-
-    let finance_repo = FinanceRepository::new(pool.clone());
-    let journal_repo = JournalRepository::new(pool.clone());
-    let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
-    let asset_repo = AssetRepository::new(pool.clone());
-    let rental_repo = RentalRepository::new(pool.clone());
-    let asset_expense_service = AssetExpenseService::new(
-        management_system_finance::repositories::AssetExpenseRepository::new(pool.clone()),
-        asset_repo.clone(),
-    );
-
-    let service = FinanceService::new(
-        finance_repo,
-        journal_repo,
-        journal_service,
-        asset_expense_service,
-        asset_repo,
-        rental_repo,
-        EventBus::new(),
-    );
-
-    let req = CreateSalesInvoiceRequest {
-        invoice_number: "INV/EMPTY/REJECT".to_string(),
-        client_id: Uuid::new_v4(),
-        date: NaiveDate::from_ymd_opt(2026, 8, 6).unwrap(),
-        due_date: None,
-        subject: None,
-        items: vec![],
-        attachment_url: None,
-    };
-
-    let res = service.create_sales_invoice(actor_id, company_id, format!("IDEM-EMPTY-{}", Uuid::new_v4()), req).await;
-    assert!(res.is_err());
-    match res.unwrap_err() {
-        DomainError::Validation { field, message } => {
-            assert_eq!(field, "items");
-            assert!(message.contains("at least one line item"));
-        }
-        other => panic!("Expected DomainError::Validation, got {:?}", other),
-    }
+#[sqlx::test(migrations = "../../migrations")]
+async fn empty_lines_are_rejected_without_db_effects(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    let invoice_number = number("INV/EMPTY");
+    let mut req = request(client, invoice_number.clone(), dec!(1));
+    req.items.clear();
+    let result = service(&pool)
+        .create_sales_invoice(Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), req)
+        .await;
+    assert!(result.is_err());
+    let count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
+            .bind(invoice_number)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(count, 0);
 }
 
-#[tokio::test]
-async fn test_real_db_uow_rollback_on_simulated_audit_failure() {
-    let pool = match get_test_pool().await {
-        Some(p) => p,
-        None => return,
-    };
+#[sqlx::test(migrations = "../../migrations")]
+async fn line_failure_rolls_back_header_and_lines(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    install_fail_trigger(&pool, "sales_invoice_items", "fail_sales_invoice_item").await;
+    let invoice_number = number("INV/LINE-FAIL");
+    let result = service(&pool)
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM"),
+            request(client, invoice_number.clone(), dec!(10)),
+        )
+        .await;
+    assert!(result.is_err());
+    let count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
+            .bind(invoice_number)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(count, 0);
+}
 
-    let mut uow = UnitOfWork::begin(&pool).await.unwrap();
+#[sqlx::test(migrations = "../../migrations")]
+async fn journal_failure_rolls_back_invoice_lines_audit_outbox_and_idempotency(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    install_fail_trigger(&pool, "journal_entries", "fail_invoice_journal").await;
+    let invoice_number = number("INV/JOURNAL-FAIL");
+    let key = number("IDEM/JOURNAL-FAIL");
+    let result = service(&pool)
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            key.clone(),
+            request(client, invoice_number.clone(), dec!(10)),
+        )
+        .await;
+    assert!(result.is_err());
+    let invoice_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
+            .bind(invoice_number)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let idem_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM idempotency_log WHERE idempotency_key = $1")
+            .bind(key)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!((invoice_count, idem_count), (0, 0));
+}
 
-    // Create an audit entry with invalid document_version (-999) or null field to simulate failure
-    let invalid_audit = DocumentAuditEntry {
-        id: Uuid::new_v4(),
-        document_id: Uuid::new_v4(),
-        document_type: "INVALID_TYPE".to_string(),
-        action: AuditAction::Create.as_str().to_string(),
-        actor_id: Uuid::new_v4(),
-        tenant_id: Uuid::new_v4(),
-        company_id: None,
-        from_status: None,
-        to_status: None,
-        document_version: 1,
-        reason: None,
-        correlation_id: "CORR-001".to_string(),
-        recorded_at: chrono::Utc::now(),
-    };
+#[sqlx::test(migrations = "../../migrations")]
+async fn audit_failure_rolls_back_source_effect_outbox_and_idempotency(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    install_fail_trigger(&pool, "document_audit_trail", "fail_invoice_audit").await;
+    let invoice_number = number("INV/AUDIT-FAIL");
+    let key = number("IDEM/AUDIT-FAIL");
+    let result = service(&pool)
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            key.clone(),
+            request(client, invoice_number.clone(), dec!(10)),
+        )
+        .await;
+    assert!(result.is_err());
+    let invoice_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
+            .bind(invoice_number)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let idem_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM idempotency_log WHERE idempotency_key = $1")
+            .bind(key)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!((invoice_count, idem_count), (0, 0));
+}
 
-    let append_res = AuditTrailStore::append(&mut uow, &invalid_audit).await;
-    assert!(append_res.is_ok());
+#[sqlx::test(migrations = "../../migrations")]
+async fn outbox_failure_rolls_back_source_effect_audit_and_idempotency(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    install_fail_trigger(&pool, "outbox", "fail_invoice_outbox").await;
+    let invoice_number = number("INV/OUTBOX-FAIL");
+    let key = number("IDEM/OUTBOX-FAIL");
+    let result = service(&pool)
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            key.clone(),
+            request(client, invoice_number.clone(), dec!(10)),
+        )
+        .await;
+    assert!(result.is_err());
+    let invoice_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
+            .bind(invoice_number)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let audit_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM document_audit_trail WHERE document_type = 'SALES_INVOICE'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let idem_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM idempotency_log WHERE idempotency_key = $1")
+            .bind(key)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!((invoice_count, audit_count, idem_count), (0, 0, 0));
+}
 
-    // Explicit rollback
-    uow.rollback().await.unwrap();
+#[sqlx::test(migrations = "../../migrations")]
+async fn idempotency_failure_happens_before_any_source_effect(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    install_fail_trigger(&pool, "idempotency_log", "fail_invoice_idempotency").await;
+    let invoice_number = number("INV/IDEM-FAIL");
+    let result = service(&pool)
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM/FAIL"),
+            request(client, invoice_number.clone(), dec!(10)),
+        )
+        .await;
+    assert!(result.is_err());
+    let count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
+            .bind(invoice_number)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(count, 0);
+}
 
-    // Assert that the record was not persisted to DB
-    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM document_audit_trail WHERE id = $1")
-        .bind(invalid_audit.id)
+#[sqlx::test(migrations = "../../migrations")]
+async fn identical_idempotent_replay_returns_cached_result_without_duplicate_semantics(
+    pool: PgPool,
+) {
+    let client = seed_client(&pool).await;
+    let svc = service(&pool);
+    let actor = Uuid::new_v4();
+    let company = Uuid::new_v4();
+    let key = number("IDEM/REPLAY");
+    let req = request(client, number("INV/REPLAY"), dec!(1234.5678));
+    let first = svc
+        .create_sales_invoice(actor, company, key.clone(), req.clone())
+        .await
+        .unwrap();
+    let second = svc
+        .create_sales_invoice(actor, company, key.clone(), req)
+        .await
+        .unwrap();
+    assert_eq!(first.id, second.id);
+    assert_eq!(first.total_amount, second.total_amount);
+
+    let invoice_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE id = $1")
+            .bind(first.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let journal_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM journal_entries WHERE id = $1")
+            .bind(first.journal_entry_id.unwrap())
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let audit_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM document_audit_trail WHERE document_id = $1")
+            .bind(first.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let outbox_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM outbox WHERE source_id = $1")
+        .bind(first.id)
         .fetch_one(&pool)
         .await
         .unwrap();
+    assert_eq!(
+        (invoice_count, journal_count, audit_count, outbox_count),
+        (1, 1, 1, 1)
+    );
+}
 
-    assert_eq!(count.0, 0, "Rolled back audit entry must NOT exist in database");
+#[sqlx::test(migrations = "../../migrations")]
+async fn same_idempotency_key_with_different_payload_is_conflict(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    let svc = service(&pool);
+    let actor = Uuid::new_v4();
+    let company = Uuid::new_v4();
+    let key = number("IDEM/CONFLICT");
+    let invoice_number = number("INV/CONFLICT");
+    let first_req = request(client, invoice_number.clone(), dec!(10));
+    svc.create_sales_invoice(actor, company, key.clone(), first_req)
+        .await
+        .unwrap();
+    let conflict = svc
+        .create_sales_invoice(
+            actor,
+            company,
+            key,
+            request(client, invoice_number, dec!(11)),
+        )
+        .await;
+    assert!(matches!(
+        conflict,
+        Err(management_system_core::domain::errors::DomainError::Conflict { .. })
+    ));
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn posted_journal_blocks_invoice_edit_and_preserves_source(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    let svc = service(&pool);
+    let created = svc
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM"),
+            request(client, number("INV/POSTED"), dec!(100)),
+        )
+        .await
+        .unwrap();
+    let journal_id = created.journal_entry_id.unwrap();
+    sqlx::query("UPDATE journal_entries SET status = 'posted' WHERE id = $1")
+        .bind(journal_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let update = request(client, created.invoice_number.clone(), dec!(999));
+    let result = svc
+        .update_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM"),
+            created.id,
+            update,
+        )
+        .await;
+    assert!(result.is_err());
+    let amount: Decimal =
+        sqlx::query_scalar("SELECT total_amount FROM sales_invoices WHERE id = $1")
+            .bind(created.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(amount, dec!(100));
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn decimal_db_roundtrip_preserves_value_beyond_js_safe_integer(pool: PgPool) {
+    let client = seed_client(&pool).await;
+    let expected = dec!(9007199254740993.0100);
+    let created = service(&pool)
+        .create_sales_invoice(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            number("IDEM"),
+            request(client, number("INV/DECIMAL"), expected),
+        )
+        .await
+        .unwrap();
+    let persisted: Decimal =
+        sqlx::query_scalar("SELECT total_amount FROM sales_invoices WHERE id = $1")
+            .bind(created.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(persisted, expected);
+    let json = serde_json::to_value(&created).unwrap();
+    assert_eq!(json["total_amount"], "9007199254740993.0100");
+}
+
+async fn assert_audit_mutation_denied(pool: &PgPool, statement: &str) {
+    let role = std::env::var("TEST_APP_DB_ROLE")
+        .expect("TEST_APP_DB_ROLE must identify the actual runtime application DB role");
+    assert!(role.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'));
+    let mut conn = pool.acquire().await.unwrap();
+    sqlx::query(&format!("SET ROLE {role}"))
+        .execute(&mut *conn)
+        .await
+        .expect("test admin must be able to SET ROLE to runtime role");
+    let result = sqlx::query(statement).execute(&mut *conn).await;
+    let _ = sqlx::query("RESET ROLE").execute(&mut *conn).await;
+    assert!(
+        result.is_err(),
+        "runtime role unexpectedly mutated append-only audit table"
+    );
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn runtime_role_cannot_update_audit(pool: PgPool) {
+    assert_audit_mutation_denied(
+        &pool,
+        "UPDATE document_audit_trail SET reason = 'forbidden'",
+    )
+    .await;
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn runtime_role_cannot_delete_audit(pool: PgPool) {
+    assert_audit_mutation_denied(&pool, "DELETE FROM document_audit_trail").await;
 }

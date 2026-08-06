@@ -1,18 +1,19 @@
 use axum::{
     extract::{Path, State},
+    http::HeaderMap,
     Json,
 };
 use serde_json::{json, Value};
 use uuid::Uuid;
 
 use crate::api::server::AppState;
-use management_system_finance::domain::entities::finance::{CreateAccountRequest, UpdateAccountRequest,
-    CreateSalesInvoiceRequest, CreatePurchaseBillRequest, CreateExpenseRequest,
-    CreateCashBankTransactionRequest, CreateSalesQuoteRequest, CreateSalesOrderRequest,
-    CreateSalesShipmentRequest, CreatePurchaseQuoteRequest, CreatePurchaseOrderRequest,
-    CreatePurchaseShipmentRequest
-};
 use management_system_core::shared::errors::AppError;
+use management_system_finance::domain::entities::finance::{
+    CreateAccountRequest, CreateCashBankTransactionRequest, CreateExpenseRequest,
+    CreatePurchaseBillRequest, CreatePurchaseOrderRequest, CreatePurchaseQuoteRequest,
+    CreatePurchaseShipmentRequest, CreateSalesInvoiceRequest, CreateSalesOrderRequest,
+    CreateSalesQuoteRequest, CreateSalesShipmentRequest, UpdateAccountRequest,
+};
 
 /// Create a new account
 pub async fn create_account(
@@ -79,7 +80,7 @@ pub async fn list_expenses(State(state): State<AppState>) -> Result<Json<Value>,
 }
 
 pub async fn list_cash_bank_transactions(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Result<Json<Value>, AppError> {
     let transactions: Vec<serde_json::Value> = vec![]; // TODO: implement list_cash_bank_transactions
     Ok(Json(json!({ "success": true, "data": transactions })))
@@ -87,13 +88,25 @@ pub async fn list_cash_bank_transactions(
 
 pub async fn create_sales_invoice(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<CreateSalesInvoiceRequest>,
 ) -> Result<Json<Value>, AppError> {
     // TODO: extract actor_id and company_id from auth claims; using defaults for now
-    let idempotency_key = uuid::Uuid::new_v4().to_string();
-    let invoice = state.finance_service.create_sales_invoice(
-        uuid::Uuid::nil(), uuid::Uuid::nil(), idempotency_key, payload
-    ).await?;
+    let idempotency_key = headers
+        .get("idempotency-key")
+        .and_then(|value| value.to_str().ok())
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| AppError::BadRequest("Idempotency-Key header is required".to_string()))?
+        .to_string();
+    let invoice = state
+        .finance_service
+        .create_sales_invoice(
+            uuid::Uuid::nil(),
+            uuid::Uuid::nil(),
+            idempotency_key,
+            payload,
+        )
+        .await?;
     Ok(Json(json!({ "success": true, "data": invoice })))
 }
 
@@ -108,12 +121,24 @@ pub async fn get_sales_invoice(
 pub async fn update_sales_invoice(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    headers: HeaderMap,
     Json(payload): Json<CreateSalesInvoiceRequest>,
 ) -> Result<Json<Value>, AppError> {
-    let idempotency_key = uuid::Uuid::new_v4().to_string();
+    let idempotency_key = headers
+        .get("idempotency-key")
+        .and_then(|value| value.to_str().ok())
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| AppError::BadRequest("Idempotency-Key header is required".to_string()))?
+        .to_string();
     let invoice = state
         .finance_service
-        .update_sales_invoice(uuid::Uuid::nil(), uuid::Uuid::nil(), idempotency_key, id, payload)
+        .update_sales_invoice(
+            uuid::Uuid::nil(),
+            uuid::Uuid::nil(),
+            idempotency_key,
+            id,
+            payload,
+        )
         .await?;
     Ok(Json(json!({ "success": true, "data": invoice })))
 }

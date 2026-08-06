@@ -15,7 +15,6 @@ use std::io::Cursor;
 pub struct ReportService {
     asset_repo: AssetRepository,
     maintenance_repo: MaintenanceRepository,
-    pool: sqlx::PgPool,
     settings_repo: SettingsRepository,
     fuel_repo: FuelRepository,
     loan_repo: LoanRepository,
@@ -26,7 +25,6 @@ impl ReportService {
     pub fn new(
         asset_repo: AssetRepository,
         maintenance_repo: MaintenanceRepository,
-        pool: sqlx::PgPool,
         settings_repo: SettingsRepository,
         fuel_repo: FuelRepository,
         loan_repo: LoanRepository,
@@ -35,7 +33,6 @@ impl ReportService {
         Self {
             asset_repo,
             maintenance_repo,
-            pool,
             settings_repo,
             fuel_repo,
             loan_repo,
@@ -272,29 +269,6 @@ impl ReportService {
             .map_err(|e| DomainError::internal(e.to_string()))
     }
 
-    pub async fn get_capex_opex_analysis(
-        &self,
-        _start_date: Option<NaiveDate>,
-        _end_date: Option<NaiveDate>,
-    ) -> DomainResult<Vec<crate::domain::entities::analytics::ExpenseAnalysis>> {
-        let records = sqlx::query_as::<_, crate::domain::entities::analytics::ExpenseAnalysis>(
-            r#"
-            SELECT 
-                DATE_TRUNC('month', date)::date as month,
-                COALESCE(expense_type, 'General') as expense_type,
-                SUM(total_amount) as total_amount
-            FROM expenses
-            GROUP BY DATE_TRUNC('month', date)::date, COALESCE(expense_type, 'General')
-            ORDER BY month DESC, expense_type ASC
-            "#,
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
-
-        Ok(records)
-    }
-
     pub async fn get_asset_status_distribution(
         &self,
     ) -> DomainResult<Vec<crate::domain::entities::analytics::AssetStatusStats>> {
@@ -436,6 +410,14 @@ impl ReportService {
             .await
             .map_err(|e| DomainError::internal(e.to_string()))?;
 
+        self.generate_fuel_report_pdf_sync(logs, settings)
+    }
+
+    fn generate_fuel_report_pdf_sync(
+        &self,
+        logs: Vec<crate::domain::entities::FuelLog>,
+        settings: Vec<crate::domain::entities::setting::Setting>,
+    ) -> DomainResult<Vec<u8>> {
         let font_family = genpdf::fonts::from_files("./assets/fonts", "Roboto", None)
             .map_err(|e| DomainError::internal(e.to_string()))?;
         let mut doc = genpdf::Document::new(font_family);
@@ -523,7 +505,7 @@ impl ReportService {
         let mut wtr = csv::Writer::from_writer(Vec::new());
 
         // Header
-        wtr.write_record(&[
+        wtr.write_record([
             "Date",
             "Tracking ID",
             "Asset",
@@ -567,6 +549,14 @@ impl ReportService {
             .await
             .map_err(|e| DomainError::internal(e.to_string()))?;
 
+        self.generate_work_order_report_pdf_sync(orders, settings)
+    }
+
+    fn generate_work_order_report_pdf_sync(
+        &self,
+        orders: Vec<crate::domain::entities::WorkOrder>,
+        settings: Vec<crate::domain::entities::setting::Setting>,
+    ) -> DomainResult<Vec<u8>> {
         let font_family = genpdf::fonts::from_files("./assets/fonts", "Roboto", None)
             .map_err(|e| DomainError::internal(e.to_string()))?;
         let mut doc = genpdf::Document::new(font_family);
@@ -652,7 +642,7 @@ impl ReportService {
         let mut wtr = csv::Writer::from_writer(Vec::new());
 
         // Header
-        wtr.write_record(&[
+        wtr.write_record([
             "Number",
             "Asset",
             "Type",
@@ -698,6 +688,14 @@ impl ReportService {
             .await
             .map_err(|e| DomainError::internal(e.to_string()))?;
 
+        self.generate_loan_report_pdf_sync(loans, settings)
+    }
+
+    fn generate_loan_report_pdf_sync(
+        &self,
+        loans: Vec<crate::domain::entities::Loan>,
+        settings: Vec<crate::domain::entities::setting::Setting>,
+    ) -> DomainResult<Vec<u8>> {
         let font_family = genpdf::fonts::from_files("./assets/fonts", "Roboto", None)
             .map_err(|e| DomainError::internal(e.to_string()))?;
         let mut doc = genpdf::Document::new(font_family);
@@ -778,7 +776,7 @@ impl ReportService {
         let mut wtr = csv::Writer::from_writer(Vec::new());
 
         // Header
-        wtr.write_record(&[
+        wtr.write_record([
             "Number",
             "Asset",
             "Borrower",

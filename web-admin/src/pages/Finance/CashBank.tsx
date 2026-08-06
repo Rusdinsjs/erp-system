@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { financeApi } from '../../api/finance';
+import { financeApi, type ChartOfAccount } from '../../api/finance';
 import { Card, Button } from '../../components/ui';
+import { formatCurrencyIDR } from '../../utils/decimal';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, MoreVertical, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,7 +23,7 @@ export default function CashBank() {
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
-    const [selectedAccount, setSelectedAccount] = useState<any>(null);
+    const [selectedAccount, setSelectedAccount] = useState<ChartOfAccount | null>(null);
 
     const createAccountMutation = useMutation({
         mutationFn: financeApi.createAccount,
@@ -31,8 +32,8 @@ export default function CashBank() {
             setIsAddAccountModalOpen(false);
             toast.success('Akun berhasil ditambahkan');
         },
-        onError: (err: any) => {
-            toast.error('Gagal menambah akun: ' + err.message);
+        onError: (err: unknown) => {
+            toast.error('Gagal menambah akun: ' + (err instanceof Error ? err.message : 'Unknown error'));
         }
     });
 
@@ -43,8 +44,8 @@ export default function CashBank() {
             setIsTransferModalOpen(false);
             toast.success('Transfer berhasil dicatat');
         },
-        onError: (err: any) => {
-            toast.error('Gagal mencatat transfer: ' + err.message);
+        onError: (err: unknown) => {
+            toast.error('Gagal mencatat transfer: ' + (err instanceof Error ? err.message : 'Unknown error'));
         }
     });
 
@@ -60,20 +61,12 @@ export default function CashBank() {
                 toast.success('Pengiriman dana berhasil dicatat');
             }
         },
-        onError: (err: any) => {
-            toast.error('Gagal mencatat transaksi: ' + err.message);
+        onError: (err: unknown) => {
+            toast.error('Gagal mencatat transaksi: ' + (err instanceof Error ? err.message : 'Unknown error'));
         }
     });
 
     const cashAccounts = accounts?.filter(a => a.code.startsWith('1-11')) || [];
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            maximumFractionDigits: 0
-        }).format(value);
-    };
 
     const handleCreateAccount = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -94,7 +87,7 @@ export default function CashBank() {
         const formData = new FormData(e.currentTarget);
         createTransferMutation.mutate({
             date: formData.get('date') as string,
-            amount: parseFloat(formData.get('amount') as string),
+            amount: formData.get('amount') as string,
             from_account_id: formData.get('from_account_id') as string,
             to_account_id: formData.get('to_account_id') as string,
             description: formData.get('description') as string,
@@ -108,7 +101,7 @@ export default function CashBank() {
         const formData = new FormData(e.currentTarget);
         createTransactionMutation.mutate({
             date: formData.get('date') as string,
-            amount: parseFloat(formData.get('amount') as string),
+            amount: formData.get('amount') as string,
             account_id: formData.get('account_id') as string,
             contact_name: formData.get('contact_name') as string,
             description: formData.get('description') as string,
@@ -121,7 +114,7 @@ export default function CashBank() {
         const formData = new FormData(e.currentTarget);
         createTransactionMutation.mutate({
             date: formData.get('date') as string,
-            amount: parseFloat(formData.get('amount') as string),
+            amount: formData.get('amount') as string,
             account_id: formData.get('account_id') as string,
             contact_name: formData.get('contact_name') as string,
             description: formData.get('description') as string,
@@ -196,7 +189,7 @@ export default function CashBank() {
                                     <div className="pt-4 border-t border-border">
                                         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Saldo Saat Ini</p>
                                         <p className="text-2xl font-bold text-foreground">
-                                            {formatCurrency(0)} {/* Balance needs aggregation logic */}
+                                            {formatCurrencyIDR('0.0000')} {/* Balance needs aggregation logic */}
                                         </p>
                                     </div>
                                 </div>
@@ -259,7 +252,7 @@ export default function CashBank() {
                                     <td colSpan={5} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
                                 </tr>
                             ) : transactions && transactions.length > 0 ? (
-                                transactions.map((t: any) => (
+                                transactions.map((t) => (
                                     <tr key={t.id} className="hover:bg-muted/50 transition-colors">
                                         <td className="px-6 py-4 font-mono">{t.date}</td>
                                         <td className="px-6 py-4 text-primary font-medium">{t.transaction_number}</td>
@@ -280,7 +273,7 @@ export default function CashBank() {
                                         </td>
                                         <td className={`px-6 py-4 text-right font-semibold ${t.transaction_type === 'receive' ? 'text-emerald-500' : 'text-destructive'
                                             }`}>
-                                            {formatCurrency(t.amount)}
+                                            {formatCurrencyIDR(t.amount)}
                                         </td>
                                     </tr>
                                 ))

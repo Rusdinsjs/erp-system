@@ -3,7 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi, type SalesInvoice, type CreateSalesInvoiceRequest, type UpdateSalesInvoiceRequest, type CreateInvoiceItemRequest } from '../../api/finance';
 import { clientApi } from '../../api/client-management';
 import { Card, Button, Badge } from '../../components/ui';
-import { deriveInvoiceStates, calculateInvoiceTotal } from '../../utils/decimal';
+import {
+    calculateInvoiceTotalString,
+    deriveInvoiceStates,
+    formatCurrencyIDR,
+    subtractDecimalStrings,
+    sumDecimalStrings,
+} from '../../utils/decimal';
 import {
     Plus,
     Search,
@@ -29,13 +35,14 @@ export default function SalesInvoices() {
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [viewInvoice, setViewInvoice] = useState<SalesInvoice | null>(null);
     const [editInvoice, setEditInvoice] = useState<SalesInvoice | null>(null);
+    const [createDefaults, setCreateDefaults] = useState({ invoiceNumber: '', date: '', dueDate: '' });
 
     // Dynamic line items state for create/edit modal
     const [createItems, setCreateItems] = useState<CreateInvoiceItemRequest[]>([
-        { description: '', quantity: 1, unit_price: 0 }
+        { description: '', quantity: '1.0000', unit_price: '0.0000' }
     ]);
     const [editItems, setEditItems] = useState<CreateInvoiceItemRequest[]>([
-        { description: '', quantity: 1, unit_price: 0 }
+        { description: '', quantity: '1.0000', unit_price: '0.0000' }
     ]);
 
     const queryClient = useQueryClient();
@@ -56,11 +63,11 @@ export default function SalesInvoices() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['finance', 'sales-invoices'] });
             setIsModalOpen(false);
-            setCreateItems([{ description: '', quantity: 1, unit_price: 0 }]);
+            setCreateItems([{ description: '', quantity: '1.0000', unit_price: '0.0000' }]);
             toast.success('Invoice berhasil dibuat dan dijurnal otomatis');
         },
-        onError: (error: any) => {
-            toast.error('Gagal membuat invoice: ' + error.message);
+        onError: (error: unknown) => {
+            toast.error('Gagal membuat invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
     });
 
@@ -72,8 +79,8 @@ export default function SalesInvoices() {
             setEditInvoice(null);
             toast.success('Invoice berhasil diperbarui');
         },
-        onError: (error: any) => {
-            toast.error('Gagal memperbarui invoice: ' + error.message);
+        onError: (error: unknown) => {
+            toast.error('Gagal memperbarui invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
     });
 
@@ -83,18 +90,22 @@ export default function SalesInvoices() {
             queryClient.invalidateQueries({ queryKey: ['finance', 'sales-invoices'] });
             toast.success('Invoice berhasil dihapus');
         },
-        onError: (error: any) => {
-            toast.error('Gagal menghapus invoice: ' + error.message);
+        onError: (error: unknown) => {
+            toast.error('Gagal menghapus invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
     });
 
-    const formatCurrency = (value: number | string) => {
-        const val = typeof value === 'number' ? value : parseFloat(value || '0') || 0;
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            maximumFractionDigits: 0
-        }).format(val);
+    const handleOpenCreate = () => {
+        const now = new Date();
+        const due = new Date(now);
+        due.setDate(due.getDate() + 7);
+        setCreateDefaults({
+            invoiceNumber: `INV/${now.getFullYear()}/${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+            date: now.toISOString().slice(0, 10),
+            dueDate: due.toISOString().slice(0, 10),
+        });
+        setCreateItems([{ description: '', quantity: '1.0000', unit_price: '0.0000' }]);
+        setIsModalOpen(true);
     };
 
     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -108,8 +119,9 @@ export default function SalesInvoices() {
             subject: (formData.get('subject') as string) || undefined,
             items: createItems.map(item => ({
                 description: item.description,
-                quantity: typeof item.quantity === 'number' ? item.quantity : parseFloat(item.quantity) || 1,
-                unit_price: typeof item.unit_price === 'number' ? item.unit_price : parseFloat(item.unit_price) || 0
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                account_id: item.account_id,
             }))
         };
         createMutation.mutate(data);
@@ -130,11 +142,11 @@ export default function SalesInvoices() {
                     }))
                 );
             } else {
-                setEditItems([{ description: detail.subject || 'Penjualan', quantity: 1, unit_price: detail.total_amount }]);
+                setEditItems([{ description: detail.subject || 'Penjualan', quantity: '1.0000', unit_price: detail.total_amount }]);
             }
         } catch {
             setEditInvoice(inv);
-            setEditItems([{ description: inv.subject || 'Penjualan', quantity: 1, unit_price: inv.total_amount }]);
+            setEditItems([{ description: inv.subject || 'Penjualan', quantity: '1.0000', unit_price: inv.total_amount }]);
         }
     };
 
@@ -159,8 +171,9 @@ export default function SalesInvoices() {
             subject: (formData.get('subject') as string) || undefined,
             items: editItems.map(item => ({
                 description: item.description,
-                quantity: typeof item.quantity === 'number' ? item.quantity : parseFloat(item.quantity) || 1,
-                unit_price: typeof item.unit_price === 'number' ? item.unit_price : parseFloat(item.unit_price) || 0
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                account_id: item.account_id,
             }))
         };
         updateMutation.mutate({ id: editInvoice.id, data });
@@ -174,7 +187,7 @@ export default function SalesInvoices() {
 
     const filteredInvoices = invoices?.filter((inv: SalesInvoice) => {
         if (!searchTerm) return true;
-        const clientName = clients.find((c: any) => c.id === inv.client_id)?.name || '';
+        const clientName = clients.find((c) => c.id === inv.client_id)?.name || '';
         return (
             inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,11 +195,9 @@ export default function SalesInvoices() {
         );
     });
 
-    const totalReceivable = invoices?.reduce((acc: number, inv: SalesInvoice) => {
-        const total = typeof inv.total_amount === 'number' ? inv.total_amount : parseFloat(inv.total_amount as string) || 0;
-        const paid = typeof inv.amount_paid === 'number' ? inv.amount_paid : parseFloat(inv.amount_paid as string) || 0;
-        return acc + (total - paid);
-    }, 0) || 0;
+    const totalReceivable = sumDecimalStrings(
+        invoices?.map((inv) => subtractDecimalStrings(inv.total_amount, inv.amount_paid)) ?? [],
+    );
 
     const unpaidCount = invoices?.filter((inv: SalesInvoice) => {
         const { payment } = deriveInvoiceStates(inv);
@@ -194,12 +205,13 @@ export default function SalesInvoices() {
     }).length || 0;
 
     const paidTotal = invoices?.filter((inv: SalesInvoice) => deriveInvoiceStates(inv).payment === 'paid')
-        .reduce((a: number, b: SalesInvoice) => a + (typeof b.total_amount === 'number' ? b.total_amount : parseFloat(b.total_amount as string) || 0), 0) || 0;
+        .map((invoice) => invoice.total_amount) ?? [];
+    const paidTotalAmount = sumDecimalStrings(paidTotal);
 
     const stats = [
-        { label: 'Total Piutang', value: formatCurrency(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+        { label: 'Total Piutang', value: formatCurrencyIDR(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
         { label: 'Belum Dibayar', value: unpaidCount.toString() + ' Invoice', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-        { label: 'Lunas (Total)', value: formatCurrency(paidTotal), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+        { label: 'Lunas (Total)', value: formatCurrencyIDR(paidTotalAmount), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     ];
 
     return (
@@ -215,10 +227,7 @@ export default function SalesInvoices() {
                         Export
                     </Button>
                     <Button
-                        onClick={() => {
-                            setCreateItems([{ description: '', quantity: 1, unit_price: 0 }]);
-                            setIsModalOpen(true);
-                        }}
+                        onClick={handleOpenCreate}
                         className="gap-2 bg-cyan-600 hover:bg-cyan-500"
                     >
                         <Plus size={18} />
@@ -289,12 +298,12 @@ export default function SalesInvoices() {
                                         <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
                                             <td className="px-6 py-4 font-medium text-cyan-400 font-mono">{inv.invoice_number}</td>
                                             <td className="px-6 py-4 text-white">
-                                                {clients.find((c: any) => c.id === inv.client_id)?.name || inv.client_id}
+                                                {clients.find((c) => c.id === inv.client_id)?.name || inv.client_id}
                                             </td>
                                             <td className="px-6 py-4 font-mono text-xs">{new Date(inv.date).toLocaleDateString('id-ID')}</td>
                                             <td className="px-6 py-4 font-mono text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID') : '-'}</td>
                                             <td className="px-6 py-4 text-right font-semibold text-white font-mono">
-                                                {formatCurrency(inv.total_amount)}
+                                                {formatCurrencyIDR(inv.total_amount)}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <Badge
@@ -312,10 +321,10 @@ export default function SalesInvoices() {
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <Badge
-                                                    variant={states.posting === 'posted' ? 'success' : 'outline'}
-                                                    className={states.posting === 'posted' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-slate-800 text-slate-400'}
+                                                    variant={states.journal === 'posted' ? 'success' : 'outline'}
+                                                    className={states.journal === 'posted' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-slate-800 text-slate-400'}
                                                 >
-                                                    {states.posting === 'posted' ? 'Terposting' : 'Draf'}
+                                                    {states.journal === 'posted' ? 'Terposting' : states.journal === 'draft' ? 'Draf' : 'Belum Ada'}
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4 text-center relative">
@@ -411,7 +420,7 @@ export default function SalesInvoices() {
                                 <div>
                                     <p className="text-xs text-slate-500 uppercase">Pelanggan</p>
                                     <p className="text-sm font-semibold text-white">
-                                        {clients.find((c: any) => c.id === viewInvoice.client_id)?.name || viewInvoice.client_id}
+                                        {clients.find((c) => c.id === viewInvoice.client_id)?.name || viewInvoice.client_id}
                                     </p>
                                 </div>
                                 <div>
@@ -456,8 +465,8 @@ export default function SalesInvoices() {
                                                     <tr key={idx} className="hover:bg-slate-950/30">
                                                         <td className="p-2.5">{item.description}</td>
                                                         <td className="p-2.5 text-center font-mono">{item.quantity}</td>
-                                                        <td className="p-2.5 text-right font-mono">{formatCurrency(item.unit_price)}</td>
-                                                        <td className="p-2.5 text-right font-mono font-semibold">{formatCurrency(item.total_price)}</td>
+                                                        <td className="p-2.5 text-right font-mono">{formatCurrencyIDR(item.unit_price)}</td>
+                                                        <td className="p-2.5 text-right font-mono font-semibold">{formatCurrencyIDR(item.total_price)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -469,11 +478,11 @@ export default function SalesInvoices() {
                             <div className="bg-cyan-500/5 p-4 rounded-xl border border-cyan-500/10 flex justify-between items-center">
                                 <div>
                                     <p className="text-xs text-cyan-400 uppercase font-semibold">Total Tagihan</p>
-                                    <p className="text-2xl font-bold text-white font-mono mt-0.5">{formatCurrency(viewInvoice.total_amount)}</p>
+                                    <p className="text-2xl font-bold text-white font-mono mt-0.5">{formatCurrencyIDR(viewInvoice.total_amount)}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs text-slate-400 uppercase">Sudah Dibayar</p>
-                                    <p className="text-sm font-mono text-emerald-400 font-bold">{formatCurrency(viewInvoice.amount_paid || 0)}</p>
+                                    <p className="text-sm font-mono text-emerald-400 font-bold">{formatCurrencyIDR(viewInvoice.amount_paid || '0.0000')}</p>
                                 </div>
                             </div>
 
@@ -521,7 +530,7 @@ export default function SalesInvoices() {
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
                                     >
                                         <option value="">Pilih Pelanggan</option>
-                                        {clients.map((client: any) => (
+                                        {clients.map((client) => (
                                             <option key={client.id} value={client.id}>{client.name}</option>
                                         ))}
                                     </select>
@@ -568,7 +577,7 @@ export default function SalesInvoices() {
                                     <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Item Penjualan</h3>
                                     <button
                                         type="button"
-                                        onClick={() => setEditItems([...editItems, { description: '', quantity: 1, unit_price: 0 }])}
+                                        onClick={() => setEditItems([...editItems, { description: '', quantity: '1.0000', unit_price: '0.0000' }])}
                                         className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
                                     >
                                         <PlusCircle size={14} /> Tambah Line Item
@@ -634,7 +643,7 @@ export default function SalesInvoices() {
 
                                 <div className="text-right pt-2 border-t border-slate-800">
                                     <span className="text-xs text-slate-500 uppercase mr-2">Estimasi Total:</span>
-                                    <span className="text-sm font-bold text-white font-mono">{formatCurrency(calculateInvoiceTotal(editItems))}</span>
+                                    <span className="text-sm font-bold text-white font-mono">{formatCurrencyIDR(calculateInvoiceTotalString(editItems))}</span>
                                 </div>
                             </div>
 
@@ -678,7 +687,7 @@ export default function SalesInvoices() {
                                         name="invoice_number"
                                         required
                                         placeholder="INV/2024/001"
-                                        defaultValue={`INV/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
+                                        defaultValue={createDefaults.invoiceNumber}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
                                     />
                                 </div>
@@ -690,7 +699,7 @@ export default function SalesInvoices() {
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
                                     >
                                         <option value="">Pilih Pelanggan</option>
-                                        {clients.map((client: any) => (
+                                        {clients.map((client) => (
                                             <option key={client.id} value={client.id}>{client.name}</option>
                                         ))}
                                     </select>
@@ -704,7 +713,7 @@ export default function SalesInvoices() {
                                         name="date"
                                         type="date"
                                         required
-                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        defaultValue={createDefaults.date}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
                                     />
                                 </div>
@@ -714,7 +723,7 @@ export default function SalesInvoices() {
                                         name="due_date"
                                         type="date"
                                         required
-                                        defaultValue={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                                        defaultValue={createDefaults.dueDate}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all font-mono"
                                     />
                                 </div>
@@ -736,7 +745,7 @@ export default function SalesInvoices() {
                                     <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Item Penjualan</h3>
                                     <button
                                         type="button"
-                                        onClick={() => setCreateItems([...createItems, { description: '', quantity: 1, unit_price: 0 }])}
+                                        onClick={() => setCreateItems([...createItems, { description: '', quantity: '1.0000', unit_price: '0.0000' }])}
                                         className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
                                     >
                                         <PlusCircle size={14} /> Tambah Line Item
@@ -802,7 +811,7 @@ export default function SalesInvoices() {
 
                                 <div className="text-right pt-2 border-t border-slate-800">
                                     <span className="text-xs text-slate-500 uppercase mr-2">Estimasi Total:</span>
-                                    <span className="text-sm font-bold text-white font-mono">{formatCurrency(calculateInvoiceTotal(createItems))}</span>
+                                    <span className="text-sm font-bold text-white font-mono">{formatCurrencyIDR(calculateInvoiceTotalString(createItems))}</span>
                                 </div>
                             </div>
 

@@ -33,7 +33,9 @@ pub struct JournalLine {
     pub journal_entry_id: Uuid,
     pub account_id: Uuid,
     pub description: Option<String>,
+    #[serde(with = "rust_decimal::serde::str")]
     pub debit: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub credit: Decimal,
 }
 
@@ -48,7 +50,9 @@ pub struct JournalEntryDetail {
 pub struct CreateJournalLineRequest {
     pub account_id: Uuid,
     pub description: Option<String>,
+    #[serde(with = "rust_decimal::serde::str")]
     pub debit: Decimal,
+    #[serde(with = "rust_decimal::serde::str")]
     pub credit: Decimal,
 }
 

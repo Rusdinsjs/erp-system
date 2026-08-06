@@ -57,6 +57,7 @@ pub struct WorkOrderService {
 }
 
 impl WorkOrderService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         repository: WorkOrderRepository,
         lifecycle_repo: LifecycleRepository,
@@ -609,10 +610,10 @@ impl WorkOrderService {
 
         // Labor Journaling (Internal Allocation)
         // MOVED TO FinanceService via EventBus
-        let _ = self.event_bus.publish(
-            management_system_core::domain::events::SystemEvent::WorkOrderCreated(
+        self.event_bus.publish(
+            management_system_core::domain::events::SystemEvent::WorkOrderCreated(Box::new(
                 updated.clone(),
-            ),
+            )),
         );
 
         // Real-time broadcast
@@ -840,6 +841,7 @@ impl WorkOrderService {
         Ok(created)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn update_part(
         &self,
         work_order_id: Uuid,

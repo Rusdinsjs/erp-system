@@ -377,7 +377,7 @@ impl ModuleApprovalCallback for LoanService {
         &self,
         request: &crate::infrastructure::repositories::ApprovalRequest,
         approver_id: Uuid,
-        notes: Option<String>,
+        _notes: Option<String>,
     ) -> DomainResult<()> {
         // Get the loan ID from the approval request
         let loan_id = request.resource_id;

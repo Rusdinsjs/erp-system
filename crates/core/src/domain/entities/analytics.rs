@@ -12,10 +12,3 @@ pub struct AssetStatusStats {
     pub status: String,
     pub count: i64,
 }
-
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct ExpenseAnalysis {
-    pub month: chrono::NaiveDate,
-    pub expense_type: String,
-    pub total_amount: Decimal,
-}

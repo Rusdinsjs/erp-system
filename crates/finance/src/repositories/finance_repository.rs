@@ -1,5 +1,4 @@
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -7,11 +6,21 @@ use crate::domain::entities::*;
 use management_system_core::domain::errors::{DomainError, DomainResult};
 use management_system_core::infrastructure::database::UnitOfWork;
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
-pub struct ExpenseAnalysis {
+#[derive(Debug, sqlx::FromRow)]
+struct ExpenseAnalysisRow {
     pub month: chrono::NaiveDate,
     pub expense_type: String,
     pub total_amount: Decimal,
+}
+
+impl From<ExpenseAnalysisRow> for ExpenseAnalysis {
+    fn from(row: ExpenseAnalysisRow) -> Self {
+        Self {
+            month: row.month,
+            expense_type: row.expense_type,
+            total_amount: row.total_amount,
+        }
+    }
 }
 
 // --- Internal SQL persistence mapping rows (3R.1.1-002: Pure domain models carry 0 sqlx attributes) ---
@@ -93,6 +102,7 @@ impl From<SalesInvoiceRow> for SalesInvoice {
             amount_paid: r.amount_paid,
             status: r.status,
             journal_entry_id: r.journal_entry_id,
+            journal_status: None,
             created_at: r.created_at,
             attachment_url: r.attachment_url,
         }
@@ -451,6 +461,33 @@ impl FinanceRepository {
         self.list_accounts().await
     }
 
+    pub async fn get_capex_opex_analysis(
+        &self,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+    ) -> DomainResult<Vec<ExpenseAnalysis>> {
+        let rows = sqlx::query_as::<_, ExpenseAnalysisRow>(
+            r#"
+            SELECT
+                DATE_TRUNC('month', date)::date AS month,
+                COALESCE(expense_type, 'General') AS expense_type,
+                SUM(total_amount) AS total_amount
+            FROM expenses
+            WHERE ($1::date IS NULL OR date >= $1)
+              AND ($2::date IS NULL OR date <= $2)
+            GROUP BY DATE_TRUNC('month', date)::date, COALESCE(expense_type, 'General')
+            ORDER BY month DESC, expense_type ASC
+            "#,
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+
     pub async fn create_sales_invoice_with_uow(
         &self,
         uow: &mut UnitOfWork,
@@ -615,7 +652,10 @@ impl FinanceRepository {
         Ok(row.map(Into::into))
     }
 
-    pub async fn get_sales_invoice_items(&self, invoice_id: Uuid) -> DomainResult<Vec<SalesInvoiceItem>> {
+    pub async fn get_sales_invoice_items(
+        &self,
+        invoice_id: Uuid,
+    ) -> DomainResult<Vec<SalesInvoiceItem>> {
         let rows = sqlx::query_as::<_, SalesInvoiceItemRow>(
             r#"
             SELECT id, invoice_id, description, quantity, unit_price, total_price, account_id
@@ -863,7 +903,10 @@ impl FinanceRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn create_cash_bank_transaction(&self, tx: &CashBankTransaction) -> DomainResult<CashBankTransaction> {
+    pub async fn create_cash_bank_transaction(
+        &self,
+        tx: &CashBankTransaction,
+    ) -> DomainResult<CashBankTransaction> {
         let row = sqlx::query_as::<_, CashBankTransactionRow>(
             r#"
             INSERT INTO cash_bank_transactions (id, transaction_number, transaction_type, date, amount, from_account_id, to_account_id, account_id, contact_name, description, journal_entry_id, created_at)
@@ -988,7 +1031,10 @@ impl FinanceRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn create_sales_shipment(&self, shipment: &SalesShipment) -> DomainResult<SalesShipment> {
+    pub async fn create_sales_shipment(
+        &self,
+        shipment: &SalesShipment,
+    ) -> DomainResult<SalesShipment> {
         let row = sqlx::query_as::<_, SalesShipmentRow>(
             r#"
             INSERT INTO sales_shipments (id, shipment_number, sales_order_id, client_id, date, courier_name, tracking_number, status, created_at)
@@ -1027,7 +1073,10 @@ impl FinanceRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn create_purchase_quote(&self, quote: &PurchaseQuote) -> DomainResult<PurchaseQuote> {
+    pub async fn create_purchase_quote(
+        &self,
+        quote: &PurchaseQuote,
+    ) -> DomainResult<PurchaseQuote> {
         let row = sqlx::query_as::<_, PurchaseQuoteRow>(
             r#"
             INSERT INTO purchase_quotes (id, quote_number, vendor_id, date, expiry_date, subject, subtotal, tax, total_amount, status, created_at)
@@ -1068,7 +1117,10 @@ impl FinanceRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn create_purchase_order(&self, order: &PurchaseOrder) -> DomainResult<PurchaseOrder> {
+    pub async fn create_purchase_order(
+        &self,
+        order: &PurchaseOrder,
+    ) -> DomainResult<PurchaseOrder> {
         let row = sqlx::query_as::<_, PurchaseOrderRow>(
             r#"
             INSERT INTO purchase_orders (id, order_number, purchase_quote_id, vendor_id, date, delivery_date, subject, subtotal, tax, total_amount, status, budget_type, created_at)
@@ -1111,7 +1163,10 @@ impl FinanceRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    pub async fn create_purchase_shipment(&self, shipment: &PurchaseShipment) -> DomainResult<PurchaseShipment> {
+    pub async fn create_purchase_shipment(
+        &self,
+        shipment: &PurchaseShipment,
+    ) -> DomainResult<PurchaseShipment> {
         let row = sqlx::query_as::<_, PurchaseShipmentRow>(
             r#"
             INSERT INTO purchase_shipments (id, shipment_number, purchase_order_id, vendor_id, date, courier_name, tracking_number, status, created_at)

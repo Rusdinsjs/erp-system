@@ -1,16 +1,12 @@
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use management_system_core::application::services::approval_service::ModuleApprovalCallback;
-use management_system_core::domain::entities::{
-    TaxRenewal, UpdateTaxRenewalCostRequest, Vendor,
-};
+use management_system_core::domain::entities::{TaxRenewal, UpdateTaxRenewalCostRequest, Vendor};
 use management_system_core::domain::errors::DomainError;
 use management_system_core::infrastructure::repositories::{
     AssetRepository, TaxRenewalRepository, VendorRepository,
 };
-use management_system_finance::{
-    CreateBillItemRequest, CreatePurchaseBillRequest, FinanceService,
-};
+use management_system_finance::{CreateBillItemRequest, CreatePurchaseBillRequest, FinanceService};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -210,7 +206,7 @@ impl TaxRenewalService {
         ))?;
 
         // Find "Utang Biaya Legal Armada" (2-1140)
-        let payable_account = self
+        let _payable_account = self
             .finance_service
             .find_by_code("2-1140")
             .await
@@ -239,14 +235,7 @@ impl TaxRenewalService {
             attachment_url: renewal.invoice_attachment.clone(),
         };
 
-        let bill = self
-            .finance_service
-            .create_purchase_bill(bill_req)
-            .await
-            .map_err(|e| match e {
-                // Map domain error if needed, usually just propagate
-                _ => e,
-            })?;
+        let bill = self.finance_service.create_purchase_bill(bill_req).await?;
 
         // Update Tax Renewal status to INVOICED and link bill
         self.repository
@@ -341,7 +330,7 @@ impl ModuleApprovalCallback for TaxRenewalService {
     async fn on_final_approval(
         &self,
         request: &management_system_core::infrastructure::repositories::ApprovalRequest,
-        approver_id: Uuid,
+        _approver_id: Uuid,
         notes: Option<String>,
     ) -> Result<(), DomainError> {
         let renewal_id = request.resource_id;

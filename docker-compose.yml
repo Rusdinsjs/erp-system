@@ -11,11 +11,14 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-management_system}
+      DB_APP_USER: ${DB_APP_USER:-erpqu_app}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-erpqu_app_dev_only}
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Mount custom pg_hba.conf — trust auth untuk semua koneksi Docker internal
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgres/init_app_user.sh:/docker-entrypoint-initdb.d/010-init-app-user.sh:ro
     # Override pg_hba.conf location sehingga trust auth aktif
     command: postgres -c hba_file=/etc/postgresql/pg_hba.conf -c password_encryption=scram-sha-256
     ports:
@@ -59,8 +62,8 @@ services:
       redis:
         condition: service_healthy
     environment:
-      # Trust auth aktif → password di URL ini TIDAK perlu cocok dengan volume
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-management_system}
+      MIGRATION_DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-management_system}
+      DATABASE_URL: postgres://${DB_APP_USER:-erpqu_app}:${DB_APP_PASSWORD:-erpqu_app_dev_only}@postgres:5432/${DB_NAME:-management_system}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-management-system-secret-key-change-in-production}
       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}

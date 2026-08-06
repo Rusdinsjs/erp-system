@@ -17,8 +17,8 @@ use uuid::Uuid;
 /// Universal Document Status for documents that opt in to lifecycle management (QARC-003)
 ///
 /// Pure document lifecycle status only (Draft, Submitted, Cancelled).
-/// Domain-specific status (GL Posted, Depreciation Posted, Stock Posted)
-/// belongs to typed domain entities, NOT universal DocumentStatus.
+/// Domain-specific finalization states (GL posting, depreciation posting, stock posting)
+/// belong to typed domain entities, NOT universal DocumentStatus.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DocumentStatus {
@@ -136,31 +136,25 @@ pub trait WorkflowEnabled {
     fn total_approval_steps(&self) -> i32;
 }
 
-/// Opt-In Lifecycle Envelope (3R.1-001 & 3R.1.1-001)
-///
-/// Wraps domain-neutral `DocumentMetadata` with explicit opt-in lifecycle management
-/// (`status: DocumentStatus`) and optional capability details.
+/// Opt-in submission state. It grants submission only; cancellation and amendment
+/// remain independent capabilities implemented by the owning typed document.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct LifecycleEnvelope {
+pub struct SubmissionEnvelope {
     #[serde(flatten)]
     pub metadata: DocumentMetadata,
     pub status: DocumentStatus,
-    pub cancellation: Option<CancellationDetails>,
-    pub amendment: Option<AmendmentDetails>,
 }
 
-impl LifecycleEnvelope {
+impl SubmissionEnvelope {
     pub fn new(metadata: DocumentMetadata) -> Self {
         Self {
             metadata,
             status: DocumentStatus::Draft,
-            cancellation: None,
-            amendment: None,
         }
     }
 }
 
-impl Submittable for LifecycleEnvelope {
+impl Submittable for SubmissionEnvelope {
     fn submit(&mut self, actor_id: Uuid) -> DomainResult<()> {
         if self.status != DocumentStatus::Draft {
             return Err(DomainError::invalid_transition(
@@ -173,59 +167,6 @@ impl Submittable for LifecycleEnvelope {
         self.metadata.updated_at = Utc::now();
         self.metadata.version += 1;
         Ok(())
-    }
-}
-
-impl Cancellable for LifecycleEnvelope {
-    fn cancel(&mut self, actor_id: Uuid, reason: String) -> DomainResult<()> {
-        if self.status != DocumentStatus::Submitted {
-            return Err(DomainError::invalid_transition(
-                self.status.as_str(),
-                "CANCELLED",
-            ));
-        }
-        let now = Utc::now();
-        self.status = DocumentStatus::Cancelled;
-        self.cancellation = Some(CancellationDetails {
-            cancelled_by: actor_id,
-            cancelled_at: now,
-            cancellation_reason: reason,
-        });
-        self.metadata.updated_by = actor_id;
-        self.metadata.updated_at = now;
-        self.metadata.version += 1;
-        Ok(())
-    }
-}
-
-impl Amendable<LifecycleEnvelope> for LifecycleEnvelope {
-    fn amend(
-        &mut self,
-        actor_id: Uuid,
-        new_document_number: String,
-    ) -> DomainResult<LifecycleEnvelope> {
-        if self.status != DocumentStatus::Cancelled {
-            return Err(DomainError::invalid_transition(
-                self.status.as_str(),
-                "AMENDED",
-            ));
-        }
-
-        self.metadata.updated_by = actor_id;
-        self.metadata.updated_at = Utc::now();
-        self.metadata.version += 1;
-
-        let new_meta = DocumentMetadata::new(
-            self.metadata.tenant_id,
-            self.metadata.company_id,
-            new_document_number,
-            actor_id,
-        );
-        let mut new_envelope = LifecycleEnvelope::new(new_meta);
-        new_envelope.amendment = Some(AmendmentDetails {
-            amended_from_id: self.metadata.id,
-        });
-        Ok(new_envelope)
     }
 }
 

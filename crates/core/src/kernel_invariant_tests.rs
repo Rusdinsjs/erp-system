@@ -2,8 +2,7 @@
 //!
 //! Covers:
 //! - QARC-001: Architecture Constitution & Domain-Agnostic Kernel
-//! - QARC-002/003: Capability-based document lifecycle (Submittable, Cancellable, Amendable)
-//!                 and state separation (no Posted in Kernel DocumentStatus)
+//! - QARC-002/003: Capability-based document lifecycle (Submittable, Cancellable, Amendable) and state separation (no Posted in Kernel DocumentStatus)
 //! - QARC-004: Domain-neutral CommandContext and UnitOfWork
 //! - QARC-005: Dependency direction enforcement (Domain has 0 infrastructure imports)
 //! - QARC-006: Numeric exactness, scale/precision, deterministic rounding
@@ -16,8 +15,9 @@
 mod kernel_unit_tests {
     use crate::domain::audit_trail::AuditAction;
     use crate::domain::document::{
-        validate_header_line_relationship, Amendable, Cancellable, DocumentHeader, DocumentLine,
-        DocumentMetadata, DocumentStatus, LifecycleEnvelope, Submittable,
+        validate_header_line_relationship, Amendable, AmendmentDetails, Cancellable,
+        CancellationDetails, DocumentHeader, DocumentLine, DocumentMetadata, DocumentStatus,
+        SubmissionEnvelope, Submittable,
     };
     use crate::domain::errors::DomainError;
     use crate::domain::outbox::{OutboxEntry, OutboxStatus};
@@ -42,6 +42,7 @@ mod kernel_unit_tests {
         }
     }
 
+    #[allow(dead_code)]
     struct MockInvoiceLine {
         id: Uuid,
         header_id: Uuid,
@@ -73,6 +74,77 @@ mod kernel_unit_tests {
         }
     }
 
+    struct TestLifecycleDocument {
+        submission: SubmissionEnvelope,
+        cancellation: Option<CancellationDetails>,
+        amendment: Option<AmendmentDetails>,
+    }
+
+    impl TestLifecycleDocument {
+        fn new(metadata: DocumentMetadata) -> Self {
+            Self {
+                submission: SubmissionEnvelope::new(metadata),
+                cancellation: None,
+                amendment: None,
+            }
+        }
+    }
+
+    impl Submittable for TestLifecycleDocument {
+        fn submit(&mut self, actor_id: Uuid) -> crate::domain::errors::DomainResult<()> {
+            self.submission.submit(actor_id)
+        }
+    }
+
+    impl Cancellable for TestLifecycleDocument {
+        fn cancel(
+            &mut self,
+            actor_id: Uuid,
+            reason: String,
+        ) -> crate::domain::errors::DomainResult<()> {
+            if self.submission.status != DocumentStatus::Submitted {
+                return Err(DomainError::invalid_transition(
+                    self.submission.status.as_str(),
+                    "CANCELLED",
+                ));
+            }
+            self.submission.status = DocumentStatus::Cancelled;
+            self.cancellation = Some(CancellationDetails {
+                cancelled_by: actor_id,
+                cancelled_at: chrono::Utc::now(),
+                cancellation_reason: reason,
+            });
+            Ok(())
+        }
+    }
+
+    impl Amendable<TestLifecycleDocument> for TestLifecycleDocument {
+        fn amend(
+            &mut self,
+            actor_id: Uuid,
+            new_document_number: String,
+        ) -> crate::domain::errors::DomainResult<TestLifecycleDocument> {
+            if self.submission.status != DocumentStatus::Cancelled {
+                return Err(DomainError::invalid_transition(
+                    self.submission.status.as_str(),
+                    "AMEND",
+                ));
+            }
+            let source_id = self.submission.metadata.id;
+            let metadata = DocumentMetadata::new(
+                self.submission.metadata.tenant_id,
+                self.submission.metadata.company_id,
+                new_document_number,
+                actor_id,
+            );
+            let mut replacement = TestLifecycleDocument::new(metadata);
+            replacement.amendment = Some(AmendmentDetails {
+                amended_from_id: source_id,
+            });
+            Ok(replacement)
+        }
+    }
+
     // ─── QARC-002, QARC-003 & 3R.1-001: Capability Lifecycle & State Separation ───
 
     #[test]
@@ -93,7 +165,7 @@ mod kernel_unit_tests {
         let tenant_id = Uuid::new_v4();
         let actor_id = Uuid::new_v4();
         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
-        let envelope = LifecycleEnvelope::new(meta);
+        let envelope = SubmissionEnvelope::new(meta);
 
         assert_eq!(envelope.status, DocumentStatus::Draft);
         assert_eq!(envelope.metadata.version, 1);
@@ -105,7 +177,7 @@ mod kernel_unit_tests {
         let tenant_id = Uuid::new_v4();
         let actor_id = Uuid::new_v4();
         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
-        let mut envelope = LifecycleEnvelope::new(meta);
+        let mut envelope = SubmissionEnvelope::new(meta);
 
         envelope.submit(actor_id).unwrap();
         assert_eq!(envelope.status, DocumentStatus::Submitted);
@@ -128,7 +200,7 @@ mod kernel_unit_tests {
         let tenant_id = Uuid::new_v4();
         let actor_id = Uuid::new_v4();
         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
-        let mut envelope = LifecycleEnvelope::new(meta);
+        let mut envelope = SubmissionEnvelope::new(meta);
 
         envelope.submit(actor_id).unwrap();
         let err = envelope.submit(actor_id);
@@ -140,13 +212,13 @@ mod kernel_unit_tests {
         let tenant_id = Uuid::new_v4();
         let actor_id = Uuid::new_v4();
         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
-        let mut envelope = LifecycleEnvelope::new(meta);
+        let mut envelope = TestLifecycleDocument::new(meta);
 
         envelope.submit(actor_id).unwrap();
         envelope
             .cancel(actor_id, "Wrong vendor".to_string())
             .unwrap();
-        assert_eq!(envelope.status, DocumentStatus::Cancelled);
+        assert_eq!(envelope.submission.status, DocumentStatus::Cancelled);
         let cancel_info = envelope.cancellation.as_ref().unwrap();
         assert_eq!(cancel_info.cancellation_reason, "Wrong vendor");
         assert_eq!(cancel_info.cancelled_by, actor_id);
@@ -157,7 +229,7 @@ mod kernel_unit_tests {
         let tenant_id = Uuid::new_v4();
         let actor_id = Uuid::new_v4();
         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
-        let mut envelope = LifecycleEnvelope::new(meta);
+        let mut envelope = TestLifecycleDocument::new(meta);
 
         envelope.submit(actor_id).unwrap();
         envelope.cancel(actor_id, "error".to_string()).unwrap();
@@ -165,12 +237,15 @@ mod kernel_unit_tests {
         let new_envelope = envelope.amend(actor_id, "DOC-001-R1".to_string()).unwrap();
 
         // Original document stays Cancelled (QARC-003 semantics)
-        assert_eq!(envelope.status, DocumentStatus::Cancelled);
+        assert_eq!(envelope.submission.status, DocumentStatus::Cancelled);
         // Replacement document is a new Draft linked via amended_from_id
-        assert_eq!(new_envelope.status, DocumentStatus::Draft);
+        assert_eq!(new_envelope.submission.status, DocumentStatus::Draft);
         let amend_info = new_envelope.amendment.as_ref().unwrap();
-        assert_eq!(amend_info.amended_from_id, envelope.metadata.id);
-        assert_eq!(new_envelope.metadata.document_number, "DOC-001-R1");
+        assert_eq!(amend_info.amended_from_id, envelope.submission.metadata.id);
+        assert_eq!(
+            new_envelope.submission.metadata.document_number,
+            "DOC-001-R1"
+        );
     }
 
     // ─── QKRN-003: Optimistic Concurrency ─────────────────────────────────────
@@ -188,7 +263,7 @@ mod kernel_unit_tests {
         let tenant = Uuid::new_v4();
         let actor = Uuid::new_v4();
         let doc = DocumentMetadata::new(tenant, None, "DOC-002".to_string(), actor);
-        let mut envelope = LifecycleEnvelope::new(doc);
+        let mut envelope = SubmissionEnvelope::new(doc);
         envelope.submit(actor).unwrap(); // version → 2
         let err = envelope.metadata.verify_version(1).unwrap_err();
         match err {
@@ -214,6 +289,7 @@ mod kernel_unit_tests {
             source_id,
             "corr-999",
             "idempotency-key-001",
+            "fingerprint-001",
         );
 
         assert_eq!(ctx.actor_id, actor_id);

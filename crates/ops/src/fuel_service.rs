@@ -144,8 +144,10 @@ impl FuelService {
             // Fetch full log for event
             if let Ok(Some(log)) = self.repo.find_by_id(id).await {
                 // Publish Event for Finance (Automated Journal & Asset Expense)
-                let _ = self.event_bus.publish(
-                    management_system_core::domain::events::SystemEvent::FuelLogCreated(log),
+                self.event_bus.publish(
+                    management_system_core::domain::events::SystemEvent::FuelLogCreated(Box::new(
+                        log,
+                    )),
                 );
             }
         }
@@ -181,7 +183,7 @@ impl ModuleApprovalCallback for FuelService {
         &self,
         request: &management_system_core::infrastructure::repositories::ApprovalRequest,
         approver_id: Uuid,
-        notes: Option<String>,
+        _notes: Option<String>,
     ) -> DomainResult<()> {
         let fuel_log_id = request.resource_id;
 

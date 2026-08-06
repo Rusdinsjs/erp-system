@@ -7,11 +7,11 @@ use management_system_core::application::services::NotificationService;
 use management_system_core::domain::entities::inventory::{
     InventoryCategory, InventoryItem, InventoryMovement, InventoryMovementType,
 };
+use management_system_core::domain::errors::DomainError;
+use management_system_core::infrastructure::repositories::InventoryRepository;
 use management_system_finance::domain::entities::journal::{
     CreateJournalEntryRequest, CreateJournalLineRequest,
 };
-use management_system_core::domain::errors::DomainError;
-use management_system_core::infrastructure::repositories::InventoryRepository;
 use management_system_finance::JournalService;
 use rust_decimal::Decimal;
 use std::sync::Arc;
@@ -283,6 +283,7 @@ impl InventoryService {
 
     /// Process inventory usage from Work Orders
     /// Automatically creates journal entries if accounts are mapped
+    #[allow(clippy::too_many_arguments)]
     pub async fn process_usage(
         &self,
         item_id: Uuid,
@@ -407,7 +408,10 @@ impl InventoryService {
                     if let Err(e) = self
                         .journal_service
                         .create_journal_entry(
-                            format!("INV-{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase()),
+                            format!(
+                                "INV-{}",
+                                uuid::Uuid::new_v4().to_string()[..8].to_uppercase()
+                            ),
                             journal_req,
                             Some(created_by),
                         )

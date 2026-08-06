@@ -20,7 +20,7 @@ pub use audit_trail::{AuditAction, DocumentAuditEntry};
 pub use authz::*;
 pub use document::{
     Amendable, Cancellable, DocumentHeader, DocumentLine, DocumentMetadata, DocumentStatus,
-    LifecycleEnvelope, Submittable, WorkflowEnabled,
+    SubmissionEnvelope, Submittable, WorkflowEnabled,
 };
 pub use entities::*;
 pub use errors::*;

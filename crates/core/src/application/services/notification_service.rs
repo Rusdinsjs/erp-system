@@ -359,40 +359,6 @@ impl NotificationService {
             tracing::info!("Notification Service event listener started");
             while let Ok(event) = receiver.recv().await {
                 match event {
-                    crate::domain::events::SystemEvent::ExpenseCreated {
-                        expense_id,
-                        amount,
-                    } => {
-                        // Example: Notify admins for all new expenses
-                        let _ = service
-                            .notify_admins(
-                                "expense_created",
-                                json!({
-                                    "expense_id": expense_id,
-                                    "amount": amount,
-                                }),
-                                Some("expense"),
-                                Some(expense_id),
-                            )
-                            .await;
-                    }
-                    crate::domain::events::SystemEvent::PurchaseOrderCreated {
-                        purchase_order_id,
-                        vendor_id: _,
-                        total_amount,
-                    } => {
-                        let _ = service
-                            .notify_admins(
-                                "purchase_order_created",
-                                json!({
-                                    "purchase_order_id": purchase_order_id,
-                                    "amount": total_amount,
-                                }),
-                                Some("purchase_order"),
-                                Some(purchase_order_id),
-                            )
-                            .await;
-                    }
                     crate::domain::events::SystemEvent::LoanRequested {
                         loan_id,
                         asset_name,
@@ -407,38 +373,34 @@ impl NotificationService {
                     }
                     crate::domain::events::SystemEvent::LoanApproved {
                         loan_id,
-                        borrower_id,
+                        borrower_id: Some(uid),
                         asset_name,
                         ..
                     } => {
-                        if let Some(uid) = borrower_id {
-                            let _ = service
-                                .notify_loan_approved(uid, &asset_name, loan_id)
-                                .await;
-                        }
+                        let _ = service
+                            .notify_loan_approved(uid, &asset_name, loan_id)
+                            .await;
                     }
                     crate::domain::events::SystemEvent::LoanRejected {
                         loan_id,
                         asset_name,
-                        borrower_id,
+                        borrower_id: Some(uid),
                         reason,
                         ..
                     } => {
-                        if let Some(uid) = borrower_id {
-                            let _ = service
-                                .create(
-                                    uid,
-                                    &format!("Loan Rejected: {}", asset_name),
-                                    &format!(
-                                        "Your loan request for {} has been rejected. Reason: {}",
-                                        asset_name,
-                                        reason.unwrap_or_else(|| "No reason provided".to_string())
-                                    ),
-                                    Some("loan"),
-                                    Some(loan_id),
-                                )
-                                .await;
-                        }
+                        let _ = service
+                            .create(
+                                uid,
+                                &format!("Loan Rejected: {}", asset_name),
+                                &format!(
+                                    "Your loan request for {} has been rejected. Reason: {}",
+                                    asset_name,
+                                    reason.unwrap_or_else(|| "No reason provided".to_string())
+                                ),
+                                Some("loan"),
+                                Some(loan_id),
+                            )
+                            .await;
                     }
                     crate::domain::events::SystemEvent::LoanCheckedOut { loan_id, .. } => {
                         let _ = service
@@ -452,15 +414,13 @@ impl NotificationService {
                     }
                     crate::domain::events::SystemEvent::LoanOverdue {
                         loan_id,
-                        borrower_id,
+                        borrower_id: Some(uid),
                         asset_name,
                         days_overdue,
                     } => {
-                        if let Some(uid) = borrower_id {
-                            let _ = service
-                                .notify_loan_overdue(uid, &asset_name, days_overdue, loan_id)
-                                .await;
-                        }
+                        let _ = service
+                            .notify_loan_overdue(uid, &asset_name, days_overdue, loan_id)
+                            .await;
                     }
                     crate::domain::events::SystemEvent::LowStockAlert {
                         item_name,

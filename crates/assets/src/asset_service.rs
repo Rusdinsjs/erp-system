@@ -19,11 +19,11 @@ use management_system_core::infrastructure::cache::{CacheJson, CacheKey, CacheOp
 use std::sync::Arc;
 
 use management_system_core::application::services::{ApprovalService, NotificationService};
+use management_system_core::infrastructure::repositories::ApprovalRequest;
 use management_system_finance::domain::entities::journal::{
     CreateJournalEntryRequest, CreateJournalLineRequest,
 };
 use management_system_finance::repositories::JournalRepository;
-use management_system_core::infrastructure::repositories::ApprovalRequest;
 
 /// Result of an asset creation/update attempt
 #[derive(Debug, Serialize)]

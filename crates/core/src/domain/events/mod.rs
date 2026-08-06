@@ -9,17 +9,6 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event_type", content = "payload")]
 pub enum SystemEvent {
-    // Finance Events (Generic Payloads, 3R.1.1-002)
-    ExpenseCreated {
-        expense_id: Uuid,
-        amount: Decimal,
-    },
-    PurchaseOrderCreated {
-        purchase_order_id: Uuid,
-        vendor_id: Uuid,
-        total_amount: Decimal,
-    },
-
     // Loan Events
     LoanRequested {
         loan_id: Uuid,
@@ -75,11 +64,11 @@ pub enum SystemEvent {
     },
 
     // Fuel Events
-    FuelLogCreated(FuelLog),
+    FuelLogCreated(Box<FuelLog>),
 
     // Maintenance Events
-    WorkOrderCreated(WorkOrder),
+    WorkOrderCreated(Box<WorkOrder>),
 
     // Rental Events
-    RentalBillingGenerated(RentalBillingPeriod),
+    RentalBillingGenerated(Box<RentalBillingPeriod>),
 }

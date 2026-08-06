@@ -85,7 +85,9 @@ impl JournalRepository {
         created_by: Option<Uuid>,
     ) -> DomainResult<JournalEntryDetail> {
         let mut uow = UnitOfWork::begin(&self.pool).await?;
-        let detail = Self::create_journal_entry_with_uow(&mut uow, transaction_number, req, created_by).await?;
+        let detail =
+            Self::create_journal_entry_with_uow(&mut uow, transaction_number, req, created_by)
+                .await?;
         uow.commit().await?;
         Ok(detail)
     }
@@ -150,6 +152,24 @@ impl JournalRepository {
         journal_id: Uuid,
         req: &CreateJournalEntryRequest,
     ) -> DomainResult<JournalEntryDetail> {
+        let current_status: Option<(String,)> =
+            sqlx::query_as("SELECT status FROM journal_entries WHERE id = $1 FOR UPDATE")
+                .bind(journal_id)
+                .fetch_optional(uow.conn())
+                .await
+                .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        match current_status {
+            None => return Err(DomainError::not_found("JournalEntry", journal_id)),
+            Some((status,)) if !status.eq_ignore_ascii_case("draft") => {
+                return Err(DomainError::business_rule(
+                    "PostedJournalIsImmutable",
+                    "A posted journal entry cannot be rebuilt from an invoice update",
+                ));
+            }
+            Some(_) => {}
+        }
+
         let header_row = sqlx::query_as::<_, JournalEntryRow>(
             r#"
             UPDATE journal_entries
@@ -203,7 +223,10 @@ impl JournalRepository {
         Ok(JournalEntryDetail { header, lines })
     }
 
-    pub async fn get_journal_entry_detail(&self, id: Uuid) -> DomainResult<Option<JournalEntryDetail>> {
+    pub async fn get_journal_entry_detail(
+        &self,
+        id: Uuid,
+    ) -> DomainResult<Option<JournalEntryDetail>> {
         let header_row = sqlx::query_as::<_, JournalEntryRow>(
             r#"
             SELECT 
@@ -273,13 +296,10 @@ impl JournalRepository {
     }
 
     /// Generate the next sequence number for journal entries in format JE-YYYYMM-XXXX.
-    pub async fn get_next_sequence_number(
-        &self,
-        date: chrono::NaiveDate,
-    ) -> DomainResult<String> {
+    pub async fn get_next_sequence_number(&self, date: chrono::NaiveDate) -> DomainResult<String> {
         let prefix = format!("JE-{}", date.format("%Y%m"));
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM journal_entries WHERE transaction_number LIKE $1"
+            "SELECT COUNT(*) FROM journal_entries WHERE transaction_number LIKE $1",
         )
         .bind(format!("{}%", prefix))
         .fetch_one(&self.pool)

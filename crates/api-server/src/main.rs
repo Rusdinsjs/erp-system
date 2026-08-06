@@ -37,7 +37,25 @@ async fn main() {
     );
     tracing::info!("Environment: {}", config.environment);
 
-    // Database connection pool
+    // Migrations run with a privileged connection; the application pool below must
+    // use the least-privilege runtime role from DATABASE_URL.
+    let migration_database_url = std::env::var("MIGRATION_DATABASE_URL")
+        .expect("MIGRATION_DATABASE_URL must be set separately from runtime DATABASE_URL");
+    let migration_pool = PgPoolOptions::new()
+        .max_connections(2)
+        .connect(&migration_database_url)
+        .await
+        .expect("Failed to connect to migration database");
+
+    tracing::info!("Running database migrations with migration role...");
+    sqlx::migrate!("../../migrations")
+        .run(&migration_pool)
+        .await
+        .expect("Failed to run migrations");
+    migration_pool.close().await;
+    tracing::info!("Migrations applied successfully.");
+
+    // Runtime database connection pool.
     let pool = PgPoolOptions::new()
         .max_connections(50)
         .min_connections(5)
@@ -54,14 +72,6 @@ async fn main() {
         });
 
     tracing::info!("Database connected successfully");
-
-    // Run migrations
-    tracing::info!("Running database migrations...");
-    sqlx::migrate!("../../migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-    tracing::info!("Migrations applied successfully.");
 
     // JWT configuration
     let jwt_config = JwtConfig::new(config.jwt_secret.clone(), config.jwt_expiry_hours);

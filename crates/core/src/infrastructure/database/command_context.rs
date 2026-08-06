@@ -37,6 +37,8 @@ pub struct CommandContext {
     pub correlation_id: String,
     /// Client-supplied idempotency key.
     pub idempotency_key: String,
+    /// Deterministic fingerprint of the material command payload.
+    pub request_fingerprint: String,
 }
 
 impl CommandContext {
@@ -47,6 +49,7 @@ impl CommandContext {
         source_id: Uuid,
         correlation_id: impl Into<String>,
         idempotency_key: impl Into<String>,
+        request_fingerprint: impl Into<String>,
     ) -> Self {
         Self {
             actor_id,
@@ -56,6 +59,7 @@ impl CommandContext {
             source_id,
             correlation_id: correlation_id.into(),
             idempotency_key: idempotency_key.into(),
+            request_fingerprint: request_fingerprint.into(),
         }
     }
 
@@ -70,18 +74,24 @@ impl CommandContext {
 /// Atomically reserves an idempotency key inside an active `UnitOfWork`.
 pub struct IdempotencyStore;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IdempotencyDecision {
+    Reserved,
+    Completed { outcome: String },
+}
+
 impl IdempotencyStore {
     /// Attempt to reserve `key` inside `uow`.
     pub async fn check_and_reserve(
         uow: &mut UnitOfWork,
         ctx: &CommandContext,
-    ) -> DomainResult<bool> {
+    ) -> DomainResult<IdempotencyDecision> {
         let result = sqlx::query(
             r#"
             INSERT INTO idempotency_log
                 (idempotency_key, actor_id, company_id, source_type, source_id,
-                 correlation_id, status, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, 'PROCESSING', NOW())
+                 correlation_id, request_fingerprint, status, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'PROCESSING', NOW())
             ON CONFLICT (idempotency_key) DO NOTHING
             "#,
         )
@@ -91,27 +101,47 @@ impl IdempotencyStore {
         .bind(&ctx.source_type)
         .bind(ctx.source_id)
         .bind(&ctx.correlation_id)
+        .bind(&ctx.request_fingerprint)
         .execute(uow.conn())
         .await
         .map_err(|e| DomainError::Database(e.to_string()))?;
 
         if result.rows_affected() == 0 {
-            let row: (String,) =
-                sqlx::query_as("SELECT status FROM idempotency_log WHERE idempotency_key = $1")
-                    .bind(&ctx.idempotency_key)
-                    .fetch_one(uow.conn())
-                    .await
-                    .map_err(|e| DomainError::Database(e.to_string()))?;
+            let row: (String, String, Option<String>, Uuid, Uuid, String) = sqlx::query_as(
+                r#"
+                    SELECT status, request_fingerprint, outcome, actor_id, company_id, source_type
+                    FROM idempotency_log
+                    WHERE idempotency_key = $1
+                    FOR UPDATE
+                    "#,
+            )
+            .bind(&ctx.idempotency_key)
+            .fetch_one(uow.conn())
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?;
+
+            if row.1 != ctx.request_fingerprint
+                || row.3 != ctx.actor_id
+                || row.4 != ctx.company_id
+                || row.5 != ctx.source_type
+            {
+                return Err(DomainError::conflict(
+                    "Idempotency key was already used for a materially different command",
+                ));
+            }
 
             if row.0 == "COMPLETED" {
-                return Ok(false);
+                let outcome = row.2.ok_or_else(|| {
+                    DomainError::internal("Completed idempotency record has no cached outcome")
+                })?;
+                return Ok(IdempotencyDecision::Completed { outcome });
             }
             return Err(DomainError::conflict(
                 "A concurrent request with the same idempotency key is in progress",
             ));
         }
 
-        Ok(true)
+        Ok(IdempotencyDecision::Reserved)
     }
 
     /// Mark the idempotency key as COMPLETED with an optional outcome payload.

@@ -1,4 +1,6 @@
 use chrono::Utc;
+use serde::Serialize;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 use crate::domain::entities::*;
@@ -10,12 +12,15 @@ use management_system_core::domain::audit_trail::{AuditAction, DocumentAuditEntr
 use management_system_core::domain::errors::{DomainError, DomainResult};
 use management_system_core::domain::outbox::OutboxEntry;
 use management_system_core::infrastructure::bus::EventBus;
-use management_system_core::infrastructure::database::{CommandContext, IdempotencyStore, UnitOfWork};
+use management_system_core::infrastructure::database::{
+    CommandContext, IdempotencyDecision, IdempotencyStore, UnitOfWork,
+};
 use management_system_core::infrastructure::repositories::{
     AssetRepository, AuditTrailStore, OutboxStore, RentalRepository,
 };
 
 #[derive(Clone)]
+#[allow(dead_code)] // Fields retained for future use (dependency injection)
 pub struct FinanceService {
     repo: FinanceRepository,
     journal_repo: JournalRepository,
@@ -27,6 +32,24 @@ pub struct FinanceService {
 }
 
 impl FinanceService {
+    fn request_fingerprint<T: Serialize>(
+        action: &str,
+        source_id: Option<Uuid>,
+        payload: &T,
+    ) -> DomainResult<String> {
+        let payload = serde_json::to_vec(payload)
+            .map_err(|e| DomainError::validation("payload", &e.to_string()))?;
+        let mut hasher = Sha256::new();
+        hasher.update(action.as_bytes());
+        hasher.update([0]);
+        if let Some(source_id) = source_id {
+            hasher.update(source_id.as_bytes());
+        }
+        hasher.update([0]);
+        hasher.update(payload);
+        Ok(format!("{:x}", hasher.finalize()))
+    }
+
     pub fn new(
         repo: FinanceRepository,
         journal_repo: JournalRepository,
@@ -108,10 +131,7 @@ impl FinanceService {
         self.repo.find_by_code(code).await
     }
 
-    pub async fn create_account(
-        &self,
-        req: CreateAccountRequest,
-    ) -> DomainResult<ChartOfAccount> {
+    pub async fn create_account(&self, req: CreateAccountRequest) -> DomainResult<ChartOfAccount> {
         if self.repo.find_by_code(&req.code).await?.is_some() {
             return Err(DomainError::business_rule(
                 "DuplicateAccountCode",
@@ -242,10 +262,25 @@ impl FinanceService {
         Ok(report)
     }
 
+    pub async fn get_capex_opex_analysis(
+        &self,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+    ) -> DomainResult<Vec<ExpenseAnalysis>> {
+        self.repo
+            .get_capex_opex_analysis(start_date, end_date)
+            .await
+    }
+
     // --- Sales Invoice Management (3R.1.1-004 & 3R.1.1-005) ---
 
     pub async fn list_sales_invoices(&self) -> DomainResult<Vec<SalesInvoice>> {
-        self.repo.list_sales_invoices().await
+        let invoices = self.repo.list_sales_invoices().await?;
+        let mut enriched = Vec::with_capacity(invoices.len());
+        for invoice in invoices {
+            enriched.push(self.enrich_invoice_journal_status(invoice).await?);
+        }
+        Ok(enriched)
     }
 
     pub async fn create_sales_invoice(
@@ -261,6 +296,8 @@ impl FinanceService {
                 "Sales invoice requires at least one line item",
             ));
         }
+
+        let request_fingerprint = Self::request_fingerprint("CREATE_SALES_INVOICE", None, &req)?;
 
         let total: rust_decimal::Decimal =
             req.items.iter().map(|i| i.quantity * i.unit_price).sum();
@@ -278,6 +315,7 @@ impl FinanceService {
             amount_paid: rust_decimal::Decimal::ZERO,
             status: "draft".to_string(),
             journal_entry_id: None,
+            journal_status: None,
             created_at: Utc::now(),
             attachment_url: req.attachment_url,
         };
@@ -307,13 +345,16 @@ impl FinanceService {
             invoice_id,
             "CREATE_SALES_INVOICE",
             &idempotency_key,
+            request_fingerprint,
         );
 
-        if !IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await? {
-            // Key already completed: return existing invoice if present
-            if let Some(existing) = self.get_sales_invoice(invoice_id).await.ok() {
-                return Ok(existing);
-            }
+        if let IdempotencyDecision::Completed { outcome } =
+            IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await?
+        {
+            uow.rollback().await?;
+            return serde_json::from_str(&outcome).map_err(|e| {
+                DomainError::internal(format!("Invalid cached idempotency outcome: {e}"))
+            });
         }
 
         // 4. Persist Sales Invoice Header AND Lines atomically
@@ -370,6 +411,7 @@ impl FinanceService {
             .map_err(|e| DomainError::Database(e.to_string()))?;
 
         created_invoice.journal_entry_id = Some(journal.header.id);
+        created_invoice.journal_status = Some(journal.header.status);
 
         // 6. Append Audit Entry in SAME UoW (3R.1.1-005)
         let audit_entry = DocumentAuditEntry {
@@ -404,7 +446,12 @@ impl FinanceService {
         OutboxStore::append(&mut uow, &outbox_entry).await?;
 
         // 8. Mark Idempotency Complete
-        IdempotencyStore::mark_complete(&mut uow, &cmd_ctx, &serde_json::to_string(&created_invoice).unwrap_or_default()).await?;
+        IdempotencyStore::mark_complete(
+            &mut uow,
+            &cmd_ctx,
+            &serde_json::to_string(&created_invoice).unwrap_or_default(),
+        )
+        .await?;
 
         // 9. Commit entire transaction boundary
         uow.commit().await?;
@@ -413,10 +460,27 @@ impl FinanceService {
     }
 
     pub async fn get_sales_invoice(&self, id: Uuid) -> DomainResult<SalesInvoice> {
-        self.repo
+        let invoice = self
+            .repo
             .get_sales_invoice_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::not_found("SalesInvoice", id))
+            .ok_or_else(|| DomainError::not_found("SalesInvoice", id))?;
+        self.enrich_invoice_journal_status(invoice).await
+    }
+
+    async fn enrich_invoice_journal_status(
+        &self,
+        mut invoice: SalesInvoice,
+    ) -> DomainResult<SalesInvoice> {
+        invoice.journal_status = match invoice.journal_entry_id {
+            Some(journal_id) => self
+                .journal_repo
+                .get_journal_entry_detail(journal_id)
+                .await?
+                .map(|detail| detail.header.status),
+            None => None,
+        };
+        Ok(invoice)
     }
 
     pub async fn get_sales_invoice_detail(
@@ -443,7 +507,16 @@ impl FinanceService {
             ));
         }
 
+        let request_fingerprint =
+            Self::request_fingerprint("UPDATE_SALES_INVOICE", Some(id), &req)?;
+
         let mut invoice = self.get_sales_invoice(id).await?;
+        if invoice.journal_status == Some(JournalStatus::Posted) {
+            return Err(DomainError::business_rule(
+                "PostedJournalIsImmutable",
+                "Cannot edit a sales invoice whose journal is already posted",
+            ));
+        }
         let total: rust_decimal::Decimal =
             req.items.iter().map(|i| i.quantity * i.unit_price).sum();
 
@@ -467,17 +540,24 @@ impl FinanceService {
             id,
             "UPDATE_SALES_INVOICE",
             &idempotency_key,
+            request_fingerprint,
         );
 
-        if !IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await? {
-            return Ok(invoice);
+        if let IdempotencyDecision::Completed { outcome } =
+            IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await?
+        {
+            uow.rollback().await?;
+            return serde_json::from_str(&outcome).map_err(|e| {
+                DomainError::internal(format!("Invalid cached idempotency outcome: {e}"))
+            });
         }
 
         // 3. Update Invoice Header + Lines in UoW
-        let (updated_invoice, _updated_items) = self
+        let (mut updated_invoice, _updated_items) = self
             .repo
             .update_sales_invoice_with_uow(&mut uow, &invoice, &req.items)
             .await?;
+        updated_invoice.journal_status = invoice.journal_status;
 
         // 4. Update/Rebuild Draft Journal Entry in SAME UoW (3R.1.1-004)
         if let Some(journal_id) = updated_invoice.journal_entry_id {
@@ -518,7 +598,13 @@ impl FinanceService {
                 ],
             };
 
-            JournalRepository::update_journal_entry_with_uow(&mut uow, journal_id, &journal_req).await?;
+            let updated_journal = JournalRepository::update_journal_entry_with_uow(
+                &mut uow,
+                journal_id,
+                &journal_req,
+            )
+            .await?;
+            updated_invoice.journal_status = Some(updated_journal.header.status);
         }
 
         // 5. Append Audit Entry in SAME UoW (3R.1.1-005)
@@ -554,7 +640,12 @@ impl FinanceService {
         OutboxStore::append(&mut uow, &outbox_entry).await?;
 
         // 7. Mark Idempotency Complete
-        IdempotencyStore::mark_complete(&mut uow, &cmd_ctx, &serde_json::to_string(&updated_invoice).unwrap_or_default()).await?;
+        IdempotencyStore::mark_complete(
+            &mut uow,
+            &cmd_ctx,
+            &serde_json::to_string(&updated_invoice).unwrap_or_default(),
+        )
+        .await?;
 
         // 8. Commit UoW
         uow.commit().await?;
@@ -592,13 +683,10 @@ impl FinanceService {
         self.repo.list_purchase_bills().await
     }
 
-    pub async fn create_expense(
-        &self,
-        req: CreateExpenseRequest,
-    ) -> DomainResult<Expense> {
-        let expense_number = req.expense_number.unwrap_or_else(|| {
-            format!("EXP-{}", Uuid::new_v4().to_string()[..8].to_uppercase())
-        });
+    pub async fn create_expense(&self, req: CreateExpenseRequest) -> DomainResult<Expense> {
+        let expense_number = req
+            .expense_number
+            .unwrap_or_else(|| format!("EXP-{}", Uuid::new_v4().to_string()[..8].to_uppercase()));
         let expense = Expense {
             id: Uuid::new_v4(),
             expense_number,
@@ -650,7 +738,8 @@ impl FinanceService {
         &self,
         req: CreateSalesQuoteRequest,
     ) -> DomainResult<SalesQuote> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let quote = SalesQuote {
             id: Uuid::new_v4(),
             quote_number: req.quote_number,
@@ -675,7 +764,8 @@ impl FinanceService {
         &self,
         req: CreateSalesOrderRequest,
     ) -> DomainResult<SalesOrder> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let total: rust_decimal::Decimal =
+            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
         let order = SalesOrder {
             id: Uuid::new_v4(),
             order_number: req.order_number,

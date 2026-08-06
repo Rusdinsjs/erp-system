@@ -4,6 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { journalApi, type CreateJournalEntryRequest } from '../../api/journal';
 import { financeApi, type ChartOfAccount } from '../../api/finance';
+import {
+    compareDecimalStrings,
+    formatCurrencyIDR,
+    subtractDecimalStrings,
+    sumDecimalStrings,
+} from '../../utils/decimal';
 
 interface JournalLineItem {
     account_id: string;
@@ -34,7 +40,7 @@ export default function JournalEntryForm() {
         try {
             const data = await financeApi.listAccounts();
             setAccounts(data);
-        } catch (error) {
+        } catch {
             toast.error('Failed to load accounts');
         }
     };
@@ -53,10 +59,10 @@ export default function JournalEntryForm() {
         newLines[index] = { ...newLines[index], [field]: value };
 
         // Auto-clear other side
-        if (field === 'debit' && value && parseFloat(value) > 0) {
+        if (field === 'debit' && value && compareDecimalStrings(value, '0') > 0) {
             newLines[index].credit = '';
         }
-        if (field === 'credit' && value && parseFloat(value) > 0) {
+        if (field === 'credit' && value && compareDecimalStrings(value, '0') > 0) {
             newLines[index].debit = '';
         }
 
@@ -64,23 +70,23 @@ export default function JournalEntryForm() {
     };
 
     const calculateTotals = () => {
-        const totalDebit = lines.reduce((sum, line) => sum + (parseFloat(line.debit) || 0), 0);
-        const totalCredit = lines.reduce((sum, line) => sum + (parseFloat(line.credit) || 0), 0);
-        return { totalDebit, totalCredit, difference: totalDebit - totalCredit };
+        const totalDebit = sumDecimalStrings(lines.map((line) => line.debit || '0'));
+        const totalCredit = sumDecimalStrings(lines.map((line) => line.credit || '0'));
+        return { totalDebit, totalCredit, difference: subtractDecimalStrings(totalDebit, totalCredit) };
     };
 
     const { totalDebit, totalCredit, difference } = calculateTotals();
-    const isBalanced = Math.abs(difference) < 0.01;
+    const isBalanced = compareDecimalStrings(difference, '0') === 0;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!isBalanced) {
-            toast.error(`Journal is not balanced. Difference: ${Math.abs(difference).toLocaleString()}`);
+            toast.error(`Journal is not balanced. Difference: ${formatCurrencyIDR(difference)}`);
             return;
         }
 
-        if (totalDebit === 0) {
+        if (compareDecimalStrings(totalDebit, '0') === 0) {
             toast.error('Total amount cannot be zero');
             return;
         }
@@ -100,17 +106,17 @@ export default function JournalEntryForm() {
                 lines: lines.map(l => ({
                     account_id: l.account_id,
                     description: l.description,
-                    debit: parseFloat(l.debit) || 0,
-                    credit: parseFloat(l.credit) || 0,
+                    debit: l.debit || '0.0000',
+                    credit: l.credit || '0.0000',
                 }))
             };
 
             await journalApi.create(payload);
             toast.success('Journal entry created successfully');
             navigate('/finance/journals');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(error.response?.data?.message || 'Failed to create journal entry');
+            toast.error(error instanceof Error ? error.message : 'Failed to create journal entry');
         } finally {
             setSubmitting(false);
         }
@@ -269,16 +275,16 @@ export default function JournalEntryForm() {
                         <div className="flex justify-end gap-16 max-w-2xl ml-auto mr-12">
                             <div className="text-right">
                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total Debit</p>
-                                <p className="text-2xl font-black text-foreground font-mono">{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                <p className="text-2xl font-black text-foreground font-mono">{formatCurrencyIDR(totalDebit)}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total Credit</p>
-                                <p className="text-2xl font-black text-foreground font-mono">{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                <p className="text-2xl font-black text-foreground font-mono">{formatCurrencyIDR(totalCredit)}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Difference</p>
                                 <p className={`text-2xl font-black font-mono ${isBalanced ? 'text-emerald-500' : 'text-destructive animate-pulse'}`}>
-                                    {Math.abs(difference).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    {formatCurrencyIDR(difference)}
                                 </p>
                             </div>
                         </div>
@@ -303,8 +309,8 @@ export default function JournalEntryForm() {
                     </button>
                     <button
                         type="submit"
-                        disabled={!isBalanced || submitting || totalDebit === 0}
-                        className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all ${!isBalanced || submitting || totalDebit === 0
+                        disabled={!isBalanced || submitting || compareDecimalStrings(totalDebit, '0') === 0}
+                        className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all ${!isBalanced || submitting || compareDecimalStrings(totalDebit, '0') === 0
                             ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
                             : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20 hover:-translate-y-1'
                             }`}

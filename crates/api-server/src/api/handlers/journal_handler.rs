@@ -6,11 +6,11 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::api::server::AppState;
+use management_system_core::domain::entities::user::UserClaims;
+use management_system_core::shared::errors::AppResult;
 use management_system_finance::domain::entities::journal::{
     CreateJournalEntryRequest, JournalEntry, JournalEntryDetail,
 };
-use management_system_core::domain::entities::user::UserClaims;
-use management_system_core::shared::errors::AppResult;
 
 #[derive(Deserialize)]
 pub struct ListParams {
@@ -24,7 +24,7 @@ pub async fn list_journals(
 ) -> AppResult<Json<Vec<JournalEntry>>> {
     let page = params.page.unwrap_or(1);
     let limit = params.limit.unwrap_or(50);
-    let offset = (page - 1) * limit;
+    let _offset = (page - 1) * limit;
 
     let entries = state.journal_service.list_journal_entries().await?;
     Ok(Json(entries))
@@ -34,8 +34,15 @@ pub async fn get_journal_details(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<JournalEntryDetail>> {
-    let entry = state.journal_service.get_journal_entry_detail(id).await?
-        .ok_or_else(|| management_system_core::shared::errors::AppError::NotFound("Journal entry not found".to_string()))?;
+    let entry = state
+        .journal_service
+        .get_journal_entry_detail(id)
+        .await?
+        .ok_or_else(|| {
+            management_system_core::shared::errors::AppError::NotFound(
+                "Journal entry not found".to_string(),
+            )
+        })?;
     Ok(Json(entry))
 }
 
@@ -45,7 +52,13 @@ pub async fn create_journal(
     Json(req): Json<CreateJournalEntryRequest>,
 ) -> AppResult<Json<JournalEntryDetail>> {
     let user_id = Uuid::parse_str(&claims.sub).ok();
-    let tx_num = format!("JE-{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
-    let entry = state.journal_service.create_journal_entry(tx_num, req, user_id).await?;
+    let tx_num = format!(
+        "JE-{}",
+        uuid::Uuid::new_v4().to_string()[..8].to_uppercase()
+    );
+    let entry = state
+        .journal_service
+        .create_journal_entry(tx_num, req, user_id)
+        .await?;
     Ok(Json(entry))
 }

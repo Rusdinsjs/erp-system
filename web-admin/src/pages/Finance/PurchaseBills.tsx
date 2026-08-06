@@ -15,10 +15,12 @@ import {
     X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatCurrencyIDR, subtractDecimalStrings, sumDecimalStrings } from '../../utils/decimal';
 
 export default function PurchaseBills() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [defaultBillNumber, setDefaultBillNumber] = useState('');
     const queryClient = useQueryClient();
 
     const { data: bills, isLoading } = useQuery({
@@ -39,17 +41,15 @@ export default function PurchaseBills() {
             setIsModalOpen(false);
             toast.success('Tagihan pembelian berhasil dibuat');
         },
-        onError: (error: any) => {
-            toast.error('Gagal membuat tagihan: ' + error.message);
+        onError: (error: unknown) => {
+            toast.error('Gagal membuat tagihan: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
     });
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            maximumFractionDigits: 0
-        }).format(value);
+    const handleOpenCreate = () => {
+        const now = new Date();
+        setDefaultBillNumber(`BILL/${now.getFullYear()}/${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
+        setIsModalOpen(true);
     };
 
     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -64,20 +64,28 @@ export default function PurchaseBills() {
             items: [
                 {
                     description: (formData.get('item_description') as string) || '',
-                    quantity: parseFloat(formData.get('quantity') as string) || 1,
-                    unit_price: parseFloat(formData.get('unit_price') as string) || 0
+                    quantity: (formData.get('quantity') as string) || '1.0000',
+                    unit_price: (formData.get('unit_price') as string) || '0.0000'
                 }
             ]
         };
         createMutation.mutate(data);
     };
 
-    const totalPayable = bills?.reduce((acc: number, b: any) => acc + (b.total_amount - b.amount_paid), 0) || 0;
+    const totalPayable = sumDecimalStrings(
+        bills?.map((bill) => subtractDecimalStrings(bill.total_amount, bill.amount_paid)) ?? [],
+    );
+    const overdueTotal = sumDecimalStrings(
+        bills?.filter((bill) => bill.status === 'overdue').map((bill) => bill.total_amount) ?? [],
+    );
+    const paidTotal = sumDecimalStrings(
+        bills?.filter((bill) => bill.status === 'paid').map((bill) => bill.total_amount) ?? [],
+    );
 
     const stats = [
-        { label: 'Total Utang', value: formatCurrency(totalPayable), icon: ShoppingBag, color: 'text-rose-400', bg: 'bg-rose-500/10' },
-        { label: 'Jatuh Tempo', value: formatCurrency(bills?.filter((b: any) => b.status === 'overdue').reduce((a: any, b: any) => a + b.total_amount, 0) || 0), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
-        { label: 'Lunas (Total)', value: formatCurrency(bills?.filter((b: any) => b.status === 'paid').reduce((a: any, b: any) => a + b.total_amount, 0) || 0), icon: CheckSquare, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+        { label: 'Total Utang', value: formatCurrencyIDR(totalPayable), icon: ShoppingBag, color: 'text-rose-400', bg: 'bg-rose-500/10' },
+        { label: 'Jatuh Tempo', value: formatCurrencyIDR(overdueTotal), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+        { label: 'Lunas (Total)', value: formatCurrencyIDR(paidTotal), icon: CheckSquare, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     ];
 
     return (
@@ -93,7 +101,7 @@ export default function PurchaseBills() {
                         Export
                     </Button>
                     <Button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleOpenCreate}
                         className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                         <Plus size={18} />
@@ -158,11 +166,11 @@ export default function PurchaseBills() {
                                     <td colSpan={8} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
                                 </tr>
                             ) : bills && bills.length > 0 ? (
-                                bills.map((b: any) => (
+                                bills.map((b) => (
                                     <tr key={b.id} className="hover:bg-muted/50 transition-colors cursor-pointer group">
                                         <td className="px-6 py-4 font-medium text-primary">{b.bill_number}</td>
                                         <td className="px-6 py-4 text-foreground">
-                                            {vendors.find((v: any) => v.id === b.vendor_id)?.name || b.vendor_id}
+                                            {vendors.find((v) => v.id === b.vendor_id)?.name || b.vendor_id}
                                         </td>
                                         <td className="px-6 py-4 font-mono">{b.date}</td>
                                         <td className="px-6 py-4 font-mono">{b.due_date}</td>
@@ -172,7 +180,7 @@ export default function PurchaseBills() {
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-right font-semibold text-foreground">
-                                            {formatCurrency(b.total_amount)}
+                                            {formatCurrencyIDR(b.total_amount)}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <Badge variant={b.status === 'paid' ? 'success' : 'danger'} className={`${b.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
@@ -218,7 +226,7 @@ export default function PurchaseBills() {
                                         name="bill_number"
                                         required
                                         placeholder="BILL/2024/001"
-                                        defaultValue={`BILL/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
+                                        defaultValue={defaultBillNumber}
                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>
@@ -230,7 +238,7 @@ export default function PurchaseBills() {
                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     >
                                         <option value="">Pilih Supplier</option>
-                                        {vendors.map((vendor: any) => (
+                                        {vendors.map((vendor) => (
                                             <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
                                         ))}
                                     </select>

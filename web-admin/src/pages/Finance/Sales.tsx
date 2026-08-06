@@ -15,10 +15,12 @@ import {
     X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { deriveInvoiceStates, formatCurrencyIDR, subtractDecimalStrings, sumDecimalStrings } from '../../utils/decimal';
 
 export default function Sales() {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [createDefaults, setCreateDefaults] = useState({ invoiceNumber: '', date: '', dueDate: '' });
     const queryClient = useQueryClient();
 
     const { data: invoices, isLoading } = useQuery({
@@ -39,17 +41,21 @@ export default function Sales() {
             setIsModalOpen(false);
             toast.success('Invoice berhasil dibuat dan dijurnal otomatis');
         },
-        onError: (error: any) => {
-            toast.error('Gagal membuat invoice: ' + error.message);
+        onError: (error: unknown) => {
+            toast.error('Gagal membuat invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
     });
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            maximumFractionDigits: 0
-        }).format(value);
+    const handleOpenCreate = () => {
+        const now = new Date();
+        const due = new Date(now);
+        due.setDate(due.getDate() + 7);
+        setCreateDefaults({
+            invoiceNumber: `INV/${now.getFullYear()}/${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+            date: now.toISOString().slice(0, 10),
+            dueDate: due.toISOString().slice(0, 10),
+        });
+        setIsModalOpen(true);
     };
 
     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
@@ -64,21 +70,26 @@ export default function Sales() {
             items: [
                 {
                     description: (formData.get('item_description') as string) || '',
-                    quantity: parseFloat(formData.get('quantity') as string) || 1,
-                    unit_price: parseFloat(formData.get('unit_price') as string) || 0
+                    quantity: (formData.get('quantity') as string) || '1.0000',
+                    unit_price: (formData.get('unit_price') as string) || '0.0000'
                 }
             ]
         };
         createMutation.mutate(data);
     };
 
-    const totalReceivable = invoices?.reduce((acc: number, inv: any) => acc + (inv.total_amount - inv.amount_paid), 0) || 0;
-    const unpaidCount = invoices?.filter((inv: any) => inv.status !== 'paid').length || 0;
+    const totalReceivable = sumDecimalStrings(
+        invoices?.map((invoice) => subtractDecimalStrings(invoice.total_amount, invoice.amount_paid)) ?? [],
+    );
+    const unpaidCount = invoices?.filter((invoice) => deriveInvoiceStates(invoice).payment !== 'paid').length ?? 0;
+    const paidTotal = sumDecimalStrings(
+        invoices?.filter((invoice) => deriveInvoiceStates(invoice).payment === 'paid').map((invoice) => invoice.total_amount) ?? [],
+    );
 
     const stats = [
-        { label: 'Total Piutang', value: formatCurrency(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+        { label: 'Total Piutang', value: formatCurrencyIDR(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
         { label: 'Belum Dibayar', value: unpaidCount.toString() + ' Invoice', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-        { label: 'Lunas (Total)', value: formatCurrency(invoices?.filter((i: any) => i.status === 'paid').reduce((a: any, b: any) => a + b.total_amount, 0) || 0), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+        { label: 'Lunas (Total)', value: formatCurrencyIDR(paidTotal), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
     ];
 
     return (
@@ -94,7 +105,7 @@ export default function Sales() {
                         Export
                     </Button>
                     <Button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleOpenCreate}
                         className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                         <Plus size={18} />
@@ -158,23 +169,22 @@ export default function Sales() {
                                     <td colSpan={7} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
                                 </tr>
                             ) : invoices && invoices.length > 0 ? (
-                                invoices.map((inv: any) => (
+                                invoices.map((inv) => (
                                     <tr key={inv.id} className="hover:bg-muted/50 transition-colors cursor-pointer group">
                                         <td className="px-6 py-4 font-medium text-primary">{inv.invoice_number}</td>
                                         <td className="px-6 py-4 text-foreground">
-                                            {clients.find((c: any) => c.id === inv.client_id)?.name || inv.client_id}
+                                            {clients.find((c) => c.id === inv.client_id)?.name || inv.client_id}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-xs">{new Date(inv.date).toLocaleDateString('id-ID')}</td>
                                         <td className="px-6 py-4 font-mono text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID') : '-'}</td>
                                         <td className="px-6 py-4 text-right font-semibold text-foreground">
-                                            {formatCurrency(inv.total_amount)}
+                                            {formatCurrencyIDR(inv.total_amount)}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <Badge variant={inv.status === 'paid' ? 'success' : 'warning'} className={`${inv.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                inv.status === 'posted' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
-                                                    'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                            <Badge variant={deriveInvoiceStates(inv).payment === 'paid' ? 'success' : 'warning'} className={`${deriveInvoiceStates(inv).payment === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
                                                 }`}>
-                                                {inv.status === 'paid' ? 'Lunas' : inv.status === 'posted' ? 'Terposting' : 'Draf'}
+                                                {deriveInvoiceStates(inv).payment === 'paid' ? 'Lunas' : deriveInvoiceStates(inv).payment === 'partially_paid' ? 'Sebagian' : 'Belum Dibayar'}
                                             </Badge>
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -214,7 +224,7 @@ export default function Sales() {
                                         name="invoice_number"
                                         required
                                         placeholder="INV/2024/001"
-                                        defaultValue={`INV/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
+                                        defaultValue={createDefaults.invoiceNumber}
                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>
@@ -226,7 +236,7 @@ export default function Sales() {
                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     >
                                         <option value="">Pilih Pelanggan</option>
-                                        {clients.map((client: any) => (
+                                        {clients.map((client) => (
                                             <option key={client.id} value={client.id}>{client.name}</option>
                                         ))}
                                     </select>
@@ -240,7 +250,7 @@ export default function Sales() {
                                         name="date"
                                         type="date"
                                         required
-                                        defaultValue={new Date().toISOString().split('T')[0]}
+                                        defaultValue={createDefaults.date}
                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>
@@ -250,7 +260,7 @@ export default function Sales() {
                                         name="due_date"
                                         type="date"
                                         required
-                                        defaultValue={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                                        defaultValue={createDefaults.dueDate}
                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
                                     />
                                 </div>

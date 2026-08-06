@@ -1,4 +1,4 @@
-import { DecimalString } from '../utils/decimal';
+import type { DecimalString } from '../utils/decimal';
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 export type NormalBalance = 'debit' | 'credit';
@@ -104,7 +104,7 @@ export interface SalesInvoice {
     total_amount: DecimalString;
     amount_paid: DecimalString;
     status: string;
-    posting_status?: string;
+    journal_status?: 'draft' | 'posted' | null;
     journal_entry_id?: string | null;
     created_at: string;
     attachment_url?: string;

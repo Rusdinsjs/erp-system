@@ -16,9 +16,10 @@ const COST_APPROVAL_THRESHOLD: Decimal = Decimal::from_parts(5000000, 0, 0, fals
 /// Result of a maintenance operation
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum MaintenanceOperationResult {
     Success(MaintenanceRecord),
-    PendingApproval(crate::infrastructure::repositories::approval_repository::ApprovalRequest),
+    PendingApproval(Box<crate::infrastructure::repositories::approval_repository::ApprovalRequest>),
 }
 
 #[derive(Clone)]
@@ -158,9 +159,9 @@ impl MaintenanceService {
                 )
                 .await;
 
-            return Ok(MaintenanceOperationResult::PendingApproval(
+            return Ok(MaintenanceOperationResult::PendingApproval(Box::new(
                 approval_request,
-            ));
+            )));
         }
 
         let created = self.repository.create(&record).await.map_err(|e| {
