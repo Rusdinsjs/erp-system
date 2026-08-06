@@ -226,7 +226,7 @@ impl RentalBillingService {
 
             // Publish Event for Finance (Automated Sales Invoice)
             let _ = self.event_bus.publish(
-                management_system_core::domain::events::SystemEvent::RentalInvoiceGenerated(
+                management_system_core::domain::events::SystemEvent::RentalBillingGenerated(
                     saved.clone(),
                 ),
             );

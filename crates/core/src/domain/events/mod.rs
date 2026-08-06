@@ -1,5 +1,4 @@
-//! System Events for Event-Driven Architecture
-use crate::domain::entities::finance::{Expense, PurchaseOrder};
+//! System Events for Event-Driven Architecture (QARC-005 & 3R.1.1-002)
 use crate::domain::entities::fuel::FuelLog;
 use crate::domain::entities::rental_billing::RentalBillingPeriod;
 use crate::domain::entities::work_order::WorkOrder;
@@ -10,9 +9,16 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "event_type", content = "payload")]
 pub enum SystemEvent {
-    // Finance Events
-    ExpenseCreated(Expense),
-    PurchaseOrderCreated(PurchaseOrder),
+    // Finance Events (Generic Payloads, 3R.1.1-002)
+    ExpenseCreated {
+        expense_id: Uuid,
+        amount: Decimal,
+    },
+    PurchaseOrderCreated {
+        purchase_order_id: Uuid,
+        vendor_id: Uuid,
+        total_amount: Decimal,
+    },
 
     // Loan Events
     LoanRequested {
@@ -34,7 +40,6 @@ pub enum SystemEvent {
         borrower_id: Option<Uuid>,
         reason: Option<String>,
     },
-
     LoanCheckedOut {
         loan_id: Uuid,
         asset_id: Uuid,
@@ -52,24 +57,29 @@ pub enum SystemEvent {
         days_overdue: i64,
     },
 
-    // Inventory/Asset Events
+    // Inventory & Ops Events
     LowStockAlert {
         item_name: String,
         current_qty: Decimal,
         min_qty: Decimal,
     },
-    AssetStatusChanged {
+
+    // Asset Events
+    AssetCreated {
         asset_id: Uuid,
-        old_status: String,
-        new_status: String,
+        asset_name: String,
+    },
+    AssetUpdated {
+        asset_id: Uuid,
+        asset_name: String,
     },
 
     // Fuel Events
-    FuelLogCompleted(FuelLog),
+    FuelLogCreated(FuelLog),
 
-    // Work Order Events
-    WorkOrderFinalized(WorkOrder),
+    // Maintenance Events
+    WorkOrderCreated(WorkOrder),
 
     // Rental Events
-    RentalInvoiceGenerated(RentalBillingPeriod),
+    RentalBillingGenerated(RentalBillingPeriod),
 }

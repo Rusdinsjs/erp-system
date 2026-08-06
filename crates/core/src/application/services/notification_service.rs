@@ -359,18 +359,37 @@ impl NotificationService {
             tracing::info!("Notification Service event listener started");
             while let Ok(event) = receiver.recv().await {
                 match event {
-                    crate::domain::events::SystemEvent::ExpenseCreated(expense) => {
+                    crate::domain::events::SystemEvent::ExpenseCreated {
+                        expense_id,
+                        amount,
+                    } => {
                         // Example: Notify admins for all new expenses
                         let _ = service
                             .notify_admins(
                                 "expense_created",
                                 json!({
-                                    "expense_number": expense.expense_number,
-                                    "amount": expense.total_amount,
-                                    "type": expense.expense_type
+                                    "expense_id": expense_id,
+                                    "amount": amount,
                                 }),
                                 Some("expense"),
-                                Some(expense.id),
+                                Some(expense_id),
+                            )
+                            .await;
+                    }
+                    crate::domain::events::SystemEvent::PurchaseOrderCreated {
+                        purchase_order_id,
+                        vendor_id: _,
+                        total_amount,
+                    } => {
+                        let _ = service
+                            .notify_admins(
+                                "purchase_order_created",
+                                json!({
+                                    "purchase_order_id": purchase_order_id,
+                                    "amount": total_amount,
+                                }),
+                                Some("purchase_order"),
+                                Some(purchase_order_id),
                             )
                             .await;
                     }

@@ -123,26 +123,33 @@ impl AuditService {
             tracing::info!("Audit Service event listener started");
             while let Ok(event) = receiver.recv().await {
                 match event {
-                    crate::domain::events::SystemEvent::ExpenseCreated(expense) => {
+                    crate::domain::events::SystemEvent::ExpenseCreated {
+                        expense_id,
+                        amount,
+                    } => {
                         let _ = service
                             .repository
                             .create_log(
                                 "expenses",
-                                expense.id,
+                                expense_id,
                                 "CREATE",
-                                serde_json::to_value(&expense).unwrap_or_default(),
-                                None, // We don't have user_id in the event yet, ideally should be included
+                                serde_json::json!({ "expense_id": expense_id, "amount": amount }),
+                                None,
                             )
                             .await;
                     }
-                    crate::domain::events::SystemEvent::PurchaseOrderCreated(po) => {
+                    crate::domain::events::SystemEvent::PurchaseOrderCreated {
+                        purchase_order_id,
+                        vendor_id,
+                        total_amount,
+                    } => {
                         let _ = service
                             .repository
                             .create_log(
                                 "purchase_orders",
-                                po.id,
+                                purchase_order_id,
                                 "CREATE",
-                                serde_json::to_value(&po).unwrap_or_default(),
+                                serde_json::json!({ "purchase_order_id": purchase_order_id, "vendor_id": vendor_id, "total_amount": total_amount }),
                                 None,
                             )
                             .await;

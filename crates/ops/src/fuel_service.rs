@@ -145,7 +145,7 @@ impl FuelService {
             if let Ok(Some(log)) = self.repo.find_by_id(id).await {
                 // Publish Event for Finance (Automated Journal & Asset Expense)
                 let _ = self.event_bus.publish(
-                    management_system_core::domain::events::SystemEvent::FuelLogCompleted(log),
+                    management_system_core::domain::events::SystemEvent::FuelLogCreated(log),
                 );
             }
         }

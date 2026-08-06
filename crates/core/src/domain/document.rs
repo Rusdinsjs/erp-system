@@ -1,11 +1,13 @@
-//! Standard Document Envelope & Capability Model (QARC-002, QARC-003 & 3R.1-001)
+//! Standard Document Envelope & Capability Model (QARC-002, QARC-003, 3R.1-001 & 3R.1.1-001)
 //!
 //! Kernel provides a domain-agnostic standard document envelope for metadata
 //! (identity, tenant/company scope, audit ownership, version).
 //!
-//! Lifecycle status and capabilities (Submittable, Cancellable, Amendable) are OPT-IN
-//! via explicit capability wrappers (LifecycleEnvelope / SubmittableDocument) or typed domain models,
-//! NOT automatically attached to plain DocumentMetadata (3R.1-001).
+//! Plain `DocumentMetadata` contains ONLY universal identity, scoping, actor audit, and timestamps.
+//! It does NOT carry lifecycle status or cancellation/amendment fields.
+//!
+//! Capabilities (Submittable, Cancellable, Amendable) are strictly OPT-IN via explicit capability wrappers
+//! or typed domain models, NOT automatically attached to plain `DocumentMetadata` (3R.1.1-001).
 
 use crate::domain::errors::{DomainError, DomainResult};
 use chrono::{DateTime, Utc};
@@ -40,10 +42,10 @@ impl DocumentStatus {
     }
 }
 
-/// Standard Domain-Neutral Document Metadata (3R.1-001)
+/// Standard Pure Domain-Neutral Document Metadata Envelope (3R.1.1-001)
 ///
-/// Contains ONLY universal identity, scoping, actor audit, and reference metadata.
-/// Does NOT contain lifecycle status or automatic capability implementations.
+/// Contains ONLY universal identity, scoping, actor audit, and timestamps.
+/// Does NOT carry status, cancellation fields, or amendment references.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DocumentMetadata {
     pub id: Uuid,
@@ -58,12 +60,6 @@ pub struct DocumentMetadata {
     pub created_at: DateTime<Utc>,
     pub updated_by: Uuid,
     pub updated_at: DateTime<Utc>,
-
-    // Amendment & Cancellation metadata
-    pub amended_from_id: Option<Uuid>,
-    pub cancelled_by: Option<Uuid>,
-    pub cancelled_at: Option<DateTime<Utc>>,
-    pub cancellation_reason: Option<String>,
 }
 
 impl DocumentMetadata {
@@ -85,10 +81,6 @@ impl DocumentMetadata {
             created_at: now,
             updated_by: actor_id,
             updated_at: now,
-            amended_from_id: None,
-            cancelled_by: None,
-            cancelled_at: None,
-            cancellation_reason: None,
         }
     }
 
@@ -105,7 +97,23 @@ impl DocumentMetadata {
     }
 }
 
-// ─── Capability Traits (QARC-002 & 3R.1-001) ──────────────────────────────────
+// ─── Explicit Opt-In Capability Structures (3R.1.1-001) ───────────────────────
+
+/// Cancellation details for documents opting into cancellation capability.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CancellationDetails {
+    pub cancelled_by: Uuid,
+    pub cancelled_at: DateTime<Utc>,
+    pub cancellation_reason: String,
+}
+
+/// Amendment details for documents opting into amendment capability.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AmendmentDetails {
+    pub amended_from_id: Uuid,
+}
+
+// ─── Capability Traits (QARC-002, 3R.1-001 & 3R.1.1-001) ──────────────────────
 
 /// Capability trait for documents that support submission (Draft -> Submitted)
 pub trait Submittable {
@@ -118,7 +126,6 @@ pub trait Cancellable {
 }
 
 /// Capability trait for documents that support amendment
-/// (Cancelled original remains Cancelled; creates new Draft linked via amended_from_id)
 pub trait Amendable<T> {
     fn amend(&mut self, actor_id: Uuid, new_document_number: String) -> DomainResult<T>;
 }
@@ -129,15 +136,17 @@ pub trait WorkflowEnabled {
     fn total_approval_steps(&self) -> i32;
 }
 
-/// Opt-In Lifecycle Envelope (3R.1-001)
+/// Opt-In Lifecycle Envelope (3R.1-001 & 3R.1.1-001)
 ///
-/// Wraps domain-neutral `DocumentMetadata` with explicit lifecycle management
-/// (`status: DocumentStatus`). Plain `DocumentMetadata` does NOT have these capabilities.
+/// Wraps domain-neutral `DocumentMetadata` with explicit opt-in lifecycle management
+/// (`status: DocumentStatus`) and optional capability details.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LifecycleEnvelope {
     #[serde(flatten)]
     pub metadata: DocumentMetadata,
     pub status: DocumentStatus,
+    pub cancellation: Option<CancellationDetails>,
+    pub amendment: Option<AmendmentDetails>,
 }
 
 impl LifecycleEnvelope {
@@ -145,6 +154,8 @@ impl LifecycleEnvelope {
         Self {
             metadata,
             status: DocumentStatus::Draft,
+            cancellation: None,
+            amendment: None,
         }
     }
 }
@@ -175,9 +186,11 @@ impl Cancellable for LifecycleEnvelope {
         }
         let now = Utc::now();
         self.status = DocumentStatus::Cancelled;
-        self.metadata.cancelled_by = Some(actor_id);
-        self.metadata.cancelled_at = Some(now);
-        self.metadata.cancellation_reason = Some(reason);
+        self.cancellation = Some(CancellationDetails {
+            cancelled_by: actor_id,
+            cancelled_at: now,
+            cancellation_reason: reason,
+        });
         self.metadata.updated_by = actor_id;
         self.metadata.updated_at = now;
         self.metadata.version += 1;
@@ -209,7 +222,9 @@ impl Amendable<LifecycleEnvelope> for LifecycleEnvelope {
             actor_id,
         );
         let mut new_envelope = LifecycleEnvelope::new(new_meta);
-        new_envelope.metadata.amended_from_id = Some(self.metadata.id);
+        new_envelope.amendment = Some(AmendmentDetails {
+            amended_from_id: self.metadata.id,
+        });
         Ok(new_envelope)
     }
 }

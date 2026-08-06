@@ -1,3 +1,5 @@
+import { DecimalString } from '../utils/decimal';
+
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 export type NormalBalance = 'debit' | 'credit';
 
@@ -40,9 +42,9 @@ export interface GeneralLedgerEntry {
     transaction_number: string;
     header_description: string;
     line_description?: string;
-    debit: number;
-    credit: number;
-    balance: number;
+    debit: DecimalString;
+    credit: DecimalString;
+    balance: DecimalString;
 }
 
 export interface TrialBalanceEntry {
@@ -50,20 +52,20 @@ export interface TrialBalanceEntry {
     account_code: string;
     account_name: string;
     account_type: AccountType;
-    debit: number;
-    credit: number;
+    debit: DecimalString;
+    credit: DecimalString;
 }
 
 export interface FinancialReportEntry {
     account_code: string;
     account_name: string;
-    balance: number;
+    balance: DecimalString;
 }
 
 export interface CreateCashBankTransactionRequest {
     transaction_type: 'transfer' | 'receive' | 'send';
     date: string;
-    amount: number | string;
+    amount: DecimalString;
     from_account_id?: string;
     to_account_id?: string;
     account_id?: string;
@@ -71,22 +73,22 @@ export interface CreateCashBankTransactionRequest {
     description?: string;
 }
 
-// --- Sales Invoice DTOs (QARC-011) ---
+// --- Sales Invoice DTOs (QARC-011 & 3R.1.1-003) ---
 
 export interface SalesInvoiceItem {
     id: string;
     invoice_id: string;
     description: string;
-    quantity: number | string;
-    unit_price: number | string;
-    total_price: number | string;
+    quantity: DecimalString;
+    unit_price: DecimalString;
+    total_price: DecimalString;
     account_id?: string;
 }
 
 export interface CreateInvoiceItemRequest {
     description: string;
-    quantity: number | string;
-    unit_price: number | string;
+    quantity: DecimalString;
+    unit_price: DecimalString;
     account_id?: string;
 }
 
@@ -97,10 +99,10 @@ export interface SalesInvoice {
     date: string;
     due_date?: string;
     subject?: string;
-    subtotal: number | string;
-    tax: number | string;
-    total_amount: number | string;
-    amount_paid: number | string;
+    subtotal: DecimalString;
+    tax: DecimalString;
+    total_amount: DecimalString;
+    amount_paid: DecimalString;
     status: string;
     posting_status?: string;
     journal_entry_id?: string | null;
@@ -129,15 +131,15 @@ export interface UpdateSalesInvoiceRequest {
     attachment_url?: string;
 }
 
-// --- Purchase Bill DTOs (QARC-011) ---
+// --- Purchase Bill DTOs (QARC-011 & 3R.1.1-003) ---
 
 export interface PurchaseBillItem {
     id: string;
     bill_id: string;
     description: string;
-    quantity: number | string;
-    unit_price: number | string;
-    total_price: number | string;
+    quantity: DecimalString;
+    unit_price: DecimalString;
+    total_price: DecimalString;
     account_id?: string;
 }
 
@@ -158,8 +160,8 @@ export interface PurchaseBill {
     vendor_id: string;
     date: string;
     due_date?: string;
-    total_amount: number | string;
-    amount_paid: number | string;
+    total_amount: DecimalString;
+    amount_paid: DecimalString;
     status: string;
     budget_type: string;
     journal_entry_id?: string | null;
@@ -173,7 +175,7 @@ export interface Expense {
     date: string;
     pay_from_account_id: string;
     recipient?: string;
-    total_amount: number | string;
+    total_amount: DecimalString;
     status: string;
     expense_type?: string;
     journal_entry_id?: string | null;
@@ -186,7 +188,7 @@ export interface CashBankTransaction {
     transaction_number: string;
     transaction_type: string;
     date: string;
-    amount: number | string;
+    amount: DecimalString;
     from_account_id?: string;
     to_account_id?: string;
     account_id?: string;

@@ -85,7 +85,6 @@ mod kernel_unit_tests {
 
         assert_eq!(meta.version, 1);
         assert_eq!(meta.document_number, "MASTER-001");
-        assert_eq!(meta.amended_from_id, None);
         // Verified: Plain DocumentMetadata has no status field or automatic submit/cancel methods.
     }
 
@@ -148,11 +147,9 @@ mod kernel_unit_tests {
             .cancel(actor_id, "Wrong vendor".to_string())
             .unwrap();
         assert_eq!(envelope.status, DocumentStatus::Cancelled);
-        assert_eq!(
-            envelope.metadata.cancellation_reason.as_deref(),
-            Some("Wrong vendor")
-        );
-        assert_eq!(envelope.metadata.cancelled_by, Some(actor_id));
+        let cancel_info = envelope.cancellation.as_ref().unwrap();
+        assert_eq!(cancel_info.cancellation_reason, "Wrong vendor");
+        assert_eq!(cancel_info.cancelled_by, actor_id);
     }
 
     #[test]
@@ -171,10 +168,8 @@ mod kernel_unit_tests {
         assert_eq!(envelope.status, DocumentStatus::Cancelled);
         // Replacement document is a new Draft linked via amended_from_id
         assert_eq!(new_envelope.status, DocumentStatus::Draft);
-        assert_eq!(
-            new_envelope.metadata.amended_from_id,
-            Some(envelope.metadata.id)
-        );
+        let amend_info = new_envelope.amendment.as_ref().unwrap();
+        assert_eq!(amend_info.amended_from_id, envelope.metadata.id);
         assert_eq!(new_envelope.metadata.document_number, "DOC-001-R1");
     }
 

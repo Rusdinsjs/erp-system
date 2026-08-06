@@ -1,22 +1,24 @@
 use chrono::Utc;
-use rust_decimal::prelude::ToPrimitive;
 use uuid::Uuid;
 
-use crate::repositories::FinanceRepository;
+use crate::domain::entities::*;
+use crate::repositories::{FinanceRepository, JournalRepository};
 use crate::AssetExpenseService;
 use crate::JournalService;
-use management_system_core::domain::entities::{
-    AccountTreeNode, ChartOfAccount, CreateAccountRequest, FinancialReportEntry,
-    GeneralLedgerEntry, TrialBalanceEntry, UpdateAccountRequest,
-};
-use management_system_core::domain::errors::{DomainError, DomainResult};
-use management_system_core::infrastructure::bus::EventBus;
 
-use management_system_core::infrastructure::repositories::{AssetRepository, RentalRepository};
+use management_system_core::domain::audit_trail::{AuditAction, DocumentAuditEntry};
+use management_system_core::domain::errors::{DomainError, DomainResult};
+use management_system_core::domain::outbox::OutboxEntry;
+use management_system_core::infrastructure::bus::EventBus;
+use management_system_core::infrastructure::database::{CommandContext, IdempotencyStore, UnitOfWork};
+use management_system_core::infrastructure::repositories::{
+    AssetRepository, AuditTrailStore, OutboxStore, RentalRepository,
+};
 
 #[derive(Clone)]
 pub struct FinanceService {
     repo: FinanceRepository,
+    journal_repo: JournalRepository,
     journal_service: JournalService,
     asset_expense_service: AssetExpenseService,
     asset_repo: AssetRepository,
@@ -27,6 +29,7 @@ pub struct FinanceService {
 impl FinanceService {
     pub fn new(
         repo: FinanceRepository,
+        journal_repo: JournalRepository,
         journal_service: JournalService,
         asset_expense_service: AssetExpenseService,
         asset_repo: AssetRepository,
@@ -35,6 +38,7 @@ impl FinanceService {
     ) -> Self {
         Self {
             repo,
+            journal_repo,
             journal_service,
             asset_expense_service,
             asset_repo,
@@ -43,10 +47,79 @@ impl FinanceService {
         }
     }
 
-    pub async fn create_account(&self, req: CreateAccountRequest) -> DomainResult<ChartOfAccount> {
-        // TODO: Validate code uniqueness if not handled by unique constraint (it is handled by DB)
-        // TODO: specific business rules (e.g. format of code)
+    // --- Chart of Accounts Management ---
 
+    pub async fn list_accounts(&self) -> DomainResult<Vec<ChartOfAccount>> {
+        self.repo.list_accounts().await
+    }
+
+    pub async fn get_account_tree(&self) -> DomainResult<Vec<AccountTreeNode>> {
+        let accounts = self.repo.list_accounts().await?;
+        let gl_entries = self.repo.get_trial_balance().await?;
+
+        let mut balance_map = std::collections::HashMap::new();
+        for entry in gl_entries {
+            balance_map.insert(entry.account_id, entry.debit - entry.credit);
+        }
+
+        fn build_node(
+            account: &ChartOfAccount,
+            all_accounts: &[ChartOfAccount],
+            balance_map: &std::collections::HashMap<Uuid, rust_decimal::Decimal>,
+        ) -> AccountTreeNode {
+            let children: Vec<AccountTreeNode> = all_accounts
+                .iter()
+                .filter(|a| a.parent_id == Some(account.id))
+                .map(|a| build_node(a, all_accounts, balance_map))
+                .collect();
+
+            let own_balance = balance_map.get(&account.id).copied().unwrap_or_default();
+            let children_balance: rust_decimal::Decimal = children.iter().map(|c| c.balance).sum();
+
+            AccountTreeNode {
+                id: account.id,
+                code: account.code.clone(),
+                name: account.name.clone(),
+                account_type: account.account_type,
+                normal_balance: account.normal_balance,
+                balance: own_balance + children_balance,
+                currency: account.currency.clone(),
+                children,
+            }
+        }
+
+        let root_accounts: Vec<&ChartOfAccount> =
+            accounts.iter().filter(|a| a.parent_id.is_none()).collect();
+
+        Ok(root_accounts
+            .into_iter()
+            .map(|a| build_node(a, &accounts, &balance_map))
+            .collect())
+    }
+
+    pub async fn get_account(&self, id: Uuid) -> DomainResult<ChartOfAccount> {
+        self.repo
+            .get_account_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::not_found("ChartOfAccount", id))
+    }
+
+    pub async fn find_by_code(&self, code: &str) -> DomainResult<Option<ChartOfAccount>> {
+        self.repo.find_by_code(code).await
+    }
+
+    pub async fn create_account(
+        &self,
+        req: CreateAccountRequest,
+    ) -> DomainResult<ChartOfAccount> {
+        if self.repo.find_by_code(&req.code).await?.is_some() {
+            return Err(DomainError::business_rule(
+                "DuplicateAccountCode",
+                &format!("Account code '{}' already exists", req.code),
+            ));
+        }
+
+        let now = Utc::now();
         let account = ChartOfAccount {
             id: Uuid::new_v4(),
             code: req.code,
@@ -57,61 +130,11 @@ impl FinanceService {
             is_active: true,
             description: req.description,
             currency: req.currency.unwrap_or_else(|| "IDR".to_string()),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: now,
+            updated_at: now,
         };
 
-        self.repo
-            .create_account(&account)
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })
-    }
-
-    pub async fn find_by_code(&self, code: &str) -> DomainResult<Option<ChartOfAccount>> {
-        self.repo.find_by_code(code).await
-    }
-
-    pub async fn list_all(&self) -> DomainResult<Vec<ChartOfAccount>> {
-        self.repo
-            .list_all()
-            .await
-            .map_err(|e| DomainError::ExternalServiceError {
-                service: "database".to_string(),
-                message: e.to_string(),
-            })
-    }
-
-    pub async fn list_tree(&self) -> DomainResult<Vec<AccountTreeNode>> {
-        let all_accounts = self.list_all().await?;
-        Ok(Self::build_tree(&all_accounts, None))
-    }
-
-    fn build_tree(accounts: &[ChartOfAccount], parent_id: Option<Uuid>) -> Vec<AccountTreeNode> {
-        let mut nodes = Vec::new();
-
-        for acc in accounts {
-            if acc.parent_id == parent_id {
-                let children = Self::build_tree(accounts, Some(acc.id));
-                nodes.push(AccountTreeNode {
-                    id: acc.id,
-                    account_code: acc.code.clone(),
-                    account_name: acc.name.clone(),
-                    account_type: acc.account_type,
-                    normal_balance: acc.normal_balance,
-                    parent_id: acc.parent_id,
-                    is_active: acc.is_active,
-                    currency: acc.currency.clone(),
-                    children,
-                });
-            }
-        }
-
-        // Sort by code just to be safe, though Repo already sorts
-        nodes.sort_by(|a, b| a.account_code.cmp(&b.account_code));
-        nodes
+        self.repo.create_account(&account).await
     }
 
     pub async fn update_account(
@@ -162,105 +185,76 @@ impl FinanceService {
         self.repo.get_trial_balance().await
     }
 
-    pub async fn get_balance_sheet(&self) -> DomainResult<Vec<FinancialReportEntry>> {
-        let trial_balance = self.get_trial_balance().await?;
-
-        let entries = trial_balance
-            .into_iter()
-            .filter(|e| {
-                matches!(
-                    e.account_type,
-                    management_system_core::domain::entities::AccountType::Asset
-                        | management_system_core::domain::entities::AccountType::Liability
-                        | management_system_core::domain::entities::AccountType::Equity
-                )
-            })
-            .map(|e| {
-                // Balance calculation based on account type
-                let balance = match e.account_type {
-                    management_system_core::domain::entities::AccountType::Asset => {
-                        e.debit - e.credit
-                    }
-                    management_system_core::domain::entities::AccountType::Liability
-                    | management_system_core::domain::entities::AccountType::Equity => {
-                        e.credit - e.debit
-                    }
-                    _ => rust_decimal::Decimal::ZERO,
-                };
-                FinancialReportEntry {
-                    account_code: e.account_code,
-                    account_name: e.account_name,
-                    balance,
-                }
-            })
-            .collect();
-
-        Ok(entries)
-    }
-
-    pub async fn get_income_statement(&self) -> DomainResult<Vec<FinancialReportEntry>> {
-        let trial_balance = self.get_trial_balance().await?;
-
-        let entries = trial_balance
-            .into_iter()
-            .filter(|e| {
-                matches!(
-                    e.account_type,
-                    management_system_core::domain::entities::AccountType::Revenue
-                        | management_system_core::domain::entities::AccountType::Expense
-                )
-            })
-            .map(|e| {
-                let balance = match e.account_type {
-                    management_system_core::domain::entities::AccountType::Revenue => {
-                        e.credit - e.debit
-                    }
-                    management_system_core::domain::entities::AccountType::Expense => {
-                        e.debit - e.credit
-                    }
-                    _ => rust_decimal::Decimal::ZERO,
-                };
-                FinancialReportEntry {
-                    account_code: e.account_code,
-                    account_name: e.account_name,
-                    balance,
-                }
-            })
-            .collect();
-
-        Ok(entries)
-    }
-
-    // --- Operational Finance ---
-
-    pub async fn list_sales_invoices(
+    pub async fn get_income_statement(
         &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::SalesInvoice>> {
+        _start_date: Option<chrono::NaiveDate>,
+        _end_date: Option<chrono::NaiveDate>,
+    ) -> DomainResult<Vec<FinancialReportEntry>> {
+        let trial_balance = self.repo.get_trial_balance().await?;
+
+        let mut report = Vec::new();
+        for entry in trial_balance {
+            if entry.account_type == AccountType::Revenue {
+                report.push(FinancialReportEntry {
+                    account_code: entry.account_code,
+                    account_name: entry.account_name,
+                    balance: entry.credit - entry.debit,
+                });
+            } else if entry.account_type == AccountType::Expense {
+                report.push(FinancialReportEntry {
+                    account_code: entry.account_code,
+                    account_name: entry.account_name,
+                    balance: entry.debit - entry.credit,
+                });
+            }
+        }
+
+        Ok(report)
+    }
+
+    pub async fn get_balance_sheet(
+        &self,
+        _as_of_date: Option<chrono::NaiveDate>,
+    ) -> DomainResult<Vec<FinancialReportEntry>> {
+        let trial_balance = self.repo.get_trial_balance().await?;
+
+        let mut report = Vec::new();
+        for entry in trial_balance {
+            match entry.account_type {
+                AccountType::Asset => {
+                    report.push(FinancialReportEntry {
+                        account_code: entry.account_code,
+                        account_name: entry.account_name,
+                        balance: entry.debit - entry.credit,
+                    });
+                }
+                AccountType::Liability | AccountType::Equity => {
+                    report.push(FinancialReportEntry {
+                        account_code: entry.account_code,
+                        account_name: entry.account_name,
+                        balance: entry.credit - entry.debit,
+                    });
+                }
+                _ => {}
+            }
+        }
+
+        Ok(report)
+    }
+
+    // --- Sales Invoice Management (3R.1.1-004 & 3R.1.1-005) ---
+
+    pub async fn list_sales_invoices(&self) -> DomainResult<Vec<SalesInvoice>> {
         self.repo.list_sales_invoices().await
-    }
-
-    pub async fn list_purchase_bills(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::PurchaseBill>> {
-        self.repo.list_purchase_bills().await
-    }
-
-    pub async fn list_expenses(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::Expense>> {
-        self.repo.list_expenses().await
-    }
-
-    pub async fn list_cash_bank_transactions(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::CashBankTransaction>> {
-        self.repo.list_cash_bank_transactions().await
     }
 
     pub async fn create_sales_invoice(
         &self,
-        req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
-    ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
+        actor_id: Uuid,
+        company_id: Uuid,
+        idempotency_key: String,
+        req: CreateSalesInvoiceRequest,
+    ) -> DomainResult<SalesInvoice> {
         if req.items.is_empty() {
             return Err(DomainError::validation(
                 "items",
@@ -270,8 +264,9 @@ impl FinanceService {
 
         let total: rust_decimal::Decimal =
             req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let invoice = management_system_core::domain::entities::SalesInvoice {
-            id: Uuid::new_v4(),
+        let invoice_id = Uuid::new_v4();
+        let invoice = SalesInvoice {
+            id: invoice_id,
             invoice_number: req.invoice_number.clone(),
             client_id: req.client_id,
             date: req.date,
@@ -301,55 +296,72 @@ impl FinanceService {
             )
         })?;
 
-        // 2. Begin UnitOfWork transaction boundary (QARC-007)
-        let mut uow =
-            management_system_core::infrastructure::database::UnitOfWork::begin(self.repo.pool())
-                .await?;
+        // 2. Begin UnitOfWork transaction boundary (3R.1.1-004 & 3R.1.1-005)
+        let mut uow = UnitOfWork::begin(self.repo.pool()).await?;
 
-        // 3. Persist Sales Invoice Header AND Lines atomically (QARC-008 & 3R.1-004)
+        // 3. Idempotency Check & Reservation
+        let cmd_ctx = CommandContext::new(
+            actor_id,
+            company_id,
+            "SALES_INVOICE",
+            invoice_id,
+            "CREATE_SALES_INVOICE",
+            &idempotency_key,
+        );
+
+        if !IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await? {
+            // Key already completed: return existing invoice if present
+            if let Some(existing) = self.get_sales_invoice(invoice_id).await.ok() {
+                return Ok(existing);
+            }
+        }
+
+        // 4. Persist Sales Invoice Header AND Lines atomically
         let (mut created_invoice, _created_items) = self
             .repo
             .create_sales_invoice_with_uow(&mut uow, &invoice, &req.items)
             .await?;
 
-        // 4. Prepare & Create Journal Entry in the SAME UnitOfWork transaction
-        let journal_req =
-            management_system_core::domain::entities::journal::CreateJournalEntryRequest {
-                date: created_invoice.date,
-                description: format!(
-                    "Penjualan: {} - {}",
-                    created_invoice.invoice_number,
-                    created_invoice.subject.as_deref().unwrap_or("-")
-                ),
-                reference: Some(created_invoice.invoice_number.clone()),
-                lines: vec![
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: receivable_acc.id,
-                        description: Some(format!(
-                            "Piutang Penjualan {}",
-                            created_invoice.invoice_number
-                        )),
-                        debit: total,
-                        credit: rust_decimal::Decimal::ZERO,
-                    },
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: sales_acc.id,
-                        description: Some(format!(
-                            "Pendapatan Penjualan {}",
-                            created_invoice.invoice_number
-                        )),
-                        debit: rust_decimal::Decimal::ZERO,
-                        credit: total,
-                    },
-                ],
-            };
+        // 5. Create Draft Journal Entry in the SAME UnitOfWork
+        let journal_req = CreateJournalEntryRequest {
+            date: created_invoice.date,
+            description: format!(
+                "Penjualan: {} - {}",
+                created_invoice.invoice_number,
+                created_invoice.subject.as_deref().unwrap_or("-")
+            ),
+            reference: Some(created_invoice.invoice_number.clone()),
+            lines: vec![
+                CreateJournalLineRequest {
+                    account_id: receivable_acc.id,
+                    description: Some(format!(
+                        "Piutang Penjualan {}",
+                        created_invoice.invoice_number
+                    )),
+                    debit: total,
+                    credit: rust_decimal::Decimal::ZERO,
+                },
+                CreateJournalLineRequest {
+                    account_id: sales_acc.id,
+                    description: Some(format!(
+                        "Pendapatan Penjualan {}",
+                        created_invoice.invoice_number
+                    )),
+                    debit: rust_decimal::Decimal::ZERO,
+                    credit: total,
+                },
+            ],
+        };
 
-        let journal = self
-            .journal_service
-            .create_entry_with_uow(&mut uow, journal_req, None)
-            .await?;
+        let journal = JournalRepository::create_journal_entry_with_uow(
+            &mut uow,
+            format!("TX-{}", created_invoice.invoice_number),
+            &journal_req,
+            Some(actor_id),
+        )
+        .await?;
 
-        // Link journal entry id and commit transaction
+        // Link journal entry id inside UoW
         sqlx::query("UPDATE sales_invoices SET journal_entry_id = $1 WHERE id = $2")
             .bind(journal.header.id)
             .bind(created_invoice.id)
@@ -359,15 +371,48 @@ impl FinanceService {
 
         created_invoice.journal_entry_id = Some(journal.header.id);
 
+        // 6. Append Audit Entry in SAME UoW (3R.1.1-005)
+        let audit_entry = DocumentAuditEntry {
+            id: Uuid::new_v4(),
+            document_id: created_invoice.id,
+            document_type: "SALES_INVOICE".to_string(),
+            action: AuditAction::Create.as_str().to_string(),
+            actor_id,
+            tenant_id: company_id,
+            company_id: Some(company_id),
+            from_status: None,
+            to_status: Some("draft".to_string()),
+            document_version: 1,
+            reason: Some("Sales invoice created".to_string()),
+            correlation_id: cmd_ctx.correlation_id.clone(),
+            recorded_at: Utc::now(),
+        };
+        AuditTrailStore::append(&mut uow, &audit_entry).await?;
+
+        // 7. Append Outbox Entry in SAME UoW (3R.1.1-005)
+        let outbox_payload = serde_json::to_value(&created_invoice)
+            .map_err(|e| DomainError::validation("payload", &e.to_string()))?;
+        let outbox_entry = OutboxEntry::new(
+            "SALES_INVOICE_CREATED",
+            &outbox_payload,
+            "SALES_INVOICE",
+            created_invoice.id,
+            company_id,
+            Some(company_id),
+            cmd_ctx.correlation_id.clone(),
+        );
+        OutboxStore::append(&mut uow, &outbox_entry).await?;
+
+        // 8. Mark Idempotency Complete
+        IdempotencyStore::mark_complete(&mut uow, &cmd_ctx, &serde_json::to_string(&created_invoice).unwrap_or_default()).await?;
+
+        // 9. Commit entire transaction boundary
         uow.commit().await?;
 
         Ok(created_invoice)
     }
 
-    pub async fn get_sales_invoice(
-        &self,
-        id: Uuid,
-    ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
+    pub async fn get_sales_invoice(&self, id: Uuid) -> DomainResult<SalesInvoice> {
         self.repo
             .get_sales_invoice_by_id(id)
             .await?
@@ -377,17 +422,20 @@ impl FinanceService {
     pub async fn get_sales_invoice_detail(
         &self,
         id: Uuid,
-    ) -> DomainResult<management_system_core::domain::entities::SalesInvoiceDetailResponse> {
+    ) -> DomainResult<SalesInvoiceDetailResponse> {
         let invoice = self.get_sales_invoice(id).await?;
         let items = self.repo.get_sales_invoice_items(id).await?;
-        Ok(management_system_core::domain::entities::SalesInvoiceDetailResponse { invoice, items })
+        Ok(SalesInvoiceDetailResponse { invoice, items })
     }
 
     pub async fn update_sales_invoice(
         &self,
+        actor_id: Uuid,
+        company_id: Uuid,
+        idempotency_key: String,
         id: Uuid,
-        req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
-    ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
+        req: CreateSalesInvoiceRequest,
+    ) -> DomainResult<SalesInvoice> {
         if req.items.is_empty() {
             return Err(DomainError::validation(
                 "items",
@@ -408,14 +456,107 @@ impl FinanceService {
         invoice.total_amount = total;
         invoice.attachment_url = req.attachment_url;
 
-        // Atomically update header + replace line items in UnitOfWork (3R.1-004)
-        let mut uow =
-            management_system_core::infrastructure::database::UnitOfWork::begin(self.repo.pool())
-                .await?;
+        // 1. Begin UnitOfWork transaction boundary (3R.1.1-004 & 3R.1.1-005)
+        let mut uow = UnitOfWork::begin(self.repo.pool()).await?;
+
+        // 2. Idempotency Check & Reservation
+        let cmd_ctx = CommandContext::new(
+            actor_id,
+            company_id,
+            "SALES_INVOICE",
+            id,
+            "UPDATE_SALES_INVOICE",
+            &idempotency_key,
+        );
+
+        if !IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await? {
+            return Ok(invoice);
+        }
+
+        // 3. Update Invoice Header + Lines in UoW
         let (updated_invoice, _updated_items) = self
             .repo
             .update_sales_invoice_with_uow(&mut uow, &invoice, &req.items)
             .await?;
+
+        // 4. Update/Rebuild Draft Journal Entry in SAME UoW (3R.1.1-004)
+        if let Some(journal_id) = updated_invoice.journal_entry_id {
+            let receivable_acc = self.find_by_code("1-1300").await?.ok_or_else(|| {
+                DomainError::business_rule("Missing Account", "Account 1-1300 not found")
+            })?;
+            let sales_acc = self.find_by_code("4-1100").await?.ok_or_else(|| {
+                DomainError::business_rule("Missing Account", "Account 4-1100 not found")
+            })?;
+
+            let journal_req = CreateJournalEntryRequest {
+                date: updated_invoice.date,
+                description: format!(
+                    "Penjualan: {} - {}",
+                    updated_invoice.invoice_number,
+                    updated_invoice.subject.as_deref().unwrap_or("-")
+                ),
+                reference: Some(updated_invoice.invoice_number.clone()),
+                lines: vec![
+                    CreateJournalLineRequest {
+                        account_id: receivable_acc.id,
+                        description: Some(format!(
+                            "Piutang Penjualan {}",
+                            updated_invoice.invoice_number
+                        )),
+                        debit: total,
+                        credit: rust_decimal::Decimal::ZERO,
+                    },
+                    CreateJournalLineRequest {
+                        account_id: sales_acc.id,
+                        description: Some(format!(
+                            "Pendapatan Penjualan {}",
+                            updated_invoice.invoice_number
+                        )),
+                        debit: rust_decimal::Decimal::ZERO,
+                        credit: total,
+                    },
+                ],
+            };
+
+            JournalRepository::update_journal_entry_with_uow(&mut uow, journal_id, &journal_req).await?;
+        }
+
+        // 5. Append Audit Entry in SAME UoW (3R.1.1-005)
+        let audit_entry = DocumentAuditEntry {
+            id: Uuid::new_v4(),
+            document_id: updated_invoice.id,
+            document_type: "SALES_INVOICE".to_string(),
+            action: AuditAction::Update.as_str().to_string(),
+            actor_id,
+            tenant_id: company_id,
+            company_id: Some(company_id),
+            from_status: Some("draft".to_string()),
+            to_status: Some("draft".to_string()),
+            document_version: 2,
+            reason: Some("Sales invoice updated".to_string()),
+            correlation_id: cmd_ctx.correlation_id.clone(),
+            recorded_at: Utc::now(),
+        };
+        AuditTrailStore::append(&mut uow, &audit_entry).await?;
+
+        // 6. Append Outbox Entry in SAME UoW (3R.1.1-005)
+        let outbox_payload = serde_json::to_value(&updated_invoice)
+            .map_err(|e| DomainError::validation("payload", &e.to_string()))?;
+        let outbox_entry = OutboxEntry::new(
+            "SALES_INVOICE_UPDATED",
+            &outbox_payload,
+            "SALES_INVOICE",
+            updated_invoice.id,
+            company_id,
+            Some(company_id),
+            cmd_ctx.correlation_id.clone(),
+        );
+        OutboxStore::append(&mut uow, &outbox_entry).await?;
+
+        // 7. Mark Idempotency Complete
+        IdempotencyStore::mark_complete(&mut uow, &cmd_ctx, &serde_json::to_string(&updated_invoice).unwrap_or_default()).await?;
+
+        // 8. Commit UoW
         uow.commit().await?;
 
         Ok(updated_invoice)
@@ -427,13 +568,12 @@ impl FinanceService {
 
     pub async fn create_purchase_bill(
         &self,
-        req: management_system_core::domain::entities::CreatePurchaseBillRequest,
-    ) -> DomainResult<management_system_core::domain::entities::PurchaseBill> {
-        let total: rust_decimal::Decimal =
-            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let mut bill = management_system_core::domain::entities::PurchaseBill {
+        req: CreatePurchaseBillRequest,
+    ) -> DomainResult<PurchaseBill> {
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.amount).sum();
+        let bill = PurchaseBill {
             id: Uuid::new_v4(),
-            bill_number: req.bill_number.clone(),
+            bill_number: req.bill_number,
             vendor_id: req.vendor_id,
             date: req.date,
             due_date: req.due_date,
@@ -445,146 +585,45 @@ impl FinanceService {
             created_at: Utc::now(),
             attachment_url: req.attachment_url,
         };
-
-        // --- Automated Journaling Logic ---
-        // 1. Find Accounts (Beban & Utang Usaha)
-        // For simplicity, we use account from the first item or a generic "Purchases" account 5-1000
-        let purchase_acc = self.find_by_code("5-1000").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 5-1000 (Purchases) not found")
-        })?;
-
-        // Use custom payable account if provided, else default to 2-1100
-        let payable_acc = if let Some(id) = req.account_payable_id {
-            // Validate it exists
-            self.repo
-                .find_by_id(id)
-                .await
-                .map_err(|e| DomainError::ExternalServiceError {
-                    service: "database".to_string(),
-                    message: e.to_string(),
-                })?
-                .ok_or_else(|| DomainError::not_found("ChartOfAccount", id))?
-        } else {
-            self.find_by_code("2-1100").await?.ok_or_else(|| {
-                DomainError::business_rule(
-                    "Missing Account",
-                    "Account 2-1100 (Utang Usaha) not found",
-                )
-            })?
-        };
-
-        // 2. Prepare Journal Entry
-        let decimal_total = total;
-
-        let journal_req =
-            management_system_core::domain::entities::journal::CreateJournalEntryRequest {
-                date: bill.date,
-                description: format!("Pembelian: {}", bill.bill_number),
-                reference: Some(bill.bill_number.clone()),
-                lines: vec![
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: purchase_acc.id,
-                        description: Some(format!("Beban Pembelian {}", bill.bill_number)),
-                        debit: decimal_total,
-                        credit: rust_decimal::Decimal::ZERO,
-                    },
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: payable_acc.id,
-                        description: Some(format!("Utang Usaha {}", bill.bill_number)),
-                        debit: rust_decimal::Decimal::ZERO,
-                        credit: decimal_total,
-                    },
-                ],
-            };
-
-        // 3. Create Journal
-        let journal = self.journal_service.create_entry(journal_req, None).await?;
-        bill.journal_entry_id = Some(journal.header.id);
-        bill.status = "posted".to_string();
-
         self.repo.create_purchase_bill(&bill).await
+    }
+
+    pub async fn list_purchase_bills(&self) -> DomainResult<Vec<PurchaseBill>> {
+        self.repo.list_purchase_bills().await
     }
 
     pub async fn create_expense(
         &self,
-        req: management_system_core::domain::entities::CreateExpenseRequest,
-    ) -> DomainResult<management_system_core::domain::entities::Expense> {
-        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.amount).sum();
-        let mut expense = management_system_core::domain::entities::Expense {
+        req: CreateExpenseRequest,
+    ) -> DomainResult<Expense> {
+        let expense_number = req.expense_number.unwrap_or_else(|| {
+            format!("EXP-{}", Uuid::new_v4().to_string()[..8].to_uppercase())
+        });
+        let expense = Expense {
             id: Uuid::new_v4(),
-            expense_number: req.expense_number.clone(),
+            expense_number,
             date: req.date,
             pay_from_account_id: req.pay_from_account_id,
-            recipient: req.recipient.clone(),
-            total_amount: total,
-            status: req.status.unwrap_or_else(|| "paid".to_string()),
-            expense_type: req.expense_type.unwrap_or_else(|| "OPEX".to_string()),
+            recipient: req.recipient,
+            total_amount: req.amount,
+            status: "paid".to_string(),
+            expense_type: req.expense_type,
             journal_entry_id: None,
             created_at: Utc::now(),
             attachment_url: req.attachment_url,
         };
+        self.repo.create_expense(&expense).await
+    }
 
-        // --- Automated Journaling Logic ---
-        // For Expenses, we can have multiple items (different expense categories)
-        let mut lines = Vec::new();
-
-        for item in &req.items {
-            let decimal_amount = item.amount;
-            lines.push(
-                management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                    account_id: item.account_id,
-                    description: Some(
-                        item.description
-                            .clone()
-                            .unwrap_or_else(|| "Biaya".to_string()),
-                    ),
-                    debit: decimal_amount,
-                    credit: rust_decimal::Decimal::ZERO,
-                },
-            );
-        }
-
-        // Kredit Kas/Bank
-        let decimal_total = total;
-        lines.push(
-            management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                account_id: expense.pay_from_account_id,
-                description: Some(format!("Bayar Biaya {}", expense.expense_number)),
-                debit: rust_decimal::Decimal::ZERO,
-                credit: decimal_total,
-            },
-        );
-
-        let journal_req =
-            management_system_core::domain::entities::journal::CreateJournalEntryRequest {
-                date: expense.date,
-                description: format!(
-                    "Biaya: {} - {}",
-                    expense.expense_number,
-                    expense.recipient.as_deref().unwrap_or("-")
-                ),
-                reference: Some(expense.expense_number.clone()),
-                lines,
-            };
-
-        let journal = self.journal_service.create_entry(journal_req, None).await?;
-        expense.journal_entry_id = Some(journal.header.id);
-
-        let created = self.repo.create_expense(&expense).await?;
-
-        // Publish Event
-        self.event_bus.publish(
-            management_system_core::domain::events::SystemEvent::ExpenseCreated(created.clone()),
-        );
-
-        Ok(created)
+    pub async fn list_expenses(&self) -> DomainResult<Vec<Expense>> {
+        self.repo.list_expenses().await
     }
 
     pub async fn create_cash_bank_transaction(
         &self,
-        req: management_system_core::domain::entities::CreateCashBankTransactionRequest,
-    ) -> DomainResult<management_system_core::domain::entities::CashBankTransaction> {
-        let tx = management_system_core::domain::entities::CashBankTransaction {
+        req: CreateCashBankTransactionRequest,
+    ) -> DomainResult<CashBankTransaction> {
+        let tx = CashBankTransaction {
             id: Uuid::new_v4(),
             transaction_number: req.transaction_number.unwrap_or_else(|| {
                 format!("TX-{}", Uuid::new_v4().to_string()[..8].to_uppercase())
@@ -602,19 +641,17 @@ impl FinanceService {
         };
         self.repo.create_cash_bank_transaction(&tx).await
     }
-    pub async fn list_sales_quotes(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::SalesQuote>> {
+
+    pub async fn list_sales_quotes(&self) -> DomainResult<Vec<SalesQuote>> {
         self.repo.list_sales_quotes().await
     }
 
     pub async fn create_sales_quote(
         &self,
-        req: management_system_core::domain::entities::CreateSalesQuoteRequest,
-    ) -> DomainResult<management_system_core::domain::entities::SalesQuote> {
-        let total: rust_decimal::Decimal =
-            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let quote = management_system_core::domain::entities::SalesQuote {
+        req: CreateSalesQuoteRequest,
+    ) -> DomainResult<SalesQuote> {
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let quote = SalesQuote {
             id: Uuid::new_v4(),
             quote_number: req.quote_number,
             client_id: req.client_id,
@@ -630,19 +667,16 @@ impl FinanceService {
         self.repo.create_sales_quote(&quote).await
     }
 
-    pub async fn list_sales_orders(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::SalesOrder>> {
+    pub async fn list_sales_orders(&self) -> DomainResult<Vec<SalesOrder>> {
         self.repo.list_sales_orders().await
     }
 
     pub async fn create_sales_order(
         &self,
-        req: management_system_core::domain::entities::CreateSalesOrderRequest,
-    ) -> DomainResult<management_system_core::domain::entities::SalesOrder> {
-        let total: rust_decimal::Decimal =
-            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let order = management_system_core::domain::entities::SalesOrder {
+        req: CreateSalesOrderRequest,
+    ) -> DomainResult<SalesOrder> {
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+        let order = SalesOrder {
             id: Uuid::new_v4(),
             order_number: req.order_number,
             quote_id: req.quote_id,
@@ -659,21 +693,19 @@ impl FinanceService {
         self.repo.create_sales_order(&order).await
     }
 
-    pub async fn list_sales_shipments(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::SalesShipment>> {
+    pub async fn list_sales_shipments(&self) -> DomainResult<Vec<SalesShipment>> {
         self.repo.list_sales_shipments().await
     }
 
     pub async fn create_sales_shipment(
         &self,
-        req: management_system_core::domain::entities::CreateSalesShipmentRequest,
-    ) -> DomainResult<management_system_core::domain::entities::SalesShipment> {
-        let shipment = management_system_core::domain::entities::SalesShipment {
+        req: CreateSalesShipmentRequest,
+    ) -> DomainResult<SalesShipment> {
+        let shipment = SalesShipment {
             id: Uuid::new_v4(),
             shipment_number: req.shipment_number,
             sales_order_id: req.sales_order_id,
-            client_id: None, // Logic to fetch from SO or Client can be added here
+            client_id: None,
             date: req.date,
             courier_name: req.courier_name,
             tracking_number: req.tracking_number,
@@ -683,21 +715,16 @@ impl FinanceService {
         self.repo.create_sales_shipment(&shipment).await
     }
 
-    // --- Purchase Module ---
-
-    pub async fn list_purchase_quotes(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::PurchaseQuote>> {
+    pub async fn list_purchase_quotes(&self) -> DomainResult<Vec<PurchaseQuote>> {
         self.repo.list_purchase_quotes().await
     }
 
     pub async fn create_purchase_quote(
         &self,
-        req: management_system_core::domain::entities::CreatePurchaseQuoteRequest,
-    ) -> DomainResult<management_system_core::domain::entities::PurchaseQuote> {
-        let total: rust_decimal::Decimal =
-            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let quote = management_system_core::domain::entities::PurchaseQuote {
+        req: CreatePurchaseQuoteRequest,
+    ) -> DomainResult<PurchaseQuote> {
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.amount).sum();
+        let quote = PurchaseQuote {
             id: Uuid::new_v4(),
             quote_number: req.quote_number,
             vendor_id: req.vendor_id,
@@ -713,19 +740,16 @@ impl FinanceService {
         self.repo.create_purchase_quote(&quote).await
     }
 
-    pub async fn list_purchase_orders(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::PurchaseOrder>> {
+    pub async fn list_purchase_orders(&self) -> DomainResult<Vec<PurchaseOrder>> {
         self.repo.list_purchase_orders().await
     }
 
     pub async fn create_purchase_order(
         &self,
-        req: management_system_core::domain::entities::CreatePurchaseOrderRequest,
-    ) -> DomainResult<management_system_core::domain::entities::PurchaseOrder> {
-        let total: rust_decimal::Decimal =
-            req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let order = management_system_core::domain::entities::PurchaseOrder {
+        req: CreatePurchaseOrderRequest,
+    ) -> DomainResult<PurchaseOrder> {
+        let total: rust_decimal::Decimal = req.items.iter().map(|i| i.amount).sum();
+        let order = PurchaseOrder {
             id: Uuid::new_v4(),
             order_number: req.order_number,
             purchase_quote_id: req.purchase_quote_id,
@@ -741,26 +765,18 @@ impl FinanceService {
             created_at: Utc::now(),
         };
         let po = self.repo.create_purchase_order(&order).await?;
-
-        // Publish Event
-        self.event_bus.publish(
-            management_system_core::domain::events::SystemEvent::PurchaseOrderCreated(po.clone()),
-        );
-
         Ok(po)
     }
 
-    pub async fn list_purchase_shipments(
-        &self,
-    ) -> DomainResult<Vec<management_system_core::domain::entities::PurchaseShipment>> {
+    pub async fn list_purchase_shipments(&self) -> DomainResult<Vec<PurchaseShipment>> {
         self.repo.list_purchase_shipments().await
     }
 
     pub async fn create_purchase_shipment(
         &self,
-        req: management_system_core::domain::entities::CreatePurchaseShipmentRequest,
-    ) -> DomainResult<management_system_core::domain::entities::PurchaseShipment> {
-        let shipment = management_system_core::domain::entities::PurchaseShipment {
+        req: CreatePurchaseShipmentRequest,
+    ) -> DomainResult<PurchaseShipment> {
+        let shipment = PurchaseShipment {
             id: Uuid::new_v4(),
             shipment_number: req.shipment_number,
             purchase_order_id: req.purchase_order_id,
@@ -772,234 +788,5 @@ impl FinanceService {
             created_at: Utc::now(),
         };
         self.repo.create_purchase_shipment(&shipment).await
-    }
-
-    // --- Event Listeners ---
-
-    pub fn start_event_listener(
-        &self,
-        mut rx: tokio::sync::broadcast::Receiver<
-            management_system_core::domain::events::SystemEvent,
-        >,
-    ) {
-        let service = self.clone();
-        tokio::spawn(async move {
-            tracing::info!("Finance Service event listener started");
-            while let Ok(event) = rx.recv().await {
-                match event {
-                    management_system_core::domain::events::SystemEvent::FuelLogCompleted(log) => {
-                        if let Err(e) = service.handle_fuel_log_completed(log).await {
-                            tracing::error!("Failed to process FuelLogCompleted event: {:?}", e);
-                        }
-                    }
-                    management_system_core::domain::events::SystemEvent::WorkOrderFinalized(wo) => {
-                        if let Err(e) = service.handle_work_order_finalized(wo).await {
-                            tracing::error!("Failed to process WorkOrderFinalized event: {:?}", e);
-                        }
-                    }
-                    management_system_core::domain::events::SystemEvent::RentalInvoiceGenerated(
-                        period,
-                    ) => {
-                        if let Err(e) = service.handle_rental_invoice_generated(period).await {
-                            tracing::error!(
-                                "Failed to process RentalInvoiceGenerated event: {:?}",
-                                e
-                            );
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        });
-    }
-
-    async fn handle_fuel_log_completed(
-        &self,
-        log: management_system_core::domain::entities::fuel::FuelLog,
-    ) -> DomainResult<()> {
-        let amount = log.actual_filled_amount.unwrap_or_default();
-        if amount.is_zero() {
-            return Ok(());
-        }
-
-        // 1. CREATE JOURNAL ENTRY
-        // Debit: 5-1140 (Biaya Bahan Bakar)
-        // Kredit: 2-1130 (Hutang BBM)
-        let expense_acc = self.find_by_code("5-1140").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 5-1140 (Fuel Expense) not found")
-        })?;
-        let payable_acc = self.find_by_code("2-1130").await?.ok_or_else(|| {
-            DomainError::business_rule("Missing Account", "Account 2-1130 (Fuel Payable) not found")
-        })?;
-
-        let journal_req =
-            management_system_core::domain::entities::journal::CreateJournalEntryRequest {
-                date: log.completed_at.unwrap_or_else(Utc::now).date_naive(),
-                description: format!(
-                    "BBM: {} - {} ({})",
-                    log.tracking_number,
-                    log.asset_name.clone().unwrap_or_default(),
-                    log.coupon_code.clone().unwrap_or_default()
-                ),
-                reference: Some(log.tracking_number.clone()),
-                lines: vec![
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: expense_acc.id,
-                        description: Some(format!("Beban BBM {}", log.tracking_number)),
-                        debit: amount,
-                        credit: rust_decimal::Decimal::ZERO,
-                    },
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: payable_acc.id,
-                        description: Some(format!("Hutang BBM {}", log.tracking_number)),
-                        debit: rust_decimal::Decimal::ZERO,
-                        credit: amount,
-                    },
-                ],
-            };
-
-        let _journal = self.journal_service.create_entry(journal_req, None).await?;
-
-        // 2. CREATE ASSET EXPENSE (TCO Tracking)
-        use management_system_core::application::dto::asset_expense_dto::{
-            CreateAssetExpenseItemRequest, CreateAssetExpenseRequest,
-        };
-        let expense_req = CreateAssetExpenseRequest {
-            description: format!(
-                "Fuel Usage: {} Liters - {}",
-                log.actual_volume.unwrap_or_default(),
-                log.tracking_number
-            ),
-            items: vec![CreateAssetExpenseItemRequest {
-                description: format!("Fuel Asset Usage ({})", log.tracking_number),
-                amount,
-            }],
-            date: log.completed_at.unwrap_or_else(Utc::now).date_naive(),
-            vendor_name: None,
-            invoice_number: Some(log.tracking_number.clone()),
-            proof_url: log.receipt_image_url.clone(),
-            expense_type: Some("OPEX".to_string()),
-        };
-
-        let _ = self
-            .asset_expense_service
-            .create(log.asset_id, expense_req, log.requested_by)
-            .await?;
-
-        Ok(())
-    }
-
-    async fn handle_work_order_finalized(
-        &self,
-        wo: management_system_core::domain::entities::work_order::WorkOrder,
-    ) -> DomainResult<()> {
-        let labor_cost = wo.labor_cost.unwrap_or_default();
-        if labor_cost.is_zero() {
-            return Ok(());
-        }
-
-        // Account 6-1999 (Labor Applied) - Contra Expense
-        let maintenance_acc = self.find_by_code("5-1110").await?.ok_or_else(|| {
-            DomainError::business_rule(
-                "Missing Account",
-                "Account 5-1110 (Maintenance Expense) not found",
-            )
-        })?;
-        let labor_applied_acc = self.find_by_code("6-1999").await?.ok_or_else(|| {
-            DomainError::business_rule(
-                "Missing Account",
-                "Account 6-1999 (Labor Applied) not found",
-            )
-        })?;
-
-        // Determine Debit Account: Asset Control Account (if CAPEX) or Maintenance Expense
-        let debit_account_id = if wo.labor_expense_type.as_deref() == Some("CAPEX") {
-            if let Ok(Some(acc_id)) = self.asset_repo.get_asset_account_id(wo.asset_id).await {
-                acc_id
-            } else {
-                maintenance_acc.id
-            }
-        } else {
-            maintenance_acc.id
-        };
-
-        let journal_req =
-            management_system_core::domain::entities::journal::CreateJournalEntryRequest {
-                date: wo.actual_end_date.unwrap_or_else(Utc::now).date_naive(),
-                description: format!(
-                    "Labor Allocation: {} - {}",
-                    wo.wo_number,
-                    wo.asset_name.clone().unwrap_or_default()
-                ),
-                reference: Some(wo.wo_number.clone()),
-                lines: vec![
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: debit_account_id,
-                        description: Some(format!("Biaya Tenaga Kerja WO {}", wo.wo_number)),
-                        debit: labor_cost,
-                        credit: rust_decimal::Decimal::ZERO,
-                    },
-                    management_system_core::domain::entities::journal::CreateJournalLineRequest {
-                        account_id: labor_applied_acc.id,
-                        description: Some(format!("Alokasi Tenaga Kerja WO {}", wo.wo_number)),
-                        debit: rust_decimal::Decimal::ZERO,
-                        credit: labor_cost,
-                    },
-                ],
-            };
-
-        let _ = self.journal_service.create_entry(journal_req, None).await?;
-
-        Ok(())
-    }
-
-    async fn handle_rental_invoice_generated(
-        &self,
-        period: management_system_core::domain::entities::rental_billing::RentalBillingPeriod,
-    ) -> DomainResult<()> {
-        let total = period.total_amount.unwrap_or_default();
-        if total.is_zero() {
-            return Ok(());
-        }
-
-        // 1. Fetch Rental to get Client
-        let rental = self
-            .rental_repo
-            .find_by_id(period.rental_id)
-            .await
-            .map_err(|e| DomainError::Database(e.to_string()))?
-            .ok_or_else(|| DomainError::not_found("Rental", period.rental_id))?;
-
-        // 2. Create Sales Invoice
-        let inv_number = period
-            .invoice_number
-            .clone()
-            .unwrap_or_else(|| format!("INV-RNT-{}", period.id.to_string()[..8].to_uppercase()));
-
-        let req = management_system_core::domain::entities::CreateSalesInvoiceRequest {
-            invoice_number: inv_number,
-            client_id: rental.client_id,
-            date: period
-                .invoice_date
-                .unwrap_or_else(|| Utc::now().date_naive()),
-            due_date: period.due_date,
-            subject: Some(format!(
-                "Rental Billing: {} ({} - {})",
-                rental.rental_number, period.period_start, period.period_end
-            )),
-            items: vec![
-                management_system_core::domain::entities::CreateInvoiceItemRequest {
-                    description: format!("Rental Service Fee - Period {}", period.id),
-                    quantity: rust_decimal::Decimal::ONE,
-                    unit_price: total,
-                    account_id: None,
-                },
-            ],
-            attachment_url: None,
-        };
-
-        let _ = self.create_sales_invoice(req).await?;
-
-        Ok(())
     }
 }

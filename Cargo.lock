@@ -2025,6 +2025,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "management-system-core",
+ "management-system-finance",
  "rust_decimal",
  "serde",
  "serde_json",

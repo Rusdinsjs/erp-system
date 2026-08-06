@@ -2,14 +2,15 @@ use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use management_system_core::application::services::approval_service::ModuleApprovalCallback;
 use management_system_core::domain::entities::{
-    CreateBillItemRequest, CreatePurchaseBillRequest, TaxRenewal, UpdateTaxRenewalCostRequest,
-    Vendor,
+    TaxRenewal, UpdateTaxRenewalCostRequest, Vendor,
 };
 use management_system_core::domain::errors::DomainError;
 use management_system_core::infrastructure::repositories::{
     AssetRepository, TaxRenewalRepository, VendorRepository,
 };
-use management_system_finance::FinanceService;
+use management_system_finance::{
+    CreateBillItemRequest, CreatePurchaseBillRequest, FinanceService,
+};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -231,12 +232,11 @@ impl TaxRenewalService {
                         .unwrap_or("Unknown Asset".to_string()),
                     renewal.current_expiry
                 ),
-                quantity: rust_decimal::Decimal::ONE,
-                unit_price: cost,
+                amount: cost,
                 account_id: None, // Let Finance Service auto-select expense account
             }],
+            total_amount: cost,
             attachment_url: renewal.invoice_attachment.clone(),
-            account_payable_id: payable_account.map(|a| a.id),
         };
 
         let bill = self

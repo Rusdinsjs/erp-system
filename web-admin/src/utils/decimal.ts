@@ -1,5 +1,5 @@
 /**
- * QARC-011 & 3R.1-003 Exact Decimal Utilities for Frontend Contract Alignment
+ * QARC-011, 3R.1-003 & 3R.1.1-003 Exact Decimal Utilities for Frontend Contract Alignment
  *
  * Provides exact, precision-safe decimal arithmetic using string scaling and BigInt/integer math
  * without binary floating-point roundtrip loss (parseFloat/Math.round).
@@ -8,10 +8,10 @@
 export type DecimalString = string;
 
 /**
- * Normalizes input value into an exact decimal string representation with 2 decimal places.
- * Example: "1500000.5" -> "1500000.50", 1.005 -> "1.01", "0" -> "0.00"
+ * Normalizes input value into an exact decimal string representation with given scale (default 2).
+ * Example: "1500000.5" -> "1500000.50", "1.005" -> "1.01", "0" -> "0.00"
  */
-export function toDecimalString(val: number | string | null | undefined, scale = 2): DecimalString {
+export function toDecimalString(val: string | number | null | undefined, scale = 2): DecimalString {
     if (val === null || val === undefined || val === '') return '0.00';
     const str = typeof val === 'number' ? val.toString() : val.trim();
     if (!str || str === 'NaN') return '0.00';
@@ -22,7 +22,7 @@ export function toDecimalString(val: number | string | null | undefined, scale =
     let integerPart = parts[0] || '0';
     let fractionalPart = parts[1] || '';
 
-    // Pad or round fractional part deterministically
+    // Pad or round fractional part deterministically using BigInt
     if (fractionalPart.length < scale) {
         fractionalPart = fractionalPart.padEnd(scale, '0');
     } else if (fractionalPart.length > scale) {
@@ -46,7 +46,7 @@ export function toDecimalString(val: number | string | null | undefined, scale =
 /**
  * Multiplies quantity and unitPrice deterministically using scaled BigInt arithmetic.
  */
-export function multiplyDecimalStrings(qty: number | string, price: number | string, scale = 2): DecimalString {
+export function multiplyDecimalStrings(qty: DecimalString | number, price: DecimalString | number, scale = 2): DecimalString {
     const qStr = toDecimalString(qty, scale);
     const pStr = toDecimalString(price, scale);
 
@@ -69,14 +69,10 @@ export function multiplyDecimalStrings(qty: number | string, price: number | str
     return `${intPart}.${fracPart}`;
 }
 
-export function multiplyDecimal(qty: number | string, price: number | string): number {
-    return parseFloat(multiplyDecimalStrings(qty, price));
-}
-
 /**
- * Computes exact sum of items (quantity * unit_price) as a string.
+ * Computes exact sum of invoice items (quantity * unit_price) as a string.
  */
-export function calculateInvoiceTotalString(items: { quantity: number | string; unit_price: number | string }[]): DecimalString {
+export function calculateInvoiceTotalString(items: { quantity: DecimalString | number; unit_price: DecimalString | number }[]): DecimalString {
     let totalScaled = 0n;
     const scale = 2;
 
@@ -94,54 +90,58 @@ export function calculateInvoiceTotalString(items: { quantity: number | string; 
     return `${intPart}.${fracPart}`;
 }
 
-export function calculateInvoiceTotal(items: { quantity: number | string; unit_price: number | string }[]): number {
-    return parseFloat(calculateInvoiceTotalString(items));
+/**
+ * Formats a DecimalString for display with thousands separators without precision loss.
+ * Example: "1500000.50" -> "1,500,000.50"
+ */
+export function formatDecimalDisplay(val: DecimalString | number | null | undefined, currency = 'IDR'): string {
+    const decStr = toDecimalString(val);
+    const parts = decStr.split('.');
+    const integerWithCommas = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const formatted = `${integerWithCommas}.${parts[1]}`;
+    return currency ? `${currency} ${formatted}` : formatted;
 }
 
 /**
- * Separated State Helpers (QARC-011 & 3R.1-006)
- *
- * Derives separated states from document metadata & explicit posting status:
- * - Lifecycle State: 'draft' | 'submitted' | 'cancelled'
- * - Payment State: 'unpaid' | 'partially_paid' | 'paid'
- * - Posting State: 'unposted' | 'posted' (explicit, NOT inferred from journal_entry_id proxy!)
+ * Derives explicit Invoice States (Lifecycle, Payment, Posting) authoritatively without proxying journal_entry_id.
  */
-export interface SeparatedInvoiceState {
-    lifecycle: 'draft' | 'submitted' | 'cancelled';
-    payment: 'unpaid' | 'partially_paid' | 'paid';
-    posting: 'unposted' | 'posted';
+export interface InvoiceStateRepresentation {
+    lifecycleState: 'draft' | 'submitted' | 'cancelled';
+    paymentState: 'unpaid' | 'partially_paid' | 'paid';
+    postingState: 'unposted' | 'posted';
 }
 
-export function deriveInvoiceStates(inv: {
+export function deriveInvoiceStates(invoice: {
     status?: string;
-    total_amount?: number | string;
-    amount_paid?: number | string;
     posting_status?: string;
+    total_amount?: DecimalString | number;
+    amount_paid?: DecimalString | number;
     journal_entry_id?: string | null;
-}): SeparatedInvoiceState {
-    const status = (inv.status || 'draft').toLowerCase();
-    const totalStr = toDecimalString(inv.total_amount);
-    const paidStr = toDecimalString(inv.amount_paid);
+}): InvoiceStateRepresentation {
+    const rawStatus = (invoice.status || 'draft').toLowerCase();
+    const lifecycleState: 'draft' | 'submitted' | 'cancelled' =
+        rawStatus === 'submitted' ? 'submitted' : rawStatus === 'cancelled' ? 'cancelled' : 'draft';
+
+    const totalStr = toDecimalString(invoice.total_amount);
+    const paidStr = toDecimalString(invoice.amount_paid);
 
     const totalScaled = BigInt(totalStr.replace('.', ''));
     const paidScaled = BigInt(paidStr.replace('.', ''));
 
-    let lifecycle: 'draft' | 'submitted' | 'cancelled' = 'draft';
-    if (status === 'cancelled' || status === 'dibatalkan') {
-        lifecycle = 'cancelled';
-    } else if (status === 'submitted' || status === 'posted' || status === 'paid') {
-        lifecycle = 'submitted';
-    }
-
-    let payment: 'unpaid' | 'partially_paid' | 'paid' = 'unpaid';
+    let paymentState: 'unpaid' | 'partially_paid' | 'paid' = 'unpaid';
     if (paidScaled >= totalScaled && totalScaled > 0n) {
-        payment = 'paid';
+        paymentState = 'paid';
     } else if (paidScaled > 0n) {
-        payment = 'partially_paid';
+        paymentState = 'partially_paid';
     }
 
-    // 3R.1-006: Posting status is explicit, NOT derived from presence of journal_entry_id!
-    const posting: 'unposted' | 'posted' = inv.posting_status === 'posted' ? 'posted' : 'unposted';
+    // Authoritative posting state from explicit posting_status attribute (3R.1.1-006)
+    const postingState: 'unposted' | 'posted' =
+        invoice.posting_status === 'posted' ? 'posted' : 'unposted';
 
-    return { lifecycle, payment, posting };
+    return {
+        lifecycleState,
+        paymentState,
+        postingState,
+    };
 }

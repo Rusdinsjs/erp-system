@@ -21,14 +21,14 @@ use management_system_core::infrastructure::repositories::{
     ApprovalRepository, AssetExpenseRepository, AssetRepository, AuditRepository,
     CategoryRepository, CategoryTemplateRepository, ClientRepository, ContractDocumentRepository,
     ConversionRepository, EmployeeRepository, FuelRepository, InventoryRepository,
-    JournalRepository, LifecycleRepository, LoanRepository, MaintenanceRepository,
+    LifecycleRepository, LoanRepository, MaintenanceRepository,
     MaintenanceTemplateRepository, NotificationRepository, RbacRepository, RentalRepository,
     SensorRepository, SettingsRepository, TaxRenewalRepository, TimesheetRepository,
     UserRepository, VendorRepository, WorkOrderRepository,
 };
 use management_system_core::infrastructure::storage::FileStorage;
 use management_system_core::shared::utils::jwt::JwtConfig;
-use management_system_finance::repositories::FinanceRepository;
+use management_system_finance::repositories::{FinanceRepository, JournalRepository};
 use management_system_finance::{AssetExpenseService, DepreciationService, JournalService};
 use management_system_ops::{FuelService, RentalService, TaxRenewalService, TimesheetService};
 use std::sync::Arc;
@@ -221,13 +221,13 @@ impl AppState {
         let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
         let finance_service = management_system_finance::FinanceService::new(
             finance_repo.clone(),
+            journal_repo.clone(),
             journal_service.clone(),
             asset_expense_service.clone(),
             asset_repo.clone(),
             rental_repo.clone(),
             event_bus.clone(),
         );
-        finance_service.start_event_listener(event_bus.subscribe());
         let depreciation_service = DepreciationService::new(
             asset_repo.clone(),
             category_repo.clone(),

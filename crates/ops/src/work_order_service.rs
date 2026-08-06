@@ -610,7 +610,7 @@ impl WorkOrderService {
         // Labor Journaling (Internal Allocation)
         // MOVED TO FinanceService via EventBus
         let _ = self.event_bus.publish(
-            management_system_core::domain::events::SystemEvent::WorkOrderFinalized(
+            management_system_core::domain::events::SystemEvent::WorkOrderCreated(
                 updated.clone(),
             ),
         );

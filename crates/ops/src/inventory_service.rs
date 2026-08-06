@@ -7,7 +7,7 @@ use management_system_core::application::services::NotificationService;
 use management_system_core::domain::entities::inventory::{
     InventoryCategory, InventoryItem, InventoryMovement, InventoryMovementType,
 };
-use management_system_core::domain::entities::journal::{
+use management_system_finance::domain::entities::journal::{
     CreateJournalEntryRequest, CreateJournalLineRequest,
 };
 use management_system_core::domain::errors::DomainError;
@@ -406,7 +406,11 @@ impl InventoryService {
                     // Ideally this should be in a transaction
                     if let Err(e) = self
                         .journal_service
-                        .create_entry(journal_req, Some(created_by))
+                        .create_journal_entry(
+                            format!("INV-{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase()),
+                            journal_req,
+                            Some(created_by),
+                        )
                         .await
                     {
                         println!("ERROR creating journal entry for inventory usage: {:?}", e);

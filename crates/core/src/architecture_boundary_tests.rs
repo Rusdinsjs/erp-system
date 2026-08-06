@@ -1,10 +1,11 @@
-//! Architecture Boundary Enforcement Tests (QARC-001, QARC-003, QARC-005, QARC-010, 3R.1-001, 3R.1-002)
+//! Architecture Boundary Enforcement Tests (QARC-001, QARC-003, QARC-005, QARC-010, 3R.1-001, 3R.1-002, 3R.1.1-001, 3R.1.1-002)
 //!
 //! Enforces:
 //! 1. Dependency direction: `crates/core/src/domain/` MUST NOT import `infrastructure` modules (`use crate::infrastructure`).
-//! 2. State separation: Universal Kernel `DocumentStatus` MUST NOT contain `Posted` state.
-//! 3. 3R.1-001: Plain `DocumentMetadata` envelope has no status field or automatic capability trait implementations.
-//! 4. 3R.1-002: Generic `crates/core/src/infrastructure/repositories` MUST NOT contain `finance_repository.rs`.
+//! 2. State separation: Universal Kernel `DocumentStatus` MUST NOT contain `Posted` state or `Amended` state.
+//! 3. 3R.1.1-001: Plain `DocumentMetadata` envelope contains ZERO status, cancellation, or amendment fields.
+//! 4. 3R.1.1-002: Generic `crates/core/src/domain/entities` contains ZERO Finance entity files (`finance.rs`, `journal.rs`).
+//! 5. 3R.1.1-002: Pure domain models in `crates/finance/src/domain/entities/` contain ZERO `sqlx::FromRow` or `sqlx::Type` attributes.
 
 #[cfg(test)]
 mod architecture_tests {
@@ -61,35 +62,42 @@ mod architecture_tests {
     }
 
     #[test]
-    fn test_qarc_003_no_posted_status_in_kernel_document_domain() {
+    fn test_qarc_003_no_posted_or_amended_status_in_kernel_document_domain() {
         let doc_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/domain/document.rs");
         let content = fs::read_to_string(&doc_file).expect("Failed to read document.rs");
 
-        // Assert that DocumentStatus enum definition does not contain Posted variant
         assert!(
-            !content.contains("pub enum DocumentStatus {\n    #[default]\n    Draft,\n    Submitted,\n    Posted,"),
+            !content.contains("Posted"),
             "QARC-003 Violation: Universal DocumentStatus in Kernel must NOT contain Posted state"
+        );
+        assert!(
+            !content.contains("Amended,"),
+            "QARC-003 Violation: Universal DocumentStatus in Kernel must NOT contain Amended state"
         );
     }
 
     #[test]
-    fn test_3r_1_001_plain_document_metadata_is_pure_envelope_without_automatic_capabilities() {
+    fn test_3r_1_1_001_plain_document_metadata_is_pure_envelope_without_cancellation_or_amendment_fields() {
         let doc_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/domain/document.rs");
         let content = fs::read_to_string(&doc_file).expect("Failed to read document.rs");
 
-        // Assert plain DocumentMetadata struct does not contain status: DocumentStatus field
         assert!(
-            !content.contains("pub struct DocumentMetadata {\n    pub id: Uuid,\n    pub tenant_id: Uuid,\n    pub company_id: Option<Uuid>,\n    pub document_number: String,\n    pub status: DocumentStatus,"),
-            "3R.1-001 Violation: Plain DocumentMetadata must NOT carry status field directly"
+            !content.contains("pub cancelled_by: Option<Uuid>,"),
+            "3R.1.1-001 Violation: Plain DocumentMetadata must NOT carry cancelled_by field"
         );
-
-        // Assert no impl Submittable for DocumentMetadata
+        assert!(
+            !content.contains("pub cancellation_reason: Option<String>,"),
+            "3R.1.1-001 Violation: Plain DocumentMetadata must NOT carry cancellation_reason field"
+        );
+        assert!(
+            !content.contains("pub amended_from_id: Option<Uuid>,"),
+            "3R.1.1-001 Violation: Plain DocumentMetadata must NOT carry amended_from_id field"
+        );
         assert!(
             !content.contains("impl Submittable for DocumentMetadata"),
-            "3R.1-001 Violation: Plain DocumentMetadata must NOT implement Submittable automatically"
+            "3R.1.1-001 Violation: Plain DocumentMetadata must NOT implement Submittable automatically"
         );
 
-        // Verify runtime capability opt-in via LifecycleEnvelope
         let meta = DocumentMetadata::new(
             Uuid::new_v4(),
             None,
@@ -103,14 +111,39 @@ mod architecture_tests {
     }
 
     #[test]
-    fn test_3r_1_002_core_repositories_does_not_own_finance_repository() {
-        let repo_mod =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("src/infrastructure/repositories/mod.rs");
-        let content = fs::read_to_string(&repo_mod).expect("Failed to read repositories/mod.rs");
+    fn test_3r_1_1_002_core_domain_and_repositories_contain_zero_finance_files() {
+        let finance_entity_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/domain/entities/finance.rs");
+        let journal_entity_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/domain/entities/journal.rs");
+        let finance_repo_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/infrastructure/repositories/finance_repository.rs");
+        let journal_repo_file = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/infrastructure/repositories/journal_repository.rs");
 
-        assert!(
-            !content.contains("pub mod finance_repository;"),
-            "3R.1-002 Violation: Generic core infrastructure MUST NOT own finance_repository"
-        );
+        assert!(!finance_entity_file.exists(), "3R.1.1-002 Violation: core must not contain finance.rs entity");
+        assert!(!journal_entity_file.exists(), "3R.1.1-002 Violation: core must not contain journal.rs entity");
+        assert!(!finance_repo_file.exists(), "3R.1.1-002 Violation: core must not contain finance_repository.rs");
+        assert!(!journal_repo_file.exists(), "3R.1.1-002 Violation: core must not contain journal_repository.rs");
+    }
+
+    #[test]
+    fn test_3r_1_1_002_pure_finance_domain_entities_have_zero_sqlx_persistence_attributes() {
+        let finance_domain_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../finance/src/domain/entities");
+        assert!(finance_domain_dir.exists(), "Finance domain entities dir must exist");
+
+        for entry in fs::read_dir(&finance_domain_dir).expect("Read dir failed") {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("rs") {
+                let content = fs::read_to_string(&path).expect("Read file failed");
+                assert!(
+                    !content.contains("sqlx::FromRow"),
+                    "3R.1.1-002 Violation: Pure domain model in {:?} must not use sqlx::FromRow",
+                    path
+                );
+                assert!(
+                    !content.contains("sqlx::Type"),
+                    "3R.1.1-002 Violation: Pure domain model in {:?} must not use sqlx::Type",
+                    path
+                );
+            }
+        }
     }
 }
