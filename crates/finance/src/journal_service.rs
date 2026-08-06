@@ -1,15 +1,18 @@
-use uuid::Uuid;
-
+use crate::domain::entities::gl_entry::{PostingInstruction, PostingLineItem};
 use crate::domain::entities::journal::{
     CreateJournalEntryRequest, JournalEntry, JournalEntryDetail,
 };
+use crate::posting_engine::AccountingPostingEngine;
 use crate::repositories::{FinanceRepository, JournalRepository};
 use management_system_core::domain::errors::{DomainError, DomainResult};
+use management_system_core::infrastructure::database::UnitOfWork;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct JournalService {
     journal_repo: JournalRepository,
     finance_repo: FinanceRepository,
+    posting_engine: Option<AccountingPostingEngine>,
 }
 
 impl JournalService {
@@ -17,6 +20,19 @@ impl JournalService {
         Self {
             journal_repo,
             finance_repo,
+            posting_engine: None,
+        }
+    }
+
+    pub fn with_posting_engine(
+        journal_repo: JournalRepository,
+        finance_repo: FinanceRepository,
+        posting_engine: AccountingPostingEngine,
+    ) -> Self {
+        Self {
+            journal_repo,
+            finance_repo,
+            posting_engine: Some(posting_engine),
         }
     }
 
@@ -26,7 +42,7 @@ impl JournalService {
         req: CreateJournalEntryRequest,
         created_by: Option<Uuid>,
     ) -> DomainResult<JournalEntryDetail> {
-        // Validate debits == credits
+        // Validate debits == credits (QACC-004)
         let total_debit: rust_decimal::Decimal = req.lines.iter().map(|l| l.debit).sum();
         let total_credit: rust_decimal::Decimal = req.lines.iter().map(|l| l.credit).sum();
 
@@ -82,6 +98,13 @@ impl JournalService {
             .await?
             .ok_or_else(|| DomainError::not_found("JournalEntry", id))?;
 
+        if entry.header.status == crate::domain::entities::journal::JournalStatus::Posted {
+            return Err(DomainError::business_rule(
+                "AlreadyPosted",
+                "Journal entry is already in Posted status",
+            ));
+        }
+
         // Re-validate debits == credits before posting
         let total_debit: rust_decimal::Decimal = entry.lines.iter().map(|l| l.debit).sum();
         let total_credit: rust_decimal::Decimal = entry.lines.iter().map(|l| l.credit).sum();
@@ -115,9 +138,48 @@ impl JournalService {
             }
         }
 
-        self.journal_repo
-            .update_status(id, crate::domain::entities::journal::JournalStatus::Posted)
-            .await
+        if let Some(ref engine) = self.posting_engine {
+            let company_id = Uuid::nil(); // Default company scope
+            let instruction = PostingInstruction {
+                company_id,
+                posting_date: entry.header.date,
+                voucher_type: "JOURNAL_ENTRY".to_string(),
+                voucher_no: entry.header.transaction_number.clone(),
+                voucher_id: entry.header.id,
+                lines: entry
+                    .lines
+                    .iter()
+                    .map(|l| PostingLineItem {
+                        account_id: l.account_id,
+                        debit: l.debit,
+                        credit: l.credit,
+                        party_type: None,
+                        party_id: None,
+                        cost_center_id: None,
+                        project_id: None,
+                        currency: Some("IDR".to_string()),
+                        exchange_rate: Some(rust_decimal::Decimal::from(1)),
+                    })
+                    .collect(),
+                created_by: entry.header.created_by,
+            };
+
+            let mut uow = UnitOfWork::begin(self.journal_repo.pool()).await?;
+            engine.post_in_uow(uow.tx(), &instruction).await?;
+            JournalRepository::update_status_in_uow(
+                &mut uow,
+                id,
+                crate::domain::entities::journal::JournalStatus::Posted,
+            )
+            .await?;
+            uow.commit().await?;
+        } else {
+            self.journal_repo
+                .update_status(id, crate::domain::entities::journal::JournalStatus::Posted)
+                .await?;
+        }
+
+        Ok(())
     }
 
     pub async fn unpost_journal_entry(&self, id: Uuid) -> DomainResult<()> {
@@ -134,8 +196,31 @@ impl JournalService {
             ));
         }
 
-        self.journal_repo
-            .update_status(id, crate::domain::entities::journal::JournalStatus::Draft)
-            .await
+        if let Some(ref engine) = self.posting_engine {
+            let mut uow = UnitOfWork::begin(self.journal_repo.pool()).await?;
+            let _ = engine
+                .reverse_voucher_in_uow(
+                    uow.tx(),
+                    Uuid::nil(),
+                    "JOURNAL_ENTRY",
+                    id,
+                    chrono::Utc::now().date_naive(),
+                    None,
+                )
+                .await;
+            JournalRepository::update_status_in_uow(
+                &mut uow,
+                id,
+                crate::domain::entities::journal::JournalStatus::Draft,
+            )
+            .await?;
+            uow.commit().await?;
+        } else {
+            self.journal_repo
+                .update_status(id, crate::domain::entities::journal::JournalStatus::Draft)
+                .await?;
+        }
+
+        Ok(())
     }
 }

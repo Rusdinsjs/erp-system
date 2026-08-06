@@ -1,0 +1,3603 @@
+diff --git a/.env.example b/.env.example
+index a803a65..9854dfa 100644
+--- a/.env.example
++++ b/.env.example
+@@ -4,9 +4,13 @@ ENVIRONMENT=development
+ # Database Configuration
+ DB_USER=postgres
+ DB_PASSWORD=change_this_password
++DB_APP_USER=erpqu_app
++DB_APP_PASSWORD=change_this_app_password
+ DB_NAME=erpqu_management_system
+ DB_PORT=5432
+-DATABASE_URL=postgres://postgres:change_this_password@localhost:5432/erpqu_management_system
++MIGRATION_DATABASE_URL=postgres://postgres:change_this_password@localhost:5432/erpqu_management_system
++DATABASE_URL=postgres://erpqu_app:change_this_app_password@localhost:5432/erpqu_management_system
++TEST_APP_DB_ROLE=erpqu_app
+ 
+ # Redis Cache
+ REDIS_PORT=6379
+diff --git a/Cargo.lock b/Cargo.lock
+index 3eda2b9..0a72944 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2075,6 +2075,7 @@ dependencies = [
+  "rust_decimal_macros",
+  "serde",
+  "serde_json",
++ "sha2",
+  "sqlx",
+  "tokio",
+  "tracing",
+diff --git a/Cargo.toml b/Cargo.toml
+index 67e7176..be45547 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -58,7 +58,8 @@ tokio-cron-scheduler = "0.15.1"
+ image = { version = "0.24", features = ["webp"] }
+ 
+ # Validation
+-regex = "1.10"
++regex = "1.10"
++sha2 = "0.10"
+ 
+ # OpenAPI
+ utoipa = { version = "4.2", features = ["axum_extras", "uuid", "chrono"] }
+diff --git a/crates/api-server/src/api/handlers/finance_handler.rs b/crates/api-server/src/api/handlers/finance_handler.rs
+index 5704694..b7e375a 100644
+--- a/crates/api-server/src/api/handlers/finance_handler.rs
++++ b/crates/api-server/src/api/handlers/finance_handler.rs
+@@ -1,5 +1,6 @@
+ use axum::{
+     extract::{Path, State},
++    http::HeaderMap,
+     Json,
+ };
+ use serde_json::{json, Value};
+@@ -87,10 +88,16 @@ pub async fn list_cash_bank_transactions(
+ 
+ pub async fn create_sales_invoice(
+     State(state): State<AppState>,
++    headers: HeaderMap,
+     Json(payload): Json<CreateSalesInvoiceRequest>,
+ ) -> Result<Json<Value>, AppError> {
+     // TODO: extract actor_id and company_id from auth claims; using defaults for now
+-    let idempotency_key = uuid::Uuid::new_v4().to_string();
++    let idempotency_key = headers
++        .get("idempotency-key")
++        .and_then(|value| value.to_str().ok())
++        .filter(|value| !value.trim().is_empty())
++        .ok_or_else(|| AppError::BadRequest("Idempotency-Key header is required".to_string()))?
++        .to_string();
+     let invoice = state.finance_service.create_sales_invoice(
+         uuid::Uuid::nil(), uuid::Uuid::nil(), idempotency_key, payload
+     ).await?;
+@@ -108,9 +115,15 @@ pub async fn get_sales_invoice(
+ pub async fn update_sales_invoice(
+     State(state): State<AppState>,
+     Path(id): Path<Uuid>,
++    headers: HeaderMap,
+     Json(payload): Json<CreateSalesInvoiceRequest>,
+ ) -> Result<Json<Value>, AppError> {
+-    let idempotency_key = uuid::Uuid::new_v4().to_string();
++    let idempotency_key = headers
++        .get("idempotency-key")
++        .and_then(|value| value.to_str().ok())
++        .filter(|value| !value.trim().is_empty())
++        .ok_or_else(|| AppError::BadRequest("Idempotency-Key header is required".to_string()))?
++        .to_string();
+     let invoice = state
+         .finance_service
+         .update_sales_invoice(uuid::Uuid::nil(), uuid::Uuid::nil(), idempotency_key, id, payload)
+diff --git a/crates/api-server/src/api/handlers/report_handler.rs b/crates/api-server/src/api/handlers/report_handler.rs
+index 3fd5eca..668b4b3 100644
+--- a/crates/api-server/src/api/handlers/report_handler.rs
++++ b/crates/api-server/src/api/handlers/report_handler.rs
+@@ -85,7 +85,7 @@ pub async fn get_capex_opex_analysis(
+     Query(params): Query<AnalysisParams>,
+ ) -> Response {
+     match state
+-        .report_service
++        .finance_service
+         .get_capex_opex_analysis(params.start_date, params.end_date)
+         .await
+     {
+diff --git a/crates/api-server/src/api/server.rs b/crates/api-server/src/api/server.rs
+index 755d995..33b75af 100644
+--- a/crates/api-server/src/api/server.rs
++++ b/crates/api-server/src/api/server.rs
+@@ -297,7 +297,6 @@ impl AppState {
+         let report_service = ReportService::new(
+             asset_repo.clone(),
+             maintenance_repo.clone(),
+-            pool.clone(),
+             (*settings_repo).clone(),
+             fuel_repo.clone(),
+             loan_repo.clone(),
+diff --git a/crates/api-server/src/main.rs b/crates/api-server/src/main.rs
+index dd1b483..8532732 100644
+--- a/crates/api-server/src/main.rs
++++ b/crates/api-server/src/main.rs
+@@ -37,7 +37,25 @@ async fn main() {
+     );
+     tracing::info!("Environment: {}", config.environment);
+ 
+-    // Database connection pool
++    // Migrations run with a privileged connection; the application pool below must
++    // use the least-privilege runtime role from DATABASE_URL.
++    let migration_database_url = std::env::var("MIGRATION_DATABASE_URL")
++        .expect("MIGRATION_DATABASE_URL must be set separately from runtime DATABASE_URL");
++    let migration_pool = PgPoolOptions::new()
++        .max_connections(2)
++        .connect(&migration_database_url)
++        .await
++        .expect("Failed to connect to migration database");
++
++    tracing::info!("Running database migrations with migration role...");
++    sqlx::migrate!("../../migrations")
++        .run(&migration_pool)
++        .await
++        .expect("Failed to run migrations");
++    migration_pool.close().await;
++    tracing::info!("Migrations applied successfully.");
++
++    // Runtime database connection pool.
+     let pool = PgPoolOptions::new()
+         .max_connections(50)
+         .min_connections(5)
+@@ -55,14 +73,6 @@ async fn main() {
+ 
+     tracing::info!("Database connected successfully");
+ 
+-    // Run migrations
+-    tracing::info!("Running database migrations...");
+-    sqlx::migrate!("../../migrations")
+-        .run(&pool)
+-        .await
+-        .expect("Failed to run migrations");
+-    tracing::info!("Migrations applied successfully.");
+-
+     // JWT configuration
+     let jwt_config = JwtConfig::new(config.jwt_secret.clone(), config.jwt_expiry_hours);
+ 
+diff --git a/crates/core/src/application/services/audit_service.rs b/crates/core/src/application/services/audit_service.rs
+index 5b6523b..ed171c1 100644
+--- a/crates/core/src/application/services/audit_service.rs
++++ b/crates/core/src/application/services/audit_service.rs
+@@ -123,37 +123,6 @@ impl AuditService {
+             tracing::info!("Audit Service event listener started");
+             while let Ok(event) = receiver.recv().await {
+                 match event {
+-                    crate::domain::events::SystemEvent::ExpenseCreated {
+-                        expense_id,
+-                        amount,
+-                    } => {
+-                        let _ = service
+-                            .repository
+-                            .create_log(
+-                                "expenses",
+-                                expense_id,
+-                                "CREATE",
+-                                serde_json::json!({ "expense_id": expense_id, "amount": amount }),
+-                                None,
+-                            )
+-                            .await;
+-                    }
+-                    crate::domain::events::SystemEvent::PurchaseOrderCreated {
+-                        purchase_order_id,
+-                        vendor_id,
+-                        total_amount,
+-                    } => {
+-                        let _ = service
+-                            .repository
+-                            .create_log(
+-                                "purchase_orders",
+-                                purchase_order_id,
+-                                "CREATE",
+-                                serde_json::json!({ "purchase_order_id": purchase_order_id, "vendor_id": vendor_id, "total_amount": total_amount }),
+-                                None,
+-                            )
+-                            .await;
+-                    }
+                     crate::domain::events::SystemEvent::LoanRequested {
+                         loan_id,
+                         asset_id,
+diff --git a/crates/core/src/application/services/notification_service.rs b/crates/core/src/application/services/notification_service.rs
+index 6989e78..68aac05 100644
+--- a/crates/core/src/application/services/notification_service.rs
++++ b/crates/core/src/application/services/notification_service.rs
+@@ -359,40 +359,6 @@ impl NotificationService {
+             tracing::info!("Notification Service event listener started");
+             while let Ok(event) = receiver.recv().await {
+                 match event {
+-                    crate::domain::events::SystemEvent::ExpenseCreated {
+-                        expense_id,
+-                        amount,
+-                    } => {
+-                        // Example: Notify admins for all new expenses
+-                        let _ = service
+-                            .notify_admins(
+-                                "expense_created",
+-                                json!({
+-                                    "expense_id": expense_id,
+-                                    "amount": amount,
+-                                }),
+-                                Some("expense"),
+-                                Some(expense_id),
+-                            )
+-                            .await;
+-                    }
+-                    crate::domain::events::SystemEvent::PurchaseOrderCreated {
+-                        purchase_order_id,
+-                        vendor_id: _,
+-                        total_amount,
+-                    } => {
+-                        let _ = service
+-                            .notify_admins(
+-                                "purchase_order_created",
+-                                json!({
+-                                    "purchase_order_id": purchase_order_id,
+-                                    "amount": total_amount,
+-                                }),
+-                                Some("purchase_order"),
+-                                Some(purchase_order_id),
+-                            )
+-                            .await;
+-                    }
+                     crate::domain::events::SystemEvent::LoanRequested {
+                         loan_id,
+                         asset_name,
+diff --git a/crates/core/src/application/services/report_service.rs b/crates/core/src/application/services/report_service.rs
+index 8b20616..9b6ad58 100644
+--- a/crates/core/src/application/services/report_service.rs
++++ b/crates/core/src/application/services/report_service.rs
+@@ -15,7 +15,6 @@ use std::io::Cursor;
+ pub struct ReportService {
+     asset_repo: AssetRepository,
+     maintenance_repo: MaintenanceRepository,
+-    pool: sqlx::PgPool,
+     settings_repo: SettingsRepository,
+     fuel_repo: FuelRepository,
+     loan_repo: LoanRepository,
+@@ -26,7 +25,6 @@ impl ReportService {
+     pub fn new(
+         asset_repo: AssetRepository,
+         maintenance_repo: MaintenanceRepository,
+-        pool: sqlx::PgPool,
+         settings_repo: SettingsRepository,
+         fuel_repo: FuelRepository,
+         loan_repo: LoanRepository,
+@@ -35,7 +33,6 @@ impl ReportService {
+         Self {
+             asset_repo,
+             maintenance_repo,
+-            pool,
+             settings_repo,
+             fuel_repo,
+             loan_repo,
+@@ -272,29 +269,6 @@ impl ReportService {
+             .map_err(|e| DomainError::internal(e.to_string()))
+     }
+ 
+-    pub async fn get_capex_opex_analysis(
+-        &self,
+-        _start_date: Option<NaiveDate>,
+-        _end_date: Option<NaiveDate>,
+-    ) -> DomainResult<Vec<crate::domain::entities::analytics::ExpenseAnalysis>> {
+-        let records = sqlx::query_as::<_, crate::domain::entities::analytics::ExpenseAnalysis>(
+-            r#"
+-            SELECT 
+-                DATE_TRUNC('month', date)::date as month,
+-                COALESCE(expense_type, 'General') as expense_type,
+-                SUM(total_amount) as total_amount
+-            FROM expenses
+-            GROUP BY DATE_TRUNC('month', date)::date, COALESCE(expense_type, 'General')
+-            ORDER BY month DESC, expense_type ASC
+-            "#,
+-        )
+-        .fetch_all(&self.pool)
+-        .await
+-        .map_err(|e| DomainError::Database(e.to_string()))?;
+-
+-        Ok(records)
+-    }
+-
+     pub async fn get_asset_status_distribution(
+         &self,
+     ) -> DomainResult<Vec<crate::domain::entities::analytics::AssetStatusStats>> {
+diff --git a/crates/core/src/architecture_boundary_tests.rs b/crates/core/src/architecture_boundary_tests.rs
+index 75be7b3..8858502 100644
+--- a/crates/core/src/architecture_boundary_tests.rs
++++ b/crates/core/src/architecture_boundary_tests.rs
+@@ -10,7 +10,7 @@
+ #[cfg(test)]
+ mod architecture_tests {
+     use crate::domain::document::{
+-        DocumentMetadata, DocumentStatus, LifecycleEnvelope, Submittable,
++        DocumentMetadata, DocumentStatus, SubmissionEnvelope, Submittable,
+     };
+     use std::fs;
+     use std::path::Path;
+@@ -104,7 +104,16 @@ mod architecture_tests {
+             "TEST-ENV-001".to_string(),
+             Uuid::new_v4(),
+         );
+-        let mut envelope = LifecycleEnvelope::new(meta);
++        assert!(
++            !content.contains("impl Cancellable for SubmissionEnvelope"),
++            "3R.1.1-001 Violation: submission capability must not automatically grant cancellation"
++        );
++        assert!(
++            !content.contains("impl Amendable<SubmissionEnvelope> for SubmissionEnvelope"),
++            "3R.1.1-001 Violation: submission capability must not automatically grant amendment"
++        );
++
++        let mut envelope = SubmissionEnvelope::new(meta);
+         assert_eq!(envelope.status, DocumentStatus::Draft);
+         envelope.submit(Uuid::new_v4()).unwrap();
+         assert_eq!(envelope.status, DocumentStatus::Submitted);
+@@ -123,6 +132,41 @@ mod architecture_tests {
+         assert!(!journal_repo_file.exists(), "3R.1.1-002 Violation: core must not contain journal_repository.rs");
+     }
+ 
++    #[test]
++    fn test_3r_1_1_002_finance_knowledge_does_not_reenter_generic_core() {
++        let core_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
++        let forbidden = [
++            "FinanceRepository",
++            "JournalRepository",
++            "ExpenseAnalysis",
++            "SystemEvent::ExpenseCreated",
++            "SystemEvent::PurchaseOrderCreated",
++            "FROM expenses",
++        ];
++        let mut violations = Vec::new();
++
++        fn scan(dir: &Path, forbidden: &[&str], violations: &mut Vec<String>) {
++            for entry in fs::read_dir(dir).expect("read core source") {
++                let path = entry.expect("read core entry").path();
++                if path.is_dir() {
++                    scan(&path, forbidden, violations);
++                } else if path.extension().and_then(|ext| ext.to_str()) == Some("rs")
++                    && !path.ends_with("architecture_boundary_tests.rs")
++                {
++                    let source = fs::read_to_string(&path).expect("read core source file");
++                    for token in forbidden {
++                        if source.contains(token) {
++                            violations.push(format!("{} contains {token}", path.display()));
++                        }
++                    }
++                }
++            }
++        }
++
++        scan(&core_src, &forbidden, &mut violations);
++        assert!(violations.is_empty(), "Finance leakage into core: {violations:?}");
++    }
++
+     #[test]
+     fn test_3r_1_1_002_pure_finance_domain_entities_have_zero_sqlx_persistence_attributes() {
+         let finance_domain_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../finance/src/domain/entities");
+diff --git a/crates/core/src/domain/document.rs b/crates/core/src/domain/document.rs
+index 4cf09a7..810bce2 100644
+--- a/crates/core/src/domain/document.rs
++++ b/crates/core/src/domain/document.rs
+@@ -136,31 +136,25 @@ pub trait WorkflowEnabled {
+     fn total_approval_steps(&self) -> i32;
+ }
+ 
+-/// Opt-In Lifecycle Envelope (3R.1-001 & 3R.1.1-001)
+-///
+-/// Wraps domain-neutral `DocumentMetadata` with explicit opt-in lifecycle management
+-/// (`status: DocumentStatus`) and optional capability details.
++/// Opt-in submission state. It grants submission only; cancellation and amendment
++/// remain independent capabilities implemented by the owning typed document.
+ #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+-pub struct LifecycleEnvelope {
++pub struct SubmissionEnvelope {
+     #[serde(flatten)]
+     pub metadata: DocumentMetadata,
+     pub status: DocumentStatus,
+-    pub cancellation: Option<CancellationDetails>,
+-    pub amendment: Option<AmendmentDetails>,
+ }
+ 
+-impl LifecycleEnvelope {
++impl SubmissionEnvelope {
+     pub fn new(metadata: DocumentMetadata) -> Self {
+         Self {
+             metadata,
+             status: DocumentStatus::Draft,
+-            cancellation: None,
+-            amendment: None,
+         }
+     }
+ }
+ 
+-impl Submittable for LifecycleEnvelope {
++impl Submittable for SubmissionEnvelope {
+     fn submit(&mut self, actor_id: Uuid) -> DomainResult<()> {
+         if self.status != DocumentStatus::Draft {
+             return Err(DomainError::invalid_transition(
+@@ -176,59 +170,6 @@ impl Submittable for LifecycleEnvelope {
+     }
+ }
+ 
+-impl Cancellable for LifecycleEnvelope {
+-    fn cancel(&mut self, actor_id: Uuid, reason: String) -> DomainResult<()> {
+-        if self.status != DocumentStatus::Submitted {
+-            return Err(DomainError::invalid_transition(
+-                self.status.as_str(),
+-                "CANCELLED",
+-            ));
+-        }
+-        let now = Utc::now();
+-        self.status = DocumentStatus::Cancelled;
+-        self.cancellation = Some(CancellationDetails {
+-            cancelled_by: actor_id,
+-            cancelled_at: now,
+-            cancellation_reason: reason,
+-        });
+-        self.metadata.updated_by = actor_id;
+-        self.metadata.updated_at = now;
+-        self.metadata.version += 1;
+-        Ok(())
+-    }
+-}
+-
+-impl Amendable<LifecycleEnvelope> for LifecycleEnvelope {
+-    fn amend(
+-        &mut self,
+-        actor_id: Uuid,
+-        new_document_number: String,
+-    ) -> DomainResult<LifecycleEnvelope> {
+-        if self.status != DocumentStatus::Cancelled {
+-            return Err(DomainError::invalid_transition(
+-                self.status.as_str(),
+-                "AMENDED",
+-            ));
+-        }
+-
+-        self.metadata.updated_by = actor_id;
+-        self.metadata.updated_at = Utc::now();
+-        self.metadata.version += 1;
+-
+-        let new_meta = DocumentMetadata::new(
+-            self.metadata.tenant_id,
+-            self.metadata.company_id,
+-            new_document_number,
+-            actor_id,
+-        );
+-        let mut new_envelope = LifecycleEnvelope::new(new_meta);
+-        new_envelope.amendment = Some(AmendmentDetails {
+-            amended_from_id: self.metadata.id,
+-        });
+-        Ok(new_envelope)
+-    }
+-}
+-
+ /// Shared trait implemented by typed ERP transaction models (QKRN-001)
+ pub trait DocumentHeader {
+     fn metadata(&self) -> &DocumentMetadata;
+diff --git a/crates/core/src/domain/entities/analytics.rs b/crates/core/src/domain/entities/analytics.rs
+index 2bc9116..3d117e5 100644
+--- a/crates/core/src/domain/entities/analytics.rs
++++ b/crates/core/src/domain/entities/analytics.rs
+@@ -12,10 +12,3 @@ pub struct AssetStatusStats {
+     pub status: String,
+     pub count: i64,
+ }
+-
+-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+-pub struct ExpenseAnalysis {
+-    pub month: chrono::NaiveDate,
+-    pub expense_type: String,
+-    pub total_amount: Decimal,
+-}
+diff --git a/crates/core/src/domain/events/mod.rs b/crates/core/src/domain/events/mod.rs
+index 5ca1047..3ccb49b 100644
+--- a/crates/core/src/domain/events/mod.rs
++++ b/crates/core/src/domain/events/mod.rs
+@@ -9,17 +9,6 @@ use uuid::Uuid;
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+ #[serde(tag = "event_type", content = "payload")]
+ pub enum SystemEvent {
+-    // Finance Events (Generic Payloads, 3R.1.1-002)
+-    ExpenseCreated {
+-        expense_id: Uuid,
+-        amount: Decimal,
+-    },
+-    PurchaseOrderCreated {
+-        purchase_order_id: Uuid,
+-        vendor_id: Uuid,
+-        total_amount: Decimal,
+-    },
+-
+     // Loan Events
+     LoanRequested {
+         loan_id: Uuid,
+diff --git a/crates/core/src/domain/mod.rs b/crates/core/src/domain/mod.rs
+index 9a03205..acf0979 100644
+--- a/crates/core/src/domain/mod.rs
++++ b/crates/core/src/domain/mod.rs
+@@ -20,7 +20,7 @@ pub use audit_trail::{AuditAction, DocumentAuditEntry};
+ pub use authz::*;
+ pub use document::{
+     Amendable, Cancellable, DocumentHeader, DocumentLine, DocumentMetadata, DocumentStatus,
+-    LifecycleEnvelope, Submittable, WorkflowEnabled,
++    SubmissionEnvelope, Submittable, WorkflowEnabled,
+ };
+ pub use entities::*;
+ pub use errors::*;
+diff --git a/crates/core/src/infrastructure/database/command_context.rs b/crates/core/src/infrastructure/database/command_context.rs
+index cf5cc8e..6b90e01 100644
+--- a/crates/core/src/infrastructure/database/command_context.rs
++++ b/crates/core/src/infrastructure/database/command_context.rs
+@@ -37,6 +37,8 @@ pub struct CommandContext {
+     pub correlation_id: String,
+     /// Client-supplied idempotency key.
+     pub idempotency_key: String,
++    /// Deterministic fingerprint of the material command payload.
++    pub request_fingerprint: String,
+ }
+ 
+ impl CommandContext {
+@@ -47,6 +49,7 @@ impl CommandContext {
+         source_id: Uuid,
+         correlation_id: impl Into<String>,
+         idempotency_key: impl Into<String>,
++        request_fingerprint: impl Into<String>,
+     ) -> Self {
+         Self {
+             actor_id,
+@@ -56,6 +59,7 @@ impl CommandContext {
+             source_id,
+             correlation_id: correlation_id.into(),
+             idempotency_key: idempotency_key.into(),
++            request_fingerprint: request_fingerprint.into(),
+         }
+     }
+ 
+@@ -70,18 +74,24 @@ impl CommandContext {
+ /// Atomically reserves an idempotency key inside an active `UnitOfWork`.
+ pub struct IdempotencyStore;
+ 
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum IdempotencyDecision {
++    Reserved,
++    Completed { outcome: String },
++}
++
+ impl IdempotencyStore {
+     /// Attempt to reserve `key` inside `uow`.
+     pub async fn check_and_reserve(
+         uow: &mut UnitOfWork,
+         ctx: &CommandContext,
+-    ) -> DomainResult<bool> {
++    ) -> DomainResult<IdempotencyDecision> {
+         let result = sqlx::query(
+             r#"
+             INSERT INTO idempotency_log
+                 (idempotency_key, actor_id, company_id, source_type, source_id,
+-                 correlation_id, status, created_at)
+-            VALUES ($1, $2, $3, $4, $5, $6, 'PROCESSING', NOW())
++                 correlation_id, request_fingerprint, status, created_at)
++            VALUES ($1, $2, $3, $4, $5, $6, $7, 'PROCESSING', NOW())
+             ON CONFLICT (idempotency_key) DO NOTHING
+             "#,
+         )
+@@ -91,27 +101,48 @@ impl IdempotencyStore {
+         .bind(&ctx.source_type)
+         .bind(ctx.source_id)
+         .bind(&ctx.correlation_id)
++        .bind(&ctx.request_fingerprint)
+         .execute(uow.conn())
+         .await
+         .map_err(|e| DomainError::Database(e.to_string()))?;
+ 
+         if result.rows_affected() == 0 {
+-            let row: (String,) =
+-                sqlx::query_as("SELECT status FROM idempotency_log WHERE idempotency_key = $1")
++            let row: (String, String, Option<String>, Uuid, Uuid, String) =
++                sqlx::query_as(
++                    r#"
++                    SELECT status, request_fingerprint, outcome, actor_id, company_id, source_type
++                    FROM idempotency_log
++                    WHERE idempotency_key = $1
++                    FOR UPDATE
++                    "#,
++                )
+                     .bind(&ctx.idempotency_key)
+                     .fetch_one(uow.conn())
+                     .await
+                     .map_err(|e| DomainError::Database(e.to_string()))?;
+ 
++            if row.1 != ctx.request_fingerprint
++                || row.3 != ctx.actor_id
++                || row.4 != ctx.company_id
++                || row.5 != ctx.source_type
++            {
++                return Err(DomainError::conflict(
++                    "Idempotency key was already used for a materially different command",
++                ));
++            }
++
+             if row.0 == "COMPLETED" {
+-                return Ok(false);
++                let outcome = row.2.ok_or_else(|| {
++                    DomainError::internal("Completed idempotency record has no cached outcome")
++                })?;
++                return Ok(IdempotencyDecision::Completed { outcome });
+             }
+             return Err(DomainError::conflict(
+                 "A concurrent request with the same idempotency key is in progress",
+             ));
+         }
+ 
+-        Ok(true)
++        Ok(IdempotencyDecision::Reserved)
+     }
+ 
+     /// Mark the idempotency key as COMPLETED with an optional outcome payload.
+diff --git a/crates/core/src/infrastructure/database/mod.rs b/crates/core/src/infrastructure/database/mod.rs
+index f2ef617..c870b12 100644
+--- a/crates/core/src/infrastructure/database/mod.rs
++++ b/crates/core/src/infrastructure/database/mod.rs
+@@ -6,6 +6,6 @@ pub mod command_context;
+ pub mod connection;
+ pub mod unit_of_work;
+ 
+-pub use command_context::{CommandContext, IdempotencyStore};
++pub use command_context::{CommandContext, IdempotencyDecision, IdempotencyStore};
+ pub use connection::*;
+ pub use unit_of_work::UnitOfWork;
+diff --git a/crates/core/src/kernel_invariant_tests.rs b/crates/core/src/kernel_invariant_tests.rs
+index 67d6a2f..580f9ad 100644
+--- a/crates/core/src/kernel_invariant_tests.rs
++++ b/crates/core/src/kernel_invariant_tests.rs
+@@ -16,8 +16,9 @@
+ mod kernel_unit_tests {
+     use crate::domain::audit_trail::AuditAction;
+     use crate::domain::document::{
+-        validate_header_line_relationship, Amendable, Cancellable, DocumentHeader, DocumentLine,
+-        DocumentMetadata, DocumentStatus, LifecycleEnvelope, Submittable,
++        validate_header_line_relationship, Amendable, AmendmentDetails, Cancellable,
++        CancellationDetails, DocumentHeader, DocumentLine, DocumentMetadata, DocumentStatus,
++        SubmissionEnvelope, Submittable,
+     };
+     use crate::domain::errors::DomainError;
+     use crate::domain::outbox::{OutboxEntry, OutboxStatus};
+@@ -73,6 +74,71 @@ mod kernel_unit_tests {
+         }
+     }
+ 
++    struct TestLifecycleDocument {
++        submission: SubmissionEnvelope,
++        cancellation: Option<CancellationDetails>,
++        amendment: Option<AmendmentDetails>,
++    }
++
++    impl TestLifecycleDocument {
++        fn new(metadata: DocumentMetadata) -> Self {
++            Self {
++                submission: SubmissionEnvelope::new(metadata),
++                cancellation: None,
++                amendment: None,
++            }
++        }
++    }
++
++    impl Submittable for TestLifecycleDocument {
++        fn submit(&mut self, actor_id: Uuid) -> crate::domain::errors::DomainResult<()> {
++            self.submission.submit(actor_id)
++        }
++    }
++
++    impl Cancellable for TestLifecycleDocument {
++        fn cancel(&mut self, actor_id: Uuid, reason: String) -> crate::domain::errors::DomainResult<()> {
++            if self.submission.status != DocumentStatus::Submitted {
++                return Err(DomainError::invalid_transition(
++                    self.submission.status.as_str(),
++                    "CANCELLED",
++                ));
++            }
++            self.submission.status = DocumentStatus::Cancelled;
++            self.cancellation = Some(CancellationDetails {
++                cancelled_by: actor_id,
++                cancelled_at: chrono::Utc::now(),
++                cancellation_reason: reason,
++            });
++            Ok(())
++        }
++    }
++
++    impl Amendable<TestLifecycleDocument> for TestLifecycleDocument {
++        fn amend(
++            &mut self,
++            actor_id: Uuid,
++            new_document_number: String,
++        ) -> crate::domain::errors::DomainResult<TestLifecycleDocument> {
++            if self.submission.status != DocumentStatus::Cancelled {
++                return Err(DomainError::invalid_transition(
++                    self.submission.status.as_str(),
++                    "AMEND",
++                ));
++            }
++            let source_id = self.submission.metadata.id;
++            let metadata = DocumentMetadata::new(
++                self.submission.metadata.tenant_id,
++                self.submission.metadata.company_id,
++                new_document_number,
++                actor_id,
++            );
++            let mut replacement = TestLifecycleDocument::new(metadata);
++            replacement.amendment = Some(AmendmentDetails { amended_from_id: source_id });
++            Ok(replacement)
++        }
++    }
++
+     // ─── QARC-002, QARC-003 & 3R.1-001: Capability Lifecycle & State Separation ───
+ 
+     #[test]
+@@ -93,7 +159,7 @@ mod kernel_unit_tests {
+         let tenant_id = Uuid::new_v4();
+         let actor_id = Uuid::new_v4();
+         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+-        let envelope = LifecycleEnvelope::new(meta);
++        let envelope = SubmissionEnvelope::new(meta);
+ 
+         assert_eq!(envelope.status, DocumentStatus::Draft);
+         assert_eq!(envelope.metadata.version, 1);
+@@ -105,7 +171,7 @@ mod kernel_unit_tests {
+         let tenant_id = Uuid::new_v4();
+         let actor_id = Uuid::new_v4();
+         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+-        let mut envelope = LifecycleEnvelope::new(meta);
++        let mut envelope = SubmissionEnvelope::new(meta);
+ 
+         envelope.submit(actor_id).unwrap();
+         assert_eq!(envelope.status, DocumentStatus::Submitted);
+@@ -128,7 +194,7 @@ mod kernel_unit_tests {
+         let tenant_id = Uuid::new_v4();
+         let actor_id = Uuid::new_v4();
+         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+-        let mut envelope = LifecycleEnvelope::new(meta);
++        let mut envelope = SubmissionEnvelope::new(meta);
+ 
+         envelope.submit(actor_id).unwrap();
+         let err = envelope.submit(actor_id);
+@@ -140,13 +206,13 @@ mod kernel_unit_tests {
+         let tenant_id = Uuid::new_v4();
+         let actor_id = Uuid::new_v4();
+         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+-        let mut envelope = LifecycleEnvelope::new(meta);
++        let mut envelope = TestLifecycleDocument::new(meta);
+ 
+         envelope.submit(actor_id).unwrap();
+         envelope
+             .cancel(actor_id, "Wrong vendor".to_string())
+             .unwrap();
+-        assert_eq!(envelope.status, DocumentStatus::Cancelled);
++        assert_eq!(envelope.submission.status, DocumentStatus::Cancelled);
+         let cancel_info = envelope.cancellation.as_ref().unwrap();
+         assert_eq!(cancel_info.cancellation_reason, "Wrong vendor");
+         assert_eq!(cancel_info.cancelled_by, actor_id);
+@@ -157,7 +223,7 @@ mod kernel_unit_tests {
+         let tenant_id = Uuid::new_v4();
+         let actor_id = Uuid::new_v4();
+         let meta = DocumentMetadata::new(tenant_id, None, "DOC-001".to_string(), actor_id);
+-        let mut envelope = LifecycleEnvelope::new(meta);
++        let mut envelope = TestLifecycleDocument::new(meta);
+ 
+         envelope.submit(actor_id).unwrap();
+         envelope.cancel(actor_id, "error".to_string()).unwrap();
+@@ -165,12 +231,12 @@ mod kernel_unit_tests {
+         let new_envelope = envelope.amend(actor_id, "DOC-001-R1".to_string()).unwrap();
+ 
+         // Original document stays Cancelled (QARC-003 semantics)
+-        assert_eq!(envelope.status, DocumentStatus::Cancelled);
++        assert_eq!(envelope.submission.status, DocumentStatus::Cancelled);
+         // Replacement document is a new Draft linked via amended_from_id
+-        assert_eq!(new_envelope.status, DocumentStatus::Draft);
++        assert_eq!(new_envelope.submission.status, DocumentStatus::Draft);
+         let amend_info = new_envelope.amendment.as_ref().unwrap();
+-        assert_eq!(amend_info.amended_from_id, envelope.metadata.id);
+-        assert_eq!(new_envelope.metadata.document_number, "DOC-001-R1");
++        assert_eq!(amend_info.amended_from_id, envelope.submission.metadata.id);
++        assert_eq!(new_envelope.submission.metadata.document_number, "DOC-001-R1");
+     }
+ 
+     // ─── QKRN-003: Optimistic Concurrency ─────────────────────────────────────
+@@ -188,7 +254,7 @@ mod kernel_unit_tests {
+         let tenant = Uuid::new_v4();
+         let actor = Uuid::new_v4();
+         let doc = DocumentMetadata::new(tenant, None, "DOC-002".to_string(), actor);
+-        let mut envelope = LifecycleEnvelope::new(doc);
++        let mut envelope = SubmissionEnvelope::new(doc);
+         envelope.submit(actor).unwrap(); // version → 2
+         let err = envelope.metadata.verify_version(1).unwrap_err();
+         match err {
+@@ -214,6 +280,7 @@ mod kernel_unit_tests {
+             source_id,
+             "corr-999",
+             "idempotency-key-001",
++            "fingerprint-001",
+         );
+ 
+         assert_eq!(ctx.actor_id, actor_id);
+diff --git a/crates/finance/Cargo.toml b/crates/finance/Cargo.toml
+index 2a66024..0ab6c1c 100644
+--- a/crates/finance/Cargo.toml
++++ b/crates/finance/Cargo.toml
+@@ -14,4 +14,5 @@ uuid = { workspace = true }
+ tracing = { workspace = true }
+ async-trait = { workspace = true }
+ tokio = { workspace = true }
+-serde_json = { workspace = true }
++serde_json = { workspace = true }
++sha2 = { workspace = true }
+diff --git a/crates/finance/src/domain/entities/finance.rs b/crates/finance/src/domain/entities/finance.rs
+index 527c3fe..45f64d1 100644
+--- a/crates/finance/src/domain/entities/finance.rs
++++ b/crates/finance/src/domain/entities/finance.rs
+@@ -6,6 +6,7 @@ use chrono::{DateTime, NaiveDate, Utc};
+ use rust_decimal::Decimal;
+ use serde::{Deserialize, Serialize};
+ use uuid::Uuid;
++use super::journal::JournalStatus;
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+ #[serde(rename_all = "lowercase")]
+@@ -67,6 +68,7 @@ pub struct AccountTreeNode {
+     pub name: String,
+     pub account_type: AccountType,
+     pub normal_balance: NormalBalance,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub balance: Decimal,
+     pub currency: String,
+     pub children: Vec<AccountTreeNode>,
+@@ -78,8 +80,11 @@ pub struct GeneralLedgerEntry {
+     pub transaction_number: String,
+     pub header_description: String,
+     pub line_description: Option<String>,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub debit: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub credit: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub balance: Decimal,
+ }
+ 
+@@ -89,7 +94,9 @@ pub struct TrialBalanceEntry {
+     pub account_code: String,
+     pub account_name: String,
+     pub account_type: AccountType,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub debit: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub credit: Decimal,
+ }
+ 
+@@ -97,9 +104,18 @@ pub struct TrialBalanceEntry {
+ pub struct FinancialReportEntry {
+     pub account_code: String,
+     pub account_name: String,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub balance: Decimal,
+ }
+ 
++#[derive(Debug, Clone, Serialize, Deserialize)]
++pub struct ExpenseAnalysis {
++    pub month: NaiveDate,
++    pub expense_type: String,
++    #[serde(with = "rust_decimal::serde::str")]
++    pub total_amount: Decimal,
++}
++
+ // --- Operational Finance Entities ---
+ 
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -110,12 +126,17 @@ pub struct SalesInvoice {
+     pub date: NaiveDate,
+     pub due_date: Option<NaiveDate>,
+     pub subject: Option<String>,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub subtotal: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub tax: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub total_amount: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub amount_paid: Decimal,
+     pub status: String,
+     pub journal_entry_id: Option<Uuid>,
++    pub journal_status: Option<JournalStatus>,
+     pub created_at: DateTime<Utc>,
+     pub attachment_url: Option<String>,
+ }
+@@ -125,21 +146,26 @@ pub struct SalesInvoiceItem {
+     pub id: Uuid,
+     pub invoice_id: Uuid,
+     pub description: String,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub quantity: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub unit_price: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub total_price: Decimal,
+     pub account_id: Option<Uuid>,
+ }
+ 
+-#[derive(Debug, Deserialize)]
++#[derive(Debug, Clone, Serialize, Deserialize)]
+ pub struct CreateInvoiceItemRequest {
+     pub description: String,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub quantity: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub unit_price: Decimal,
+     pub account_id: Option<Uuid>,
+ }
+ 
+-#[derive(Debug, Deserialize)]
++#[derive(Debug, Clone, Serialize, Deserialize)]
+ pub struct CreateSalesInvoiceRequest {
+     pub invoice_number: String,
+     pub client_id: Uuid,
+@@ -152,6 +178,7 @@ pub struct CreateSalesInvoiceRequest {
+ 
+ #[derive(Debug, Serialize, Deserialize)]
+ pub struct SalesInvoiceDetailResponse {
++    #[serde(flatten)]
+     pub invoice: SalesInvoice,
+     pub items: Vec<SalesInvoiceItem>,
+ }
+@@ -163,7 +190,9 @@ pub struct PurchaseBill {
+     pub vendor_id: Uuid,
+     pub date: NaiveDate,
+     pub due_date: Option<NaiveDate>,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub total_amount: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub amount_paid: Decimal,
+     pub status: String,
+     pub budget_type: String,
+@@ -198,6 +227,7 @@ pub struct Expense {
+     pub date: NaiveDate,
+     pub pay_from_account_id: Uuid,
+     pub recipient: String,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub total_amount: Decimal,
+     pub status: String,
+     pub expense_type: Option<String>,
+@@ -223,6 +253,7 @@ pub struct CashBankTransaction {
+     pub transaction_number: String,
+     pub transaction_type: String,
+     pub date: NaiveDate,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub amount: Decimal,
+     pub from_account_id: Option<Uuid>,
+     pub to_account_id: Option<Uuid>,
+@@ -238,6 +269,7 @@ pub struct CreateCashBankTransactionRequest {
+     pub transaction_number: Option<String>,
+     pub transaction_type: String,
+     pub date: NaiveDate,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub amount: Decimal,
+     pub from_account_id: Option<Uuid>,
+     pub to_account_id: Option<Uuid>,
+diff --git a/crates/finance/src/domain/entities/journal.rs b/crates/finance/src/domain/entities/journal.rs
+index 6283cbd..2aded75 100644
+--- a/crates/finance/src/domain/entities/journal.rs
++++ b/crates/finance/src/domain/entities/journal.rs
+@@ -33,7 +33,9 @@ pub struct JournalLine {
+     pub journal_entry_id: Uuid,
+     pub account_id: Uuid,
+     pub description: Option<String>,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub debit: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub credit: Decimal,
+ }
+ 
+@@ -48,7 +50,9 @@ pub struct JournalEntryDetail {
+ pub struct CreateJournalLineRequest {
+     pub account_id: Uuid,
+     pub description: Option<String>,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub debit: Decimal,
++    #[serde(with = "rust_decimal::serde::str")]
+     pub credit: Decimal,
+ }
+ 
+diff --git a/crates/finance/src/finance_service.rs b/crates/finance/src/finance_service.rs
+index 7e19e82..cf93bb7 100644
+--- a/crates/finance/src/finance_service.rs
++++ b/crates/finance/src/finance_service.rs
+@@ -1,4 +1,6 @@
+ use chrono::Utc;
++use serde::Serialize;
++use sha2::{Digest, Sha256};
+ use uuid::Uuid;
+ 
+ use crate::domain::entities::*;
+@@ -10,7 +12,9 @@ use management_system_core::domain::audit_trail::{AuditAction, DocumentAuditEntr
+ use management_system_core::domain::errors::{DomainError, DomainResult};
+ use management_system_core::domain::outbox::OutboxEntry;
+ use management_system_core::infrastructure::bus::EventBus;
+-use management_system_core::infrastructure::database::{CommandContext, IdempotencyStore, UnitOfWork};
++use management_system_core::infrastructure::database::{
++    CommandContext, IdempotencyDecision, IdempotencyStore, UnitOfWork,
++};
+ use management_system_core::infrastructure::repositories::{
+     AssetRepository, AuditTrailStore, OutboxStore, RentalRepository,
+ };
+@@ -27,6 +31,24 @@ pub struct FinanceService {
+ }
+ 
+ impl FinanceService {
++    fn request_fingerprint<T: Serialize>(
++        action: &str,
++        source_id: Option<Uuid>,
++        payload: &T,
++    ) -> DomainResult<String> {
++        let payload = serde_json::to_vec(payload)
++            .map_err(|e| DomainError::validation("payload", &e.to_string()))?;
++        let mut hasher = Sha256::new();
++        hasher.update(action.as_bytes());
++        hasher.update([0]);
++        if let Some(source_id) = source_id {
++            hasher.update(source_id.as_bytes());
++        }
++        hasher.update([0]);
++        hasher.update(payload);
++        Ok(format!("{:x}", hasher.finalize()))
++    }
++
+     pub fn new(
+         repo: FinanceRepository,
+         journal_repo: JournalRepository,
+@@ -242,10 +264,23 @@ impl FinanceService {
+         Ok(report)
+     }
+ 
++    pub async fn get_capex_opex_analysis(
++        &self,
++        start_date: Option<chrono::NaiveDate>,
++        end_date: Option<chrono::NaiveDate>,
++    ) -> DomainResult<Vec<ExpenseAnalysis>> {
++        self.repo.get_capex_opex_analysis(start_date, end_date).await
++    }
++
+     // --- Sales Invoice Management (3R.1.1-004 & 3R.1.1-005) ---
+ 
+     pub async fn list_sales_invoices(&self) -> DomainResult<Vec<SalesInvoice>> {
+-        self.repo.list_sales_invoices().await
++        let invoices = self.repo.list_sales_invoices().await?;
++        let mut enriched = Vec::with_capacity(invoices.len());
++        for invoice in invoices {
++            enriched.push(self.enrich_invoice_journal_status(invoice).await?);
++        }
++        Ok(enriched)
+     }
+ 
+     pub async fn create_sales_invoice(
+@@ -262,6 +297,9 @@ impl FinanceService {
+             ));
+         }
+ 
++        let request_fingerprint =
++            Self::request_fingerprint("CREATE_SALES_INVOICE", None, &req)?;
++
+         let total: rust_decimal::Decimal =
+             req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+         let invoice_id = Uuid::new_v4();
+@@ -278,6 +316,7 @@ impl FinanceService {
+             amount_paid: rust_decimal::Decimal::ZERO,
+             status: "draft".to_string(),
+             journal_entry_id: None,
++            journal_status: None,
+             created_at: Utc::now(),
+             attachment_url: req.attachment_url,
+         };
+@@ -307,13 +346,15 @@ impl FinanceService {
+             invoice_id,
+             "CREATE_SALES_INVOICE",
+             &idempotency_key,
++            request_fingerprint,
+         );
+ 
+-        if !IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await? {
+-            // Key already completed: return existing invoice if present
+-            if let Some(existing) = self.get_sales_invoice(invoice_id).await.ok() {
+-                return Ok(existing);
+-            }
++        if let IdempotencyDecision::Completed { outcome } =
++            IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await?
++        {
++            uow.rollback().await?;
++            return serde_json::from_str(&outcome)
++                .map_err(|e| DomainError::internal(format!("Invalid cached idempotency outcome: {e}")));
+         }
+ 
+         // 4. Persist Sales Invoice Header AND Lines atomically
+@@ -370,6 +411,7 @@ impl FinanceService {
+             .map_err(|e| DomainError::Database(e.to_string()))?;
+ 
+         created_invoice.journal_entry_id = Some(journal.header.id);
++        created_invoice.journal_status = Some(journal.header.status);
+ 
+         // 6. Append Audit Entry in SAME UoW (3R.1.1-005)
+         let audit_entry = DocumentAuditEntry {
+@@ -413,10 +455,26 @@ impl FinanceService {
+     }
+ 
+     pub async fn get_sales_invoice(&self, id: Uuid) -> DomainResult<SalesInvoice> {
+-        self.repo
++        let invoice = self.repo
+             .get_sales_invoice_by_id(id)
+             .await?
+-            .ok_or_else(|| DomainError::not_found("SalesInvoice", id))
++            .ok_or_else(|| DomainError::not_found("SalesInvoice", id))?;
++        self.enrich_invoice_journal_status(invoice).await
++    }
++
++    async fn enrich_invoice_journal_status(
++        &self,
++        mut invoice: SalesInvoice,
++    ) -> DomainResult<SalesInvoice> {
++        invoice.journal_status = match invoice.journal_entry_id {
++            Some(journal_id) => self
++                .journal_repo
++                .get_journal_entry_detail(journal_id)
++                .await?
++                .map(|detail| detail.header.status),
++            None => None,
++        };
++        Ok(invoice)
+     }
+ 
+     pub async fn get_sales_invoice_detail(
+@@ -443,7 +501,16 @@ impl FinanceService {
+             ));
+         }
+ 
++        let request_fingerprint =
++            Self::request_fingerprint("UPDATE_SALES_INVOICE", Some(id), &req)?;
++
+         let mut invoice = self.get_sales_invoice(id).await?;
++        if invoice.journal_status == Some(JournalStatus::Posted) {
++            return Err(DomainError::business_rule(
++                "PostedJournalIsImmutable",
++                "Cannot edit a sales invoice whose journal is already posted",
++            ));
++        }
+         let total: rust_decimal::Decimal =
+             req.items.iter().map(|i| i.quantity * i.unit_price).sum();
+ 
+@@ -467,17 +534,23 @@ impl FinanceService {
+             id,
+             "UPDATE_SALES_INVOICE",
+             &idempotency_key,
++            request_fingerprint,
+         );
+ 
+-        if !IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await? {
+-            return Ok(invoice);
++        if let IdempotencyDecision::Completed { outcome } =
++            IdempotencyStore::check_and_reserve(&mut uow, &cmd_ctx).await?
++        {
++            uow.rollback().await?;
++            return serde_json::from_str(&outcome)
++                .map_err(|e| DomainError::internal(format!("Invalid cached idempotency outcome: {e}")));
+         }
+ 
+         // 3. Update Invoice Header + Lines in UoW
+-        let (updated_invoice, _updated_items) = self
++        let (mut updated_invoice, _updated_items) = self
+             .repo
+             .update_sales_invoice_with_uow(&mut uow, &invoice, &req.items)
+             .await?;
++        updated_invoice.journal_status = invoice.journal_status;
+ 
+         // 4. Update/Rebuild Draft Journal Entry in SAME UoW (3R.1.1-004)
+         if let Some(journal_id) = updated_invoice.journal_entry_id {
+@@ -518,7 +591,10 @@ impl FinanceService {
+                 ],
+             };
+ 
+-            JournalRepository::update_journal_entry_with_uow(&mut uow, journal_id, &journal_req).await?;
++            let updated_journal =
++                JournalRepository::update_journal_entry_with_uow(&mut uow, journal_id, &journal_req)
++                    .await?;
++            updated_invoice.journal_status = Some(updated_journal.header.status);
+         }
+ 
+         // 5. Append Audit Entry in SAME UoW (3R.1.1-005)
+diff --git a/crates/finance/src/repositories/finance_repository.rs b/crates/finance/src/repositories/finance_repository.rs
+index 3e12c06..8d3a596 100644
+--- a/crates/finance/src/repositories/finance_repository.rs
++++ b/crates/finance/src/repositories/finance_repository.rs
+@@ -1,5 +1,4 @@
+ use rust_decimal::Decimal;
+-use serde::{Deserialize, Serialize};
+ use sqlx::PgPool;
+ use uuid::Uuid;
+ 
+@@ -7,13 +6,23 @@ use crate::domain::entities::*;
+ use management_system_core::domain::errors::{DomainError, DomainResult};
+ use management_system_core::infrastructure::database::UnitOfWork;
+ 
+-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+-pub struct ExpenseAnalysis {
++#[derive(Debug, sqlx::FromRow)]
++struct ExpenseAnalysisRow {
+     pub month: chrono::NaiveDate,
+     pub expense_type: String,
+     pub total_amount: Decimal,
+ }
+ 
++impl From<ExpenseAnalysisRow> for ExpenseAnalysis {
++    fn from(row: ExpenseAnalysisRow) -> Self {
++        Self {
++            month: row.month,
++            expense_type: row.expense_type,
++            total_amount: row.total_amount,
++        }
++    }
++}
++
+ // --- Internal SQL persistence mapping rows (3R.1.1-002: Pure domain models carry 0 sqlx attributes) ---
+ 
+ #[derive(Debug, sqlx::FromRow)]
+@@ -93,6 +102,7 @@ impl From<SalesInvoiceRow> for SalesInvoice {
+             amount_paid: r.amount_paid,
+             status: r.status,
+             journal_entry_id: r.journal_entry_id,
++            journal_status: None,
+             created_at: r.created_at,
+             attachment_url: r.attachment_url,
+         }
+@@ -451,6 +461,33 @@ impl FinanceRepository {
+         self.list_accounts().await
+     }
+ 
++    pub async fn get_capex_opex_analysis(
++        &self,
++        start_date: Option<chrono::NaiveDate>,
++        end_date: Option<chrono::NaiveDate>,
++    ) -> DomainResult<Vec<ExpenseAnalysis>> {
++        let rows = sqlx::query_as::<_, ExpenseAnalysisRow>(
++            r#"
++            SELECT
++                DATE_TRUNC('month', date)::date AS month,
++                COALESCE(expense_type, 'General') AS expense_type,
++                SUM(total_amount) AS total_amount
++            FROM expenses
++            WHERE ($1::date IS NULL OR date >= $1)
++              AND ($2::date IS NULL OR date <= $2)
++            GROUP BY DATE_TRUNC('month', date)::date, COALESCE(expense_type, 'General')
++            ORDER BY month DESC, expense_type ASC
++            "#,
++        )
++        .bind(start_date)
++        .bind(end_date)
++        .fetch_all(&self.pool)
++        .await
++        .map_err(|e| DomainError::Database(e.to_string()))?;
++
++        Ok(rows.into_iter().map(Into::into).collect())
++    }
++
+     pub async fn create_sales_invoice_with_uow(
+         &self,
+         uow: &mut UnitOfWork,
+diff --git a/crates/finance/src/repositories/journal_repository.rs b/crates/finance/src/repositories/journal_repository.rs
+index fa86439..4492c47 100644
+--- a/crates/finance/src/repositories/journal_repository.rs
++++ b/crates/finance/src/repositories/journal_repository.rs
+@@ -150,6 +150,25 @@ impl JournalRepository {
+         journal_id: Uuid,
+         req: &CreateJournalEntryRequest,
+     ) -> DomainResult<JournalEntryDetail> {
++        let current_status: Option<(String,)> = sqlx::query_as(
++            "SELECT status FROM journal_entries WHERE id = $1 FOR UPDATE",
++        )
++        .bind(journal_id)
++        .fetch_optional(uow.conn())
++        .await
++        .map_err(|e| DomainError::Database(e.to_string()))?;
++
++        match current_status {
++            None => return Err(DomainError::not_found("JournalEntry", journal_id)),
++            Some((status,)) if !status.eq_ignore_ascii_case("draft") => {
++                return Err(DomainError::business_rule(
++                    "PostedJournalIsImmutable",
++                    "A posted journal entry cannot be rebuilt from an invoice update",
++                ));
++            }
++            Some(_) => {}
++        }
++
+         let header_row = sqlx::query_as::<_, JournalEntryRow>(
+             r#"
+             UPDATE journal_entries
+diff --git a/crates/finance/tests/sales_invoice_real_db_integration_tests.rs b/crates/finance/tests/sales_invoice_real_db_integration_tests.rs
+index 4a8c6e4..af4bd24 100644
+--- a/crates/finance/tests/sales_invoice_real_db_integration_tests.rs
++++ b/crates/finance/tests/sales_invoice_real_db_integration_tests.rs
+@@ -1,278 +1,356 @@
+-//! Real PostgreSQL Database Integration Tests (3R.1.1-004, 3R.1.1-005 & 3R.1.1-007)
+-//!
+-//! Connects to an actual PostgreSQL database via `PgPool`, executes production
+-//! repository/service operations inside `UnitOfWork` transactions, and asserts
+-//! persisted rows and rollback behavior on failures.
++//! Real PostgreSQL integration tests. These tests intentionally fail to start when
++//! SQLx cannot provision an isolated test database; there is no skip-by-return path.
+ 
+ use chrono::NaiveDate;
++use rust_decimal::Decimal;
+ use rust_decimal_macros::dec;
+ use sqlx::PgPool;
+ use uuid::Uuid;
+ 
+-use management_system_core::domain::audit_trail::{AuditAction, DocumentAuditEntry};
+-use management_system_core::domain::errors::DomainError;
+-use management_system_core::domain::outbox::OutboxEntry;
+ use management_system_core::infrastructure::bus::EventBus;
+-use management_system_core::infrastructure::database::{CommandContext, IdempotencyStore, UnitOfWork};
+-use management_system_core::infrastructure::repositories::{
+-    AssetRepository, AuditTrailStore, OutboxStore, RentalRepository,
+-};
++use management_system_core::infrastructure::repositories::{AssetRepository, RentalRepository};
+ use management_system_finance::domain::entities::*;
+-use management_system_finance::repositories::{FinanceRepository, JournalRepository};
++use management_system_finance::repositories::{AssetExpenseRepository, FinanceRepository, JournalRepository};
+ use management_system_finance::{AssetExpenseService, FinanceService, JournalService};
+ 
+-async fn get_test_pool() -> Option<PgPool> {
+-    let url = std::env::var("DATABASE_URL")
+-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/asset_management".to_string());
+-    PgPool::connect(&url).await.ok()
+-}
+-
+-#[tokio::test]
+-async fn test_real_db_sales_invoice_create_and_lines_atomicity() {
+-    let pool = match get_test_pool().await {
+-        Some(p) => p,
+-        None => {
+-            eprintln!("SKIP: PostgreSQL test database not available");
+-            return;
+-        }
+-    };
+-
+-    let actor_id = Uuid::new_v4();
+-    let company_id = Uuid::new_v4();
+-    let client_id = Uuid::new_v4();
+-    let idempotency_key = format!("IDEM-CREATE-{}", Uuid::new_v4());
+-
++fn service(pool: &PgPool) -> FinanceService {
+     let finance_repo = FinanceRepository::new(pool.clone());
+     let journal_repo = JournalRepository::new(pool.clone());
+-    let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
+     let asset_repo = AssetRepository::new(pool.clone());
+-    let rental_repo = RentalRepository::new(pool.clone());
+-    let asset_expense_service = AssetExpenseService::new(
+-        management_system_finance::repositories::AssetExpenseRepository::new(pool.clone()),
+-        asset_repo.clone(),
+-    );
+-    let event_bus = EventBus::new();
+-
+-    let service = FinanceService::new(
++    FinanceService::new(
+         finance_repo.clone(),
+         journal_repo.clone(),
+-        journal_service,
+-        asset_expense_service,
++        JournalService::new(journal_repo, finance_repo),
++        AssetExpenseService::new(AssetExpenseRepository::new(pool.clone()), asset_repo.clone()),
+         asset_repo,
+-        rental_repo,
+-        event_bus,
+-    );
++        RentalRepository::new(pool.clone()),
++        EventBus::new(),
++    )
++}
+ 
+-    let req = CreateSalesInvoiceRequest {
+-        invoice_number: format!("INV/TEST/{}", &Uuid::new_v4().to_string()[..8]),
++async fn seed_client(pool: &PgPool) -> Uuid {
++    let id = Uuid::new_v4();
++    sqlx::query("INSERT INTO clients (id, client_code, name) VALUES ($1, $2, $3)")
++        .bind(id)
++        .bind(format!("TEST-{}", &id.to_string()[..8]))
++        .bind("3R.1.1 Test Client")
++        .execute(pool)
++        .await
++        .expect("seed client");
++    id
++}
++
++fn request(client_id: Uuid, invoice_number: String, amount: Decimal) -> CreateSalesInvoiceRequest {
++    CreateSalesInvoiceRequest {
++        invoice_number,
+         client_id,
+         date: NaiveDate::from_ymd_opt(2026, 8, 6).unwrap(),
+         due_date: Some(NaiveDate::from_ymd_opt(2026, 8, 20).unwrap()),
+-        subject: Some("Real DB Test Invoice".to_string()),
+-        items: vec![
+-            CreateInvoiceItemRequest {
+-                description: "Item 1".to_string(),
+-                quantity: dec!(10.00),
+-                unit_price: dec!(150000.50),
+-                account_id: None,
+-            },
+-            CreateInvoiceItemRequest {
+-                description: "Item 2".to_string(),
+-                quantity: dec!(2.00),
+-                unit_price: dec!(250000.25),
+-                account_id: None,
+-            },
+-        ],
++        subject: Some("3R.1.1 DB integration".to_string()),
++        items: vec![CreateInvoiceItemRequest {
++            description: "Line A".to_string(),
++            quantity: dec!(1.0000),
++            unit_price: amount,
++            account_id: None,
++        }],
+         attachment_url: None,
+-    };
+-
+-    let result = service.create_sales_invoice(actor_id, company_id, idempotency_key.clone(), req).await;
+-    assert!(result.is_ok(), "Failed to create sales invoice: {:?}", result.err());
+-
+-    let invoice = result.unwrap();
+-    assert_eq!(invoice.total_amount, dec!(2000005.50));
+-
+-    // Query persisted DB state to verify atomicity
+-    let detail = service.get_sales_invoice_detail(invoice.id).await.unwrap();
+-    assert_eq!(detail.items.len(), 2);
+-    assert_eq!(detail.items[0].total_price, dec!(1500005.00));
+-    assert_eq!(detail.items[1].total_price, dec!(500000.50));
++    }
+ }
+ 
+-#[tokio::test]
+-async fn test_real_db_sales_invoice_update_atomicity_and_consistency() {
+-    let pool = match get_test_pool().await {
+-        Some(p) => p,
+-        None => return,
+-    };
+-
+-    let actor_id = Uuid::new_v4();
+-    let company_id = Uuid::new_v4();
+-    let client_id = Uuid::new_v4();
++fn number(prefix: &str) -> String {
++    format!("{prefix}/{}", &Uuid::new_v4().to_string()[..8])
++}
+ 
+-    let finance_repo = FinanceRepository::new(pool.clone());
+-    let journal_repo = JournalRepository::new(pool.clone());
+-    let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
+-    let asset_repo = AssetRepository::new(pool.clone());
+-    let rental_repo = RentalRepository::new(pool.clone());
+-    let asset_expense_service = AssetExpenseService::new(
+-        management_system_finance::repositories::AssetExpenseRepository::new(pool.clone()),
+-        asset_repo.clone(),
++async fn install_fail_trigger(pool: &PgPool, table: &str, trigger: &str) {
++    let function = format!("fail_{trigger}");
++    let function_sql = format!(
++        r#"
++        CREATE OR REPLACE FUNCTION {function}() RETURNS trigger AS $$
++        BEGIN
++            RAISE EXCEPTION 'forced 3R.1.1 failure: {table}';
++        END;
++        $$ LANGUAGE plpgsql
++        "#
+     );
+-    let event_bus = EventBus::new();
+-
+-    let service = FinanceService::new(
+-        finance_repo.clone(),
+-        journal_repo.clone(),
+-        journal_service,
+-        asset_expense_service,
+-        asset_repo,
+-        rental_repo,
+-        event_bus,
++    sqlx::query(&function_sql).execute(pool).await.expect("install failure function");
++    let trigger_sql = format!(
++        "CREATE TRIGGER {trigger} BEFORE INSERT ON {table} FOR EACH ROW EXECUTE FUNCTION {function}()"
+     );
++    sqlx::query(&trigger_sql).execute(pool).await.expect("install failure trigger");
++}
+ 
+-    let create_req = CreateSalesInvoiceRequest {
+-        invoice_number: format!("INV/UPD/{}", &Uuid::new_v4().to_string()[..8]),
+-        client_id,
+-        date: NaiveDate::from_ymd_opt(2026, 8, 6).unwrap(),
+-        due_date: None,
+-        subject: Some("Original Subject".to_string()),
+-        items: vec![CreateInvoiceItemRequest {
+-            description: "Initial Line".to_string(),
+-            quantity: dec!(1.00),
+-            unit_price: dec!(1000.00),
+-            account_id: None,
+-        }],
+-        attachment_url: None,
+-    };
++#[sqlx::test(migrations = "../../migrations")]
++async fn create_persists_header_lines_journal_audit_outbox_and_idempotency(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    let invoice_number = number("INV/CREATE");
++    let created = service(&pool)
++        .create_sales_invoice(
++            Uuid::new_v4(),
++            Uuid::new_v4(),
++            number("IDEM"),
++            CreateSalesInvoiceRequest {
++                items: vec![
++                    CreateInvoiceItemRequest {
++                        description: "A".to_string(),
++                        quantity: dec!(2.0000),
++                        unit_price: dec!(1500.1250),
++                        account_id: None,
++                    },
++                    CreateInvoiceItemRequest {
++                        description: "B".to_string(),
++                        quantity: dec!(1.0000),
++                        unit_price: dec!(2000.2500),
++                        account_id: None,
++                    },
++                ],
++                ..request(client, invoice_number, dec!(0))
++            },
++        )
++        .await
++        .expect("create invoice");
++
++    assert_eq!(created.total_amount, dec!(5000.5000));
++    assert_eq!(created.journal_status, Some(JournalStatus::Draft));
++    let line_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoice_items WHERE invoice_id = $1")
++        .bind(created.id).fetch_one(&pool).await.unwrap();
++    let audit_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM document_audit_trail WHERE document_id = $1")
++        .bind(created.id).fetch_one(&pool).await.unwrap();
++    let outbox_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM outbox WHERE source_id = $1")
++        .bind(created.id).fetch_one(&pool).await.unwrap();
++    assert_eq!((line_count, audit_count, outbox_count), (2, 1, 1));
++
++    let journal_id = created.journal_entry_id.unwrap();
++    let debit: Decimal = sqlx::query_scalar("SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE header_id = $1")
++        .bind(journal_id).fetch_one(&pool).await.unwrap();
++    let credit: Decimal = sqlx::query_scalar("SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE header_id = $1")
++        .bind(journal_id).fetch_one(&pool).await.unwrap();
++    assert_eq!(debit, created.total_amount);
++    assert_eq!(credit, created.total_amount);
++}
+ 
+-    let created = service.create_sales_invoice(actor_id, company_id, format!("IDEM-UPD-1-{}", Uuid::new_v4()), create_req).await.unwrap();
+-    assert_eq!(created.total_amount, dec!(1000.00));
++#[sqlx::test(migrations = "../../migrations")]
++async fn update_add_remove_lines_and_rebuild_draft_effect_atomically(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    let svc = service(&pool);
++    let created = svc.create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), request(client, number("INV/UPDATE"), dec!(1000.0000)),
++    ).await.unwrap();
++    let journal_id = created.journal_entry_id.unwrap();
+ 
+-    // Update with modified amount and extra lines (3R.1.1-004)
+-    let update_req = CreateSalesInvoiceRequest {
++    let update = CreateSalesInvoiceRequest {
+         invoice_number: created.invoice_number.clone(),
+-        client_id,
++        client_id: client,
+         date: created.date,
+         due_date: created.due_date,
+-        subject: Some("Updated Subject".to_string()),
++        subject: Some("updated".to_string()),
+         items: vec![
+-            CreateInvoiceItemRequest {
+-                description: "Updated Line 1".to_string(),
+-                quantity: dec!(2.00),
+-                unit_price: dec!(1500.00),
+-                account_id: None,
+-            },
+-            CreateInvoiceItemRequest {
+-                description: "New Line 2".to_string(),
+-                quantity: dec!(1.00),
+-                unit_price: dec!(2000.00),
+-                account_id: None,
+-            },
++            CreateInvoiceItemRequest { description: "replacement".to_string(), quantity: dec!(2), unit_price: dec!(1500.2500), account_id: None },
++            CreateInvoiceItemRequest { description: "added".to_string(), quantity: dec!(1), unit_price: dec!(2000.5000), account_id: None },
+         ],
+         attachment_url: None,
+     };
++    let updated = svc.update_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), created.id, update,
++    ).await.unwrap();
++    assert_eq!(updated.total_amount, dec!(5001.0000));
+ 
+-    let updated = service.update_sales_invoice(actor_id, company_id, format!("IDEM-UPD-2-{}", Uuid::new_v4()), created.id, update_req).await.unwrap();
+-    assert_eq!(updated.total_amount, dec!(5000.00)); // 2*1500 + 1*2000 = 5000
+-
+-    // Assert DB persistence consistency (source invoice + lines + journal effect consistent)
+-    let detail = service.get_sales_invoice_detail(created.id).await.unwrap();
+-    assert_eq!(detail.invoice.subject.as_deref(), Some("Updated Subject"));
++    let detail = svc.get_sales_invoice_detail(created.id).await.unwrap();
+     assert_eq!(detail.items.len(), 2);
+-    assert_eq!(detail.items[0].description, "Updated Line 1");
+-    assert_eq!(detail.items[1].description, "New Line 2");
++    assert_eq!(detail.items[0].description, "replacement");
++    assert_eq!(detail.items[1].description, "added");
++    let debit: Decimal = sqlx::query_scalar("SELECT COALESCE(SUM(debit), 0) FROM journal_lines WHERE header_id = $1")
++        .bind(journal_id).fetch_one(&pool).await.unwrap();
++    let credit: Decimal = sqlx::query_scalar("SELECT COALESCE(SUM(credit), 0) FROM journal_lines WHERE header_id = $1")
++        .bind(journal_id).fetch_one(&pool).await.unwrap();
++    assert_eq!(debit, updated.total_amount);
++    assert_eq!(credit, updated.total_amount);
+ }
+ 
+-#[tokio::test]
+-async fn test_real_db_empty_invoice_items_rejected() {
+-    let pool = match get_test_pool().await {
+-        Some(p) => p,
+-        None => return,
+-    };
++#[sqlx::test(migrations = "../../migrations")]
++async fn empty_lines_are_rejected_without_db_effects(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    let invoice_number = number("INV/EMPTY");
++    let mut req = request(client, invoice_number.clone(), dec!(1));
++    req.items.clear();
++    let result = service(&pool).create_sales_invoice(Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), req).await;
++    assert!(result.is_err());
++    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
++        .bind(invoice_number).fetch_one(&pool).await.unwrap();
++    assert_eq!(count, 0);
++}
+ 
+-    let actor_id = Uuid::new_v4();
+-    let company_id = Uuid::new_v4();
++#[sqlx::test(migrations = "../../migrations")]
++async fn line_failure_rolls_back_header_and_lines(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    install_fail_trigger(&pool, "sales_invoice_items", "fail_sales_invoice_item").await;
++    let invoice_number = number("INV/LINE-FAIL");
++    let result = service(&pool).create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), request(client, invoice_number.clone(), dec!(10)),
++    ).await;
++    assert!(result.is_err());
++    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
++        .bind(invoice_number).fetch_one(&pool).await.unwrap();
++    assert_eq!(count, 0);
++}
+ 
+-    let finance_repo = FinanceRepository::new(pool.clone());
+-    let journal_repo = JournalRepository::new(pool.clone());
+-    let journal_service = JournalService::new(journal_repo.clone(), finance_repo.clone());
+-    let asset_repo = AssetRepository::new(pool.clone());
+-    let rental_repo = RentalRepository::new(pool.clone());
+-    let asset_expense_service = AssetExpenseService::new(
+-        management_system_finance::repositories::AssetExpenseRepository::new(pool.clone()),
+-        asset_repo.clone(),
+-    );
++#[sqlx::test(migrations = "../../migrations")]
++async fn journal_failure_rolls_back_invoice_lines_audit_outbox_and_idempotency(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    install_fail_trigger(&pool, "journal_entries", "fail_invoice_journal").await;
++    let invoice_number = number("INV/JOURNAL-FAIL");
++    let key = number("IDEM/JOURNAL-FAIL");
++    let result = service(&pool).create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), key.clone(), request(client, invoice_number.clone(), dec!(10)),
++    ).await;
++    assert!(result.is_err());
++    let invoice_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
++        .bind(invoice_number).fetch_one(&pool).await.unwrap();
++    let idem_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM idempotency_log WHERE idempotency_key = $1")
++        .bind(key).fetch_one(&pool).await.unwrap();
++    assert_eq!((invoice_count, idem_count), (0, 0));
++}
+ 
+-    let service = FinanceService::new(
+-        finance_repo,
+-        journal_repo,
+-        journal_service,
+-        asset_expense_service,
+-        asset_repo,
+-        rental_repo,
+-        EventBus::new(),
+-    );
++#[sqlx::test(migrations = "../../migrations")]
++async fn audit_failure_rolls_back_source_effect_outbox_and_idempotency(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    install_fail_trigger(&pool, "document_audit_trail", "fail_invoice_audit").await;
++    let invoice_number = number("INV/AUDIT-FAIL");
++    let key = number("IDEM/AUDIT-FAIL");
++    let result = service(&pool).create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), key.clone(), request(client, invoice_number.clone(), dec!(10)),
++    ).await;
++    assert!(result.is_err());
++    let invoice_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
++        .bind(invoice_number).fetch_one(&pool).await.unwrap();
++    let idem_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM idempotency_log WHERE idempotency_key = $1")
++        .bind(key).fetch_one(&pool).await.unwrap();
++    assert_eq!((invoice_count, idem_count), (0, 0));
++}
+ 
+-    let req = CreateSalesInvoiceRequest {
+-        invoice_number: "INV/EMPTY/REJECT".to_string(),
+-        client_id: Uuid::new_v4(),
+-        date: NaiveDate::from_ymd_opt(2026, 8, 6).unwrap(),
+-        due_date: None,
+-        subject: None,
+-        items: vec![],
+-        attachment_url: None,
+-    };
++#[sqlx::test(migrations = "../../migrations")]
++async fn outbox_failure_rolls_back_source_effect_audit_and_idempotency(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    install_fail_trigger(&pool, "outbox", "fail_invoice_outbox").await;
++    let invoice_number = number("INV/OUTBOX-FAIL");
++    let key = number("IDEM/OUTBOX-FAIL");
++    let result = service(&pool).create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), key.clone(), request(client, invoice_number.clone(), dec!(10)),
++    ).await;
++    assert!(result.is_err());
++    let invoice_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
++        .bind(invoice_number).fetch_one(&pool).await.unwrap();
++    let audit_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM document_audit_trail WHERE document_type = 'SALES_INVOICE'")
++        .fetch_one(&pool).await.unwrap();
++    let idem_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM idempotency_log WHERE idempotency_key = $1")
++        .bind(key).fetch_one(&pool).await.unwrap();
++    assert_eq!((invoice_count, audit_count, idem_count), (0, 0, 0));
++}
+ 
+-    let res = service.create_sales_invoice(actor_id, company_id, format!("IDEM-EMPTY-{}", Uuid::new_v4()), req).await;
+-    assert!(res.is_err());
+-    match res.unwrap_err() {
+-        DomainError::Validation { field, message } => {
+-            assert_eq!(field, "items");
+-            assert!(message.contains("at least one line item"));
+-        }
+-        other => panic!("Expected DomainError::Validation, got {:?}", other),
+-    }
++#[sqlx::test(migrations = "../../migrations")]
++async fn idempotency_failure_happens_before_any_source_effect(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    install_fail_trigger(&pool, "idempotency_log", "fail_invoice_idempotency").await;
++    let invoice_number = number("INV/IDEM-FAIL");
++    let result = service(&pool).create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), number("IDEM/FAIL"), request(client, invoice_number.clone(), dec!(10)),
++    ).await;
++    assert!(result.is_err());
++    let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE invoice_number = $1")
++        .bind(invoice_number).fetch_one(&pool).await.unwrap();
++    assert_eq!(count, 0);
+ }
+ 
+-#[tokio::test]
+-async fn test_real_db_uow_rollback_on_simulated_audit_failure() {
+-    let pool = match get_test_pool().await {
+-        Some(p) => p,
+-        None => return,
+-    };
++#[sqlx::test(migrations = "../../migrations")]
++async fn identical_idempotent_replay_returns_cached_result_without_duplicate_semantics(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    let svc = service(&pool);
++    let actor = Uuid::new_v4();
++    let company = Uuid::new_v4();
++    let key = number("IDEM/REPLAY");
++    let req = request(client, number("INV/REPLAY"), dec!(1234.5678));
++    let first = svc.create_sales_invoice(actor, company, key.clone(), req.clone()).await.unwrap();
++    let second = svc.create_sales_invoice(actor, company, key.clone(), req).await.unwrap();
++    assert_eq!(first.id, second.id);
++    assert_eq!(first.total_amount, second.total_amount);
++
++    let invoice_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sales_invoices WHERE id = $1")
++        .bind(first.id).fetch_one(&pool).await.unwrap();
++    let journal_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM journal_entries WHERE id = $1")
++        .bind(first.journal_entry_id.unwrap()).fetch_one(&pool).await.unwrap();
++    let audit_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM document_audit_trail WHERE document_id = $1")
++        .bind(first.id).fetch_one(&pool).await.unwrap();
++    let outbox_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM outbox WHERE source_id = $1")
++        .bind(first.id).fetch_one(&pool).await.unwrap();
++    assert_eq!((invoice_count, journal_count, audit_count, outbox_count), (1, 1, 1, 1));
++}
+ 
+-    let mut uow = UnitOfWork::begin(&pool).await.unwrap();
++#[sqlx::test(migrations = "../../migrations")]
++async fn same_idempotency_key_with_different_payload_is_conflict(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    let svc = service(&pool);
++    let actor = Uuid::new_v4();
++    let company = Uuid::new_v4();
++    let key = number("IDEM/CONFLICT");
++    let invoice_number = number("INV/CONFLICT");
++    let first_req = request(client, invoice_number.clone(), dec!(10));
++    svc.create_sales_invoice(actor, company, key.clone(), first_req).await.unwrap();
++    let conflict = svc.create_sales_invoice(actor, company, key, request(client, invoice_number, dec!(11))).await;
++    assert!(matches!(conflict, Err(management_system_core::domain::errors::DomainError::Conflict { .. })));
++}
+ 
+-    // Create an audit entry with invalid document_version (-999) or null field to simulate failure
+-    let invalid_audit = DocumentAuditEntry {
+-        id: Uuid::new_v4(),
+-        document_id: Uuid::new_v4(),
+-        document_type: "INVALID_TYPE".to_string(),
+-        action: AuditAction::Create.as_str().to_string(),
+-        actor_id: Uuid::new_v4(),
+-        tenant_id: Uuid::new_v4(),
+-        company_id: None,
+-        from_status: None,
+-        to_status: None,
+-        document_version: 1,
+-        reason: None,
+-        correlation_id: "CORR-001".to_string(),
+-        recorded_at: chrono::Utc::now(),
+-    };
++#[sqlx::test(migrations = "../../migrations")]
++async fn posted_journal_blocks_invoice_edit_and_preserves_source(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    let svc = service(&pool);
++    let created = svc.create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), request(client, number("INV/POSTED"), dec!(100)),
++    ).await.unwrap();
++    let journal_id = created.journal_entry_id.unwrap();
++    sqlx::query("UPDATE journal_entries SET status = 'posted' WHERE id = $1")
++        .bind(journal_id).execute(&pool).await.unwrap();
++
++    let update = request(client, created.invoice_number.clone(), dec!(999));
++    let result = svc.update_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), created.id, update,
++    ).await;
++    assert!(result.is_err());
++    let amount: Decimal = sqlx::query_scalar("SELECT total_amount FROM sales_invoices WHERE id = $1")
++        .bind(created.id).fetch_one(&pool).await.unwrap();
++    assert_eq!(amount, dec!(100));
++}
+ 
+-    let append_res = AuditTrailStore::append(&mut uow, &invalid_audit).await;
+-    assert!(append_res.is_ok());
++#[sqlx::test(migrations = "../../migrations")]
++async fn decimal_db_roundtrip_preserves_value_beyond_js_safe_integer(pool: PgPool) {
++    let client = seed_client(&pool).await;
++    let expected = dec!(9007199254740993.0100);
++    let created = service(&pool).create_sales_invoice(
++        Uuid::new_v4(), Uuid::new_v4(), number("IDEM"), request(client, number("INV/DECIMAL"), expected),
++    ).await.unwrap();
++    let persisted: Decimal = sqlx::query_scalar("SELECT total_amount FROM sales_invoices WHERE id = $1")
++        .bind(created.id).fetch_one(&pool).await.unwrap();
++    assert_eq!(persisted, expected);
++    let json = serde_json::to_value(&created).unwrap();
++    assert_eq!(json["total_amount"], "9007199254740993.0100");
++}
+ 
+-    // Explicit rollback
+-    uow.rollback().await.unwrap();
++async fn assert_audit_mutation_denied(pool: &PgPool, statement: &str) {
++    let role = std::env::var("TEST_APP_DB_ROLE")
++        .expect("TEST_APP_DB_ROLE must identify the actual runtime application DB role");
++    assert!(role.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'));
++    let mut conn = pool.acquire().await.unwrap();
++    sqlx::query(&format!("SET ROLE {role}"))
++        .execute(&mut *conn).await.expect("test admin must be able to SET ROLE to runtime role");
++    let result = sqlx::query(statement).execute(&mut *conn).await;
++    let _ = sqlx::query("RESET ROLE").execute(&mut *conn).await;
++    assert!(result.is_err(), "runtime role unexpectedly mutated append-only audit table");
++}
+ 
+-    // Assert that the record was not persisted to DB
+-    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM document_audit_trail WHERE id = $1")
+-        .bind(invalid_audit.id)
+-        .fetch_one(&pool)
+-        .await
+-        .unwrap();
++#[sqlx::test(migrations = "../../migrations")]
++async fn runtime_role_cannot_update_audit(pool: PgPool) {
++    assert_audit_mutation_denied(&pool, "UPDATE document_audit_trail SET reason = 'forbidden'").await;
++}
+ 
+-    assert_eq!(count.0, 0, "Rolled back audit entry must NOT exist in database");
++#[sqlx::test(migrations = "../../migrations")]
++async fn runtime_role_cannot_delete_audit(pool: PgPool) {
++    assert_audit_mutation_denied(&pool, "DELETE FROM document_audit_trail").await;
+ }
+diff --git a/docker-compose.prod.yml b/docker-compose.prod.yml
+index 6889866..eeadf22 100644
+--- a/docker-compose.prod.yml
++++ b/docker-compose.prod.yml
+@@ -8,10 +8,13 @@ services:
+     restart: unless-stopped
+     environment:
+       POSTGRES_USER: ${DB_USER:-postgres}
+-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+-      POSTGRES_DB: ${DB_NAME:-management_system}
+-    volumes:
+-      - postgres_data_prod:/var/lib/postgresql/data
++      POSTGRES_PASSWORD: ${DB_PASSWORD}
++      POSTGRES_DB: ${DB_NAME:-management_system}
++      DB_APP_USER: ${DB_APP_USER:-erpqu_app}
++      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
++    volumes:
++      - postgres_data_prod:/var/lib/postgresql/data
++      - ./postgres/init_app_user.sh:/docker-entrypoint-initdb.d/010-init-app-user.sh:ro
+     healthcheck:
+       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+       interval: 10s
+@@ -49,7 +52,8 @@ services:
+       redis:
+         condition: service_healthy
+     environment:
+-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-management_system}
++      MIGRATION_DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-management_system}
++      DATABASE_URL: postgres://${DB_APP_USER:-erpqu_app}:${DB_APP_PASSWORD}@postgres:5432/${DB_NAME:-management_system}
+       REDIS_URL: redis://redis:6379
+       JWT_SECRET: ${JWT_SECRET}
+       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 44e02e5..7413315 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -11,11 +11,14 @@ services:
+       POSTGRES_USER: ${DB_USER:-postgres}
+       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+       POSTGRES_DB: ${DB_NAME:-management_system}
++      DB_APP_USER: ${DB_APP_USER:-erpqu_app}
++      DB_APP_PASSWORD: ${DB_APP_PASSWORD:-erpqu_app_dev_only}
+       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+     volumes:
+       - postgres_data:/var/lib/postgresql/data
+       # Mount custom pg_hba.conf — trust auth untuk semua koneksi Docker internal
+       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
++      - ./postgres/init_app_user.sh:/docker-entrypoint-initdb.d/010-init-app-user.sh:ro
+     # Override pg_hba.conf location sehingga trust auth aktif
+     command: postgres -c hba_file=/etc/postgresql/pg_hba.conf -c password_encryption=scram-sha-256
+     ports:
+@@ -59,8 +62,8 @@ services:
+       redis:
+         condition: service_healthy
+     environment:
+-      # Trust auth aktif → password di URL ini TIDAK perlu cocok dengan volume
+-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-management_system}
++      MIGRATION_DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-management_system}
++      DATABASE_URL: postgres://${DB_APP_USER:-erpqu_app}:${DB_APP_PASSWORD:-erpqu_app_dev_only}@postgres:5432/${DB_NAME:-management_system}
+       REDIS_URL: redis://redis:6379
+       JWT_SECRET: ${JWT_SECRET:-management-system-secret-key-change-in-production}
+       JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+diff --git a/migrations/20260806000010_idempotency_request_fingerprint.sql b/migrations/20260806000010_idempotency_request_fingerprint.sql
+new file mode 100644
+index 0000000..63756c2
+--- /dev/null
++++ b/migrations/20260806000010_idempotency_request_fingerprint.sql
+@@ -0,0 +1,21 @@
++-- 3R.1.1: distinguish a safe replay from reuse of the same key for another command.
++ALTER TABLE idempotency_log
++    ADD COLUMN IF NOT EXISTS request_fingerprint TEXT;
++
++UPDATE idempotency_log
++SET request_fingerprint = 'legacy:' || idempotency_key
++WHERE request_fingerprint IS NULL;
++
++ALTER TABLE idempotency_log
++    ALTER COLUMN request_fingerprint SET NOT NULL;
++
++DO $$
++BEGIN
++    IF NOT EXISTS (
++        SELECT 1 FROM pg_constraint WHERE conname = 'chk_idempotency_request_fingerprint_nonempty'
++    ) THEN
++        ALTER TABLE idempotency_log
++            ADD CONSTRAINT chk_idempotency_request_fingerprint_nonempty
++            CHECK (length(btrim(request_fingerprint)) > 0);
++    END IF;
++END $$;
+diff --git a/postgres/init_app_user.sh b/postgres/init_app_user.sh
+new file mode 100644
+index 0000000..d6eb600
+--- /dev/null
++++ b/postgres/init_app_user.sh
+@@ -0,0 +1,52 @@
++#!/bin/sh
++set -eu
++
++: "${POSTGRES_USER:?POSTGRES_USER is required}"
++: "${POSTGRES_DB:?POSTGRES_DB is required}"
++: "${DB_APP_USER:?DB_APP_USER is required}"
++: "${DB_APP_PASSWORD:?DB_APP_PASSWORD is required}"
++
++psql -v ON_ERROR_STOP=1 \
++  --username "$POSTGRES_USER" \
++  --dbname "$POSTGRES_DB" \
++  --set=app_user="$DB_APP_USER" \
++  --set=app_password="$DB_APP_PASSWORD" <<'EOSQL'
++SELECT format(
++  'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
++  :'app_user', :'app_password'
++)
++WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') \gexec
++
++SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'app_user') \gexec
++SELECT format('GRANT USAGE ON SCHEMA public TO %I', :'app_user') \gexec
++
++-- Existing volumes already contain tables created before this role existed.
++-- Grant the runtime DML it needs without requiring the application to run as
++-- the migration/superuser role.
++SELECT format(
++  'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO %I',
++  :'app_user'
++) \gexec
++SELECT format(
++  'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO %I',
++  :'app_user'
++) \gexec
++
++-- Migrations run later as POSTGRES_USER. These defaults make their newly-created
++-- tables/sequences usable by the runtime role without granting DDL privileges.
++SELECT format(
++  'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO %I',
++  :'app_user'
++) \gexec
++SELECT format(
++  'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO %I',
++  :'app_user'
++) \gexec
++
++-- Re-applying this bootstrap to an existing volume must not undo the audit
++-- append-only invariant even when the audit migration already ran earlier.
++SELECT format('REVOKE UPDATE, DELETE ON TABLE audit_trail FROM %I', :'app_user')
++WHERE to_regclass('public.audit_trail') IS NOT NULL \gexec
++SELECT format('REVOKE UPDATE, DELETE ON TABLE immutable_audit_records FROM %I', :'app_user')
++WHERE to_regclass('public.immutable_audit_records') IS NOT NULL \gexec
++EOSQL
+diff --git a/postgres/init_app_user.sql b/postgres/init_app_user.sql
+deleted file mode 100644
+index cefd254..0000000
+--- a/postgres/init_app_user.sql
++++ /dev/null
+@@ -1,28 +0,0 @@
+--- ================================================================
+--- Least-Privilege Application Role Setup (QSEC-011)
+--- ================================================================
+--- Executed on database bootstrap to create a non-superuser application
+--- role for normal API database access.
+--- ================================================================
+-
+--- Create non-superuser application role
+-DO $$
+-BEGIN
+-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'erpqu_app') THEN
+-        CREATE ROLE erpqu_app WITH LOGIN PASSWORD 'change_this_app_password_in_prod';
+-    END IF;
+-END
+-$$;
+-
+--- Grant minimal necessary schema permissions to application role
+-GRANT CONNECT ON DATABASE management_system TO erpqu_app;
+-GRANT USAGE ON SCHEMA public TO erpqu_app;
+-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO erpqu_app;
+-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO erpqu_app;
+-
+--- Ensure future tables created by migrations automatically grant permissions to erpqu_app
+-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO erpqu_app;
+-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO erpqu_app;
+-
+--- Revoke dangerous superuser / DDL administrative privileges from application role
+-ALTER ROLE erpqu_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+diff --git a/web-admin/src/api/http.ts b/web-admin/src/api/http.ts
+index f31f117..13e598b 100644
+--- a/web-admin/src/api/http.ts
++++ b/web-admin/src/api/http.ts
+@@ -6,15 +6,23 @@ export const api = axios.create({
+     baseURL: import.meta.env.VITE_API_URL || '/api',
+ });
+ 
+-api.interceptors.request.use((config) => {
+-    const token = useAuthStore.getState().token;
+-    if (token) {
+-        const headers = config.headers || {};
+-        headers.Authorization = 'Bearer ' + token;
+-        config.headers = headers;
+-    }
+-    return config;
+-});
++api.interceptors.request.use((config) => {
++    const headers = config.headers || {};
++    const token = useAuthStore.getState().token;
++    if (token) {
++        headers.Authorization = 'Bearer ' + token;
++    }
++
++    const method = config.method?.toUpperCase();
++    const isSalesInvoiceCommand =
++        config.url?.startsWith('/finance/sales/invoices') && (method === 'POST' || method === 'PUT');
++    if (isSalesInvoiceCommand && !headers['Idempotency-Key']) {
++        headers['Idempotency-Key'] = crypto.randomUUID();
++    }
++
++    config.headers = headers;
++    return config;
++});
+ 
+ api.interceptors.response.use(
+     (response) => response,
+diff --git a/web-admin/src/api/journal.ts b/web-admin/src/api/journal.ts
+index fd64d07..a0bd95f 100644
+--- a/web-admin/src/api/journal.ts
++++ b/web-admin/src/api/journal.ts
+@@ -1,11 +1,12 @@
+-import { api } from './http';
++import { api } from './http';
++import type { DecimalString } from '../utils/decimal';
+ 
+ export interface JournalLine {
+     id: string;
+     account_id: string;
+     description?: string;
+-    debit: number;
+-    credit: number;
++    debit: DecimalString;
++    credit: DecimalString;
+ }
+ 
+ export interface JournalEntry {
+@@ -27,8 +28,8 @@ export interface JournalEntryDetail {
+ export interface CreateJournalLineRequest {
+     account_id: string;
+     description?: string;
+-    debit: number;
+-    credit: number;
++    debit: DecimalString;
++    credit: DecimalString;
+ }
+ 
+ export interface CreateJournalEntryRequest {
+diff --git a/web-admin/src/pages/Finance/CashBank.tsx b/web-admin/src/pages/Finance/CashBank.tsx
+index 63cce49..0db6d30 100644
+--- a/web-admin/src/pages/Finance/CashBank.tsx
++++ b/web-admin/src/pages/Finance/CashBank.tsx
+@@ -1,7 +1,8 @@
+ import { useState } from 'react';
+ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+-import { financeApi } from '../../api/finance';
+-import { Card, Button } from '../../components/ui';
++import { financeApi, type ChartOfAccount } from '../../api/finance';
++import { Card, Button } from '../../components/ui';
++import { formatCurrencyIDR } from '../../utils/decimal';
+ import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, MoreVertical, Search, X } from 'lucide-react';
+ import { toast } from 'sonner';
+ 
+@@ -22,7 +23,7 @@ export default function CashBank() {
+     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
+     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+-    const [selectedAccount, setSelectedAccount] = useState<any>(null);
++    const [selectedAccount, setSelectedAccount] = useState<ChartOfAccount | null>(null);
+ 
+     const createAccountMutation = useMutation({
+         mutationFn: financeApi.createAccount,
+@@ -31,8 +32,8 @@ export default function CashBank() {
+             setIsAddAccountModalOpen(false);
+             toast.success('Akun berhasil ditambahkan');
+         },
+-        onError: (err: any) => {
+-            toast.error('Gagal menambah akun: ' + err.message);
++        onError: (err: unknown) => {
++            toast.error('Gagal menambah akun: ' + (err instanceof Error ? err.message : 'Unknown error'));
+         }
+     });
+ 
+@@ -43,8 +44,8 @@ export default function CashBank() {
+             setIsTransferModalOpen(false);
+             toast.success('Transfer berhasil dicatat');
+         },
+-        onError: (err: any) => {
+-            toast.error('Gagal mencatat transfer: ' + err.message);
++        onError: (err: unknown) => {
++            toast.error('Gagal mencatat transfer: ' + (err instanceof Error ? err.message : 'Unknown error'));
+         }
+     });
+ 
+@@ -60,21 +61,13 @@ export default function CashBank() {
+                 toast.success('Pengiriman dana berhasil dicatat');
+             }
+         },
+-        onError: (err: any) => {
+-            toast.error('Gagal mencatat transaksi: ' + err.message);
++        onError: (err: unknown) => {
++            toast.error('Gagal mencatat transaksi: ' + (err instanceof Error ? err.message : 'Unknown error'));
+         }
+     });
+ 
+     const cashAccounts = accounts?.filter(a => a.code.startsWith('1-11')) || [];
+ 
+-    const formatCurrency = (value: number) => {
+-        return new Intl.NumberFormat('id-ID', {
+-            style: 'currency',
+-            currency: 'IDR',
+-            maximumFractionDigits: 0
+-        }).format(value);
+-    };
+-
+     const handleCreateAccount = (e: React.FormEvent<HTMLFormElement>) => {
+         e.preventDefault();
+         const formData = new FormData(e.currentTarget);
+@@ -94,7 +87,7 @@ export default function CashBank() {
+         const formData = new FormData(e.currentTarget);
+         createTransferMutation.mutate({
+             date: formData.get('date') as string,
+-            amount: parseFloat(formData.get('amount') as string),
++            amount: formData.get('amount') as string,
+             from_account_id: formData.get('from_account_id') as string,
+             to_account_id: formData.get('to_account_id') as string,
+             description: formData.get('description') as string,
+@@ -108,7 +101,7 @@ export default function CashBank() {
+         const formData = new FormData(e.currentTarget);
+         createTransactionMutation.mutate({
+             date: formData.get('date') as string,
+-            amount: parseFloat(formData.get('amount') as string),
++            amount: formData.get('amount') as string,
+             account_id: formData.get('account_id') as string,
+             contact_name: formData.get('contact_name') as string,
+             description: formData.get('description') as string,
+@@ -121,7 +114,7 @@ export default function CashBank() {
+         const formData = new FormData(e.currentTarget);
+         createTransactionMutation.mutate({
+             date: formData.get('date') as string,
+-            amount: parseFloat(formData.get('amount') as string),
++            amount: formData.get('amount') as string,
+             account_id: formData.get('account_id') as string,
+             contact_name: formData.get('contact_name') as string,
+             description: formData.get('description') as string,
+@@ -196,7 +189,7 @@ export default function CashBank() {
+                                     <div className="pt-4 border-t border-border">
+                                         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Saldo Saat Ini</p>
+                                         <p className="text-2xl font-bold text-foreground">
+-                                            {formatCurrency(0)} {/* Balance needs aggregation logic */}
++                                            {formatCurrencyIDR('0.0000')} {/* Balance needs aggregation logic */}
+                                         </p>
+                                     </div>
+                                 </div>
+@@ -259,7 +252,7 @@ export default function CashBank() {
+                                     <td colSpan={5} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
+                                 </tr>
+                             ) : transactions && transactions.length > 0 ? (
+-                                transactions.map((t: any) => (
++                                transactions.map((t) => (
+                                     <tr key={t.id} className="hover:bg-muted/50 transition-colors">
+                                         <td className="px-6 py-4 font-mono">{t.date}</td>
+                                         <td className="px-6 py-4 text-primary font-medium">{t.transaction_number}</td>
+@@ -280,7 +273,7 @@ export default function CashBank() {
+                                         </td>
+                                         <td className={`px-6 py-4 text-right font-semibold ${t.transaction_type === 'receive' ? 'text-emerald-500' : 'text-destructive'
+                                             }`}>
+-                                            {formatCurrency(t.amount)}
++                                            {formatCurrencyIDR(t.amount)}
+                                         </td>
+                                     </tr>
+                                 ))
+diff --git a/web-admin/src/pages/Finance/FinancialReports.tsx b/web-admin/src/pages/Finance/FinancialReports.tsx
+index e370b2a..a9a69d0 100644
+--- a/web-admin/src/pages/Finance/FinancialReports.tsx
++++ b/web-admin/src/pages/Finance/FinancialReports.tsx
+@@ -1,7 +1,8 @@
+ import { useState } from 'react';
+ import { useQuery } from '@tanstack/react-query';
+-import { financeApi } from '../../api/finance';
+-import { FileBarChart, PieChart, TrendingUp, Landmark } from 'lucide-react';
++import { financeApi } from '../../api/finance';
++import { FileBarChart, PieChart, TrendingUp, Landmark } from 'lucide-react';
++import { compareDecimalStrings, formatCurrencyIDR, sumDecimalStrings } from '../../utils/decimal';
+ 
+ export default function FinancialReports() {
+     const [reportType, setReportType] = useState<'balance-sheet' | 'income-statement'>('balance-sheet');
+@@ -18,7 +19,8 @@ export default function FinancialReports() {
+         enabled: reportType === 'income-statement'
+     });
+ 
+-    const totalBalance = (reportType === 'balance-sheet' ? balanceSheet : incomeStatement)?.reduce((sum, item) => sum + item.balance, 0) || 0;
++    const report = reportType === 'balance-sheet' ? balanceSheet : incomeStatement;
++    const totalBalance = sumDecimalStrings(report?.map((item) => item.balance) ?? []);
+ 
+     return (
+         <div className="space-y-6">
+@@ -77,7 +79,7 @@ export default function FinancialReports() {
+                                                 Memuat data...
+                                             </td>
+                                         </tr>
+-                                    ) : (reportType === 'balance-sheet' ? balanceSheet : incomeStatement)?.map((item) => (
++                                    ) : report?.map((item) => (
+                                         <tr key={item.account_code} className="hover:bg-muted/50 group transition-colors">
+                                             <td className="px-6 py-4 text-muted-foreground font-mono text-xs group-hover:text-primary transition-colors">
+                                                 {item.account_code}
+@@ -85,8 +87,8 @@ export default function FinancialReports() {
+                                             <td className="px-6 py-4 text-foreground font-medium">
+                                                 {item.account_name}
+                                             </td>
+-                                            <td className={`px-6 py-4 text-right font-semibold ${item.balance >= 0 ? 'text-foreground' : 'text-destructive'}`}>
+-                                                {item.balance.toLocaleString('id-ID')}
++                                            <td className={`px-6 py-4 text-right font-semibold ${compareDecimalStrings(item.balance, '0') >= 0 ? 'text-foreground' : 'text-destructive'}`}>
++                                                {formatCurrencyIDR(item.balance)}
+                                             </td>
+                                         </tr>
+                                     ))}
+@@ -96,8 +98,8 @@ export default function FinancialReports() {
+                                         <td colSpan={2} className="px-6 py-4 text-right font-bold text-foreground uppercase text-sm">
+                                             {reportType === 'balance-sheet' ? 'Total Ekuitas / Kekayaan' : 'Laba/Rugi Bersih'}
+                                         </td>
+-                                        <td className={`px-6 py-4 text-right font-bold text-lg ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+-                                            {totalBalance.toLocaleString('id-ID')}
++                                        <td className={`px-6 py-4 text-right font-bold text-lg ${compareDecimalStrings(totalBalance, '0') >= 0 ? 'text-primary' : 'text-destructive'}`}>
++                                            {formatCurrencyIDR(totalBalance)}
+                                         </td>
+                                     </tr>
+                                 </tfoot>
+diff --git a/web-admin/src/pages/Finance/GeneralLedger.tsx b/web-admin/src/pages/Finance/GeneralLedger.tsx
+index 69a5203..eebb14b 100644
+--- a/web-admin/src/pages/Finance/GeneralLedger.tsx
++++ b/web-admin/src/pages/Finance/GeneralLedger.tsx
+@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
+ import { financeApi } from '../../api/finance';
+ import { Search, Calendar, ArrowLeftRight, BookOpen } from 'lucide-react';
+ import { Table, TableHead, TableBody, TableRow, TableTh, TableTd, TableSkeleton } from '../../components/ui';
+-import dayjs from 'dayjs';
++import dayjs from 'dayjs';
++import { compareDecimalStrings, formatCurrencyIDR } from '../../utils/decimal';
+ 
+ export default function GeneralLedger() {
+     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+@@ -124,14 +125,14 @@ export default function GeneralLedger() {
+                                                 )}
+                                             </TableTd>
+                                             <TableTd align="right" className="font-mono font-bold text-emerald-500">
+-                                                {entry.debit > 0 ? entry.debit.toLocaleString('id-ID') : '-'}
++                                                {compareDecimalStrings(entry.debit, '0') > 0 ? formatCurrencyIDR(entry.debit) : '-'}
+                                             </TableTd>
+                                             <TableTd align="right" className="font-mono font-bold text-rose-500">
+-                                                {entry.credit > 0 ? entry.credit.toLocaleString('id-ID') : '-'}
++                                                {compareDecimalStrings(entry.credit, '0') > 0 ? formatCurrencyIDR(entry.credit) : '-'}
+                                             </TableTd>
+                                             <TableTd align="right">
+                                                 <span className="font-mono font-bold bg-muted/30 px-3 py-1.5 rounded-lg border border-border">
+-                                                    {entry.balance.toLocaleString('id-ID')}
++                                                    {formatCurrencyIDR(entry.balance)}
+                                                 </span>
+                                             </TableTd>
+                                         </TableRow>
+diff --git a/web-admin/src/pages/Finance/JournalEntryForm.tsx b/web-admin/src/pages/Finance/JournalEntryForm.tsx
+index e42ef62..c5159ce 100644
+--- a/web-admin/src/pages/Finance/JournalEntryForm.tsx
++++ b/web-admin/src/pages/Finance/JournalEntryForm.tsx
+@@ -3,7 +3,13 @@ import { ArrowLeft, Save, Plus, Trash, AlertCircle } from 'lucide-react';
+ import { useNavigate } from 'react-router-dom';
+ import { toast } from 'sonner';
+ import { journalApi, type CreateJournalEntryRequest } from '../../api/journal';
+-import { financeApi, type ChartOfAccount } from '../../api/finance';
++import { financeApi, type ChartOfAccount } from '../../api/finance';
++import {
++    compareDecimalStrings,
++    formatCurrencyIDR,
++    subtractDecimalStrings,
++    sumDecimalStrings,
++} from '../../utils/decimal';
+ 
+ interface JournalLineItem {
+     account_id: string;
+@@ -34,7 +40,7 @@ export default function JournalEntryForm() {
+         try {
+             const data = await financeApi.listAccounts();
+             setAccounts(data);
+-        } catch (error) {
++        } catch {
+             toast.error('Failed to load accounts');
+         }
+     };
+@@ -53,34 +59,34 @@ export default function JournalEntryForm() {
+         newLines[index] = { ...newLines[index], [field]: value };
+ 
+         // Auto-clear other side
+-        if (field === 'debit' && value && parseFloat(value) > 0) {
+-            newLines[index].credit = '';
+-        }
+-        if (field === 'credit' && value && parseFloat(value) > 0) {
+-            newLines[index].debit = '';
++        if (field === 'debit' && value && compareDecimalStrings(value, '0') > 0) {
++            newLines[index].credit = '';
++        }
++        if (field === 'credit' && value && compareDecimalStrings(value, '0') > 0) {
++            newLines[index].debit = '';
+         }
+ 
+         setLines(newLines);
+     };
+ 
+     const calculateTotals = () => {
+-        const totalDebit = lines.reduce((sum, line) => sum + (parseFloat(line.debit) || 0), 0);
+-        const totalCredit = lines.reduce((sum, line) => sum + (parseFloat(line.credit) || 0), 0);
+-        return { totalDebit, totalCredit, difference: totalDebit - totalCredit };
++        const totalDebit = sumDecimalStrings(lines.map((line) => line.debit || '0'));
++        const totalCredit = sumDecimalStrings(lines.map((line) => line.credit || '0'));
++        return { totalDebit, totalCredit, difference: subtractDecimalStrings(totalDebit, totalCredit) };
+     };
+ 
+     const { totalDebit, totalCredit, difference } = calculateTotals();
+-    const isBalanced = Math.abs(difference) < 0.01;
++    const isBalanced = compareDecimalStrings(difference, '0') === 0;
+ 
+     const handleSubmit = async (e: React.FormEvent) => {
+         e.preventDefault();
+ 
+         if (!isBalanced) {
+-            toast.error(`Journal is not balanced. Difference: ${Math.abs(difference).toLocaleString()}`);
++            toast.error(`Journal is not balanced. Difference: ${formatCurrencyIDR(difference)}`);
+             return;
+         }
+ 
+-        if (totalDebit === 0) {
++        if (compareDecimalStrings(totalDebit, '0') === 0) {
+             toast.error('Total amount cannot be zero');
+             return;
+         }
+@@ -100,17 +106,17 @@ export default function JournalEntryForm() {
+                 lines: lines.map(l => ({
+                     account_id: l.account_id,
+                     description: l.description,
+-                    debit: parseFloat(l.debit) || 0,
+-                    credit: parseFloat(l.credit) || 0,
++                    debit: l.debit || '0.0000',
++                    credit: l.credit || '0.0000',
+                 }))
+             };
+ 
+             await journalApi.create(payload);
+             toast.success('Journal entry created successfully');
+             navigate('/finance/journals');
+-        } catch (error: any) {
+-            console.error(error);
+-            toast.error(error.response?.data?.message || 'Failed to create journal entry');
++        } catch (error: unknown) {
++            console.error(error);
++            toast.error(error instanceof Error ? error.message : 'Failed to create journal entry');
+         } finally {
+             setSubmitting(false);
+         }
+@@ -269,16 +275,16 @@ export default function JournalEntryForm() {
+                         <div className="flex justify-end gap-16 max-w-2xl ml-auto mr-12">
+                             <div className="text-right">
+                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total Debit</p>
+-                                <p className="text-2xl font-black text-foreground font-mono">{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
++                                <p className="text-2xl font-black text-foreground font-mono">{formatCurrencyIDR(totalDebit)}</p>
+                             </div>
+                             <div className="text-right">
+                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total Credit</p>
+-                                <p className="text-2xl font-black text-foreground font-mono">{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
++                                <p className="text-2xl font-black text-foreground font-mono">{formatCurrencyIDR(totalCredit)}</p>
+                             </div>
+                             <div className="text-right">
+                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Difference</p>
+                                 <p className={`text-2xl font-black font-mono ${isBalanced ? 'text-emerald-500' : 'text-destructive animate-pulse'}`}>
+-                                    {Math.abs(difference).toLocaleString(undefined, { minimumFractionDigits: 2 })}
++                                    {formatCurrencyIDR(difference)}
+                                 </p>
+                             </div>
+                         </div>
+@@ -303,8 +309,8 @@ export default function JournalEntryForm() {
+                     </button>
+                     <button
+                         type="submit"
+-                        disabled={!isBalanced || submitting || totalDebit === 0}
+-                        className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all ${!isBalanced || submitting || totalDebit === 0
++                        disabled={!isBalanced || submitting || compareDecimalStrings(totalDebit, '0') === 0}
++                        className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all ${!isBalanced || submitting || compareDecimalStrings(totalDebit, '0') === 0
+                             ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                             : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl shadow-primary/20 hover:-translate-y-1'
+                             }`}
+diff --git a/web-admin/src/pages/Finance/PurchaseBills.tsx b/web-admin/src/pages/Finance/PurchaseBills.tsx
+index 2ea3aab..f8185ba 100644
+--- a/web-admin/src/pages/Finance/PurchaseBills.tsx
++++ b/web-admin/src/pages/Finance/PurchaseBills.tsx
+@@ -14,11 +14,13 @@ import {
+     CheckSquare,
+     X
+ } from 'lucide-react';
+-import { toast } from 'sonner';
++import { toast } from 'sonner';
++import { formatCurrencyIDR, subtractDecimalStrings, sumDecimalStrings } from '../../utils/decimal';
+ 
+ export default function PurchaseBills() {
+-    const [searchTerm, setSearchTerm] = useState('');
+-    const [isModalOpen, setIsModalOpen] = useState(false);
++    const [searchTerm, setSearchTerm] = useState('');
++    const [isModalOpen, setIsModalOpen] = useState(false);
++    const [defaultBillNumber, setDefaultBillNumber] = useState('');
+     const queryClient = useQueryClient();
+ 
+     const { data: bills, isLoading } = useQuery({
+@@ -39,18 +41,16 @@ export default function PurchaseBills() {
+             setIsModalOpen(false);
+             toast.success('Tagihan pembelian berhasil dibuat');
+         },
+-        onError: (error: any) => {
+-            toast.error('Gagal membuat tagihan: ' + error.message);
+-        }
+-    });
+-
+-    const formatCurrency = (value: number) => {
+-        return new Intl.NumberFormat('id-ID', {
+-            style: 'currency',
+-            currency: 'IDR',
+-            maximumFractionDigits: 0
+-        }).format(value);
+-    };
++        onError: (error: unknown) => {
++            toast.error('Gagal membuat tagihan: ' + (error instanceof Error ? error.message : 'Unknown error'));
++        }
++    });
++
++    const handleOpenCreate = () => {
++        const now = new Date();
++        setDefaultBillNumber(`BILL/${now.getFullYear()}/${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
++        setIsModalOpen(true);
++    };
+ 
+     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+         e.preventDefault();
+@@ -64,20 +64,28 @@ export default function PurchaseBills() {
+             items: [
+                 {
+                     description: (formData.get('item_description') as string) || '',
+-                    quantity: parseFloat(formData.get('quantity') as string) || 1,
+-                    unit_price: parseFloat(formData.get('unit_price') as string) || 0
++                    quantity: (formData.get('quantity') as string) || '1.0000',
++                    unit_price: (formData.get('unit_price') as string) || '0.0000'
+                 }
+             ]
+         };
+         createMutation.mutate(data);
+     };
+ 
+-    const totalPayable = bills?.reduce((acc: number, b: any) => acc + (b.total_amount - b.amount_paid), 0) || 0;
+-
+-    const stats = [
+-        { label: 'Total Utang', value: formatCurrency(totalPayable), icon: ShoppingBag, color: 'text-rose-400', bg: 'bg-rose-500/10' },
+-        { label: 'Jatuh Tempo', value: formatCurrency(bills?.filter((b: any) => b.status === 'overdue').reduce((a: any, b: any) => a + b.total_amount, 0) || 0), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
+-        { label: 'Lunas (Total)', value: formatCurrency(bills?.filter((b: any) => b.status === 'paid').reduce((a: any, b: any) => a + b.total_amount, 0) || 0), icon: CheckSquare, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
++    const totalPayable = sumDecimalStrings(
++        bills?.map((bill) => subtractDecimalStrings(bill.total_amount, bill.amount_paid)) ?? [],
++    );
++    const overdueTotal = sumDecimalStrings(
++        bills?.filter((bill) => bill.status === 'overdue').map((bill) => bill.total_amount) ?? [],
++    );
++    const paidTotal = sumDecimalStrings(
++        bills?.filter((bill) => bill.status === 'paid').map((bill) => bill.total_amount) ?? [],
++    );
++
++    const stats = [
++        { label: 'Total Utang', value: formatCurrencyIDR(totalPayable), icon: ShoppingBag, color: 'text-rose-400', bg: 'bg-rose-500/10' },
++        { label: 'Jatuh Tempo', value: formatCurrencyIDR(overdueTotal), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10' },
++        { label: 'Lunas (Total)', value: formatCurrencyIDR(paidTotal), icon: CheckSquare, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+     ];
+ 
+     return (
+@@ -93,7 +101,7 @@ export default function PurchaseBills() {
+                         Export
+                     </Button>
+                     <Button
+-                        onClick={() => setIsModalOpen(true)}
++                        onClick={handleOpenCreate}
+                         className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                     >
+                         <Plus size={18} />
+@@ -158,11 +166,11 @@ export default function PurchaseBills() {
+                                     <td colSpan={8} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
+                                 </tr>
+                             ) : bills && bills.length > 0 ? (
+-                                bills.map((b: any) => (
++                                bills.map((b) => (
+                                     <tr key={b.id} className="hover:bg-muted/50 transition-colors cursor-pointer group">
+                                         <td className="px-6 py-4 font-medium text-primary">{b.bill_number}</td>
+                                         <td className="px-6 py-4 text-foreground">
+-                                            {vendors.find((v: any) => v.id === b.vendor_id)?.name || b.vendor_id}
++                                            {vendors.find((v) => v.id === b.vendor_id)?.name || b.vendor_id}
+                                         </td>
+                                         <td className="px-6 py-4 font-mono">{b.date}</td>
+                                         <td className="px-6 py-4 font-mono">{b.due_date}</td>
+@@ -172,7 +180,7 @@ export default function PurchaseBills() {
+                                             </Badge>
+                                         </td>
+                                         <td className="px-6 py-4 text-right font-semibold text-foreground">
+-                                            {formatCurrency(b.total_amount)}
++                                            {formatCurrencyIDR(b.total_amount)}
+                                         </td>
+                                         <td className="px-6 py-4 text-center">
+                                             <Badge variant={b.status === 'paid' ? 'success' : 'danger'} className={`${b.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+@@ -218,7 +226,7 @@ export default function PurchaseBills() {
+                                         name="bill_number"
+                                         required
+                                         placeholder="BILL/2024/001"
+-                                        defaultValue={`BILL/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
++                                        defaultValue={defaultBillNumber}
+                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                     />
+                                 </div>
+@@ -230,7 +238,7 @@ export default function PurchaseBills() {
+                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                     >
+                                         <option value="">Pilih Supplier</option>
+-                                        {vendors.map((vendor: any) => (
++                                        {vendors.map((vendor) => (
+                                             <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                                         ))}
+                                     </select>
+diff --git a/web-admin/src/pages/Finance/Sales.tsx b/web-admin/src/pages/Finance/Sales.tsx
+index 948a28f..0149608 100644
+--- a/web-admin/src/pages/Finance/Sales.tsx
++++ b/web-admin/src/pages/Finance/Sales.tsx
+@@ -14,11 +14,13 @@ import {
+     CheckCircle2,
+     X
+ } from 'lucide-react';
+-import { toast } from 'sonner';
++import { toast } from 'sonner';
++import { deriveInvoiceStates, formatCurrencyIDR, subtractDecimalStrings, sumDecimalStrings } from '../../utils/decimal';
+ 
+ export default function Sales() {
+-    const [searchTerm, setSearchTerm] = useState('');
+-    const [isModalOpen, setIsModalOpen] = useState(false);
++    const [searchTerm, setSearchTerm] = useState('');
++    const [isModalOpen, setIsModalOpen] = useState(false);
++    const [createDefaults, setCreateDefaults] = useState({ invoiceNumber: '', date: '', dueDate: '' });
+     const queryClient = useQueryClient();
+ 
+     const { data: invoices, isLoading } = useQuery({
+@@ -39,18 +41,22 @@ export default function Sales() {
+             setIsModalOpen(false);
+             toast.success('Invoice berhasil dibuat dan dijurnal otomatis');
+         },
+-        onError: (error: any) => {
+-            toast.error('Gagal membuat invoice: ' + error.message);
+-        }
+-    });
+-
+-    const formatCurrency = (value: number) => {
+-        return new Intl.NumberFormat('id-ID', {
+-            style: 'currency',
+-            currency: 'IDR',
+-            maximumFractionDigits: 0
+-        }).format(value);
+-    };
++        onError: (error: unknown) => {
++            toast.error('Gagal membuat invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
++        }
++    });
++
++    const handleOpenCreate = () => {
++        const now = new Date();
++        const due = new Date(now);
++        due.setDate(due.getDate() + 7);
++        setCreateDefaults({
++            invoiceNumber: `INV/${now.getFullYear()}/${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
++            date: now.toISOString().slice(0, 10),
++            dueDate: due.toISOString().slice(0, 10),
++        });
++        setIsModalOpen(true);
++    };
+ 
+     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+         e.preventDefault();
+@@ -64,21 +70,26 @@ export default function Sales() {
+             items: [
+                 {
+                     description: (formData.get('item_description') as string) || '',
+-                    quantity: parseFloat(formData.get('quantity') as string) || 1,
+-                    unit_price: parseFloat(formData.get('unit_price') as string) || 0
++                    quantity: (formData.get('quantity') as string) || '1.0000',
++                    unit_price: (formData.get('unit_price') as string) || '0.0000'
+                 }
+             ]
+         };
+         createMutation.mutate(data);
+     };
+ 
+-    const totalReceivable = invoices?.reduce((acc: number, inv: any) => acc + (inv.total_amount - inv.amount_paid), 0) || 0;
+-    const unpaidCount = invoices?.filter((inv: any) => inv.status !== 'paid').length || 0;
+-
+-    const stats = [
+-        { label: 'Total Piutang', value: formatCurrency(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+-        { label: 'Belum Dibayar', value: unpaidCount.toString() + ' Invoice', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+-        { label: 'Lunas (Total)', value: formatCurrency(invoices?.filter((i: any) => i.status === 'paid').reduce((a: any, b: any) => a + b.total_amount, 0) || 0), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
++    const totalReceivable = sumDecimalStrings(
++        invoices?.map((invoice) => subtractDecimalStrings(invoice.total_amount, invoice.amount_paid)) ?? [],
++    );
++    const unpaidCount = invoices?.filter((invoice) => deriveInvoiceStates(invoice).payment !== 'paid').length ?? 0;
++    const paidTotal = sumDecimalStrings(
++        invoices?.filter((invoice) => deriveInvoiceStates(invoice).payment === 'paid').map((invoice) => invoice.total_amount) ?? [],
++    );
++
++    const stats = [
++        { label: 'Total Piutang', value: formatCurrencyIDR(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
++        { label: 'Belum Dibayar', value: unpaidCount.toString() + ' Invoice', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
++        { label: 'Lunas (Total)', value: formatCurrencyIDR(paidTotal), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+     ];
+ 
+     return (
+@@ -94,7 +105,7 @@ export default function Sales() {
+                         Export
+                     </Button>
+                     <Button
+-                        onClick={() => setIsModalOpen(true)}
++                        onClick={handleOpenCreate}
+                         className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                     >
+                         <Plus size={18} />
+@@ -158,23 +169,22 @@ export default function Sales() {
+                                     <td colSpan={7} className="px-6 py-8 text-center animate-pulse">Memuat data...</td>
+                                 </tr>
+                             ) : invoices && invoices.length > 0 ? (
+-                                invoices.map((inv: any) => (
++                                invoices.map((inv) => (
+                                     <tr key={inv.id} className="hover:bg-muted/50 transition-colors cursor-pointer group">
+                                         <td className="px-6 py-4 font-medium text-primary">{inv.invoice_number}</td>
+                                         <td className="px-6 py-4 text-foreground">
+-                                            {clients.find((c: any) => c.id === inv.client_id)?.name || inv.client_id}
++                                            {clients.find((c) => c.id === inv.client_id)?.name || inv.client_id}
+                                         </td>
+                                         <td className="px-6 py-4 font-mono text-xs">{new Date(inv.date).toLocaleDateString('id-ID')}</td>
+                                         <td className="px-6 py-4 font-mono text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID') : '-'}</td>
+                                         <td className="px-6 py-4 text-right font-semibold text-foreground">
+-                                            {formatCurrency(inv.total_amount)}
++                                            {formatCurrencyIDR(inv.total_amount)}
+                                         </td>
+                                         <td className="px-6 py-4 text-center">
+-                                            <Badge variant={inv.status === 'paid' ? 'success' : 'warning'} className={`${inv.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+-                                                inv.status === 'posted' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+-                                                    'bg-amber-500/10 text-amber-400 border-amber-500/20'
+-                                                }`}>
+-                                                {inv.status === 'paid' ? 'Lunas' : inv.status === 'posted' ? 'Terposting' : 'Draf'}
++                                            <Badge variant={deriveInvoiceStates(inv).payment === 'paid' ? 'success' : 'warning'} className={`${deriveInvoiceStates(inv).payment === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
++                                                'bg-amber-500/10 text-amber-400 border-amber-500/20'
++                                                }`}>
++                                                {deriveInvoiceStates(inv).payment === 'paid' ? 'Lunas' : deriveInvoiceStates(inv).payment === 'partially_paid' ? 'Sebagian' : 'Belum Dibayar'}
+                                             </Badge>
+                                         </td>
+                                         <td className="px-6 py-4 text-right">
+@@ -214,7 +224,7 @@ export default function Sales() {
+                                         name="invoice_number"
+                                         required
+                                         placeholder="INV/2024/001"
+-                                        defaultValue={`INV/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
++                                        defaultValue={createDefaults.invoiceNumber}
+                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                     />
+                                 </div>
+@@ -226,7 +236,7 @@ export default function Sales() {
+                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                     >
+                                         <option value="">Pilih Pelanggan</option>
+-                                        {clients.map((client: any) => (
++                                        {clients.map((client) => (
+                                             <option key={client.id} value={client.id}>{client.name}</option>
+                                         ))}
+                                     </select>
+@@ -240,7 +250,7 @@ export default function Sales() {
+                                         name="date"
+                                         type="date"
+                                         required
+-                                        defaultValue={new Date().toISOString().split('T')[0]}
++                                        defaultValue={createDefaults.date}
+                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                     />
+                                 </div>
+@@ -250,7 +260,7 @@ export default function Sales() {
+                                         name="due_date"
+                                         type="date"
+                                         required
+-                                        defaultValue={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
++                                        defaultValue={createDefaults.dueDate}
+                                         className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-primary outline-none transition-all"
+                                     />
+                                 </div>
+diff --git a/web-admin/src/pages/Finance/SalesInvoices.tsx b/web-admin/src/pages/Finance/SalesInvoices.tsx
+index 2cc36d7..d8f1316 100644
+--- a/web-admin/src/pages/Finance/SalesInvoices.tsx
++++ b/web-admin/src/pages/Finance/SalesInvoices.tsx
+@@ -3,7 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+ import { financeApi, type SalesInvoice, type CreateSalesInvoiceRequest, type UpdateSalesInvoiceRequest, type CreateInvoiceItemRequest } from '../../api/finance';
+ import { clientApi } from '../../api/client-management';
+ import { Card, Button, Badge } from '../../components/ui';
+-import { deriveInvoiceStates, calculateInvoiceTotal } from '../../utils/decimal';
++import {
++    calculateInvoiceTotalString,
++    deriveInvoiceStates,
++    formatCurrencyIDR,
++    subtractDecimalStrings,
++    sumDecimalStrings,
++} from '../../utils/decimal';
+ import {
+     Plus,
+     Search,
+@@ -29,13 +35,14 @@ export default function SalesInvoices() {
+     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+     const [viewInvoice, setViewInvoice] = useState<SalesInvoice | null>(null);
+     const [editInvoice, setEditInvoice] = useState<SalesInvoice | null>(null);
++    const [createDefaults, setCreateDefaults] = useState({ invoiceNumber: '', date: '', dueDate: '' });
+ 
+     // Dynamic line items state for create/edit modal
+     const [createItems, setCreateItems] = useState<CreateInvoiceItemRequest[]>([
+-        { description: '', quantity: 1, unit_price: 0 }
++        { description: '', quantity: '1.0000', unit_price: '0.0000' }
+     ]);
+     const [editItems, setEditItems] = useState<CreateInvoiceItemRequest[]>([
+-        { description: '', quantity: 1, unit_price: 0 }
++        { description: '', quantity: '1.0000', unit_price: '0.0000' }
+     ]);
+ 
+     const queryClient = useQueryClient();
+@@ -56,11 +63,11 @@ export default function SalesInvoices() {
+         onSuccess: () => {
+             queryClient.invalidateQueries({ queryKey: ['finance', 'sales-invoices'] });
+             setIsModalOpen(false);
+-            setCreateItems([{ description: '', quantity: 1, unit_price: 0 }]);
++            setCreateItems([{ description: '', quantity: '1.0000', unit_price: '0.0000' }]);
+             toast.success('Invoice berhasil dibuat dan dijurnal otomatis');
+         },
+-        onError: (error: any) => {
+-            toast.error('Gagal membuat invoice: ' + error.message);
++        onError: (error: unknown) => {
++            toast.error('Gagal membuat invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
+         }
+     });
+ 
+@@ -72,8 +79,8 @@ export default function SalesInvoices() {
+             setEditInvoice(null);
+             toast.success('Invoice berhasil diperbarui');
+         },
+-        onError: (error: any) => {
+-            toast.error('Gagal memperbarui invoice: ' + error.message);
++        onError: (error: unknown) => {
++            toast.error('Gagal memperbarui invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
+         }
+     });
+ 
+@@ -83,18 +90,22 @@ export default function SalesInvoices() {
+             queryClient.invalidateQueries({ queryKey: ['finance', 'sales-invoices'] });
+             toast.success('Invoice berhasil dihapus');
+         },
+-        onError: (error: any) => {
+-            toast.error('Gagal menghapus invoice: ' + error.message);
++        onError: (error: unknown) => {
++            toast.error('Gagal menghapus invoice: ' + (error instanceof Error ? error.message : 'Unknown error'));
+         }
+     });
+ 
+-    const formatCurrency = (value: number | string) => {
+-        const val = typeof value === 'number' ? value : parseFloat(value || '0') || 0;
+-        return new Intl.NumberFormat('id-ID', {
+-            style: 'currency',
+-            currency: 'IDR',
+-            maximumFractionDigits: 0
+-        }).format(val);
++    const handleOpenCreate = () => {
++        const now = new Date();
++        const due = new Date(now);
++        due.setDate(due.getDate() + 7);
++        setCreateDefaults({
++            invoiceNumber: `INV/${now.getFullYear()}/${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
++            date: now.toISOString().slice(0, 10),
++            dueDate: due.toISOString().slice(0, 10),
++        });
++        setCreateItems([{ description: '', quantity: '1.0000', unit_price: '0.0000' }]);
++        setIsModalOpen(true);
+     };
+ 
+     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+@@ -108,8 +119,9 @@ export default function SalesInvoices() {
+             subject: (formData.get('subject') as string) || undefined,
+             items: createItems.map(item => ({
+                 description: item.description,
+-                quantity: typeof item.quantity === 'number' ? item.quantity : parseFloat(item.quantity) || 1,
+-                unit_price: typeof item.unit_price === 'number' ? item.unit_price : parseFloat(item.unit_price) || 0
++                quantity: item.quantity,
++                unit_price: item.unit_price,
++                account_id: item.account_id,
+             }))
+         };
+         createMutation.mutate(data);
+@@ -130,11 +142,11 @@ export default function SalesInvoices() {
+                     }))
+                 );
+             } else {
+-                setEditItems([{ description: detail.subject || 'Penjualan', quantity: 1, unit_price: detail.total_amount }]);
++                setEditItems([{ description: detail.subject || 'Penjualan', quantity: '1.0000', unit_price: detail.total_amount }]);
+             }
+         } catch {
+             setEditInvoice(inv);
+-            setEditItems([{ description: inv.subject || 'Penjualan', quantity: 1, unit_price: inv.total_amount }]);
++            setEditItems([{ description: inv.subject || 'Penjualan', quantity: '1.0000', unit_price: inv.total_amount }]);
+         }
+     };
+ 
+@@ -159,8 +171,9 @@ export default function SalesInvoices() {
+             subject: (formData.get('subject') as string) || undefined,
+             items: editItems.map(item => ({
+                 description: item.description,
+-                quantity: typeof item.quantity === 'number' ? item.quantity : parseFloat(item.quantity) || 1,
+-                unit_price: typeof item.unit_price === 'number' ? item.unit_price : parseFloat(item.unit_price) || 0
++                quantity: item.quantity,
++                unit_price: item.unit_price,
++                account_id: item.account_id,
+             }))
+         };
+         updateMutation.mutate({ id: editInvoice.id, data });
+@@ -174,7 +187,7 @@ export default function SalesInvoices() {
+ 
+     const filteredInvoices = invoices?.filter((inv: SalesInvoice) => {
+         if (!searchTerm) return true;
+-        const clientName = clients.find((c: any) => c.id === inv.client_id)?.name || '';
++        const clientName = clients.find((c) => c.id === inv.client_id)?.name || '';
+         return (
+             inv.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+@@ -182,11 +195,9 @@ export default function SalesInvoices() {
+         );
+     });
+ 
+-    const totalReceivable = invoices?.reduce((acc: number, inv: SalesInvoice) => {
+-        const total = typeof inv.total_amount === 'number' ? inv.total_amount : parseFloat(inv.total_amount as string) || 0;
+-        const paid = typeof inv.amount_paid === 'number' ? inv.amount_paid : parseFloat(inv.amount_paid as string) || 0;
+-        return acc + (total - paid);
+-    }, 0) || 0;
++    const totalReceivable = sumDecimalStrings(
++        invoices?.map((inv) => subtractDecimalStrings(inv.total_amount, inv.amount_paid)) ?? [],
++    );
+ 
+     const unpaidCount = invoices?.filter((inv: SalesInvoice) => {
+         const { payment } = deriveInvoiceStates(inv);
+@@ -194,12 +205,13 @@ export default function SalesInvoices() {
+     }).length || 0;
+ 
+     const paidTotal = invoices?.filter((inv: SalesInvoice) => deriveInvoiceStates(inv).payment === 'paid')
+-        .reduce((a: number, b: SalesInvoice) => a + (typeof b.total_amount === 'number' ? b.total_amount : parseFloat(b.total_amount as string) || 0), 0) || 0;
++        .map((invoice) => invoice.total_amount) ?? [];
++    const paidTotalAmount = sumDecimalStrings(paidTotal);
+ 
+     const stats = [
+-        { label: 'Total Piutang', value: formatCurrency(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
++        { label: 'Total Piutang', value: formatCurrencyIDR(totalReceivable), icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+         { label: 'Belum Dibayar', value: unpaidCount.toString() + ' Invoice', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+-        { label: 'Lunas (Total)', value: formatCurrency(paidTotal), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
++        { label: 'Lunas (Total)', value: formatCurrencyIDR(paidTotalAmount), icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+     ];
+ 
+     return (
+@@ -215,10 +227,7 @@ export default function SalesInvoices() {
+                         Export
+                     </Button>
+                     <Button
+-                        onClick={() => {
+-                            setCreateItems([{ description: '', quantity: 1, unit_price: 0 }]);
+-                            setIsModalOpen(true);
+-                        }}
++                        onClick={handleOpenCreate}
+                         className="gap-2 bg-cyan-600 hover:bg-cyan-500"
+                     >
+                         <Plus size={18} />
+@@ -289,12 +298,12 @@ export default function SalesInvoices() {
+                                         <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
+                                             <td className="px-6 py-4 font-medium text-cyan-400 font-mono">{inv.invoice_number}</td>
+                                             <td className="px-6 py-4 text-white">
+-                                                {clients.find((c: any) => c.id === inv.client_id)?.name || inv.client_id}
++                                                {clients.find((c) => c.id === inv.client_id)?.name || inv.client_id}
+                                             </td>
+                                             <td className="px-6 py-4 font-mono text-xs">{new Date(inv.date).toLocaleDateString('id-ID')}</td>
+                                             <td className="px-6 py-4 font-mono text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID') : '-'}</td>
+                                             <td className="px-6 py-4 text-right font-semibold text-white font-mono">
+-                                                {formatCurrency(inv.total_amount)}
++                                                {formatCurrencyIDR(inv.total_amount)}
+                                             </td>
+                                             <td className="px-6 py-4 text-center">
+                                                 <Badge
+@@ -312,10 +321,10 @@ export default function SalesInvoices() {
+                                             </td>
+                                             <td className="px-6 py-4 text-center">
+                                                 <Badge
+-                                                    variant={states.posting === 'posted' ? 'success' : 'outline'}
+-                                                    className={states.posting === 'posted' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-slate-800 text-slate-400'}
++                                                    variant={states.journal === 'posted' ? 'success' : 'outline'}
++                                                    className={states.journal === 'posted' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-slate-800 text-slate-400'}
+                                                 >
+-                                                    {states.posting === 'posted' ? 'Terposting' : 'Draf'}
++                                                    {states.journal === 'posted' ? 'Terposting' : states.journal === 'draft' ? 'Draf' : 'Belum Ada'}
+                                                 </Badge>
+                                             </td>
+                                             <td className="px-6 py-4 text-center relative">
+@@ -411,7 +420,7 @@ export default function SalesInvoices() {
+                                 <div>
+                                     <p className="text-xs text-slate-500 uppercase">Pelanggan</p>
+                                     <p className="text-sm font-semibold text-white">
+-                                        {clients.find((c: any) => c.id === viewInvoice.client_id)?.name || viewInvoice.client_id}
++                                        {clients.find((c) => c.id === viewInvoice.client_id)?.name || viewInvoice.client_id}
+                                     </p>
+                                 </div>
+                                 <div>
+@@ -456,8 +465,8 @@ export default function SalesInvoices() {
+                                                     <tr key={idx} className="hover:bg-slate-950/30">
+                                                         <td className="p-2.5">{item.description}</td>
+                                                         <td className="p-2.5 text-center font-mono">{item.quantity}</td>
+-                                                        <td className="p-2.5 text-right font-mono">{formatCurrency(item.unit_price)}</td>
+-                                                        <td className="p-2.5 text-right font-mono font-semibold">{formatCurrency(item.total_price)}</td>
++                                                        <td className="p-2.5 text-right font-mono">{formatCurrencyIDR(item.unit_price)}</td>
++                                                        <td className="p-2.5 text-right font-mono font-semibold">{formatCurrencyIDR(item.total_price)}</td>
+                                                     </tr>
+                                                 ))}
+                                             </tbody>
+@@ -469,11 +478,11 @@ export default function SalesInvoices() {
+                             <div className="bg-cyan-500/5 p-4 rounded-xl border border-cyan-500/10 flex justify-between items-center">
+                                 <div>
+                                     <p className="text-xs text-cyan-400 uppercase font-semibold">Total Tagihan</p>
+-                                    <p className="text-2xl font-bold text-white font-mono mt-0.5">{formatCurrency(viewInvoice.total_amount)}</p>
++                                    <p className="text-2xl font-bold text-white font-mono mt-0.5">{formatCurrencyIDR(viewInvoice.total_amount)}</p>
+                                 </div>
+                                 <div className="text-right">
+                                     <p className="text-xs text-slate-400 uppercase">Sudah Dibayar</p>
+-                                    <p className="text-sm font-mono text-emerald-400 font-bold">{formatCurrency(viewInvoice.amount_paid || 0)}</p>
++                                    <p className="text-sm font-mono text-emerald-400 font-bold">{formatCurrencyIDR(viewInvoice.amount_paid || '0.0000')}</p>
+                                 </div>
+                             </div>
+ 
+@@ -521,7 +530,7 @@ export default function SalesInvoices() {
+                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                     >
+                                         <option value="">Pilih Pelanggan</option>
+-                                        {clients.map((client: any) => (
++                                        {clients.map((client) => (
+                                             <option key={client.id} value={client.id}>{client.name}</option>
+                                         ))}
+                                     </select>
+@@ -568,7 +577,7 @@ export default function SalesInvoices() {
+                                     <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Item Penjualan</h3>
+                                     <button
+                                         type="button"
+-                                        onClick={() => setEditItems([...editItems, { description: '', quantity: 1, unit_price: 0 }])}
++                                        onClick={() => setEditItems([...editItems, { description: '', quantity: '1.0000', unit_price: '0.0000' }])}
+                                         className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                                     >
+                                         <PlusCircle size={14} /> Tambah Line Item
+@@ -634,7 +643,7 @@ export default function SalesInvoices() {
+ 
+                                 <div className="text-right pt-2 border-t border-slate-800">
+                                     <span className="text-xs text-slate-500 uppercase mr-2">Estimasi Total:</span>
+-                                    <span className="text-sm font-bold text-white font-mono">{formatCurrency(calculateInvoiceTotal(editItems))}</span>
++                                    <span className="text-sm font-bold text-white font-mono">{formatCurrencyIDR(calculateInvoiceTotalString(editItems))}</span>
+                                 </div>
+                             </div>
+ 
+@@ -678,7 +687,7 @@ export default function SalesInvoices() {
+                                         name="invoice_number"
+                                         required
+                                         placeholder="INV/2024/001"
+-                                        defaultValue={`INV/${new Date().getFullYear()}/${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`}
++                                        defaultValue={createDefaults.invoiceNumber}
+                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                     />
+                                 </div>
+@@ -690,7 +699,7 @@ export default function SalesInvoices() {
+                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                     >
+                                         <option value="">Pilih Pelanggan</option>
+-                                        {clients.map((client: any) => (
++                                        {clients.map((client) => (
+                                             <option key={client.id} value={client.id}>{client.name}</option>
+                                         ))}
+                                     </select>
+@@ -704,7 +713,7 @@ export default function SalesInvoices() {
+                                         name="date"
+                                         type="date"
+                                         required
+-                                        defaultValue={new Date().toISOString().split('T')[0]}
++                                        defaultValue={createDefaults.date}
+                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all"
+                                     />
+                                 </div>
+@@ -714,7 +723,7 @@ export default function SalesInvoices() {
+                                         name="due_date"
+                                         type="date"
+                                         required
+-                                        defaultValue={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
++                                        defaultValue={createDefaults.dueDate}
+                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none transition-all font-mono"
+                                     />
+                                 </div>
+@@ -736,7 +745,7 @@ export default function SalesInvoices() {
+                                     <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Item Penjualan</h3>
+                                     <button
+                                         type="button"
+-                                        onClick={() => setCreateItems([...createItems, { description: '', quantity: 1, unit_price: 0 }])}
++                                        onClick={() => setCreateItems([...createItems, { description: '', quantity: '1.0000', unit_price: '0.0000' }])}
+                                         className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
+                                     >
+                                         <PlusCircle size={14} /> Tambah Line Item
+@@ -802,7 +811,7 @@ export default function SalesInvoices() {
+ 
+                                 <div className="text-right pt-2 border-t border-slate-800">
+                                     <span className="text-xs text-slate-500 uppercase mr-2">Estimasi Total:</span>
+-                                    <span className="text-sm font-bold text-white font-mono">{formatCurrency(calculateInvoiceTotal(createItems))}</span>
++                                    <span className="text-sm font-bold text-white font-mono">{formatCurrencyIDR(calculateInvoiceTotalString(createItems))}</span>
+                                 </div>
+                             </div>
+ 
+diff --git a/web-admin/src/pages/Finance/TrialBalance.tsx b/web-admin/src/pages/Finance/TrialBalance.tsx
+index 40635cd..f86b3ad 100644
+--- a/web-admin/src/pages/Finance/TrialBalance.tsx
++++ b/web-admin/src/pages/Finance/TrialBalance.tsx
+@@ -1,6 +1,7 @@
+ import { useQuery } from '@tanstack/react-query';
+ import { financeApi } from '../../api/finance';
+-import { Scale, Download } from 'lucide-react';
++import { Scale, Download } from 'lucide-react';
++import { compareDecimalStrings, formatCurrencyIDR, sumDecimalStrings } from '../../utils/decimal';
+ 
+ export default function TrialBalance() {
+     const { data: tb, isLoading } = useQuery({
+@@ -8,8 +9,8 @@ export default function TrialBalance() {
+         queryFn: financeApi.getTrialBalance
+     });
+ 
+-    const totalDebit = tb?.reduce((sum, item) => sum + item.debit, 0) || 0;
+-    const totalCredit = tb?.reduce((sum, item) => sum + item.credit, 0) || 0;
++    const totalDebit = sumDecimalStrings(tb?.map((item) => item.debit) ?? []);
++    const totalCredit = sumDecimalStrings(tb?.map((item) => item.credit) ?? []);
+ 
+     return (
+         <div className="space-y-6">
+@@ -43,7 +44,7 @@ export default function TrialBalance() {
+                                     </td>
+                                 </tr>
+                             ) : tb && tb.length > 0 ? (
+-                                tb.filter(item => item.debit > 0 || item.credit > 0).map((item) => (
++                                tb.filter(item => compareDecimalStrings(item.debit, '0') > 0 || compareDecimalStrings(item.credit, '0') > 0).map((item) => (
+                                     <tr key={item.account_id} className="hover:bg-muted/50 transition-colors">
+                                         <td className="px-6 py-4 text-primary font-mono text-sm font-medium">
+                                             {item.account_code}
+@@ -52,10 +53,10 @@ export default function TrialBalance() {
+                                             {item.account_name}
+                                         </td>
+                                         <td className="px-6 py-4 text-right text-emerald-500 font-medium">
+-                                            {item.debit > 0 ? item.debit.toLocaleString('id-ID') : '-'}
++                                            {compareDecimalStrings(item.debit, '0') > 0 ? formatCurrencyIDR(item.debit) : '-'}
+                                         </td>
+                                         <td className="px-6 py-4 text-right text-rose-500 font-medium">
+-                                            {item.credit > 0 ? item.credit.toLocaleString('id-ID') : '-'}
++                                            {compareDecimalStrings(item.credit, '0') > 0 ? formatCurrencyIDR(item.credit) : '-'}
+                                         </td>
+                                     </tr>
+                                 ))
+@@ -71,17 +72,17 @@ export default function TrialBalance() {
+                             <tr className="border-t-2 border-border">
+                                 <td colSpan={2} className="px-6 py-4 font-bold text-foreground text-right">TOTAL</td>
+                                 <td className="px-6 py-4 text-right text-emerald-500 font-bold border-l border-border">
+-                                    {totalDebit.toLocaleString('id-ID')}
++                                    {formatCurrencyIDR(totalDebit)}
+                                 </td>
+                                 <td className="px-6 py-4 text-right text-rose-500 font-bold border-l border-border">
+-                                    {totalCredit.toLocaleString('id-ID')}
++                                    {formatCurrencyIDR(totalCredit)}
+                                 </td>
+                             </tr>
+                         </tfoot>
+                     </table>
+                 </div>
+ 
+-                {totalDebit !== totalCredit && !isLoading && (
++                {compareDecimalStrings(totalDebit, totalCredit) !== 0 && !isLoading && (
+                     <div className="bg-destructive/10 border-t border-destructive/20 p-4 flex items-center gap-3 text-destructive text-sm">
+                         <Scale size={20} />
+                         <span>Perhatian: Neraca saldo tidak seimbang. Silakan periksa kembali jurnal umum Anda.</span>
+diff --git a/web-admin/src/test/finance-contract.test.ts b/web-admin/src/test/finance-contract.test.ts
+index b96f1a8..a5d7f28 100644
+--- a/web-admin/src/test/finance-contract.test.ts
++++ b/web-admin/src/test/finance-contract.test.ts
+@@ -5,20 +5,18 @@ import type { CreateSalesInvoiceRequest, SalesInvoice } from '../types/finance';
+ describe('QARC-011, 3R.1-003 & 3R.1.1-003 Frontend Contract & Unit Tests', () => {
+     describe('Exact Decimal Serialization & String Arithmetic (3R.1.1-003)', () => {
+         it('preserves exact decimal string formatting without floating point loss', () => {
+-            expect(toDecimalString(1500000.5)).toBe('1500000.50');
++            expect(toDecimalString('1500000.5')).toBe('1500000.50');
+             expect(toDecimalString('125.75')).toBe('125.75');
+-            expect(toDecimalString(0)).toBe('0.00');
+-            expect(toDecimalString(null)).toBe('0.00');
++            expect(toDecimalString('0')).toBe('0.00');
+         });
+ 
+         it('handles exact 0.1 + 0.2 and 1.005 rounding without binary float precision errors', () => {
+             // 1.005 in binary float rounding
+             expect(toDecimalString('1.005')).toBe('1.01');
+-            expect(toDecimalString(1.005)).toBe('1.01');
+ 
+             // Exact multiplication
+-            expect(multiplyDecimalStrings('0.1', '0.2')).toBe('0.02');
+-            expect(multiplyDecimalStrings('3', '33.33')).toBe('99.99');
++            expect(multiplyDecimalStrings('0.1', '0.2')).toBe('0.0200');
++            expect(multiplyDecimalStrings('3', '33.33')).toBe('99.9900');
+         });
+ 
+         it('handles large values > Number.MAX_SAFE_INTEGER with decimal fraction without loss', () => {
+@@ -32,7 +30,7 @@ describe('QARC-011, 3R.1-003 & 3R.1.1-003 Frontend Contract & Unit Tests', () =>
+                 { quantity: '3.00', unit_price: '25000.00' },
+                 { quantity: '1.00', unit_price: '12500.50' }
+             ];
+-            expect(calculateInvoiceTotalString(items)).toBe('187500.50');
++            expect(calculateInvoiceTotalString(items)).toBe('187500.5000');
+         });
+     });
+ 
+@@ -53,7 +51,11 @@ describe('QARC-011, 3R.1-003 & 3R.1.1-003 Frontend Contract & Unit Tests', () =>
+             expect(payload.items).toHaveLength(2);
+             expect(payload.items[0].description).toBe('Consulting Fee');
+             expect(payload.items[1].quantity).toBe('1.00');
+-            expect(calculateInvoiceTotalString(payload.items)).toBe('2000000.00');
++            expect(calculateInvoiceTotalString(payload.items)).toBe('2000000.0000');
++
++            const wire = JSON.stringify(payload);
++            const roundTrip = JSON.parse(wire) as CreateSalesInvoiceRequest;
++            expect(roundTrip.items[0].unit_price).toBe('150000.00');
+         });
+     });
+ 
+@@ -66,38 +68,38 @@ describe('QARC-011, 3R.1-003 & 3R.1.1-003 Frontend Contract & Unit Tests', () =>
+                 journal_entry_id: null
+             };
+             const states = deriveInvoiceStates(inv);
+-            expect(states.lifecycleState).toBe('draft');
+-            expect(states.paymentState).toBe('unpaid');
+-            expect(states.postingState).toBe('unposted');
++            expect(states.lifecycle).toBe('draft');
++            expect(states.payment).toBe('unpaid');
++            expect(states.journal).toBe('none');
+         });
+ 
+         it('does NOT infer posted state from journal_entry_id proxy (3R.1.1-006)', () => {
+-            // An invoice with a draft journal entry id is UNPOSTED if posting_status is not 'posted'
++            // journal_entry_id alone is not authoritative posting state.
+             const inv: Partial<SalesInvoice> = {
+                 status: 'submitted',
+                 total_amount: '1000000.00',
+                 amount_paid: '500000.00',
+                 journal_entry_id: 'je-789',
+-                posting_status: 'unposted'
++                journal_status: 'draft'
+             };
+             const states = deriveInvoiceStates(inv);
+-            expect(states.lifecycleState).toBe('submitted');
+-            expect(states.paymentState).toBe('partially_paid');
+-            expect(states.postingState).toBe('unposted'); // 3R.1.1-006 requirement verified!
++            expect(states.lifecycle).toBe('submitted');
++            expect(states.payment).toBe('partially_paid');
++            expect(states.journal).toBe('draft');
+         });
+ 
+-        it('derives posted state ONLY when posting_status is explicitly posted', () => {
++        it('derives posted state ONLY from authoritative journal_status', () => {
+             const inv: Partial<SalesInvoice> = {
+                 status: 'submitted',
+                 total_amount: '1000000.00',
+                 amount_paid: '1000000.00',
+                 journal_entry_id: 'je-789',
+-                posting_status: 'posted'
++                journal_status: 'posted'
+             };
+             const states = deriveInvoiceStates(inv);
+-            expect(states.lifecycleState).toBe('submitted');
+-            expect(states.paymentState).toBe('paid');
+-            expect(states.postingState).toBe('posted');
++            expect(states.lifecycle).toBe('submitted');
++            expect(states.payment).toBe('paid');
++            expect(states.journal).toBe('posted');
+         });
+ 
+         it('derives correct separated states for a cancelled invoice', () => {
+@@ -108,9 +110,9 @@ describe('QARC-011, 3R.1-003 & 3R.1.1-003 Frontend Contract & Unit Tests', () =>
+                 journal_entry_id: null
+             };
+             const states = deriveInvoiceStates(inv);
+-            expect(states.lifecycleState).toBe('cancelled');
+-            expect(states.paymentState).toBe('unpaid');
+-            expect(states.postingState).toBe('unposted');
++            expect(states.lifecycle).toBe('cancelled');
++            expect(states.payment).toBe('unpaid');
++            expect(states.journal).toBe('none');
+         });
+     });
+ 
+@@ -129,6 +131,7 @@ describe('QARC-011, 3R.1-003 & 3R.1.1-003 Frontend Contract & Unit Tests', () =>
+                 amount_paid: '0.00',
+                 status: 'submitted',
+                 journal_entry_id: 'je-123',
++                journal_status: 'draft',
+                 created_at: '2026-08-06T10:00:00Z',
+                 items: [
+                     {
+diff --git a/web-admin/src/types/finance.ts b/web-admin/src/types/finance.ts
+index 5aff884..d4eb824 100644
+--- a/web-admin/src/types/finance.ts
++++ b/web-admin/src/types/finance.ts
+@@ -1,4 +1,4 @@
+-import { DecimalString } from '../utils/decimal';
++import type { DecimalString } from '../utils/decimal';
+ 
+ export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+ export type NormalBalance = 'debit' | 'credit';
+@@ -104,7 +104,7 @@ export interface SalesInvoice {
+     total_amount: DecimalString;
+     amount_paid: DecimalString;
+     status: string;
+-    posting_status?: string;
++    journal_status?: 'draft' | 'posted' | null;
+     journal_entry_id?: string | null;
+     created_at: string;
+     attachment_url?: string;
+diff --git a/web-admin/src/utils/decimal.ts b/web-admin/src/utils/decimal.ts
+index 5229f6d..5e4249b 100644
+--- a/web-admin/src/utils/decimal.ts
++++ b/web-admin/src/utils/decimal.ts
+@@ -1,147 +1,138 @@
+-/**
+- * QARC-011, 3R.1-003 & 3R.1.1-003 Exact Decimal Utilities for Frontend Contract Alignment
+- *
+- * Provides exact, precision-safe decimal arithmetic using string scaling and BigInt/integer math
+- * without binary floating-point roundtrip loss (parseFloat/Math.round).
+- */
+-
++/** Precision-safe decimal helpers for Finance UI. Financial truth stays as strings. */
+ export type DecimalString = string;
+ 
+-/**
+- * Normalizes input value into an exact decimal string representation with given scale (default 2).
+- * Example: "1500000.5" -> "1500000.50", "1.005" -> "1.01", "0" -> "0.00"
+- */
+-export function toDecimalString(val: string | number | null | undefined, scale = 2): DecimalString {
+-    if (val === null || val === undefined || val === '') return '0.00';
+-    const str = typeof val === 'number' ? val.toString() : val.trim();
+-    if (!str || str === 'NaN') return '0.00';
+-
+-    const negative = str.startsWith('-');
+-    const cleanStr = negative ? str.slice(1) : str;
+-    const parts = cleanStr.split('.');
+-    let integerPart = parts[0] || '0';
+-    let fractionalPart = parts[1] || '';
+-
+-    // Pad or round fractional part deterministically using BigInt
+-    if (fractionalPart.length < scale) {
+-        fractionalPart = fractionalPart.padEnd(scale, '0');
+-    } else if (fractionalPart.length > scale) {
+-        const roundDigit = parseInt(fractionalPart[scale], 10);
+-        let currentScaleValue = BigInt(fractionalPart.slice(0, scale) || '0');
+-        if (roundDigit >= 5) {
+-            currentScaleValue += 1n;
+-        }
+-        fractionalPart = currentScaleValue.toString().padStart(scale, '0');
+-        if (fractionalPart.length > scale) {
+-            // Carry over to integer part
+-            integerPart = (BigInt(integerPart) + 1n).toString();
+-            fractionalPart = fractionalPart.slice(1);
+-        }
++const DECIMAL_RE = /^([+-]?)(\d+)(?:\.(\d+))?$/;
++
++type Parts = { coefficient: bigint; scale: number };
++
++function parseDecimal(value: DecimalString): Parts {
++    const raw = value.trim();
++    const match = DECIMAL_RE.exec(raw);
++    if (!match) throw new Error(`Invalid decimal value: ${value}`);
++
++    const sign = match[1] === '-' ? -1n : 1n;
++    const integer = match[2];
++    const fraction = match[3] ?? '';
++    return {
++        coefficient: sign * BigInt(integer + fraction),
++        scale: fraction.length,
++    };
++}
++
++function pow10(scale: number): bigint {
++    if (!Number.isInteger(scale) || scale < 0) throw new Error(`Invalid decimal scale: ${scale}`);
++    return 10n ** BigInt(scale);
++}
++
++function rescale(parts: Parts, targetScale: number): bigint {
++    if (parts.scale === targetScale) return parts.coefficient;
++    if (parts.scale < targetScale) {
++        return parts.coefficient * pow10(targetScale - parts.scale);
+     }
+ 
+-    const result = `${integerPart}.${fractionalPart}`;
+-    return negative ? `-${result}` : result;
++    const divisor = pow10(parts.scale - targetScale);
++    const absolute = parts.coefficient < 0n ? -parts.coefficient : parts.coefficient;
++    const quotient = absolute / divisor;
++    const remainder = absolute % divisor;
++    const rounded = remainder * 2n >= divisor ? quotient + 1n : quotient;
++    return parts.coefficient < 0n ? -rounded : rounded;
+ }
+ 
+-/**
+- * Multiplies quantity and unitPrice deterministically using scaled BigInt arithmetic.
+- */
+-export function multiplyDecimalStrings(qty: DecimalString | number, price: DecimalString | number, scale = 2): DecimalString {
+-    const qStr = toDecimalString(qty, scale);
+-    const pStr = toDecimalString(price, scale);
++function formatScaled(coefficient: bigint, scale: number): DecimalString {
++    const negative = coefficient < 0n;
++    const absolute = negative ? -coefficient : coefficient;
++    if (scale === 0) return `${negative ? '-' : ''}${absolute}`;
+ 
+-    const qInt = BigInt(qStr.replace('.', ''));
+-    const pInt = BigInt(pStr.replace('.', ''));
++    const digits = absolute.toString().padStart(scale + 1, '0');
++    const split = digits.length - scale;
++    return `${negative ? '-' : ''}${digits.slice(0, split)}.${digits.slice(split)}`;
++}
+ 
+-    // (q * 10^scale) * (p * 10^scale) = (q * p) * 10^(2*scale)
+-    const product = qInt * pInt;
++export function toDecimalString(value: DecimalString, scale = 2): DecimalString {
++    return formatScaled(rescale(parseDecimal(value), scale), scale);
++}
+ 
+-    // Scale back down to single scale factor
+-    const divisor = BigInt(10 ** scale);
+-    const halfDivisor = divisor / 2n;
+-    const roundedProduct = (product + halfDivisor) / divisor;
++export function addDecimalStrings(a: DecimalString, b: DecimalString, scale = 4): DecimalString {
++    return formatScaled(rescale(parseDecimal(a), scale) + rescale(parseDecimal(b), scale), scale);
++}
+ 
+-    const strProduct = roundedProduct.toString().padStart(scale + 1, '0');
+-    const splitIdx = strProduct.length - scale;
+-    const intPart = strProduct.slice(0, splitIdx) || '0';
+-    const fracPart = strProduct.slice(splitIdx);
++export function subtractDecimalStrings(a: DecimalString, b: DecimalString, scale = 4): DecimalString {
++    return formatScaled(rescale(parseDecimal(a), scale) - rescale(parseDecimal(b), scale), scale);
++}
+ 
+-    return `${intPart}.${fracPart}`;
++export function sumDecimalStrings(values: readonly DecimalString[], scale = 4): DecimalString {
++    const total = values.reduce((sum, value) => sum + rescale(parseDecimal(value), scale), 0n);
++    return formatScaled(total, scale);
+ }
+ 
+-/**
+- * Computes exact sum of invoice items (quantity * unit_price) as a string.
+- */
+-export function calculateInvoiceTotalString(items: { quantity: DecimalString | number; unit_price: DecimalString | number }[]): DecimalString {
+-    let totalScaled = 0n;
+-    const scale = 2;
+-
+-    for (const item of items) {
+-        const lineTotalStr = multiplyDecimalStrings(item.quantity, item.unit_price, scale);
+-        const lineScaled = BigInt(lineTotalStr.replace('.', ''));
+-        totalScaled += lineScaled;
+-    }
++export function compareDecimalStrings(a: DecimalString, b: DecimalString): number {
++    const left = parseDecimal(a);
++    const right = parseDecimal(b);
++    const scale = Math.max(left.scale, right.scale);
++    const l = rescale(left, scale);
++    const r = rescale(right, scale);
++    return l < r ? -1 : l > r ? 1 : 0;
++}
+ 
+-    const strTotal = totalScaled.toString().padStart(scale + 1, '0');
+-    const splitIdx = strTotal.length - scale;
+-    const intPart = strTotal.slice(0, splitIdx) || '0';
+-    const fracPart = strTotal.slice(splitIdx);
++export function multiplyDecimalStrings(
++    quantity: DecimalString,
++    unitPrice: DecimalString,
++    outputScale = 4,
++): DecimalString {
++    const q = parseDecimal(quantity);
++    const p = parseDecimal(unitPrice);
++    return formatScaled(
++        rescale({ coefficient: q.coefficient * p.coefficient, scale: q.scale + p.scale }, outputScale),
++        outputScale,
++    );
++}
+ 
+-    return `${intPart}.${fracPart}`;
++export function calculateInvoiceTotalString(
++    items: readonly { quantity: DecimalString; unit_price: DecimalString }[],
++): DecimalString {
++    return sumDecimalStrings(items.map((item) => multiplyDecimalStrings(item.quantity, item.unit_price)), 4);
+ }
+ 
+-/**
+- * Formats a DecimalString for display with thousands separators without precision loss.
+- * Example: "1500000.50" -> "1,500,000.50"
+- */
+-export function formatDecimalDisplay(val: DecimalString | number | null | undefined, currency = 'IDR'): string {
+-    const decStr = toDecimalString(val);
+-    const parts = decStr.split('.');
+-    const integerWithCommas = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+-    const formatted = `${integerWithCommas}.${parts[1]}`;
+-    return currency ? `${currency} ${formatted}` : formatted;
++/** Display-only formatter. It never converts the authoritative value to JS number. */
++export function formatCurrencyIDR(value: DecimalString): string {
++    const normalized = toDecimalString(value, 2);
++    const negative = normalized.startsWith('-');
++    const unsigned = negative ? normalized.slice(1) : normalized;
++    const [integer, fraction] = unsigned.split('.');
++    const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
++    return `${negative ? '-' : ''}Rp${grouped},${fraction}`;
+ }
+ 
+-/**
+- * Derives explicit Invoice States (Lifecycle, Payment, Posting) authoritatively without proxying journal_entry_id.
+- */
+ export interface InvoiceStateRepresentation {
+-    lifecycleState: 'draft' | 'submitted' | 'cancelled';
+-    paymentState: 'unpaid' | 'partially_paid' | 'paid';
+-    postingState: 'unposted' | 'posted';
++    lifecycle: 'draft' | 'submitted' | 'cancelled';
++    payment: 'unpaid' | 'partially_paid' | 'paid';
++    journal: 'none' | 'draft' | 'posted';
+ }
+ 
+ export function deriveInvoiceStates(invoice: {
+     status?: string;
+-    posting_status?: string;
+-    total_amount?: DecimalString | number;
+-    amount_paid?: DecimalString | number;
+-    journal_entry_id?: string | null;
++    total_amount?: DecimalString;
++    amount_paid?: DecimalString;
++    journal_status?: 'draft' | 'posted' | null;
+ }): InvoiceStateRepresentation {
+-    const rawStatus = (invoice.status || 'draft').toLowerCase();
+-    const lifecycleState: 'draft' | 'submitted' | 'cancelled' =
+-        rawStatus === 'submitted' ? 'submitted' : rawStatus === 'cancelled' ? 'cancelled' : 'draft';
+-
+-    const totalStr = toDecimalString(invoice.total_amount);
+-    const paidStr = toDecimalString(invoice.amount_paid);
+-
+-    const totalScaled = BigInt(totalStr.replace('.', ''));
+-    const paidScaled = BigInt(paidStr.replace('.', ''));
+-
+-    let paymentState: 'unpaid' | 'partially_paid' | 'paid' = 'unpaid';
+-    if (paidScaled >= totalScaled && totalScaled > 0n) {
+-        paymentState = 'paid';
+-    } else if (paidScaled > 0n) {
+-        paymentState = 'partially_paid';
+-    }
+-
+-    // Authoritative posting state from explicit posting_status attribute (3R.1.1-006)
+-    const postingState: 'unposted' | 'posted' =
+-        invoice.posting_status === 'posted' ? 'posted' : 'unposted';
++    const rawStatus = (invoice.status ?? 'draft').toLowerCase();
++    const lifecycle = rawStatus === 'submitted'
++        ? 'submitted'
++        : rawStatus === 'cancelled'
++            ? 'cancelled'
++            : 'draft';
++
++    const total = invoice.total_amount ?? '0.0000';
++    const paid = invoice.amount_paid ?? '0.0000';
++    const payment = compareDecimalStrings(total, '0') > 0 && compareDecimalStrings(paid, total) >= 0
++        ? 'paid'
++        : compareDecimalStrings(paid, '0') > 0
++            ? 'partially_paid'
++            : 'unpaid';
+ 
+     return {
+-        lifecycleState,
+-        paymentState,
+-        postingState,
++        lifecycle,
++        payment,
++        journal: invoice.journal_status ?? 'none',
+     };
+ }

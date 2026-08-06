@@ -807,15 +807,116 @@ impl FinanceRepository {
 
     pub async fn get_general_ledger(
         &self,
-        _account_id: Uuid,
-        _start_date: Option<chrono::NaiveDate>,
-        _end_date: Option<chrono::NaiveDate>,
+        account_id: Uuid,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
     ) -> DomainResult<Vec<GeneralLedgerEntry>> {
-        Ok(Vec::new())
+        #[derive(sqlx::FromRow)]
+        struct GLRow {
+            date: chrono::NaiveDate,
+            transaction_number: String,
+            header_description: String,
+            line_description: Option<String>,
+            debit: Decimal,
+            credit: Decimal,
+        }
+
+        let rows = sqlx::query_as::<_, GLRow>(
+            r#"
+            SELECT
+                gl.posting_date AS date,
+                gl.voucher_no AS transaction_number,
+                gl.voucher_type AS header_description,
+                NULL::text AS line_description,
+                gl.debit,
+                gl.credit
+            FROM gl_entries gl
+            WHERE gl.account_id = $1
+              AND ($2::date IS NULL OR gl.posting_date >= $2)
+              AND ($3::date IS NULL OR gl.posting_date <= $3)
+            ORDER BY gl.posting_date ASC, gl.created_at ASC
+            "#,
+        )
+        .bind(account_id)
+        .bind(start_date)
+        .bind(end_date)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        let mut running_balance = Decimal::ZERO;
+        let mut entries = Vec::new();
+
+        for r in rows {
+            running_balance += r.debit - r.credit;
+            entries.push(GeneralLedgerEntry {
+                date: r.date,
+                transaction_number: r.transaction_number,
+                header_description: r.header_description,
+                line_description: r.line_description,
+                debit: r.debit,
+                credit: r.credit,
+                balance: running_balance,
+            });
+        }
+
+        Ok(entries)
     }
 
     pub async fn get_trial_balance(&self) -> DomainResult<Vec<TrialBalanceEntry>> {
-        Ok(Vec::new())
+        #[derive(sqlx::FromRow)]
+        struct TBRow {
+            account_id: Uuid,
+            account_code: String,
+            account_name: String,
+            account_type: String,
+            debit: Decimal,
+            credit: Decimal,
+        }
+
+        let rows = sqlx::query_as::<_, TBRow>(
+            r#"
+            SELECT
+                coa.id AS account_id,
+                coa.code AS account_code,
+                coa.name AS account_name,
+                coa.account_type::text AS account_type,
+                COALESCE(SUM(gl.debit), 0.0000) AS debit,
+                COALESCE(SUM(gl.credit), 0.0000) AS credit
+            FROM chart_of_accounts coa
+            LEFT JOIN gl_entries gl ON coa.id = gl.account_id
+            WHERE COALESCE(coa.is_group, FALSE) = FALSE AND coa.is_active = TRUE
+            GROUP BY coa.id, coa.code, coa.name, coa.account_type
+            ORDER BY coa.code ASC
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        let entries = rows
+            .into_iter()
+            .map(|r| {
+                let acc_type = match r.account_type.to_lowercase().as_str() {
+                    "asset" => AccountType::Asset,
+                    "liability" => AccountType::Liability,
+                    "equity" => AccountType::Equity,
+                    "revenue" => AccountType::Revenue,
+                    "expense" => AccountType::Expense,
+                    _ => AccountType::Asset,
+                };
+                TrialBalanceEntry {
+                    account_id: r.account_id,
+                    account_code: r.account_code,
+                    account_name: r.account_name,
+                    account_type: acc_type,
+                    debit: r.debit,
+                    credit: r.credit,
+                }
+            })
+            .collect();
+
+        Ok(entries)
     }
 
     // --- Other operational entity queries ---

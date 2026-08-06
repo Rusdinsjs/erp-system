@@ -295,6 +295,25 @@ impl JournalRepository {
         Ok(())
     }
 
+    pub async fn update_status_in_uow(
+        uow: &mut UnitOfWork,
+        id: Uuid,
+        status: JournalStatus,
+    ) -> DomainResult<()> {
+        let status_str = match status {
+            JournalStatus::Draft => "draft",
+            JournalStatus::Posted => "posted",
+        };
+        sqlx::query("UPDATE journal_entries SET status = $1, updated_at = NOW() WHERE id = $2")
+            .bind(status_str)
+            .bind(id)
+            .execute(uow.conn())
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
     /// Generate the next sequence number for journal entries in format JE-YYYYMM-XXXX.
     pub async fn get_next_sequence_number(&self, date: chrono::NaiveDate) -> DomainResult<String> {
         let prefix = format!("JE-{}", date.format("%Y%m"));
