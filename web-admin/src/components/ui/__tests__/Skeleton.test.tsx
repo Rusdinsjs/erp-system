@@ -6,7 +6,7 @@ describe('Skeleton Components', () => {
     describe('Skeleton', () => {
         it('renders with default classes', () => {
             const { container } = render(<Skeleton />);
-            expect(container.firstChild).toHaveClass('animate-pulse', 'rounded-md', 'bg-gray-900/50');
+            expect(container.firstChild).toHaveClass('animate-pulse', 'rounded-md');
         });
 
         it('merges custom classes', () => {

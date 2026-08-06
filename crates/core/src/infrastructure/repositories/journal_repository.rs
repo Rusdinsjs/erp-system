@@ -85,6 +85,62 @@ impl JournalRepository {
         Ok(JournalEntryDetail { header, lines })
     }
 
+    pub async fn create_journal_entry_with_uow(
+        &self,
+        uow: &mut crate::infrastructure::database::UnitOfWork,
+        transaction_number: String,
+        req: &CreateJournalEntryRequest,
+        created_by: Option<Uuid>,
+    ) -> DomainResult<JournalEntryDetail> {
+        let header = sqlx::query_as!(
+            JournalEntry,
+            r#"
+            INSERT INTO journal_entries (
+                transaction_number, date, description, reference, status, created_by
+            )
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING 
+                id, transaction_number, date, description, reference, 
+                status as "status: JournalStatus", 
+                created_by, created_at, updated_at
+            "#,
+            transaction_number,
+            req.date,
+            req.description,
+            req.reference,
+            JournalStatus::Draft as JournalStatus,
+            created_by
+        )
+        .fetch_one(uow.conn())
+        .await
+        .map_err(|e| DomainError::Database(e.to_string()))?;
+
+        let mut lines = Vec::new();
+        for line_req in &req.lines {
+            let line = sqlx::query_as!(
+                JournalLine,
+                r#"
+                INSERT INTO journal_lines (
+                    journal_entry_id, account_id, description, debit, credit
+                )
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id, journal_entry_id, account_id, description, debit, credit
+                "#,
+                header.id,
+                line_req.account_id,
+                line_req.description,
+                line_req.debit,
+                line_req.credit
+            )
+            .fetch_one(uow.conn())
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?;
+            lines.push(line);
+        }
+
+        Ok(JournalEntryDetail { header, lines })
+    }
+
     pub async fn find_by_id(&self, id: Uuid) -> DomainResult<Option<JournalEntryDetail>> {
         let header = sqlx::query_as!(
             JournalEntry,

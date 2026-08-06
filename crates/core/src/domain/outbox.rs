@@ -1,41 +1,11 @@
-//! Transactional Outbox — QKRN-011
+//! Transactional Outbox Entities (QKRN-011 & QARC-005)
 //!
-//! Persists async side-effect events (e.g. email, webhook, GL notification)
-//! in the **same** database transaction as state changes, guaranteeing
-//! at-least-once delivery without distributed transactions.
-//!
-//! # How it works
-//!
-//! 1. A business service appends an `OutboxEntry` via `OutboxStore::append`
-//!    inside the active `UnitOfWork` transaction.
-//! 2. On commit the outbox row is durable in the DB.
-//! 3. A background dispatcher (`OutboxDispatcher`, run separately) polls
-//!    `PENDING` rows, delivers them, and marks them `COMPLETED` or `FAILED`.
-//! 4. Rows that exceed `max_attempts` move to `DEAD_LETTER` status.
-//!
-//! # Important
-//! The outbox is for **async side effects only** (notifications, webhooks,
-//! external integrations). Synchronous GL/stock posting that must complete
-//! for business consistency does NOT go through the outbox.
-//!
-//! # Usage
-//!
-//! ```rust,ignore
-//! let entry = OutboxEntry::new(
-//!     "invoice.posted",
-//!     &payload_json,
-//!     &ctx,
-//! );
-//! OutboxStore::append(&mut uow, &entry).await?;
-//! uow.commit().await?;
-//! ```
+//! Pure domain types for transactional outbox side-effect events.
+//! Persistence operations reside in `infrastructure::repositories::OutboxStore`.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use crate::domain::errors::{DomainError, DomainResult};
-use crate::infrastructure::database::UnitOfWork;
 
 // ─── OutboxStatus ─────────────────────────────────────────────────────────────
 
@@ -94,8 +64,6 @@ pub struct OutboxEntry {
 
 impl OutboxEntry {
     /// Create a new `PENDING` outbox entry with default retry settings.
-    ///
-    /// `max_attempts` defaults to 5 with the first attempt due immediately.
     pub fn new(
         event_type: impl Into<String>,
         payload: &serde_json::Value,
@@ -128,48 +96,5 @@ impl OutboxEntry {
     pub fn with_max_attempts(mut self, n: i32) -> Self {
         self.max_attempts = n;
         self
-    }
-}
-
-// ─── OutboxStore ──────────────────────────────────────────────────────────────
-
-/// Persists and queries outbox entries.
-pub struct OutboxStore;
-
-impl OutboxStore {
-    /// Append an outbox entry inside the active `UnitOfWork` transaction.
-    ///
-    /// This is the only write path exposed by `OutboxStore`. Dispatching
-    /// and status updates are handled by the background `OutboxDispatcher`.
-    pub async fn append(uow: &mut UnitOfWork, entry: &OutboxEntry) -> DomainResult<()> {
-        sqlx::query(
-            r#"
-            INSERT INTO outbox
-                (id, event_type, payload, source_type, source_id,
-                 tenant_id, company_id, correlation_id,
-                 status, attempt_count, max_attempts, next_attempt_at,
-                 created_at, last_error)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            "#,
-        )
-        .bind(entry.id)
-        .bind(&entry.event_type)
-        .bind(&entry.payload)
-        .bind(&entry.source_type)
-        .bind(entry.source_id)
-        .bind(entry.tenant_id)
-        .bind(entry.company_id)
-        .bind(&entry.correlation_id)
-        .bind(&entry.status)
-        .bind(entry.attempt_count)
-        .bind(entry.max_attempts)
-        .bind(entry.next_attempt_at)
-        .bind(entry.created_at)
-        .bind(&entry.last_error)
-        .execute(uow.conn())
-        .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
-
-        Ok(())
     }
 }

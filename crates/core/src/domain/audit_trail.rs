@@ -1,31 +1,7 @@
-//! Append-only Document Audit Trail — QKRN-009
+//! Append-only Document Audit Trail Entities (QKRN-009 & QARC-005)
 //!
-//! Records every state-change action on an ERP document: actor, action,
-//! document identity, version/status transition, and reason.
-//!
-//! The `document_audit_trail` table is append-only — ordinary application
-//! roles (app_role) have INSERT + SELECT but NO UPDATE or DELETE. This is
-//! enforced at both the database level (REVOKE UPDATE, DELETE) and here by
-//! never exposing mutation methods.
-//!
-//! # Usage
-//!
-//! ```rust,ignore
-//! use crate::domain::audit_trail::{AuditAction, DocumentAuditEntry};
-//!
-//! let entry = DocumentAuditEntry::new(
-//!     AuditAction::Submit,
-//!     &request_ctx,
-//!     doc.document_id(),
-//!     "INVOICE",
-//!     old_status.as_str(),
-//!     new_status.as_str(),
-//!     doc.version(),
-//!     None,
-//! );
-//! // Persist inside the same UnitOfWork transaction (QKRN-005).
-//! AuditTrailStore::append(&mut uow, &entry).await?;
-//! ```
+//! Pure domain types for document audit events.
+//! Persistence operations reside in `infrastructure::repositories::AuditTrailStore`.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -120,47 +96,5 @@ impl DocumentAuditEntry {
             correlation_id: correlation_id.into(),
             recorded_at: Utc::now(),
         }
-    }
-}
-
-// ─── AuditTrailStore ─────────────────────────────────────────────────────────
-
-use crate::domain::errors::{DomainError, DomainResult};
-use crate::infrastructure::database::UnitOfWork;
-
-/// Appends audit entries to `document_audit_trail`.
-///
-/// All operations are INSERT-only. There are no update or delete methods.
-pub struct AuditTrailStore;
-
-impl AuditTrailStore {
-    /// Append a single audit entry inside the active `UnitOfWork` transaction.
-    pub async fn append(uow: &mut UnitOfWork, entry: &DocumentAuditEntry) -> DomainResult<()> {
-        sqlx::query(
-            r#"
-            INSERT INTO document_audit_trail
-                (id, document_id, document_type, action, actor_id, tenant_id, company_id,
-                 from_status, to_status, document_version, reason, correlation_id, recorded_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            "#,
-        )
-        .bind(entry.id)
-        .bind(entry.document_id)
-        .bind(&entry.document_type)
-        .bind(&entry.action)
-        .bind(entry.actor_id)
-        .bind(entry.tenant_id)
-        .bind(entry.company_id)
-        .bind(&entry.from_status)
-        .bind(&entry.to_status)
-        .bind(entry.document_version)
-        .bind(&entry.reason)
-        .bind(&entry.correlation_id)
-        .bind(entry.recorded_at)
-        .execute(uow.conn())
-        .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
-
-        Ok(())
     }
 }

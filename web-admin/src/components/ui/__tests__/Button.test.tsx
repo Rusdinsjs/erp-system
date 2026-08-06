@@ -28,6 +28,6 @@ describe('Button Component', () => {
     it('applies destructive variant styles', () => {
         render(<Button variant="danger">Delete</Button>);
         const button = screen.getByRole('button');
-        expect(button.className).toMatch(/bg-red-600|text-white/);
+        expect(button.className).toMatch(/bg-destructive|bg-red-600/);
     });
 });

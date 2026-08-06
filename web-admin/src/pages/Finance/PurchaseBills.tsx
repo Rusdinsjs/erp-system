@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { financeApi } from '../../api/finance';
+import { financeApi, type CreatePurchaseBillRequest } from '../../api/finance';
 import { clientApi } from '../../api/client-management';
 import { Card, Button, Badge } from '../../components/ui';
 import {
@@ -55,17 +55,17 @@ export default function PurchaseBills() {
     const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        const data = {
-            bill_number: formData.get('bill_number'),
-            vendor_id: formData.get('vendor_id'),
-            date: formData.get('date'),
-            due_date: formData.get('due_date'),
-            budget_type: formData.get('budget_type'),
+        const data: CreatePurchaseBillRequest = {
+            bill_number: (formData.get('bill_number') as string) || '',
+            vendor_id: (formData.get('vendor_id') as string) || '',
+            date: (formData.get('date') as string) || '',
+            due_date: (formData.get('due_date') as string) || undefined,
+            budget_type: (formData.get('budget_type') as string) || undefined,
             items: [
                 {
-                    description: formData.get('item_description'),
-                    quantity: parseFloat(formData.get('quantity') as string),
-                    unit_price: parseFloat(formData.get('unit_price') as string)
+                    description: (formData.get('item_description') as string) || '',
+                    quantity: parseFloat(formData.get('quantity') as string) || 1,
+                    unit_price: parseFloat(formData.get('unit_price') as string) || 0
                 }
             ]
         };

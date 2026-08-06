@@ -248,7 +248,7 @@ impl FinanceService {
         req: management_system_core::domain::entities::CreateSalesInvoiceRequest,
     ) -> DomainResult<management_system_core::domain::entities::SalesInvoice> {
         let total: rust_decimal::Decimal = req.items.iter().map(|i| i.quantity * i.unit_price).sum();
-        let mut invoice = management_system_core::domain::entities::SalesInvoice {
+        let invoice = management_system_core::domain::entities::SalesInvoice {
             id: Uuid::new_v4(),
             invoice_number: req.invoice_number.clone(),
             client_id: req.client_id,
@@ -265,7 +265,6 @@ impl FinanceService {
             attachment_url: req.attachment_url,
         };
 
-        // --- Automated Journaling Logic ---
         // 1. Find Accounts (Piutang & Penjualan)
         let receivable_acc = self.find_by_code("1-1300").await?.ok_or_else(|| {
             DomainError::business_rule("Missing Account", "Account 1-1300 (Piutang Usaha) not found")
@@ -274,43 +273,59 @@ impl FinanceService {
             DomainError::business_rule("Missing Account", "Account 4-1100 (Pendapatan Penjualan) not found")
         })?;
 
-        // 2. Prepare Journal Entry
-        let decimal_total = total;
+        // 2. Begin UnitOfWork transaction boundary (QARC-007)
+        let mut uow = management_system_core::infrastructure::database::UnitOfWork::begin(self.repo.pool()).await?;
 
+        // 3. Persist Sales Invoice Header AND Lines atomically (QARC-008)
+        let (mut created_invoice, _created_items) = self
+            .repo
+            .create_sales_invoice_with_uow(&mut uow, &invoice, &req.items)
+            .await?;
+
+        // 4. Prepare & Create Journal Entry in the SAME UnitOfWork transaction
         let journal_req =
             management_system_core::domain::entities::journal::CreateJournalEntryRequest {
-                date: invoice.date,
+                date: created_invoice.date,
                 description: format!(
                     "Penjualan: {} - {}",
-                    invoice.invoice_number,
-                    invoice.subject.as_deref().unwrap_or("-")
+                    created_invoice.invoice_number,
+                    created_invoice.subject.as_deref().unwrap_or("-")
                 ),
-                reference: Some(invoice.invoice_number.clone()),
+                reference: Some(created_invoice.invoice_number.clone()),
                 lines: vec![
                     management_system_core::domain::entities::journal::CreateJournalLineRequest {
                         account_id: receivable_acc.id,
-                        description: Some(format!("Piutang Penjualan {}", invoice.invoice_number)),
-                        debit: decimal_total,
+                        description: Some(format!("Piutang Penjualan {}", created_invoice.invoice_number)),
+                        debit: total,
                         credit: rust_decimal::Decimal::ZERO,
                     },
                     management_system_core::domain::entities::journal::CreateJournalLineRequest {
                         account_id: sales_acc.id,
                         description: Some(format!(
                             "Pendapatan Penjualan {}",
-                            invoice.invoice_number
+                            created_invoice.invoice_number
                         )),
                         debit: rust_decimal::Decimal::ZERO,
-                        credit: decimal_total,
+                        credit: total,
                     },
                 ],
             };
 
-        // 3. Create Journal
-        let journal = self.journal_service.create_entry(journal_req, None).await?;
-        invoice.journal_entry_id = Some(journal.header.id);
-        invoice.status = "posted".to_string();
+        let journal = self.journal_service.create_entry_with_uow(&mut uow, journal_req, None).await?;
+        
+        // Link journal entry id and commit transaction
+        sqlx::query("UPDATE sales_invoices SET journal_entry_id = $1 WHERE id = $2")
+            .bind(journal.header.id)
+            .bind(created_invoice.id)
+            .execute(uow.conn())
+            .await
+            .map_err(|e| DomainError::Database(e.to_string()))?;
 
-        self.repo.create_sales_invoice(&invoice).await
+        created_invoice.journal_entry_id = Some(journal.header.id);
+
+        uow.commit().await?;
+
+        Ok(created_invoice)
     }
 
     pub async fn get_sales_invoice(
@@ -321,6 +336,18 @@ impl FinanceService {
             .get_sales_invoice_by_id(id)
             .await?
             .ok_or_else(|| DomainError::not_found("SalesInvoice", id))
+    }
+
+    pub async fn get_sales_invoice_detail(
+        &self,
+        id: Uuid,
+    ) -> DomainResult<management_system_core::domain::entities::SalesInvoiceDetailResponse> {
+        let invoice = self.get_sales_invoice(id).await?;
+        let items = self.repo.get_sales_invoice_items(id).await?;
+        Ok(management_system_core::domain::entities::SalesInvoiceDetailResponse {
+            invoice,
+            items,
+        })
     }
 
     pub async fn update_sales_invoice(

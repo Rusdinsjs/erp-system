@@ -92,7 +92,7 @@ pub async fn get_sales_invoice(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Value>, AppError> {
-    let invoice = state.finance_service.get_sales_invoice(id).await?;
+    let invoice = state.finance_service.get_sales_invoice_detail(id).await?;
     Ok(Json(json!({ "success": true, "data": invoice })))
 }
 

@@ -8,7 +8,16 @@ import type {
     GeneralLedgerEntry,
     TrialBalanceEntry,
     FinancialReportEntry,
-    CreateCashBankTransactionRequest
+    CreateCashBankTransactionRequest,
+    SalesInvoice,
+    SalesInvoiceItem,
+    CreateInvoiceItemRequest,
+    CreateSalesInvoiceRequest,
+    UpdateSalesInvoiceRequest,
+    PurchaseBill,
+    CreatePurchaseBillRequest,
+    Expense,
+    CashBankTransaction
 } from '../types';
 
 export type {
@@ -20,155 +29,164 @@ export type {
     GeneralLedgerEntry,
     TrialBalanceEntry,
     FinancialReportEntry,
-    CreateCashBankTransactionRequest
+    CreateCashBankTransactionRequest,
+    SalesInvoice,
+    SalesInvoiceItem,
+    CreateInvoiceItemRequest,
+    CreateSalesInvoiceRequest,
+    UpdateSalesInvoiceRequest,
+    PurchaseBill,
+    CreatePurchaseBillRequest,
+    Expense,
+    CashBankTransaction
 };
 
 export const financeApi = {
-    listAccounts: async () => {
+    listAccounts: async (): Promise<ChartOfAccount[]> => {
         const response = await api.get('/finance/accounts');
-        return response.data.data as ChartOfAccount[];
+        return response.data.data;
     },
 
-    listTree: async () => {
+    listTree: async (): Promise<ChartOfAccount[]> => {
         const response = await api.get('/finance/accounts/tree');
-        return response.data.data as ChartOfAccount[];
+        return response.data.data;
     },
 
-    createAccount: async (data: CreateAccountRequest) => {
+    createAccount: async (data: CreateAccountRequest): Promise<ChartOfAccount> => {
         const response = await api.post('/finance/accounts', data);
-        return response.data.data as ChartOfAccount;
+        return response.data.data;
     },
 
-    updateAccount: async (id: string, data: UpdateAccountRequest) => {
+    updateAccount: async (id: string, data: UpdateAccountRequest): Promise<ChartOfAccount> => {
         const response = await api.put(`/finance/accounts/${id}`, data);
-        return response.data.data as ChartOfAccount;
+        return response.data.data;
     },
 
-    getGeneralLedger: async (accountId: string, startDate?: string, endDate?: string) => {
+    getGeneralLedger: async (accountId: string, startDate?: string, endDate?: string): Promise<GeneralLedgerEntry[]> => {
         const response = await api.get(`/finance/reports/ledger/${accountId}`, {
             params: { start_date: startDate, end_date: endDate }
         });
-        return response.data.data as GeneralLedgerEntry[];
+        return response.data.data;
     },
 
-    getTrialBalance: async () => {
+    getTrialBalance: async (): Promise<TrialBalanceEntry[]> => {
         const response = await api.get('/finance/reports/trial-balance');
-        return response.data.data as TrialBalanceEntry[];
+        return response.data.data;
     },
 
-    getBalanceSheet: async () => {
+    getBalanceSheet: async (): Promise<FinancialReportEntry[]> => {
         const response = await api.get('/finance/reports/balance-sheet');
-        return response.data.data as FinancialReportEntry[];
+        return response.data.data;
     },
 
-    getIncomeStatement: async () => {
+    getIncomeStatement: async (): Promise<FinancialReportEntry[]> => {
         const response = await api.get('/finance/reports/income-statement');
-        return response.data.data as FinancialReportEntry[];
+        return response.data.data;
     },
 
     // Operational Finance
-    listSalesInvoices: async () => {
+    listSalesInvoices: async (): Promise<SalesInvoice[]> => {
         const response = await api.get('/finance/sales/invoices');
         return response.data.data;
     },
-    listPurchaseBills: async () => {
+    listPurchaseBills: async (): Promise<PurchaseBill[]> => {
         const response = await api.get('/finance/purchase/bills');
         return response.data.data;
     },
-    listExpenses: async () => {
+    listExpenses: async (): Promise<Expense[]> => {
         const response = await api.get('/finance/expenses');
         return response.data.data;
     },
-    listCashBankTransactions: async () => {
+    listCashBankTransactions: async (): Promise<CashBankTransaction[]> => {
         const response = await api.get('/finance/cash-bank');
         return response.data.data;
     },
 
-    createSalesInvoice: async (data: any) => {
+    createSalesInvoice: async (data: CreateSalesInvoiceRequest): Promise<SalesInvoice> => {
         const response = await api.post('/finance/sales/invoices', data);
         return response.data.data;
     },
-    getSalesInvoice: async (id: string) => {
+    getSalesInvoice: async (id: string): Promise<SalesInvoice> => {
         const response = await api.get(`/finance/sales/invoices/${id}`);
         return response.data.data;
     },
-    updateSalesInvoice: async (id: string, data: any) => {
+    updateSalesInvoice: async (id: string, data: UpdateSalesInvoiceRequest): Promise<SalesInvoice> => {
         const response = await api.put(`/finance/sales/invoices/${id}`, data);
         return response.data.data;
     },
-    deleteSalesInvoice: async (id: string) => {
+    deleteSalesInvoice: async (id: string): Promise<{ success: boolean; message: string }> => {
         const response = await api.delete(`/finance/sales/invoices/${id}`);
-        return response.data.data;
+        return response.data;
     },
-    createPurchaseBill: async (data: any) => {
+    createPurchaseBill: async (data: CreatePurchaseBillRequest): Promise<PurchaseBill> => {
         const response = await api.post('/finance/purchase/bills', data);
         return response.data.data;
     },
-    createExpense: async (data: any) => {
+    createExpense: async (data: any): Promise<Expense> => {
         const response = await api.post('/finance/expenses', data);
         return response.data.data;
     },
     // Sales Quotes
-    listSalesQuotes: async () => {
+    listSalesQuotes: async (): Promise<any> => {
         const response = await api.get('/finance/sales/quotes');
         return response.data;
     },
-    createSalesQuote: async (data: any) => {
+    createSalesQuote: async (data: any): Promise<any> => {
         const response = await api.post('/finance/sales/quotes', data);
         return response.data;
     },
 
     // Sales Orders
-    listSalesOrders: async () => {
+    listSalesOrders: async (): Promise<any> => {
         const response = await api.get('/finance/sales/orders');
         return response.data;
     },
-    createSalesOrder: async (data: any) => {
+    createSalesOrder: async (data: any): Promise<any> => {
         const response = await api.post('/finance/sales/orders', data);
         return response.data;
     },
 
     // Sales Shipments
-    listSalesShipments: async () => {
+    listSalesShipments: async (): Promise<any> => {
         const response = await api.get('/finance/sales/shipments');
         return response.data;
     },
-    createSalesShipment: async (data: any) => {
+    createSalesShipment: async (data: any): Promise<any> => {
         const response = await api.post('/finance/sales/shipments', data);
         return response.data;
     },
 
     // Purchase Quotes
-    listPurchaseQuotes: async () => {
+    listPurchaseQuotes: async (): Promise<any> => {
         const response = await api.get('/finance/purchase/quotes');
         return response.data;
     },
-    createPurchaseQuote: async (data: any) => {
+    createPurchaseQuote: async (data: any): Promise<any> => {
         const response = await api.post('/finance/purchase/quotes', data);
         return response.data;
     },
 
     // Purchase Orders
-    listPurchaseOrders: async () => {
+    listPurchaseOrders: async (): Promise<any> => {
         const response = await api.get('/finance/purchase/orders');
         return response.data;
     },
-    createPurchaseOrder: async (data: any) => {
+    createPurchaseOrder: async (data: any): Promise<any> => {
         const response = await api.post('/finance/purchase/orders', data);
         return response.data;
     },
 
     // Purchase Shipments
-    listPurchaseShipments: async () => {
+    listPurchaseShipments: async (): Promise<any> => {
         const response = await api.get('/finance/purchase/shipments');
         return response.data;
     },
-    createPurchaseShipment: async (data: any) => {
+    createPurchaseShipment: async (data: any): Promise<any> => {
         const response = await api.post('/finance/purchase/shipments', data);
         return response.data;
     },
 
-    createCashBankTransaction: async (data: CreateCashBankTransactionRequest) => {
+    createCashBankTransaction: async (data: CreateCashBankTransactionRequest): Promise<any> => {
         const response = await api.post('/finance/cash-bank', data);
         return response.data;
     },

@@ -130,6 +130,13 @@ pub struct SalesInvoiceItem {
     pub account_id: Option<Uuid>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SalesInvoiceDetailResponse {
+    #[serde(flatten)]
+    pub invoice: SalesInvoice,
+    pub items: Vec<SalesInvoiceItem>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct PurchaseBill {
     pub id: Uuid,
@@ -409,5 +416,5 @@ pub struct CreateSalesShipmentRequest {
 pub struct CreateShipmentItemRequest {
     pub order_item_id: Option<Uuid>,
     pub description: String,
-    pub quantity_shipped: f64,
+    pub quantity_shipped: Decimal,
 }
