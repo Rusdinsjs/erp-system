@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FileSpreadsheet, Upload, CheckCircle2, Download, Play, ShieldCheck } from 'lucide-react';
 import Papa from 'papaparse';
 import { dataImportApi, type DataImport, type DataImportLog } from '../../api/dataImport';
+import { categoryApi, type Category } from '../../api/category';
 import { Button, Card, Select, Badge, useToast, LoadingOverlay, Table, TableHead, TableBody, TableRow, TableTh, TableTd } from '../ui';
 
 interface FrappeDataImportCenterProps {
@@ -10,9 +11,11 @@ interface FrappeDataImportCenterProps {
 }
 
 export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinished }: FrappeDataImportCenterProps) {
-    const [step, setStep] = useState<1 | 2 | 3>(1);
+    const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
     const [docType, setDocType] = useState<string>(defaultDocType);
     const [importType, setImportType] = useState<'Insert' | 'Update'>('Insert');
+    const [categoryId, setCategoryId] = useState<string>('');
+    const [categories, setCategories] = useState<Category[]>([]);
 
     const [importRecord, setImportRecord] = useState<DataImport | null>(null);
     const [logs, setLogs] = useState<DataImportLog[]>([]);
@@ -20,9 +23,23 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
     const [loading, setLoading] = useState(false);
     const [validating, setValidating] = useState(false);
     const [executing, setExecuting] = useState(false);
+    
+    // Field Mapping state
+    const [mappings, setMappings] = useState<Record<string, string>>({});
+    
+    // Inline Edit State
+    const [editingLogId, setEditingLogId] = useState<string | null>(null);
+    const [editingData, setEditingData] = useState<Record<string, any>>({});
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { success, error: showError } = useToast();
+    
+    const csvHeaders = logs.length > 0 ? Object.keys(logs[0].row_data) : [];
+
+    // Load categories for template generation if needed
+    useEffect(() => {
+        categoryApi.list().then(setCategories).catch(console.error);
+    }, []);
 
     const handleDownloadTemplate = async () => {
         setLoading(true);
@@ -30,6 +47,7 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
             const blob = await dataImportApi.generateTemplate({
                 doctype_name: docType,
                 import_type: importType,
+                category_id: categoryId || undefined
             });
 
             const url = window.URL.createObjectURL(new Blob([blob]));
@@ -67,7 +85,7 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
                     setImportRecord(rec);
                     const detail = await dataImportApi.getImportDetail(rec.id);
                     setLogs(detail.logs);
-                    setStep(2);
+                    setStep(2); // Move to Field Mapping
                     success(`Berhasil mengunggah ${results.data.length} baris data ke penampungan staging`, 'Sukses');
                 } catch (err: any) {
                     showError(err.response?.data?.message || 'Gagal mengunggah file data import', 'Error');
@@ -89,11 +107,67 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
             setImportRecord(updated);
             const detail = await dataImportApi.getImportDetail(importRecord.id);
             setLogs(detail.logs);
+            setStep(3); // Move to Validation Results
             success('Simulasi validasi data selesai', 'Validasi OK');
         } catch (err: any) {
             showError('Gagal menjalankan validasi data', 'Error');
         } finally {
             setValidating(false);
+        }
+    };
+
+    const handleApplyMapping = async () => {
+        if (!importRecord) return;
+        setLoading(true);
+        try {
+            const finalMappings = Object.fromEntries(
+                Object.entries(mappings).filter(([k, v]) => v && v !== k)
+            );
+            
+            if (Object.keys(finalMappings).length > 0) {
+                await dataImportApi.mapColumns(importRecord.id, finalMappings);
+                const detail = await dataImportApi.getImportDetail(importRecord.id);
+                setLogs(detail.logs);
+            }
+            
+            setStep(3);
+            success('Pemetaan kolom berhasil, siap untuk divalidasi', 'Mapping OK');
+        } catch (err: any) {
+            showError('Gagal memetakan kolom', 'Error');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    const handleDeleteLog = async (logId: string) => {
+        if (!importRecord) return;
+        setLoading(true);
+        try {
+            await dataImportApi.deleteLog(importRecord.id, logId);
+            const detail = await dataImportApi.getImportDetail(importRecord.id);
+            setLogs(detail.logs);
+            success('Baris berhasil dihapus', 'Deleted');
+        } catch (e: any) {
+            showError('Gagal menghapus baris', 'Error');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    const handleSaveEdit = async (logId: string) => {
+        if (!importRecord) return;
+        setLoading(true);
+        try {
+            const parsedData = JSON.parse(editingData as unknown as string);
+            await dataImportApi.updateLog(importRecord.id, logId, parsedData);
+            const detail = await dataImportApi.getImportDetail(importRecord.id);
+            setLogs(detail.logs);
+            setEditingLogId(null);
+            success('Baris berhasil diperbarui', 'Saved');
+        } catch (e: any) {
+            showError('Gagal memperbarui baris (Pastikan format JSON benar)', 'Error');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -105,7 +179,7 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
             setImportRecord(updated);
             const detail = await dataImportApi.getImportDetail(importRecord.id);
             setLogs(detail.logs);
-            setStep(3);
+            setStep(4); // Result
             success(`Proses impor data selesai. Berhasil: ${updated.successful_rows}, Gagal: ${updated.failed_rows}`, 'Eksekusi Selesai');
             if (onImportFinished) onImportFinished();
         } catch (err: any) {
@@ -120,17 +194,21 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
             <LoadingOverlay visible={loading || validating || executing} />
 
             {/* Stepper Header */}
-            <div className="grid grid-cols-3 gap-2 border-b border-border pb-4">
+            <div className="grid grid-cols-4 gap-2 border-b border-border pb-4">
                 <div className={`flex items-center gap-2 p-3 rounded-xl border ${step === 1 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-bold' : 'bg-muted/30 border-border text-muted-foreground'}`}>
                     <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">1</div>
                     <span className="text-sm">Template & Mode</span>
                 </div>
                 <div className={`flex items-center gap-2 p-3 rounded-xl border ${step === 2 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-bold' : 'bg-muted/30 border-border text-muted-foreground'}`}>
                     <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">2</div>
-                    <span className="text-sm">Dry-Run Validation</span>
+                    <span className="text-sm">Field Mapping</span>
                 </div>
                 <div className={`flex items-center gap-2 p-3 rounded-xl border ${step === 3 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-bold' : 'bg-muted/30 border-border text-muted-foreground'}`}>
                     <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">3</div>
+                    <span className="text-sm">Dry-Run Validation</span>
+                </div>
+                <div className={`flex items-center gap-2 p-3 rounded-xl border ${step === 4 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-bold' : 'bg-muted/30 border-border text-muted-foreground'}`}>
+                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">4</div>
                     <span className="text-sm">Eksekusi & Audit Log</span>
                 </div>
             </div>
@@ -160,13 +238,27 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
                             </label>
                             <Select
                                 value={importType}
-                                onChange={(val: string) => setImportType(val as any)}
+                                onChange={(val: string) => setImportType(val as 'Insert' | 'Update')}
                                 options={[
-                                    { value: 'Insert', label: 'Insert New Records (Buat Data Baru)' },
-                                    { value: 'Update', label: 'Update Existing Records (Perbarui Data Lama by Code)' }
+                                    { value: 'Insert', label: 'Insert Baru (Buat Data)' },
+                                    { value: 'Update', label: 'Update Masal (Perbarui Data Lama)' }
                                 ]}
                             />
                         </div>
+                        
+                        {docType === 'Asset' && (
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-muted-foreground">Kategori Aset (Wajib)</label>
+                                <Select
+                                    value={categoryId}
+                                    onChange={(val: string) => setCategoryId(val)}
+                                    options={[
+                                        { value: '', label: '-- Pilih Kategori --' },
+                                        ...categories.map(cat => ({ value: cat.id, label: `${cat.code} - ${cat.name}` }))
+                                    ]}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl">
@@ -179,7 +271,12 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
                                 Unduh struktur CSV sesuai mode <span className="font-bold text-cyan-400">{importType}</span> lengkap dengan metadata header dan kolom wajib.
                             </p>
                         </div>
-                        <Button variant="outline" onClick={handleDownloadTemplate} leftIcon={<Download size={16} />}>
+                        <Button 
+                            variant="outline" 
+                            onClick={handleDownloadTemplate} 
+                            leftIcon={<Download size={16} />}
+                            disabled={docType === 'Asset' && !categoryId}
+                        >
                             Unduh Template
                         </Button>
                     </div>
@@ -206,8 +303,50 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
                 </div>
             )}
 
-            {/* STEP 2: DRY-RUN VALIDATION TABLE */}
+            {/* STEP 2: FIELD MAPPING */}
             {step === 2 && importRecord && (
+                <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/20 p-4 rounded-2xl border border-border">
+                        <div>
+                            <span className="text-xs text-muted-foreground block">Pengecekan Header CSV:</span>
+                            <span className="font-bold text-foreground text-lg">
+                                Pemetaan Kolom (Field Mapping)
+                            </span>
+                        </div>
+                        <Button
+                            variant="primary"
+                            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+                            onClick={handleApplyMapping}
+                        >
+                            Konfirmasi & Lanjut Validasi
+                        </Button>
+                    </div>
+                    
+                    <div className="border border-border rounded-xl p-4 bg-card">
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Jika ada nama kolom dari file CSV Anda yang tidak sesuai dengan database (misal: "Harga" alih-alih "harga_beli"), Anda bisa menukarnya di sini. Biarkan kosong jika sudah sesuai.
+                        </p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-auto pr-2">
+                            {csvHeaders.map(header => (
+                                <div key={header} className="flex flex-col gap-1 p-3 bg-muted/30 border border-border rounded-lg">
+                                    <label className="text-xs font-bold text-muted-foreground">CSV Column: <span className="text-foreground">{header}</span></label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Map to Database Field (optional)"
+                                        className="w-full bg-background border border-border rounded-md px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                        value={mappings[header] || ''}
+                                        onChange={(e) => setMappings({...mappings, [header]: e.target.value})}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* STEP 3: DRY-RUN VALIDATION TABLE */}
+            {step === 3 && importRecord && (
                 <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/20 p-4 rounded-2xl border border-border">
                         <div>
@@ -246,9 +385,10 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
                             <TableHead>
                                 <TableRow>
                                     <TableTh className="w-16">Baris</TableTh>
-                                    <TableTh>Identifier (Kode)</TableTh>
-                                    <TableTh>Status Validasi</TableTh>
-                                    <TableTh>Pesan / Alasan Error</TableTh>
+                                    <TableTh>Status</TableTh>
+                                    <TableTh>Data JSON (Editable)</TableTh>
+                                    <TableTh>Error</TableTh>
+                                    <TableTh className="w-24">Aksi</TableTh>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -257,14 +397,37 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
                                     return (
                                         <TableRow key={log.id}>
                                             <TableTd className="font-mono text-xs">{log.row_number}</TableTd>
-                                            <TableTd className="font-semibold">{log.record_identifier || '-'}</TableTd>
                                             <TableTd>
                                                 <Badge variant={log.status === 'Success' ? 'success' : log.status === 'Failed' ? 'danger' : 'default'}>
                                                     {log.status}
                                                 </Badge>
                                             </TableTd>
+                                            <TableTd>
+                                                {editingLogId === log.id ? (
+                                                    <textarea 
+                                                        className="w-full text-xs font-mono bg-background border border-cyan-500/50 rounded-md p-2 text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                                                        rows={4}
+                                                        value={editingData as unknown as string}
+                                                        onChange={(e) => setEditingData(e.target.value as any)}
+                                                    />
+                                                ) : (
+                                                    <pre className="text-[10px] font-mono text-muted-foreground whitespace-pre-wrap max-w-xs">
+                                                        {JSON.stringify(log.row_data, null, 2)}
+                                                    </pre>
+                                                )}
+                                            </TableTd>
                                             <TableTd className="text-xs text-rose-400">
                                                 {msgs.length > 0 ? msgs.join(' | ') : <span className="text-emerald-400">Valid</span>}
+                                            </TableTd>
+                                            <TableTd>
+                                                <div className="flex gap-2">
+                                                    {editingLogId === log.id ? (
+                                                        <Button size="sm" variant="primary" onClick={() => handleSaveEdit(log.id)}>Simpan</Button>
+                                                    ) : (
+                                                        <Button size="sm" variant="outline" onClick={() => { setEditingLogId(log.id); setEditingData(JSON.stringify(log.row_data, null, 2) as any); }}>Edit</Button>
+                                                    )}
+                                                    <Button size="sm" variant="danger" onClick={() => handleDeleteLog(log.id)}>Del</Button>
+                                                </div>
                                             </TableTd>
                                         </TableRow>
                                     );
@@ -275,8 +438,8 @@ export function FrappeDataImportCenter({ defaultDocType = 'Asset', onImportFinis
                 </div>
             )}
 
-            {/* STEP 3: RESULT & AUDIT LOG */}
-            {step === 3 && importRecord && (
+            {/* STEP 4: RESULT & AUDIT LOG */}
+            {step === 4 && importRecord && (
                 <div className="space-y-6 text-center py-6">
                     <div className="inline-flex p-4 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 mb-2">
                         <CheckCircle2 size={40} />

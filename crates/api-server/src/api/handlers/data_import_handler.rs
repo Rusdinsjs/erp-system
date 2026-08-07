@@ -16,6 +16,7 @@ pub struct GenerateTemplateRequest {
     pub doctype_name: String,
     pub import_type: Option<String>, // 'Insert' or 'Update'
     pub selected_fields: Option<Vec<String>>,
+    pub category_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,12 +75,13 @@ pub async fn get_data_import_detail(
 
 /// POST /api/data-imports/template - Generate Frappe-Style CSV Template with ALL Fields
 pub async fn generate_template(
+    State(state): State<AppState>,
     Json(payload): Json<GenerateTemplateRequest>,
 ) -> AppResult<Response> {
     let import_type = payload.import_type.unwrap_or_else(|| "Insert".to_string());
     let is_update = import_type.to_lowercase() == "update";
 
-    let mut headers = vec![
+    let mut headers: Vec<String> = vec![
         // Mandatories
         "kode_aset*", "nama_aset*", "kategori*",
         // Location & Org
@@ -92,51 +94,114 @@ pub async fn generate_template(
         "tanggal_pembelian", "harga_beli", "mata_uang", "jumlah_kuantitas", "nilai_residu", "masa_manfaat_bulan",
         // Disposition / Sales
         "harga_jual", "tanggal_jual", "pembeli",
-        // Specific Vehicle & Equipment Fields
-        "spec_no_plat", "spec_no_rangka", "spec_no_mesin", "spec_stnk_expiry", "spec_pajak_expiry",
-        "spec_kir_expiry", "spec_bahan_bakar", "spec_kilometer_awal", "spec_jam_kerja_awal", "spec_kapasitas_tonase",
         // Notes
         "catatan"
-    ];
+    ].into_iter().map(String::from).collect();
 
-    if is_update {
-        // ID_Aset_Lama is mandatory for Update mode
-        headers.insert(0, "ID_Aset_Lama*");
-    }
+    let mut category_code = "ASSET".to_string();
+    let mut category_name = "Kategori Umum".to_string();
 
-    if let Some(extra) = &payload.selected_fields {
-        for f in extra {
-            if !headers.contains(&f.as_str()) {
-                headers.push(f.as_str());
+    if payload.doctype_name.eq_ignore_ascii_case("asset") {
+        if let Some(cat_id) = payload.category_id {
+            // Fetch Category
+            let category = sqlx::query!(
+                "SELECT code, name, attributes FROM categories WHERE id = $1",
+                cat_id
+            )
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| AppError::Database(e.to_string()))?;
+
+            if let Some(cat) = category {
+                category_code = cat.code.clone();
+                category_name = cat.name.clone();
+                let cat_code_upper = cat.code.to_uppercase();
+
+                // Add Polymorphic Hardcoded fields based on top level code
+                if cat_code_upper == "VEHICLE" {
+                    let vehicle_fields = vec![
+                        "spec_no_plat", "spec_no_rangka", "spec_no_mesin", "spec_stnk_expiry", "spec_pajak_expiry",
+                        "spec_kir_expiry", "spec_bahan_bakar", "spec_kilometer_awal"
+                    ];
+                    headers.extend(vehicle_fields.into_iter().map(String::from));
+                } else if cat_code_upper == "LAND" {
+                    let land_fields = vec![
+                        "spec_luas_tanah_m2", "spec_no_sertifikat", "spec_status_hak_tanah"
+                    ];
+                    headers.extend(land_fields.into_iter().map(String::from));
+                } else if cat_code_upper == "BUILDING" {
+                    let building_fields = vec![
+                        "spec_luas_bangunan_m2", "spec_no_imb", "spec_jumlah_lantai"
+                    ];
+                    headers.extend(building_fields.into_iter().map(String::from));
+                } else if cat_code_upper == "HEAVY_EQ" {
+                    let heavy_fields = vec![
+                        "spec_no_invoice", "spec_kapasitas_tonase", "spec_jam_kerja_awal", "spec_bahan_bakar"
+                    ];
+                    headers.extend(heavy_fields.into_iter().map(String::from));
+                }
+
+                // Add JSON Dynamic Template Attributes
+                if let Some(attr_schema) = cat.attributes {
+                    if let Some(arr) = attr_schema.as_array() {
+                        for attr in arr {
+                            if let Some(attr_name) = attr.as_str() {
+                                let spec_header = format!("spec_{}", attr_name);
+                                if !headers.contains(&spec_header) {
+                                    headers.push(spec_header);
+                                }
+                            } else if let Some(obj) = attr.as_object() {
+                                if let Some(attr_name) = obj.get("name").and_then(|n| n.as_str()) {
+                                    let spec_header = format!("spec_{}", attr_name);
+                                    if !headers.contains(&spec_header) {
+                                        headers.push(spec_header);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    let sample_row = if is_update {
-        vec![
-            "AST-101", "AST-101", "Dump Truck Hino 500", "VEHICLE",
-            "Gudang Utama", "Operasional", "PT SJS Logistics", "admin@example.com", "PT Hino Motors",
-            "in_inventory", "Asset Bergerak", "ya", "ya", "tidak",
-            "Hino", "FM 260 TI", "SN-HINO-998822", "2023", "Truk jungkit operasional tambang", "Pembelian", "Kredit Bank",
-            "2023-01-15", "1500000000", "IDR", "1", "200000000", "60",
-            "", "", "",
-            "B 1234 SJS", "MH123456789012345", "ENG-HINO-8899", "2028-01-15", "2025-01-15",
-            "2024-07-15", "Solar", "15000", "1200", "20 Ton",
-            "Aset kondisi prima siap operasi"
-        ]
-    } else {
-        vec![
-            "AST-101", "Dump Truck Hino 500", "VEHICLE",
-            "Gudang Utama", "Operasional", "PT SJS Logistics", "admin@example.com", "PT Hino Motors",
-            "in_inventory", "Asset Bergerak", "ya", "ya", "tidak",
-            "Hino", "FM 260 TI", "SN-HINO-998822", "2023", "Truk jungkit operasional tambang", "Pembelian", "Kredit Bank",
-            "2023-01-15", "1500000000", "IDR", "1", "200000000", "60",
-            "", "", "",
-            "B 1234 SJS", "MH123456789012345", "ENG-HINO-8899", "2028-01-15", "2025-01-15",
-            "2024-07-15", "Solar", "15000", "1200", "20 Ton",
-            "Aset kondisi prima siap operasi"
-        ]
-    };
+    if is_update {
+        // ID_Aset_Lama is mandatory for Update mode
+        headers.insert(0, "ID_Aset_Lama*".to_string());
+    }
+
+    if let Some(extra) = &payload.selected_fields {
+        for f in extra {
+            if !headers.contains(f) {
+                headers.push(f.clone());
+            }
+        }
+    }
+
+    // Build sample row based on the dynamic headers
+    let mut sample_row = Vec::new();
+    for header in &headers {
+        let val = match header.as_str() {
+            "ID_Aset_Lama*" => "AST-101",
+            "kode_aset*" => "AST-101",
+            "nama_aset*" => "Aset Contoh",
+            "kategori*" => &category_name,
+            "lokasi" => "Gudang Utama",
+            "status" => "in_inventory",
+            "harga_beli" => "1000000",
+            "jumlah_kuantitas" => "1",
+            "mata_uang" => "IDR",
+            "tanggal_pembelian" => "2023-01-15",
+            _ => {
+                if header.starts_with("spec_") {
+                    "Isi Spesifikasi"
+                } else {
+                    ""
+                }
+            }
+        };
+        sample_row.push(val.to_string());
+    }
 
     let csv_content = format!("{}\n{}", headers.join(","), sample_row.join(","));
 
@@ -523,6 +588,79 @@ pub async fn download_failed_rows(
         csv_content,
     )
         .into_response())
+}
+
+#[derive(serde::Deserialize)]
+pub struct UpdateLogRequest {
+    pub row_data: serde_json::Value,
+}
+
+/// PUT /api/data-imports/:id/logs/:log_id
+pub async fn update_data_import_log(
+    State(state): State<AppState>,
+    Path((import_id, log_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<UpdateLogRequest>,
+) -> AppResult<impl IntoResponse> {
+    sqlx::query("UPDATE data_import_logs SET row_data = $1 WHERE id = $2 AND data_import_id = $3")
+        .bind(&payload.row_data)
+        .bind(log_id)
+        .bind(import_id)
+        .execute(&state.pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    Ok(Json(json!({"success": true})))
+}
+
+/// DELETE /api/data-imports/:id/logs/:log_id
+pub async fn delete_data_import_log(
+    State(state): State<AppState>,
+    Path((import_id, log_id)): Path<(Uuid, Uuid)>,
+) -> AppResult<impl IntoResponse> {
+    sqlx::query("DELETE FROM data_import_logs WHERE id = $1 AND data_import_id = $2")
+        .bind(log_id)
+        .bind(import_id)
+        .execute(&state.pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+        
+    // Update total_rows in parent
+    sqlx::query("UPDATE data_imports SET total_rows = (SELECT COUNT(*) FROM data_import_logs WHERE data_import_id = $1) WHERE id = $1")
+        .bind(import_id)
+        .execute(&state.pool)
+        .await
+        .ok();
+
+    Ok(Json(json!({"success": true})))
+}
+
+#[derive(serde::Deserialize)]
+pub struct MapColumnsRequest {
+    pub mappings: std::collections::HashMap<String, String>,
+}
+
+/// PUT /api/data-imports/:id/map-columns
+pub async fn map_data_import_columns(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<MapColumnsRequest>,
+) -> AppResult<impl IntoResponse> {
+    for (old_key, new_key) in payload.mappings {
+        sqlx::query(
+            r#"
+            UPDATE data_import_logs 
+            SET row_data = (row_data - $1) || jsonb_build_object($2::text, row_data->($1::text))
+            WHERE data_import_id = $3 AND row_data ? $1
+            "#
+        )
+        .bind(&old_key)
+        .bind(&new_key)
+        .bind(id)
+        .execute(&state.pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    }
+    Ok(Json(json!({"success": true})))
 }
 
 trait VecLenExt {

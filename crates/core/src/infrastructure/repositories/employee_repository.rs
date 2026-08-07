@@ -159,7 +159,7 @@ impl EmployeeRepository {
             ),
             synced_user AS (
                 UPDATE users
-                SET name = e.name, email = e.email, updated_at = NOW()
+                SET email = e.email, updated_at = NOW()
                 FROM updated_emp e
                 WHERE users.id = e.user_id
                 RETURNING users.*

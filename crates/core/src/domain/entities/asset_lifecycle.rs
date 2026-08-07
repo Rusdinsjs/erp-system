@@ -117,11 +117,8 @@ impl AssetState {
             Self::RentedOut => matches!(
                 target,
                 Self::InInventory
-                    | Self::Deployed
                     | Self::UnderMaintenance
                     | Self::UnderRepair
-                    | Self::UnderConversion
-                    | Self::Sold
             ),
             Self::UnderMaintenance => matches!(
                 target,
@@ -195,11 +192,8 @@ impl AssetState {
             }
             Self::RentedOut => transitions.extend([
                 Self::InInventory,
-                Self::Deployed,
                 Self::UnderMaintenance,
                 Self::UnderRepair,
-                Self::UnderConversion,
-                Self::Sold,
             ]),
             Self::UnderMaintenance => transitions.extend([
                 Self::Deployed,
@@ -257,7 +251,7 @@ impl AssetState {
     /// Get display name for UI
     pub fn display_name(&self) -> &'static str {
         match self {
-            Self::Planning => "Rent Out",
+            Self::Planning => "Planning",
             Self::Procurement => "Procurement",
             Self::Received => "Received",
             Self::InInventory => "In Inventory",

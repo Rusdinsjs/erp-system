@@ -26,11 +26,11 @@ pub fn category_routes() -> Router<AppState> {
                 .post(category_template_handler::upsert_category_template),
         )
         .route(
-            "/templates/{category_id}",
+            "/templates/:category_id",
             delete(category_template_handler::delete_category_template),
         )
         .route(
-            "/{id}",
+            "/:id",
             get(category_handler::get_category)
                 .put(category_handler::update_category)
                 .delete(category_handler::delete_category),

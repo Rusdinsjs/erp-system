@@ -539,7 +539,7 @@ export default function AdminDashboard() {
                 label: 'Assets',
                 icon: Box,
                 minLevel: 5,
-                children: getGroupItems(assetIds, ['assets', 'asset-lifecycle', 'conversions', 'asset-audit'], ['assets', 'asset-lifecycle', 'conversions', 'asset-audit'])
+                children: getGroupItems(assetIds, ['assets', 'asset-lifecycle', 'asset-audit'], ['assets', 'asset-lifecycle', 'asset-audit'])
             },
             {
                 id: 'inventory_group',

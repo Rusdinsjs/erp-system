@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Modal, Button, Badge, Card, LoadingOverlay } from '../ui';
+import { Modal, Button, Badge, Card, LoadingOverlay, useToast } from '../ui';
 import { 
     Share2, 
     Printer, 
@@ -31,6 +31,8 @@ interface AssetPreviewModalProps {
 
 export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, onClose, asset }) => {
     const previewRef = useRef<HTMLDivElement>(null);
+    const { success, error: toastError } = useToast();
+    const [isSendingWA, setIsSendingWA] = React.useState(false);
 
     const { data: documents, isLoading } = useQuery({
         queryKey: ['asset-documents', asset?.id],
@@ -69,6 +71,52 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
             pdf.save(`asset-preview-${asset.asset_code}.pdf`);
         } catch (error) {
             console.error('Failed to export PDF', error);
+        }
+    };
+
+    const handleSendToWhatsApp = async () => {
+        if (!asset || !previewRef.current) return;
+        setIsSendingWA(true);
+        try {
+            // Convert preview to image
+            const dataUrl = await toPng(previewRef.current, { quality: 1.0, pixelRatio: 2 });
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            const file = new File([blob], `Asset_${asset.asset_code}.png`, { type: 'image/png' });
+            
+            const text = `*Informasi Aset: ${asset.asset_code}*\n\n` +
+                `Nama Aset: ${asset.name}\n` +
+                `Kategori: ${asset.category_name || '-'}\n` +
+                `Status: ${asset.status || '-'}\n` +
+                `Lokasi: ${asset.location_name || '-'}\n\n` +
+                `Dicetak dari SJS Asset Management System`;
+
+            // Try Web Share API first (supports direct file sharing to Apps like WhatsApp without Ctrl+V)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: `Asset ${asset.asset_code}`,
+                    text: text
+                });
+                success('Berhasil membuka menu Share. Silakan pilih WhatsApp.', 'Share API');
+            } else {
+                // Fallback 1: Try copying to clipboard and opening wa.me (Desktop App) instead of web.whatsapp
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                
+                const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank', 'noopener,noreferrer');
+                
+                success('Gambar disalin! Tekan Paste (Ctrl+V) di WhatsApp.', 'Fallback');
+            }
+        } catch (err: any) {
+            if (err.name !== 'AbortError') { // Ignore user cancelling the share dialog
+                console.error('Failed to share', err);
+                toastError('Gagal membagikan gambar aset.', 'Error Share');
+            }
+        } finally {
+            setIsSendingWA(false);
         }
     };
 
@@ -252,8 +300,10 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="ghost" onClick={onClose}>Close Preview</Button>
-                    <Button variant="primary" leftIcon={<Share2 size={18} />}>Send to WhatsApp</Button>
+                    <Button variant="ghost" onClick={onClose} disabled={isSendingWA}>Close Preview</Button>
+                    <Button variant="primary" leftIcon={isSendingWA ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />} onClick={handleSendToWhatsApp} disabled={isSendingWA}>
+                        {isSendingWA ? 'Menyiapkan...' : 'Send to WhatsApp'}
+                    </Button>
                 </div>
             </div>
         </Modal>

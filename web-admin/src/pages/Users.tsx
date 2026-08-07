@@ -448,13 +448,20 @@ export default function Users() {
             {/* Edit Modal */}
             <Modal isOpen={editOpened} onClose={() => setEditOpened(false)} title="Edit User">
                 <div className="space-y-4">
+                    <Input
+                        label="User Name"
+                        placeholder="Enter user name"
+                        value={editFormData.name || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                        required
+                    />
                     <div>
-                        <label className="block text-xs font-medium text-slate-300 mb-1.5">Roles (Pilih satu atau lebih)</label>
-                        <div className="space-y-2 p-3 rounded-lg bg-slate-950 border border-slate-800 max-h-48 overflow-y-auto">
+                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Roles (Pilih satu atau lebih)</label>
+                        <div className="space-y-2 p-3 rounded-lg bg-muted border border-border max-h-48 overflow-y-auto global-scrollbar">
                             {roles.map((r) => {
                                 const isChecked = selectedRoleCodes.includes(r.code);
                                 return (
-                                    <label key={r.id || r.code} className="flex items-center gap-2.5 text-sm text-slate-200 cursor-pointer hover:text-white transition-colors">
+                                    <label key={r.id || r.code} className="flex items-center gap-2.5 text-sm text-foreground cursor-pointer hover:text-primary transition-colors">
                                         <input
                                             type="checkbox"
                                             checked={isChecked}
@@ -472,10 +479,10 @@ export default function Users() {
                                                     role_code: updated[0] || 'user'
                                                 }));
                                             }}
-                                            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
+                                            className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary"
                                         />
                                         <span className="font-medium">{r.name}</span>
-                                        <span className="text-xs text-slate-400 font-mono">(L{r.role_level})</span>
+                                        <span className="text-xs text-muted-foreground font-mono">(L{r.role_level})</span>
                                     </label>
                                 );
                             })}
@@ -508,9 +515,9 @@ export default function Users() {
                             id="is_active"
                             checked={editFormData.is_active ?? true}
                             onChange={(e) => setEditFormData({ ...editFormData, is_active: e.target.checked })}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-950 text-cyan-500 focus:ring-cyan-500"
+                            className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary"
                         />
-                        <label htmlFor="is_active" className="text-sm text-slate-300">Active Account</label>
+                        <label htmlFor="is_active" className="text-sm text-foreground">Active Account</label>
                     </div>
                     <Button fullWidth onClick={handleUpdate} loading={submitting}>
                         Save Changes

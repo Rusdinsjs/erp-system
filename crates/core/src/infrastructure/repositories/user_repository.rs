@@ -182,9 +182,9 @@ impl UserRepository {
             .execute(&self.pool)
             .await?;
 
-        // Synchronize user.name & avatar_url from linked employee
+        // Synchronize user.email & avatar_url from linked employee (Name is intentionally kept independent)
         sqlx::query(
-            "UPDATE users SET name = e.name, email = e.email, avatar_url = COALESCE(e.photo_url, users.avatar_url), updated_at = NOW() FROM employees e WHERE users.id = $1 AND e.id = $2"
+            "UPDATE users SET email = e.email, avatar_url = COALESCE(e.photo_url, users.avatar_url), updated_at = NOW() FROM employees e WHERE users.id = $1 AND e.id = $2"
         )
         .bind(user_id)
         .bind(employee_id)
@@ -299,7 +299,7 @@ impl UserRepository {
             ),
             synced_employee AS (
                 UPDATE employees
-                SET name = u.name, updated_at = NOW()
+                SET updated_at = NOW()
                 FROM updated_user u
                 WHERE employees.user_id = u.id
                 RETURNING employees.*

@@ -506,6 +506,15 @@ pub fn create_router(state: AppState) -> Router {
             "/api/data-imports/:id/failed-rows",
             get(crate::api::handlers::data_import_handler::download_failed_rows),
         )
+        .route(
+            "/api/data-imports/:id/logs/:log_id",
+            put(crate::api::handlers::data_import_handler::update_data_import_log)
+                .delete(crate::api::handlers::data_import_handler::delete_data_import_log),
+        )
+        .route(
+            "/api/data-imports/:id/map-columns",
+            put(crate::api::handlers::data_import_handler::map_data_import_columns),
+        )
         // Sensors
         .route(
             "/api/assets/:asset_id/sensors/readings",

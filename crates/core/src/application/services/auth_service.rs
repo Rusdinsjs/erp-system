@@ -61,7 +61,11 @@ impl AuthService {
         let user_perms = self.rbac_repository.get_user_permissions(user.id).await;
         let permissions = if let Ok(perms) = user_perms {
             if !perms.is_empty() {
-                perms.into_iter().map(|p| p.code).collect()
+                let mut codes: Vec<String> = perms.into_iter().map(|p| p.code).collect();
+                if user.role.as_str() == "super_admin" && !codes.iter().any(|c| c == "*") {
+                    codes.push("*".to_string());
+                }
+                codes
             } else if let Some(role_id) = user.role_id {
                 self.rbac_repository
                     .get_permissions_for_role(role_id)

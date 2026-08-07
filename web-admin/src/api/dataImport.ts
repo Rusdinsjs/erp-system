@@ -45,6 +45,7 @@ export const dataImportApi = {
         doctype_name: string;
         import_type?: 'Insert' | 'Update';
         selected_fields?: string[];
+        category_id?: string;
     }) => {
         const response = await api.post('/data-imports/template', payload, {
             responseType: 'blob',
@@ -75,4 +76,19 @@ export const dataImportApi = {
     getFailedRowsUrl: (id: string) => {
         return `/api/data-imports/${id}/failed-rows`;
     },
+
+    updateLog: async (id: string, logId: string, rowData: Record<string, any>) => {
+        const response = await api.put(`/data-imports/${id}/logs/${logId}`, { row_data: rowData });
+        return response.data;
+    },
+
+    deleteLog: async (id: string, logId: string) => {
+        const response = await api.delete(`/data-imports/${id}/logs/${logId}`);
+        return response.data;
+    },
+
+    mapColumns: async (id: string, mappings: Record<string, string>) => {
+        const response = await api.put(`/data-imports/${id}/map-columns`, { mappings });
+        return response.data;
+    }
 };
