@@ -78,6 +78,7 @@ impl SchedulerService {
                     info!("Running scheduled job: Check Maintenance Due");
                     match m_service.check_upcoming_maintenance().await {
                         Ok(records) => {
+                            let records: Vec<management_system_core::domain::entities::MaintenanceRecord> = records;
                             for record in &records {
                                 info!("Auto-creating Work Order for Asset: {}", record.asset_id);
                                 let req = management_system_ops::CreateWorkOrderRequest {

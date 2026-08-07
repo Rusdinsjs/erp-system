@@ -38,6 +38,7 @@ impl AssetRepository {
                 residual_value, useful_life_months,
                 qr_code_url, notes,
                 sale_price, sale_date, sold_to,
+                custom_data,
                 created_at, updated_at, version
             FROM assets
             WHERE id = $1
@@ -67,6 +68,7 @@ impl AssetRepository {
                 a.residual_value, a.useful_life_months,
                 a.qr_code_url, a.notes,
                 a.sale_price, a.sale_date, a.sold_to,
+                a.custom_data,
                 a.created_at, a.updated_at, a.version,
                 (SELECT row_to_json(vd) FROM vehicle_details vd WHERE vd.asset_id = a.id) as vehicle_details,
                 c.name as category_name,
@@ -116,6 +118,7 @@ impl AssetRepository {
             // Manual mapping from Row to Asset struct
             let asset = Asset {
                 id: r.get("id"),
+                custom_data: r.try_get("custom_data").unwrap_or(serde_json::json!({})),
                 asset_code: r.get("asset_code"),
                 name: r.get("name"),
                 category_id: r.get("category_id"),
@@ -447,9 +450,9 @@ impl AssetRepository {
                 purchase_date, purchase_price, currency_id, unit_id, quantity,
                 residual_value, useful_life_months,
                 qr_code_url, notes,
-                sale_price, sale_date, sold_to
+                sale_price, sale_date, sold_to, custom_data
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
             RETURNING *
             "#,
         )
@@ -488,6 +491,7 @@ impl AssetRepository {
         .bind(asset.sale_price)
         .bind(asset.sale_date)
         .bind(&asset.sold_to)
+        .bind(&asset.custom_data)
         .fetch_one(executor)
         .await
     }
@@ -507,9 +511,10 @@ impl AssetRepository {
                 residual_value = $29, useful_life_months = $30,
                 qr_code_url = $31, notes = $32,
                 sale_price = $33, sale_date = $34, sold_to = $35,
+                custom_data = $36,
                 updated_at = NOW(),
                 version = version + 1
-            WHERE id = $1 AND version = $36
+            WHERE id = $1 AND version = $37
             RETURNING *
             "#,
         )
@@ -548,6 +553,7 @@ impl AssetRepository {
         .bind(asset.sale_price)
         .bind(asset.sale_date)
         .bind(&asset.sold_to)
+        .bind(&asset.custom_data)
         .bind(asset.version)
         .fetch_one(&self.pool)
         .await
@@ -1114,6 +1120,7 @@ impl AssetRepository {
             use sqlx::Row;
             let asset = Asset {
                 id: r.get("id"),
+                custom_data: r.try_get("custom_data").unwrap_or(serde_json::json!({})),
                 asset_code: r.get("asset_code"),
                 name: r.get("name"),
                 category_id: r.get("category_id"),

@@ -44,6 +44,7 @@ pub struct AssetService {
     cache: Arc<dyn CacheOperations>,
     approval_service: ApprovalService,
     notification_service: NotificationService,
+    metadata_service: management_system_core::application::services::MetadataService,
 }
 
 impl AssetService {
@@ -53,6 +54,7 @@ impl AssetService {
         cache: Arc<dyn CacheOperations>,
         approval_service: ApprovalService,
         notification_service: NotificationService,
+        metadata_service: management_system_core::application::services::MetadataService,
     ) -> Self {
         Self {
             repository,
@@ -60,6 +62,7 @@ impl AssetService {
             cache,
             approval_service,
             notification_service,
+            metadata_service,
         }
     }
 
@@ -440,7 +443,14 @@ impl AssetService {
         }
 
         tracing::info!("AssetService: Code unique. Inserting...");
+        
+        // --- Metadata Engine Validation ---
+        let custom_data = request.custom_data.unwrap_or_else(|| serde_json::json!({}));
+        self.metadata_service.validate_entity_data("ASSET", &custom_data).await
+            .map_err(|e| DomainError::ValidationError { field: "custom_data".to_string(), message: e })?;
+
         let mut asset = Asset::new(request.asset_code, request.name, request.category_id);
+        asset.custom_data = custom_data;
 
         // Set optional fields
         asset.location_id = request.location_id;
@@ -816,6 +826,14 @@ impl AssetService {
         if let Some(n) = request.notes {
             asset.notes = Some(n);
         }
+        
+        // --- Metadata Engine Validation ---
+        if let Some(cd) = request.custom_data {
+            self.metadata_service.validate_entity_data("ASSET", &cd).await
+                .map_err(|e| DomainError::ValidationError { field: "custom_data".to_string(), message: e })?;
+            asset.custom_data = cd;
+        }
+
         if let Some(v) = request.version {
             if v != asset.version {
                 return Err(DomainError::Conflict {

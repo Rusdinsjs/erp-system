@@ -66,6 +66,7 @@ pub struct AppState {
     pub employee_service: EmployeeService,
     pub location_service: LocationService,
     pub leave_service: management_system_ops::LeaveService,
+    pub metadata_service: management_system_core::application::services::MetadataService,
     pub finance_service: management_system_finance::FinanceService,
     pub fuel_service: management_system_ops::FuelService,
     pub journal_service: management_system_finance::JournalService,
@@ -141,6 +142,7 @@ impl AppState {
         let tax_renewal_repo = TaxRenewalRepository::new(pool.clone());
         let leave_repo = LeaveRepository::new(pool.clone());
         let vendor_repo = VendorRepository::new(pool.clone());
+        let metadata_repo = management_system_core::infrastructure::repositories::MetadataRepository::new(pool.clone());
 
         // Create Internal Event Bus
         let event_bus = EventBus::new(1024);
@@ -168,12 +170,15 @@ impl AppState {
 
         // We need to register callbacks after creating all services
         // So we'll do it after all services are created
+        let metadata_service = management_system_core::application::services::MetadataService::new(metadata_repo);
+
         let asset_service = management_system_assets::AssetService::new(
             asset_repo.clone(),
             journal_repo.clone(),
             cache.clone(),
             approval_service.clone(),
             notification_service.clone(),
+            metadata_service.clone(),
         );
         let asset_expense_service = AssetExpenseService::new(
             asset_expense_repo,
@@ -381,6 +386,7 @@ impl AppState {
             fuel_service,
             journal_service,
             settings_service,
+            metadata_service,
             file_storage,
             contract_document_repo,
             pool,
@@ -398,8 +404,13 @@ impl AppState {
 }
 
 /// Create the application router
-pub fn create_app(state: AppState) -> axum::Router {
-    create_router(state)
+pub async fn create_app(state: AppState) -> axum::Router {
+    let app_registry_router = crate::api::app_registry::boot_apps(state.clone(), state.metadata_service.clone())
+        .await
+        .expect("Failed to boot app registry");
+
+    create_router(state.clone())
+        .merge(app_registry_router.with_state(state))
         .merge(utoipa_swagger_ui::SwaggerUi::new("/swagger-ui").url(
             "/api-docs/openapi.json",
             crate::api::docs::ApiDoc::openapi(),

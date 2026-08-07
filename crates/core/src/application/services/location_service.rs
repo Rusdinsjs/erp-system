@@ -13,28 +13,28 @@ impl LocationService {
     }
 
     pub async fn list_locations(&self) -> Result<Vec<Location>, String> {
-        self.repository.list().await.map_err(|e| e.to_string())
+        self.repository.list().await.map_err(|e: sqlx::Error| e.to_string())
     }
 
     pub async fn get_location(&self, id: Uuid) -> Result<Option<Location>, String> {
         self.repository
             .find_by_id(id)
             .await
-            .map_err(|e| e.to_string())
+            .map_err(|e: sqlx::Error| e.to_string())
     }
 
     pub async fn create_location(&self, location: Location) -> Result<Location, String> {
         self.repository
             .create(&location)
             .await
-            .map_err(|e| e.to_string())
+            .map_err(|e: sqlx::Error| e.to_string())
     }
 
     pub async fn update_location(&self, location: Location) -> Result<Location, String> {
         self.repository
             .update(&location)
             .await
-            .map_err(|e| e.to_string())
+            .map_err(|e: sqlx::Error| e.to_string())
     }
 
     pub async fn delete_location(&self, id: Uuid) -> Result<bool, String> {

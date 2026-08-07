@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, entity_type_id, layout_name, layout_json\n            FROM layout_definitions\n            WHERE entity_type_id = $1 AND layout_name = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "entity_type_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "layout_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "layout_json",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f5a107ae88fac81fb27c9f717d5581391b6964b5dc26dc04172a62405a1416e9"
+}

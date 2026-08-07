@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, entity_type_id, field_name, label, data_type, is_required, is_readonly, default_value, options_json\n            FROM field_definitions\n            WHERE entity_type_id = $1\n            ORDER BY created_at ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "entity_type_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "field_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "label",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "data_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_readonly",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "default_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "options_json",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "d0cc3438d0e22d8bed2f9dd1a3f568876ecd98c3c253081f3f4d044dd5c88d1b"
+}

@@ -79,6 +79,9 @@ pub struct Asset {
 
     // Notes
     pub notes: Option<String>,
+    // Metadata Engine
+    #[schema(value_type = Object)]
+    pub custom_data: JsonValue,
 
     // Timestamps
     pub created_at: DateTime<Utc>,
@@ -92,6 +95,7 @@ impl Asset {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
+            custom_data: serde_json::json!({}),
             asset_code,
             name,
             category_id,

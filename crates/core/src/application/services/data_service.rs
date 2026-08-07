@@ -45,7 +45,7 @@ impl DataService {
                 .asset_repository
                 .list(batch_size, offset, None, None)
                 .await
-                .map_err(|e| DomainError::ExternalServiceError {
+                .map_err(|e: sqlx::Error| DomainError::ExternalServiceError {
                     service: "database".to_string(),
                     message: e.to_string(),
                 })?;
@@ -66,7 +66,7 @@ impl DataService {
                     asset.serial_number.clone().unwrap_or_default(),
                     asset
                         .purchase_price
-                        .map(|p| p.to_string())
+                        .map(|p: rust_decimal::Decimal| p.to_string())
                         .unwrap_or_default(),
                 ])
                 .map_err(|e| DomainError::ExternalServiceError {

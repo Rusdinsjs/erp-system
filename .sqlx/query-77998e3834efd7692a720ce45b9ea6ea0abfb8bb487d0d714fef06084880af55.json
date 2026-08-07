@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO field_definitions (id, entity_type_id, field_name, label, data_type, is_required, is_readonly, default_value, options_json)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            RETURNING id, entity_type_id, field_name, label, data_type, is_required, is_readonly, default_value, options_json\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "entity_type_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "field_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "label",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "data_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_required",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_readonly",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "default_value",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "options_json",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Bool",
+        "Bool",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "77998e3834efd7692a720ce45b9ea6ea0abfb8bb487d0d714fef06084880af55"
+}

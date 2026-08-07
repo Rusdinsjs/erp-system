@@ -35,6 +35,76 @@ pub fn create_router(state: AppState) -> Router {
             get(list_maintenance_types),
         );
 
+    // Transactional & Finance Routes (Strict Authorization)
+    let transactional_routes = Router::new()
+        // Journal Entries
+        .route(
+            "/api/finance/journals",
+            get(journal_handler::list_journals).post(journal_handler::create_journal),
+        )
+        .route(
+            "/api/finance/journals/:id",
+            get(journal_handler::get_journal_details),
+        )
+        // Operational Finance (Invoices, Bills, etc)
+        .route(
+            "/api/finance/sales/invoices",
+            get(finance_handler::list_sales_invoices).post(finance_handler::create_sales_invoice),
+        )
+        .route(
+            "/api/finance/sales/invoices/:id",
+            get(finance_handler::get_sales_invoice)
+                .put(finance_handler::update_sales_invoice)
+                .delete(finance_handler::delete_sales_invoice),
+        )
+        .route(
+            "/api/finance/sales/quotes",
+            get(finance_handler::list_sales_quotes).post(finance_handler::create_sales_quote),
+        )
+        .route(
+            "/api/finance/sales/orders",
+            get(finance_handler::list_sales_orders).post(finance_handler::create_sales_order),
+        )
+        .route(
+            "/api/finance/sales/shipments",
+            get(finance_handler::list_sales_shipments).post(finance_handler::create_sales_shipment),
+        )
+        .route(
+            "/api/finance/purchase/quotes",
+            get(finance_handler::list_purchase_quotes).post(finance_handler::create_purchase_quote),
+        )
+        .route(
+            "/api/finance/purchase/orders",
+            get(finance_handler::list_purchase_orders).post(finance_handler::create_purchase_order),
+        )
+        .route(
+            "/api/finance/purchase/shipments",
+            get(finance_handler::list_purchase_shipments)
+                .post(finance_handler::create_purchase_shipment),
+        )
+        .route(
+            "/api/finance/purchase/bills",
+            get(finance_handler::list_purchase_bills).post(finance_handler::create_purchase_bill),
+        )
+        .route(
+            "/api/finance/expenses",
+            get(finance_handler::list_expenses).post(finance_handler::create_expense),
+        )
+        .route(
+            "/api/finance/cash-bank",
+            get(finance_handler::list_cash_bank_transactions)
+                .post(finance_handler::create_cash_bank_transaction),
+        )
+        .layer(axum_middleware::from_fn(require_permission("finance.transaction")));
+    let lookup_routes = Router::new()
+        .route("/api/lookups/currencies", get(list_currencies))
+        .route("/api/lookups/units", get(list_units))
+        .route("/api/lookups/conditions", get(list_conditions))
+        .route(
+            "/api/lookups/maintenance-types",
+            get(list_maintenance_types),
+        );
+
     // Protected routes (QSEC-006: Private file uploads & access)
     let protected_routes = Router::new()
         .route(
@@ -294,7 +364,7 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/api/attendance/scan", post(attendance_handler::scan_face))
         .route("/api/attendance/logs", get(attendance_handler::list_logs))
-        // Finance Routes
+        // Finance Routes (Master Data & Reports only)
         .route(
             "/api/finance/accounts",
             get(finance_handler::list_accounts).post(finance_handler::create_account),
@@ -306,15 +376,6 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/finance/accounts/:id",
             put(finance_handler::update_account),
-        )
-        // Journal Entries
-        .route(
-            "/api/finance/journals",
-            get(journal_handler::list_journals).post(journal_handler::create_journal),
-        )
-        .route(
-            "/api/finance/journals/:id",
-            get(journal_handler::get_journal_details),
         )
         // Finance Reports
         .route(
@@ -332,55 +393,6 @@ pub fn create_router(state: AppState) -> Router {
         .route(
             "/api/finance/reports/income-statement",
             get(finance_report_handler::get_income_statement),
-        )
-        // Operational Finance
-        .route(
-            "/api/finance/sales/invoices",
-            get(finance_handler::list_sales_invoices).post(finance_handler::create_sales_invoice),
-        )
-        .route(
-            "/api/finance/sales/invoices/:id",
-            get(finance_handler::get_sales_invoice)
-                .put(finance_handler::update_sales_invoice)
-                .delete(finance_handler::delete_sales_invoice),
-        )
-        .route(
-            "/api/finance/sales/quotes",
-            get(finance_handler::list_sales_quotes).post(finance_handler::create_sales_quote),
-        )
-        .route(
-            "/api/finance/sales/orders",
-            get(finance_handler::list_sales_orders).post(finance_handler::create_sales_order),
-        )
-        .route(
-            "/api/finance/sales/shipments",
-            get(finance_handler::list_sales_shipments).post(finance_handler::create_sales_shipment),
-        )
-        .route(
-            "/api/finance/purchase/quotes",
-            get(finance_handler::list_purchase_quotes).post(finance_handler::create_purchase_quote),
-        )
-        .route(
-            "/api/finance/purchase/orders",
-            get(finance_handler::list_purchase_orders).post(finance_handler::create_purchase_order),
-        )
-        .route(
-            "/api/finance/purchase/shipments",
-            get(finance_handler::list_purchase_shipments)
-                .post(finance_handler::create_purchase_shipment),
-        )
-        .route(
-            "/api/finance/purchase/bills",
-            get(finance_handler::list_purchase_bills).post(finance_handler::create_purchase_bill),
-        )
-        .route(
-            "/api/finance/expenses",
-            get(finance_handler::list_expenses).post(finance_handler::create_expense),
-        )
-        .route(
-            "/api/finance/cash-bank",
-            get(finance_handler::list_cash_bank_transactions)
-                .post(finance_handler::create_cash_bank_transaction),
         )
         // Leave Management
         .route("/api/hrd/leaves", post(leave_handler::request_leave))
@@ -567,6 +579,10 @@ pub fn create_router(state: AppState) -> Router {
             "/api/maintenance",
             crate::api::routes::maintenance_routes::maintenance_routes(),
         )
+        .nest(
+            "/api/metadata",
+            crate::api::routes::metadata_routes::metadata_routes(),
+        )
         .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes())
         .route(
             "/api/test/email",
@@ -586,6 +602,7 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         .merge(public_routes)
         .merge(lookup_routes)
+        .merge(transactional_routes)
         .merge(protected_routes)
         .merge(crate::api::routes::settings_routes::settings_routes(
             state.clone(),

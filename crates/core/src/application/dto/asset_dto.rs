@@ -155,6 +155,10 @@ pub struct CreateAssetRequest {
     pub machine_details: Option<MachineDetailsDto>,
     pub inventory_details: Option<InventoryDetailsDto>,
     pub furniture_details: Option<FurnitureDetailsDto>,
+    
+    // Metadata Engine
+    #[schema(value_type = Option<Object>)]
+    pub custom_data: Option<JsonValue>,
 }
 
 /// Bulk create asset request
@@ -210,6 +214,10 @@ pub struct UpdateAssetRequest {
     pub machine_details: Option<MachineDetailsDto>,
     pub inventory_details: Option<InventoryDetailsDto>,
     pub furniture_details: Option<FurnitureDetailsDto>,
+
+    // Metadata Engine
+    #[schema(value_type = Option<Object>)]
+    pub custom_data: Option<JsonValue>,
 
     pub version: Option<i32>,
 }

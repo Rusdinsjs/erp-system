@@ -83,7 +83,7 @@ async fn main() {
     let _ = state.scheduler_service.start().await;
 
     // Create application
-    let app = create_app(state);
+    let app = create_app(state).await;
 
     // Start server
     let addr_str = format!("{}:{}", config.server_host, config.server_port);

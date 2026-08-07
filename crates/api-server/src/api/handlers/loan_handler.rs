@@ -10,7 +10,8 @@ use uuid::Uuid;
 
 use crate::api::server::AppState;
 use management_system_core::application::dto::{ApiResponse, CreateLoanRequest, PaginationParams};
-use management_system_core::domain::entities::{Loan, UserClaims};
+use management_system_core::domain::entities::UserClaims;
+use management_system_assets::domain::entities::Loan;
 use management_system_core::shared::errors::AppError;
 
 #[derive(serde::Deserialize)]

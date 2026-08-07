@@ -170,28 +170,28 @@
       },
       {
         "ordinal": 33,
-        "name": "rental_item_id",
-        "type_info": "Uuid"
-      },
-      {
-        "ordinal": 34,
         "name": "standby_start_time",
         "type_info": "Time"
       },
       {
-        "ordinal": 35,
+        "ordinal": 34,
         "name": "standby_end_time",
         "type_info": "Time"
       },
       {
-        "ordinal": 36,
+        "ordinal": 35,
         "name": "breakdown_start_time",
         "type_info": "Time"
       },
       {
-        "ordinal": 37,
+        "ordinal": 36,
         "name": "breakdown_end_time",
         "type_info": "Time"
+      },
+      {
+        "ordinal": 37,
+        "name": "rental_item_id",
+        "type_info": "Uuid"
       },
       {
         "ordinal": 38,

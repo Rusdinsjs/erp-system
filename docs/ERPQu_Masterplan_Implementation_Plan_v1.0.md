@@ -13,7 +13,9 @@
 
 ## 1. Executive decision
 
-ERPQu will **not** be rewritten from scratch and will **not** pursue feature-count parity with ERPNext first. The program will transform the existing product from an ambitious EAM/asset-operations system with early ERP capabilities into a trusted ERP platform by hardening the kernel first, then expanding functionality.
+ERPQu will **not** be rewritten from scratch and will **not** pursue feature-count parity with ERPNext first. The program will transform the existing product into a **Frappe-inspired ERP Platform** (Typed DDD ERP Core + Lean Metadata Kernel + Controlled App Extensibility) by hardening the kernel first, then expanding functionality.
+
+The architectural equilibrium follows a strict motto: **"Generic where convenient, typed where correctness matters."** Customizations are split into 3 tiers: Level 1 (No-code metadata), Level 2 (Configuration), and Level 3 (Typed Rust Code).
 
 The required order is:
 

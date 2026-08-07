@@ -35,7 +35,7 @@ impl ContractRenewalRepository {
         .bind(renewal.renewed_at)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(result)
     }
@@ -70,7 +70,7 @@ impl ContractRenewalRepository {
         .bind(contract_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(renewals)
     }

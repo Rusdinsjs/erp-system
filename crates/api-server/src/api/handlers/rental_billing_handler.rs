@@ -84,7 +84,10 @@ pub async fn download_invoice(
             pdf_bytes,
         )
             .into_response(),
-        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        Err(e) => {
+            let error_msg: String = e.to_string();
+            (axum::http::StatusCode::INTERNAL_SERVER_ERROR, error_msg).into_response()
+        }
     }
 }
 

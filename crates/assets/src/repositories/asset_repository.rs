@@ -130,6 +130,7 @@ impl AssetRepository {
             // Manual mapping from Row to Asset struct
             let asset = Asset {
                 id: r.get("id"),
+                custom_data: r.try_get("custom_data").unwrap_or(serde_json::json!({})),
                 asset_code: r.get("asset_code"),
                 name: r.get("name"),
                 category_id: r.get("category_id"),
@@ -855,6 +856,7 @@ impl AssetRepository {
             use sqlx::Row;
             let asset = Asset {
                 id: r.get("id"),
+                custom_data: r.try_get("custom_data").unwrap_or(serde_json::json!({})),
                 asset_code: r.get("asset_code"),
                 name: r.get("name"),
                 category_id: r.get("category_id"),

@@ -8,7 +8,7 @@ Dokumen ini berisi prosedur operasional rilis, mitigasi risiko, uji coba migrasi
 
 Sebelum rilis produksi ERPQu 1.0 disetujui, pastikan seluruh kriteria berikut terpenuhi:
 
-- [x] **20 Golden Invariants Lulus 100%**: SELURUH pengujian di `golden_invariants_suite_tests.rs` lulus tanpa celah.
+- [x] **20 Golden Invariants Lulus 100%**: SELURUH pengujian modular (seperti `accounting_kernel_invariant_tests.rs`, `stock_kernel_invariant_tests.rs`, dan `security_regression_suite.rs`) lulus tanpa celah via `cargo test --workspace --test *invariant_tests*`.
 - [x] **Zero P0/P1 Security Vulnerabilities**: Audit ketergantungan (*dependency audit*) dan penyensoran rahasia (*secret redaction*) lulus.
 - [x] **Isolasi Tenant & Perusahaan**: Tidak ada data yang dapat dibaca antar tenant/company tanpa otorisasi eksplisit.
 - [x] **Imutabilitas Buku Besar**: Dokumen posted & GL entries tidak dapat ditimpa/dihapus secara destruktif.

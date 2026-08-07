@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Metadata Storage Strategy Enum (QMETA-001, QMETA-004)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "VARCHAR", rename_all = "SCREAMING_SNAKE_CASE")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum StorageStrategy {
     Typed,
@@ -12,7 +13,7 @@ pub enum StorageStrategy {
 }
 
 /// EntityType Registry Entity (QMETA-001)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct EntityType {
     pub id: Uuid,
     pub name: String,
@@ -25,7 +26,7 @@ pub struct EntityType {
 }
 
 /// FieldDefinition Metadata Entity (QMETA-002)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct FieldDefinition {
     pub id: Uuid,
     pub entity_type_id: Uuid,
@@ -73,7 +74,7 @@ impl FieldDefinition {
 }
 
 /// LayoutDefinition Metadata Entity (QMETA-003)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct LayoutDefinition {
     pub id: Uuid,
     pub entity_type_id: Uuid,

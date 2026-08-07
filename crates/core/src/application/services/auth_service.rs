@@ -101,7 +101,8 @@ impl AuthService {
             .employee_repository
             .find_by_user_id(user.id)
             .await
-            .unwrap_or(None);
+            .ok()
+            .flatten();
         let employee_id = employee.map(|e| e.id);
 
         // Generate JWT token

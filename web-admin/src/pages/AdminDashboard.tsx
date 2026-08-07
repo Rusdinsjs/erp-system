@@ -9,7 +9,8 @@ import {
     Truck, HandMetal, Building2, MapPin, Scan, UserCircle, Clock,
     Calendar as CalendarIcon, ArrowLeftRight, TrendingUp,
     Wallet, ShoppingCart, Receipt, History, Wrench, Fuel, Shield, Layers,
-    CheckSquare, Box, Sun, Moon, ShieldAlert
+    CheckSquare, Box, Sun, Moon, ShieldAlert,
+    Database
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
@@ -82,6 +83,7 @@ const TaxRenewalsView = lazy(() => import('./TaxRenewals/TaxRenewals'));
 
 const ExpensesView = lazy(() => import('./Finance/Expenses'));
 const AnalyticsDashboardView = lazy(() => import('./AnalyticsDashboard'));
+const MetadataEditorView = lazy(() => import('./Metadata/MetadataEditor'));
 
 // Define the available tabs
 type TabId =
@@ -140,6 +142,7 @@ type TabId =
     | 'expenses'
     | 'asset-lifecycle'
     | 'settings'
+    | 'metadata-editor'
     | 'analytics'
     | 'profile';
 
@@ -228,6 +231,7 @@ const ALL_NAV_ITEMS: Record<string, NavItem> = {
     'approval-workflow-settings': { id: 'approval-workflow-settings', icon: Layers, label: 'Workflows', minLevel: 1 },
     'audit': { id: 'audit', icon: History, label: 'Audit Logs', minLevel: 2 },
     'settings': { id: 'settings', icon: Settings, label: 'App Settings', minLevel: 2 },
+    'metadata-editor': { id: 'metadata-editor', icon: Database, label: 'Metadata & Schema', minLevel: 1, adminOnly: true },
     'profile': { id: 'profile', icon: UserCircle, label: 'My Profile', minLevel: 5 },
 };
 
@@ -596,7 +600,7 @@ export default function AdminDashboard() {
                     { type: 'header', label: 'Operational Templates' },
                     ...getGroupItems(adminIds, ['maintenance-templates', 'contract-templates'], ['maintenance-templates', 'contract-templates']),
                     { type: 'header', label: 'Access Control & Approvals' },
-                    ...getGroupItems(adminIds, ['users', 'roles', 'approval-workflow-settings', 'approvals'], ['users', 'roles', 'approval-workflow-settings', 'approvals']),
+                    ...getGroupItems(adminIds, ['users', 'roles', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings'], ['users', 'roles', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings']),
                     { type: 'header', label: 'System Administration' },
                     ...getGroupItems(adminIds, ['audit', 'settings'], ['audit', 'settings']),
                 ]
@@ -657,10 +661,10 @@ export default function AdminDashboard() {
     const renderNavItem = (item: NavItem, isChild = false) => {
         const menuId = item.id as MenuId;
         const resourceId = MENU_TO_RESOURCE[menuId] || menuId.replace(/-/g, '_');
-        
-        let hasAccess = hasPermission(`${resourceId}.read`) || 
-                          hasPermission(`${resourceId}.view`) || 
-                          hasPermission(`${resourceId}.*`);
+
+        let hasAccess = hasPermission(`${resourceId}.read`) ||
+            hasPermission(`${resourceId}.view`) ||
+            hasPermission(`${resourceId}.*`);
 
         if (!hasAccess && resourceId === 'work_order') {
             hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
@@ -728,11 +732,11 @@ export default function AdminDashboard() {
             const item = entry as NavItem;
             const menuId = item.id as MenuId;
             const resourceId = MENU_TO_RESOURCE[menuId] || menuId.replace(/-/g, '_');
-            
+
             // Check read, view, or wildcard permission
-            let hasAccess = hasPermission(`${resourceId}.read`) || 
-                              hasPermission(`${resourceId}.view`) || 
-                              hasPermission(`${resourceId}.*`);
+            let hasAccess = hasPermission(`${resourceId}.read`) ||
+                hasPermission(`${resourceId}.view`) ||
+                hasPermission(`${resourceId}.*`);
 
             // Fallback resource mapping
             if (!hasAccess && resourceId === 'work_order') {
@@ -823,10 +827,10 @@ export default function AdminDashboard() {
         if (activeTab !== 'dashboard' && activeTab !== 'profile') {
             const menuId = activeTab as MenuId;
             const resourceId = MENU_TO_RESOURCE[menuId] || activeTab.replace(/-/g, '_');
-            
-            let hasAccess = hasPermission(`${resourceId}.read`) || 
-                              hasPermission(`${resourceId}.view`) || 
-                              hasPermission(`${resourceId}.*`);
+
+            let hasAccess = hasPermission(`${resourceId}.read`) ||
+                hasPermission(`${resourceId}.view`) ||
+                hasPermission(`${resourceId}.*`);
 
             if (!hasAccess && resourceId === 'work_order') {
                 hasAccess = hasPermission('maintenance.read') || hasPermission('maintenance.view') || hasPermission('maintenance.*');
@@ -857,7 +861,7 @@ export default function AdminDashboard() {
             case 'assets': return <AssetsView />;
             case 'categories': return <CategoriesView />;
             case 'inventory-categories': return <InventoryCategoriesView />;
-            case 'inventory-items': 
+            case 'inventory-items':
                 if (selectedInventoryId) return <InventoryDetailView itemId={selectedInventoryId} />;
                 return <InventoryItemsView />;
             case 'stock-opname': return <StockOpnameView />;
@@ -917,6 +921,8 @@ export default function AdminDashboard() {
                 return <PurchaseShipmentsView />;
             case 'purchase-bills':
                 return <PurchaseBillsView />;
+            case 'metadata-editor':
+                return <MetadataEditorView />;
             case 'maintenance-templates': return <MaintenanceTemplatesView />;
             case 'maintenance-schedules': return <MaintenanceSchedulesView />;
             case 'tax-renewals': return <TaxRenewalsView />;
@@ -950,7 +956,7 @@ export default function AdminDashboard() {
             >
                 {/* Brand / Logo & Toggle */}
                 <div className="h-16 flex items-center px-4 border-b border-border gap-2">
-                    <div 
+                    <div
                         className="flex items-center gap-3 overflow-hidden cursor-pointer flex-1"
                         onClick={() => { setActiveModule(null); navigate('/launchpad'); }}
                         title="Kembali ke Launchpad"
@@ -1151,7 +1157,7 @@ export default function AdminDashboard() {
                     <div className="bg-card/85 backdrop-blur-2xl border border-border/80 p-6 rounded-2xl max-w-sm w-full shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         {/* Visual flourish */}
                         <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
-                        
+
                         <h3 className="text-xl font-bold text-foreground mb-2 relative z-10">Konfirmasi Logout</h3>
                         <p className="text-muted-foreground mb-6 relative z-10">Apakah Anda yakin ingin keluar dari sistem?</p>
                         <div className="flex gap-3 relative z-10">
