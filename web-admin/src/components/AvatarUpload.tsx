@@ -3,6 +3,8 @@ import { Camera, RefreshCw } from 'lucide-react';
 import { api } from '../api/http';
 import { useAuthStore } from '../store/useAuthStore';
 import { useToast } from './ui';
+import { getImageUrl } from '../utils/image';
+
 
 interface AvatarUploadProps {
     className?: string;
@@ -66,19 +68,7 @@ export function AvatarUpload({ className = '', size = 'md' }: AvatarUploadProps)
         }
     };
 
-    const getImageUrl = (path?: string) => {
-        if (!path) return '';
-        if (path.startsWith('http')) return path;
-
-        const baseUrl = api.defaults.baseURL?.replace(/\/api\/?$/, '') || '';
-
-        // Handle paths that might be missing /api prefix (legacy/buggy uploads)
-        if (path.startsWith('/uploads')) {
-            return `${baseUrl}/api${path}`;
-        }
-
-        return `${baseUrl}${path}`;
-    };
+    // Using getImageUrl from utils/image.ts
 
     return (
         <div className={`relative group ${className}`}>

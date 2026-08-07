@@ -52,9 +52,9 @@ impl ErpquApp for AssetManagementApp {
             metadata_service.register_entity_type(
                 "ASSET",
                 "asset_management",
-                management_system_core::domain::metadata_kernel::StorageStrategy::Hybrid,
+                management_system_core::domain::metadata_kernel::StorageStrategy::HybridJsonb,
                 true
-            ).await.map_err(|e| AppError::InternalError(e))?;
+            ).await.map_err(|e| AppError::Internal(e.to_string()))?;
             tracing::info!("AssetManagementApp: ASSET EntityType bootstrapped.");
         }
         

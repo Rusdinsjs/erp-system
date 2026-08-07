@@ -2,7 +2,7 @@ use crate::api::server::AppState;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     Extension, Json,
 };
 use management_system_core::application::dto::{
@@ -18,7 +18,7 @@ pub async fn create_conversion_request(
     Extension(claims): Extension<UserClaims>,
     Path(asset_id): Path<Uuid>, // We might not need this if it's in body, but RESTful
     Json(payload): Json<CreateConversionRequest>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<Response, AppError> {
     // Ensure payload asset_id matches path
     if payload.asset_id != asset_id {
         return Err(AppError::BadRequest("Asset ID mismatch".into()));
@@ -45,7 +45,7 @@ pub async fn create_conversion_request(
 /// Get pending conversion requests
 pub async fn get_pending_conversions(
     State(state): State<AppState>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<Response, AppError> {
     let conversions = state.conversion_service.get_pending_requests().await?;
 
     Ok((StatusCode::OK, Json(ApiResponse::success(conversions))).into_response())
@@ -55,7 +55,7 @@ pub async fn get_pending_conversions(
 pub async fn get_asset_conversions(
     State(state): State<AppState>,
     Path(asset_id): Path<Uuid>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<Response, AppError> {
     let conversions = state
         .conversion_service
         .get_asset_conversions(asset_id)
@@ -68,7 +68,7 @@ pub async fn get_asset_conversions(
 pub async fn get_conversion(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<Response, AppError> {
     let conversion = state.conversion_service.get_conversion(id).await?;
     Ok((StatusCode::OK, Json(ApiResponse::success(conversion))).into_response())
 }
@@ -78,7 +78,7 @@ pub async fn reject_conversion(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<Response, AppError> {
     let _user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
 
@@ -99,7 +99,7 @@ pub async fn approve_conversion(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<Response, AppError> {
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
 
@@ -124,7 +124,7 @@ pub async fn execute_conversion(
     Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<ExecuteConversionRequest>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<Response, AppError> {
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID".to_string()))?;
 

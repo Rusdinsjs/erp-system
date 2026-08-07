@@ -37,6 +37,8 @@ pub mod notification_handler;
 pub mod notification_ws;
 pub mod profile_handler;
 pub mod rbac_handler;
+pub mod role_permission_handler;
+
 pub mod rental_billing_handler;
 pub mod rental_handler;
 pub mod report_handler;
@@ -48,6 +50,7 @@ pub mod timesheet_handler;
 pub mod upload_handler;
 pub mod user_handler;
 pub mod work_order_handler;
+pub mod workflow_handler;
 
 // Standard re-exports for main_router.rs
 pub use asset_handler::*;

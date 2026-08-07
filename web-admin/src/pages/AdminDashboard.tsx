@@ -73,7 +73,8 @@ const PurchaseShipmentsView = lazy(() => import('./Finance/PurchaseShipments'));
 const PurchaseBillsView = lazy(() => import('./Finance/PurchaseBills'));
 const MaintenanceTemplatesView = lazy(() => import('./Maintenance/MaintenanceTemplates'));
 const MaintenanceSchedulesView = lazy(() => import('./Maintenance/MaintenanceSchedules'));
-const ApprovalWorkflowSettingsView = lazy(() => import('./ApprovalWorkflowSettings'));
+const WorkflowBuilderView = lazy(() => import('./Settings/WorkflowBuilder').then(m => ({ default: m.WorkflowBuilder })));
+
 const SettingsView = lazy(() => import('./Settings'));
 const InventoryItemsView = lazy(() => import('./Inventory/InventoryItems'));
 const InventoryDetailView = lazy(() => import('./Inventory/InventoryDetail'));
@@ -877,7 +878,7 @@ export default function AdminDashboard() {
                 if (selectedContractId) return <ContractDetailView />;
                 return <ContractListView />;
             case 'approval-workflow-settings':
-                return <ApprovalWorkflowSettingsView />;
+                return <WorkflowBuilderView />;
             case 'contract-detail':
                 return <ContractDetailView />;
             case 'contract-analytics':

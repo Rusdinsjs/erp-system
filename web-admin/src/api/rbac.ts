@@ -61,6 +61,42 @@ export const rbacApi = {
         return response.data;
     },
 
-    // Helper to get my permissions (if endpoint exists, else parse token)
-    // For now we assume token has permissions or we fetch from user
+    // Frappe / ERPNext Style DocPerm API
+    listDocTypes: async () => {
+        const response = await api.get<any[]>('/rbac/doctypes');
+        return response.data;
+    },
+
+    getDocPerms: async (doctypeId?: string) => {
+        const response = await api.get<any[]>('/rbac/docperms', {
+            params: { doctype_id: doctypeId }
+        });
+        return response.data;
+    },
+
+    saveDocPerm: async (payload: any) => {
+        const response = await api.post('/rbac/docperms', payload);
+        return response.data;
+    },
+
+    deleteDocPerm: async (id: string) => {
+        const response = await api.delete(`/rbac/docperms/${id}`);
+        return response.data;
+    },
+
+    getUserPermissionsRowLevel: async (userId: string) => {
+        const response = await api.get<any[]>(`/rbac/user-permissions/user/${userId}`);
+        return response.data;
+    },
+
+    createUserPermissionRowLevel: async (payload: any) => {
+        const response = await api.post('/rbac/user-permissions', payload);
+        return response.data;
+    },
+
+    deleteUserPermissionRowLevel: async (id: string) => {
+        const response = await api.delete(`/rbac/user-permissions/${id}`);
+        return response.data;
+    },
 };
+

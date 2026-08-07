@@ -20,12 +20,23 @@ pub async fn auth_middleware(
     let auth_header = request
         .headers()
         .get(header::AUTHORIZATION)
-        .and_then(|h| h.to_str().ok())
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .and_then(|h| h.to_str().ok());
 
-    let token = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+    let token = if let Some(header_value) = auth_header {
+        header_value.strip_prefix("Bearer ").unwrap_or(header_value)
+    } else {
+        // Fallback to query parameter (e.g., for <img> tags)
+        let query = request.uri().query().unwrap_or("");
+        let mut query_token = None;
+        for pair in query.split('&') {
+            let mut parts = pair.split('=');
+            if let (Some("token"), Some(val)) = (parts.next(), parts.next()) {
+                query_token = Some(val);
+                break;
+            }
+        }
+        query_token.ok_or(StatusCode::UNAUTHORIZED)?
+    };
 
     let config = &state.jwt_config;
 

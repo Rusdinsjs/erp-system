@@ -15,4 +15,6 @@ uploads/
 *.env
 !.env.example
 
-
+# Windows NTFS Zone Identifier
+*:Zone.Identifier
+*Zone.Identifier*

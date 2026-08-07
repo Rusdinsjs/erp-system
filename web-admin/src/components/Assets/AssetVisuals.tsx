@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Camera, Upload, Loader2, Info } from 'lucide-react';
 import { assetApi } from '../../api/assets';
+import { getImageUrl } from '../../utils/image';
 
 
 interface AssetVisualsProps {
@@ -72,7 +73,8 @@ export function AssetVisuals({ assetId, readOnly = false }: AssetVisualsProps) {
                                 {photo ? (
                                     <>
                                         <img 
-                                            src={photo.file_path} 
+                                            src={getImageUrl(photo.file_path)} 
+
                                             alt={type.label} 
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         />

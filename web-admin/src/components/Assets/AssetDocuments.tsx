@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { assetApi, type AssetDocument } from '../../api/assets';
+import { getImageUrl } from '../../utils/image';
 import { Button, Card, CardHeader, CardTitle, Badge, Input, Textarea, Select } from '../ui';
 import { FileText, Upload, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -157,7 +158,7 @@ export function AssetDocuments({ assetId }: AssetDocumentsProps) {
                             <div className="flex items-start justify-between mb-3">
                                 <div className="p-2 bg-muted rounded-lg text-primary">
                                     {doc.mime_type?.startsWith('image/') ? (
-                                        <img src={doc.file_path} alt={doc.name} className="w-10 h-10 object-cover rounded" />
+                                        <img src={getImageUrl(doc.file_path)} alt={doc.name} className="w-10 h-10 object-cover rounded" />
                                     ) : (
                                         <FileText size={24} />
                                     )}

@@ -26,7 +26,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ws", get(notification_ws::ws_handler));
 
     // Lookup routes
-    let lookup_routes = Router::new()
+    let lookup_routes: Router<AppState> = Router::new()
         .route("/api/lookups/currencies", get(list_currencies))
         .route("/api/lookups/units", get(list_units))
         .route("/api/lookups/conditions", get(list_conditions))
@@ -421,11 +421,61 @@ pub fn create_router(state: AppState) -> Router {
             "/api/rbac/roles/:role_id/permissions",
             get(get_role_permissions).post(update_role_permissions),
         )
+        // Frappe/ERPNext-style DocPerm & UserPermission Routes
+        .route(
+            "/api/rbac/doctypes",
+            get(crate::api::handlers::role_permission_handler::list_doctypes),
+        )
+        .route(
+            "/api/rbac/docperms",
+            get(crate::api::handlers::role_permission_handler::get_docperms)
+                .post(crate::api::handlers::role_permission_handler::save_docperm),
+        )
+        .route(
+            "/api/rbac/docperms/:id",
+            delete(crate::api::handlers::role_permission_handler::delete_docperm),
+        )
+        .route(
+            "/api/rbac/user-permissions/user/:user_id",
+            get(crate::api::handlers::role_permission_handler::get_user_permissions),
+        )
+        .route(
+            "/api/rbac/user-permissions",
+            post(crate::api::handlers::role_permission_handler::create_user_permission),
+        )
+        .route(
+            "/api/rbac/user-permissions/:id",
+            delete(crate::api::handlers::role_permission_handler::delete_user_permission),
+        )
         .route("/api/users/:user_id/roles", get(get_user_roles))
+
         .route("/api/users/:user_id/permissions", get(get_user_permissions))
         .route(
             "/api/users/:user_id/roles/:role_code",
             post(assign_role).delete(remove_role),
+        )
+        // Frappe-Style Workflow Engine Routes
+        .route(
+            "/api/workflows",
+            get(crate::api::handlers::workflow_handler::list_workflows)
+                .post(crate::api::handlers::workflow_handler::create_workflow),
+        )
+        .route(
+            "/api/workflows/:id",
+            get(crate::api::handlers::workflow_handler::get_workflow_detail)
+                .delete(crate::api::handlers::workflow_handler::delete_workflow),
+        )
+        .route(
+            "/api/workflows/:id/states",
+            post(crate::api::handlers::workflow_handler::save_workflow_state),
+        )
+        .route(
+            "/api/workflows/:id/transitions",
+            post(crate::api::handlers::workflow_handler::save_workflow_transition),
+        )
+        .route(
+            "/api/workflows/apply-action",
+            post(crate::api::handlers::workflow_handler::apply_workflow_action),
         )
         // Sensors
         .route(

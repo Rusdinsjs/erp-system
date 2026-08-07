@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Camera, Upload, Loader2, Info } from 'lucide-react';
 import { inventoryApi } from '../../api/inventory';
 import { Badge } from '../ui';
+import { getImageUrl } from '../../utils/image';
 
 
 interface InventoryVisualsProps {
@@ -80,7 +81,7 @@ export function InventoryVisuals({ itemId, readOnly = false }: InventoryVisualsP
                                 {photo ? (
                                     <>
                                         <img 
-                                            src={photo.file_path} 
+                                            src={getImageUrl(photo.file_path)} 
                                             alt={type.label} 
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         />
@@ -88,7 +89,7 @@ export function InventoryVisuals({ itemId, readOnly = false }: InventoryVisualsP
                                             <button 
                                                 type="button"
                                                 className="px-4 py-2 text-sm font-medium bg-white/20 hover:bg-white/30 text-white rounded-xl backdrop-blur-md transition-all"
-                                                onClick={() => window.open(photo.file_path, '_blank')}
+                                                onClick={() => window.open(getImageUrl(photo.file_path), '_blank')}
                                             >
                                                 Perbesar
                                             </button>

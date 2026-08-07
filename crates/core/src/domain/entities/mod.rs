@@ -46,6 +46,7 @@ pub mod tier_config;
 pub mod user;
 pub mod vendor;
 pub mod work_order;
+pub mod workflow;
 
 pub use analytics::*;
 pub use approval_entity_type::*;
@@ -91,3 +92,5 @@ pub use user::User;
 pub use user::*;
 pub use vendor::*;
 pub use work_order::*;
+pub use workflow::*;
+

@@ -6,7 +6,8 @@ import type { Role, Permission } from '../../types';
 import { Button, Card, LoadingOverlay, useToast, Badge } from '../ui';
 import { DEFAULT_LAUNCHPAD_CONFIG, MENU_LABELS, MENU_TO_RESOURCE } from '../../config/launchpadConfig';
 
-const ACTIONS = ['view', 'create', 'edit', 'delete'];
+const ACTIONS = ['view', 'create', 'edit', 'delete', 'submit', 'cancel', 'print', 'export', 'report'];
+
 
 export function RolePermissionsMatrix() {
     const [roles, setRoles] = useState<Role[]>([]);
@@ -147,11 +148,16 @@ export function RolePermissionsMatrix() {
                                                         Level {role.role_level}
                                                     </Badge>
                                                 </div>
-                                                <div className="grid grid-cols-4 gap-1 text-[10px] uppercase text-muted-foreground font-bold tracking-wider pt-2 border-t border-border/50">
+                                                <div className="grid grid-cols-9 gap-0.5 text-[9px] uppercase text-muted-foreground font-bold tracking-wider pt-2 border-t border-border/50">
                                                     <span>View</span>
                                                     <span>Create</span>
                                                     <span>Edit</span>
-                                                    <span>Delete</span>
+                                                    <span>Del</span>
+                                                    <span>Subm</span>
+                                                    <span>Canc</span>
+                                                    <span>Prnt</span>
+                                                    <span>Exprt</span>
+                                                    <span>Rprt</span>
                                                 </div>
                                             </th>
                                         ))}
@@ -187,7 +193,7 @@ export function RolePermissionsMatrix() {
                                                             </td>
                                                             {editableRoles.map(role => (
                                                                 <td key={role.id} className="p-2 border-r border-border/40">
-                                                                    <div className="grid grid-cols-4 gap-1 justify-items-center">
+                                                                    <div className="grid grid-cols-9 gap-0.5 justify-items-center">
                                                                         {ACTIONS.map(action => {
                                                                             const normAction = action === 'view' ? 'read' : action === 'edit' ? 'update' : action;
                                                                             const perm = permissionMap[`${resource}.${action}`]

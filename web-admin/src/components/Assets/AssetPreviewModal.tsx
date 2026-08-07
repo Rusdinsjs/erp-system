@@ -12,7 +12,8 @@ import {
     Zap,
     Fuel,
     Clock,
-    Hash
+    Hash,
+    Loader2
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -20,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { assetApi } from '../../api/assets';
 import type { Asset } from '../../types';
 import dayjs from 'dayjs';
+import { getImageUrl } from '../../utils/image';
 
 interface AssetPreviewModalProps {
     isOpen: boolean;
@@ -133,11 +135,18 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                             { label: 'RIGHT SIDE', url: getPhoto('RIGHT') || photos.right }
                         ].map((side, idx) => (
                             <div key={idx} className="relative group overflow-hidden rounded-2xl bg-muted border border-border aspect-[4/3]">
-                                <img 
-                                    src={side.url || placeholder} 
-                                    alt={side.label}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                />
+                                {isLoading ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
+                                        <Loader2 className="w-6 h-6 animate-spin text-cyan-500 mb-2" />
+                                        <span className="text-xs text-muted-foreground">Loading...</span>
+                                    </div>
+                                ) : (
+                                    <img 
+                                        src={getImageUrl(side.url || placeholder)} 
+                                        alt={side.label}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
                                     <span className="text-xs font-bold text-white tracking-widest uppercase">{side.label}</span>
                                 </div>
@@ -236,7 +245,7 @@ export const AssetPreviewModal: React.FC<AssetPreviewModalProps> = ({ isOpen, on
                         </div>
                         {asset.qr_code_url && (
                             <div className="bg-white p-1 rounded-lg">
-                                <img src={asset.qr_code_url} alt="QR Code" className="w-12 h-12" />
+                                <img src={getImageUrl(asset.qr_code_url)} alt="QR Code" className="w-12 h-12" />
                             </div>
                         )}
                     </div>

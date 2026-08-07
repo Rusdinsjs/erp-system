@@ -101,6 +101,7 @@ export const useAuthStore = create<AuthState>()(
                 const user = get().user;
                 if (!user) return false;
                 if (user.role_level <= 2) return true; // Admin and Super Admin bypass
+                if (user.permissions.includes('*')) return true; // Global wildcard bypass
                 if (user.permissions.includes(permission)) return true;
 
                 // Support wildcard matching e.g. "asset.read" matched if user has "asset.*"

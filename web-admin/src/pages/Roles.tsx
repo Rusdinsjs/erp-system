@@ -3,11 +3,17 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, Settings, Plus, Edit2, Trash2, Save } from 'lucide-react';
 import { Card, Modal, Input, Button, useToast, Skeleton } from '../components/ui';
-import { RolePermissionsMatrix } from '../components/Admin/RolePermissionsMatrix';
 import { rbacApi } from '../api/rbac';
+
 import type { Role } from '../types';
 
-type TabType = 'overview' | 'permissions';
+import { FrappeRolePermissionManager } from '../components/Admin/FrappeRolePermissionManager';
+
+type TabType = 'overview' | 'frappe_matrix';
+
+
+// ... RolesList definition ...
+
 
 function RolesList() {
     const queryClient = useQueryClient();
@@ -235,7 +241,7 @@ function RolesList() {
 
 
 export default function Roles() {
-    const [activeTab, setActiveTab] = useState<TabType>('permissions');
+    const [activeTab, setActiveTab] = useState<TabType>('frappe_matrix');
 
     return (
         <div className="space-y-4">
@@ -243,7 +249,7 @@ export default function Roles() {
                 <div>
                     <h1 className="text-2xl font-bold text-white">Role Management</h1>
                     <p className="text-slate-400 text-sm mt-1">
-                        Manage roles and their permissions
+                        Kelola Peran (Roles) & Matriks Hak Akses Dokumen ERPQu
                     </p>
                 </div>
             </div>
@@ -253,6 +259,18 @@ export default function Roles() {
                 <div className="border-b border-slate-700">
                     <nav className="flex gap-4 px-6">
                         <button
+                            onClick={() => setActiveTab('frappe_matrix')}
+                            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'frappe_matrix'
+                                ? 'border-cyan-500 text-cyan-400'
+                                : 'border-transparent text-slate-400 hover:text-slate-300'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Shield size={16} className="text-cyan-400" />
+                                <span>Role Permission Manager (DocPerm)</span>
+                            </div>
+                        </button>
+                        <button
                             onClick={() => setActiveTab('overview')}
                             className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
                                 ? 'border-cyan-500 text-cyan-400'
@@ -260,20 +278,8 @@ export default function Roles() {
                                 }`}
                         >
                             <div className="flex items-center gap-2">
-                                <Shield size={16} />
-                                <span>Roles Overview</span>
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('permissions')}
-                            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'permissions'
-                                ? 'border-cyan-500 text-cyan-400'
-                                : 'border-transparent text-slate-400 hover:text-slate-300'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
                                 <Settings size={16} />
-                                <span>Permission Matrix</span>
+                                <span>Daftar Role (Roles Overview)</span>
                             </div>
                         </button>
                     </nav>
@@ -281,9 +287,11 @@ export default function Roles() {
             </Card>
 
             {/* Tab Content */}
-            {activeTab === 'overview' && <RolesList />}
+            {activeTab === 'frappe_matrix' && <FrappeRolePermissionManager />}
 
-            {activeTab === 'permissions' && <RolePermissionsMatrix />}
+            {activeTab === 'overview' && <RolesList />}
         </div>
     );
 }
+
+

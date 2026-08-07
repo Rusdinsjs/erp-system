@@ -48,6 +48,12 @@ until docker exec mgmt-db pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-manag
 done
 echo -e "${GREEN}   PostgreSQL Siap!${NC}"
 
+# 3.5. Jalankan Database Migrations
+echo -e "${GREEN}3.5. Menjalankan Database Migrations...${NC}"
+export SQLX_OFFLINE=false
+export DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@localhost:${DB_PORT:-5434}/${DB_NAME:-management_system}
+cargo sqlx migrate run > migrate.log 2>&1 || true
+
 # 3. Setup & Jalankan Frontend (Bun) di background
 echo -e "${GREEN}4. Menyiapkan Frontend Web Admin...${NC}"
 cd web-admin
@@ -61,7 +67,7 @@ cd ..
 
 # 4. Jalankan Backend (Rust) di background
 echo -e "${GREEN}5. Menjalankan Backend (Rust)...${NC}"
-    cargo run > backend.log 2>&1 &
+SQLX_OFFLINE=false cargo run > backend.log 2>&1 &
 BACKEND_PID=$!
 
 sleep 3

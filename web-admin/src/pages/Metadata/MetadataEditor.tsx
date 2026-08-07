@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { metadataApi } from '../../api/metadataApi';
 import { showToast } from '../../components/ui/Toast';
-import { Plus, Trash2, Database, Layout } from 'lucide-react';
-import { PageHeader } from '../../components/ui/PageHeader';
+import { Plus, Trash2, Database } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
+
 
 export default function MetadataEditor() {
     const queryClient = useQueryClient();
@@ -50,10 +50,10 @@ export default function MetadataEditor() {
 
     return (
         <div className="space-y-6">
-            <PageHeader
-                title="Metadata & Custom Fields"
-                description="Manage custom properties and schema for your entities."
-            />
+            <div>
+                <h1 className="text-2xl font-bold text-foreground">Metadata & Custom Fields</h1>
+                <p className="text-sm text-muted-foreground">Manage custom properties and schema for your entities.</p>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Left Sidebar: Entity List */}

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Globe, Palette, Bot, Play, Sparkles, Eye, EyeOff, CheckCircle2, Loader2, DollarSign, Upload, Image as ImageIcon, Moon, Sun, Monitor, LayoutGrid, RotateCcw, GripVertical, X as XIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Save, Globe, Palette, Bot, Play, Sparkles, Eye, EyeOff, CheckCircle2, Loader2, DollarSign, Upload, Image as ImageIcon, Moon, Sun, Monitor, LayoutGrid, RotateCcw, GripVertical, X as XIcon, ChevronDown, ChevronRight, GitMerge } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { settingsApi } from '../api/settings';
 import { aiApi } from '../api/ai';
+import { WorkflowBuilder } from './Settings/WorkflowBuilder';
+
 import {
     Button,
     Card,
@@ -158,6 +160,13 @@ export default function Settings() {
                                 className="w-full justify-start px-4 py-3 data-[state=active]:bg-orange-600/10 data-[state=active]:text-orange-400"
                             >
                                 Launchpad
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="workflow" 
+                                icon={<GitMerge size={16} />}
+                                className="w-full justify-start px-4 py-3 data-[state=active]:bg-cyan-600/10 data-[state=active]:text-cyan-400"
+                            >
+                                Workflow Builder
                             </TabsTrigger>
                         </TabsList>
                     </div>
@@ -640,6 +649,9 @@ export default function Settings() {
                                 onSave={handleSave}
                                 isSaving={updateMutation.isPending}
                             />
+                        </TabsContent>
+                        <TabsContent value="workflow" className="mt-0 space-y-6">
+                            <WorkflowBuilder />
                         </TabsContent>
                     </div>
                 </Tabs>
