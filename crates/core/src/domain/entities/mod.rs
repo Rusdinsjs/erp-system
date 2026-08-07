@@ -47,10 +47,12 @@ pub mod user;
 pub mod vendor;
 pub mod work_order;
 pub mod workflow;
+pub mod data_import;
 
 pub use analytics::*;
 pub use approval_entity_type::*;
 pub use approval_workflow::*;
+pub use data_import::*;
 pub use asset::*;
 pub use asset_details::*;
 pub use asset_expense::*;

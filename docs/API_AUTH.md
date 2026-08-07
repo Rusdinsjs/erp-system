@@ -1,66 +1,39 @@
-# API Authentication Guide
+# API Authentication Guide - ERPQu 1.0
 
-The Management System uses JSON Web Tokens (JWT) for secure authentication.
+ERPQu 1.0 menggunakan JSON Web Tokens (JWT) berbasis HMAC SHA-256 untuk otentikasi aman di seluruh rute API.
 
-## Overview
+---
 
-All protected endpoints require a valid JWT token in the `Authorization` header.
+## 🔑 Header & Query Authorization
 
-**Header Format:**
-```
-Authorization: Bearer <your_token_here>
-```
+Semua rute API terlindungi membutuhkan Token JWT yang valid.
 
-## Authentication Flow
-
-1.  **Login**: Send credentials to `/api/auth/login`.
-    -   **Response**: `200 OK` with `{ "token": "...", "user": { ... } }`.
-2.  **Access**: Use the returned `token` for subsequent requests.
-3.  **Expiry**: Tokens are valid for 24 hours (configurable).
-
-## Endpoints
-
-### 1. Login
-**POST** `/api/auth/login`
-
-**Request:**
-```json
-{
-  "email": "admin@example.com",
-  "password": "secure_password"
-}
+### 1. Authorization via HTTP Header (Default)
+Format standar:
+```http
+Authorization: Bearer <jwt_token_here>
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsIn...",
-  "user": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "email": "admin@example.com",
-    "role": "admin"
-  }
-}
+### 2. Authorization via Query Parameter (`?token=...`)
+Khusus untuk elemen HTML yang tidak mendukung custom HTTP Header secara langsung (seperti tag `<img>`, preview PDF/preview dokumen, dan *asset media streaming*), server ERPQu 1.0 mendukung ekstraksi JWT melalui parameter URL:
+```http
+GET /api/uploads/assets/photo.png?token=<jwt_token_here>
 ```
 
-### 2. Register
-**POST** `/api/auth/register` (Public)
+---
 
-**Request:**
-```json
-{
-  "email": "newuser@example.com",
-  "password": "Secret123!",
-  "name": "John Doe"
-}
-```
+## 🔐 Flow Otentikasi & Rute Utama
 
-## Error Handling
+1. **Login User**: `POST /api/auth/login`
+   - **Request**: `{ "email": "admin@example.com", "password": "..." }`
+   - **Response**: `{ "success": true, "token": "...", "user": { ... } }`
+2. **Autentikasi Sesi**: Rute dilindungi memeriksa klaim JWT (`user_id`, `role_code`, `role_level`).
+3. **Masa Berlaku Token**: Token berlaku selama 24 jam.
 
--   **401 Unauthorized**: Token is missing, invalid, or expired.
--   **403 Forbidden**: User lacks permission for the resource.
+---
 
-## RBAC (Role-Based Access Control)
+## ⚠️ Penanganan Error Status Code
 
-Roles (Admin, User, etc.) determine permissions. The token claims include the user's role and permission scope. The backend validates these claims against the endpoint requirements.
+- **`401 Unauthorized`**: Token tidak ditemukan, kadaluarsa, atau tanda tangan HMAC tidak valid.
+- **`403 Forbidden`**: Pengguna tidak memiliki izin role/DocPerm yang cukup.
+- **`404 Not Found`**: Resource atau entitas tidak ditemukan di database.

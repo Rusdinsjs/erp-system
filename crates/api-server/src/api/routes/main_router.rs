@@ -477,6 +477,35 @@ pub fn create_router(state: AppState) -> Router {
             "/api/workflows/apply-action",
             post(crate::api::handlers::workflow_handler::apply_workflow_action),
         )
+        // Frappe-Style Data Import & Export Engine Routes
+        .route(
+            "/api/data-imports",
+            get(crate::api::handlers::data_import_handler::list_data_imports),
+        )
+        .route(
+            "/api/data-imports/template",
+            post(crate::api::handlers::data_import_handler::generate_template),
+        )
+        .route(
+            "/api/data-imports/upload",
+            post(crate::api::handlers::data_import_handler::upload_data_import),
+        )
+        .route(
+            "/api/data-imports/:id",
+            get(crate::api::handlers::data_import_handler::get_data_import_detail),
+        )
+        .route(
+            "/api/data-imports/:id/validate",
+            post(crate::api::handlers::data_import_handler::validate_data_import),
+        )
+        .route(
+            "/api/data-imports/:id/start",
+            post(crate::api::handlers::data_import_handler::start_data_import),
+        )
+        .route(
+            "/api/data-imports/:id/failed-rows",
+            get(crate::api::handlers::data_import_handler::download_failed_rows),
+        )
         // Sensors
         .route(
             "/api/assets/:asset_id/sensors/readings",
