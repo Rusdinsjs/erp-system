@@ -31,7 +31,7 @@ impl RentalRepository {
         let mut tx = self.pool.begin().await?;
 
         // 1. Insert Header
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO rentals (
                 id, rental_number, client_id, status,
@@ -47,36 +47,36 @@ impl RentalRepository {
                 $17, $18, $19, $20, $21, $22
             )
             "#,
-            rental.id,
-            rental.rental_number,
-            rental.client_id,
-            rental.status,
-            rental.request_date,
-            rental.start_date,
-            rental.expected_end_date,
-            rental.actual_end_date,
-            rental.subtotal,
-            rental.deposit_amount,
-            rental.deposit_returned,
-            rental.penalty_amount,
-            rental.total_amount,
-            rental.requested_by,
-            rental.approved_by,
-            rental.approved_at,
-            rental.rejection_reason,
-            rental.agreement_document,
-            rental.invoice_number,
-            rental.notes,
-            rental.created_at,
-            rental.updated_at
         )
+        .bind(rental.id)
+        .bind(&rental.rental_number)
+        .bind(rental.client_id)
+        .bind(&rental.status)
+        .bind(rental.request_date)
+        .bind(rental.start_date)
+        .bind(rental.expected_end_date)
+        .bind(rental.actual_end_date)
+        .bind(rental.subtotal)
+        .bind(rental.deposit_amount)
+        .bind(rental.deposit_returned)
+        .bind(rental.penalty_amount)
+        .bind(rental.total_amount)
+        .bind(rental.requested_by)
+        .bind(rental.approved_by)
+        .bind(rental.approved_at)
+        .bind(&rental.rejection_reason)
+        .bind(&rental.agreement_document)
+        .bind(&rental.invoice_number)
+        .bind(&rental.notes)
+        .bind(rental.created_at)
+        .bind(rental.updated_at)
         .execute(&mut *tx)
         .await?;
 
         // 2. Insert Items matches items in the struct
         if let Some(items) = &rental.items {
             for item in items {
-                sqlx::query!(
+                sqlx::query(
                     r#"
                     INSERT INTO rental_items (
                         id, rental_id, asset_id, rental_rate_id,
@@ -92,26 +92,26 @@ impl RentalRepository {
                         $15, $16, $17, $18, $19
                     )
                     "#,
-                    item.id,
-                    rental.id, // Ensure link to header
-                    item.asset_id,
-                    item.rental_rate_id,
-                    item.rate_amount,
-                    item.rate_basis,
-                    item.status,
-                    item.start_date,
-                    item.expected_end_date,
-                    item.actual_end_date,
-                    item.dispatched_by,
-                    item.dispatched_at,
-                    item.returned_by,
-                    item.returned_at,
-                    item.subtotal,
-                    item.penalty_amount,
-                    item.notes,
-                    item.created_at,
-                    item.updated_at
                 )
+                .bind(item.id)
+                .bind(rental.id)
+                .bind(item.asset_id)
+                .bind(item.rental_rate_id)
+                .bind(item.rate_amount)
+                .bind(&item.rate_basis)
+                .bind(&item.status)
+                .bind(item.start_date)
+                .bind(item.expected_end_date)
+                .bind(item.actual_end_date)
+                .bind(item.dispatched_by)
+                .bind(item.dispatched_at)
+                .bind(item.returned_by)
+                .bind(item.returned_at)
+                .bind(item.subtotal)
+                .bind(item.penalty_amount)
+                .bind(&item.notes)
+                .bind(item.created_at)
+                .bind(item.updated_at)
                 .execute(&mut *tx)
                 .await?;
             }
@@ -322,7 +322,7 @@ impl RentalRepository {
     pub async fn update(&self, rental: &Rental) -> Result<Rental, sqlx::Error> {
         let mut tx = self.pool.begin().await?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE rentals SET
                 client_id = $1, status = $2,
@@ -333,36 +333,31 @@ impl RentalRepository {
                 agreement_document = $15, invoice_number = $16, notes = $17, updated_at = $18
             WHERE id = $19
             "#,
-            rental.client_id,
-            rental.status,
-            rental.request_date,
-            rental.start_date,
-            rental.expected_end_date,
-            rental.actual_end_date,
-            rental.subtotal,
-            rental.deposit_amount,
-            rental.deposit_returned,
-            rental.penalty_amount,
-            rental.total_amount,
-            rental.approved_by,
-            rental.approved_at,
-            rental.rejection_reason,
-            rental.agreement_document,
-            rental.invoice_number,
-            rental.notes,
-            rental.updated_at,
-            rental.id
         )
+        .bind(rental.client_id)
+        .bind(&rental.status)
+        .bind(rental.request_date)
+        .bind(rental.start_date)
+        .bind(rental.expected_end_date)
+        .bind(rental.actual_end_date)
+        .bind(rental.subtotal)
+        .bind(rental.deposit_amount)
+        .bind(rental.deposit_returned)
+        .bind(rental.penalty_amount)
+        .bind(rental.total_amount)
+        .bind(rental.approved_by)
+        .bind(rental.approved_at)
+        .bind(&rental.rejection_reason)
+        .bind(&rental.agreement_document)
+        .bind(&rental.invoice_number)
+        .bind(&rental.notes)
+        .bind(rental.updated_at)
+        .bind(rental.id)
         .execute(&mut *tx)
         .await?;
 
-        // Note: does not update items loop here. Item updates usually happen via specific actions.
-        // If we need to sync items, we'd need DTO logic in service.
-
         tx.commit().await?;
 
-        // After update, fetch the updated rental
-        // If not found, this is a data consistency issue
         self.find_by_id(rental.id)
             .await?
             .ok_or_else(|| sqlx::Error::RowNotFound)
@@ -378,28 +373,28 @@ impl RentalRepository {
         let mut tx = self.pool.begin().await?;
 
         // Approve Header
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE rentals 
             SET status = 'approved', approved_by = $1, approved_at = $2, updated_at = NOW()
             WHERE id = $3
             "#,
-            approved_by,
-            at,
-            id
         )
+        .bind(approved_by)
+        .bind(at)
+        .bind(id)
         .execute(&mut *tx)
         .await?;
 
         // Approve All Items
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE rental_items
             SET status = 'approved', updated_at = NOW()
             WHERE rental_id = $1
             "#,
-            id
         )
+        .bind(id)
         .execute(&mut *tx)
         .await?;
 
@@ -409,15 +404,20 @@ impl RentalRepository {
     pub async fn reject_rental(&self, id: Uuid, reason: String) -> Result<(), sqlx::Error> {
         let mut tx = self.pool.begin().await?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rentals SET status = 'rejected', rejection_reason = $1, updated_at = NOW() WHERE id = $2"#,
-            reason, id
-        ).execute(&mut *tx).await?;
+        )
+        .bind(&reason)
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
 
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rental_items SET status = 'rejected', updated_at = NOW() WHERE rental_id = $1"#,
-            id
-        ).execute(&mut *tx).await?;
+        )
+        .bind(id)
+        .execute(&mut *tx)
+        .await?;
 
         tx.commit().await
     }
@@ -434,44 +434,45 @@ impl RentalRepository {
     ) -> Result<(), sqlx::Error> {
         let mut tx = self.pool.begin().await?;
 
+        use sqlx::Row;
+
         // 1. Get Item details (asset_id)
-        let item = sqlx::query!("SELECT asset_id FROM rental_items WHERE id = $1", item_id)
+        let item_row = sqlx::query("SELECT asset_id FROM rental_items WHERE id = $1")
+            .bind(item_id)
             .fetch_one(&mut *tx)
             .await?;
+        let asset_id: Uuid = item_row.get("asset_id");
 
         // 2. Update Item Status
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE rental_items 
             SET status = 'rented_out', dispatched_by = $1, dispatched_at = NOW(), notes = $2, updated_at = NOW()
             WHERE id = $3
             "#,
-            dispatched_by,
-            notes,
-            item_id
         )
+        .bind(dispatched_by)
+        .bind(notes)
+        .bind(item_id)
         .execute(&mut *tx)
         .await?;
 
         // 3. Update Asset Status to 'Rented'
-        sqlx::query!(
-            "UPDATE assets SET status = 'Rented', updated_at = NOW() WHERE id = $1",
-            item.asset_id
-        )
-        .execute(&mut *tx)
-        .await?;
+        sqlx::query("UPDATE assets SET status = 'Rented', updated_at = NOW() WHERE id = $1")
+            .bind(asset_id)
+            .execute(&mut *tx)
+            .await?;
 
         // 4. Update Header Status to 'rented_out' IF it's not already
-        // (Simplification: First item dispatch triggers header RentedOut)
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE rentals 
             SET status = 'rented_out', updated_at = NOW()
             WHERE id = (SELECT rental_id FROM rental_items WHERE id = $1)
             AND status != 'rented_out'
             "#,
-            item_id
         )
+        .bind(item_id)
         .execute(&mut *tx)
         .await?;
 
@@ -480,53 +481,50 @@ impl RentalRepository {
 
     /// Return a specific item
     pub async fn return_item(&self, item_id: Uuid, returned_by: Uuid) -> Result<(), sqlx::Error> {
+        use sqlx::Row;
+
         let mut tx = self.pool.begin().await?;
 
-        // 1. Get Asset ID
-        let item = sqlx::query!(
-            "SELECT asset_id, rental_id FROM rental_items WHERE id = $1",
-            item_id
-        )
-        .fetch_one(&mut *tx)
-        .await?;
+        // 1. Get Asset ID & Rental ID
+        let item_row = sqlx::query("SELECT asset_id, rental_id FROM rental_items WHERE id = $1")
+            .bind(item_id)
+            .fetch_one(&mut *tx)
+            .await?;
+        let asset_id: Uuid = item_row.get("asset_id");
+        let rental_id: Uuid = item_row.get("rental_id");
 
         // 2. Update Item Status
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE rental_items 
             SET status = 'returned', returned_by = $1, returned_at = NOW(), actual_end_date = CURRENT_DATE, updated_at = NOW()
             WHERE id = $2
             "#,
-            returned_by,
-            item_id
         )
+        .bind(returned_by)
+        .bind(item_id)
         .execute(&mut *tx)
         .await?;
 
-        // 3. Update Asset Status to 'Available' (or 'Inspection'? User flow says Available usually, unless Handover condition bad)
-        // Let's set 'Available' for now.
-        sqlx::query!(
-            "UPDATE assets SET status = 'Available', updated_at = NOW() WHERE id = $1",
-            item.asset_id
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        // 4. Check if ALL items are returned. If so, update Header to 'returned'
-        let pending = sqlx::query!(
-            "SELECT COUNT(*) as count FROM rental_items WHERE rental_id = $1 AND status != 'returned'",
-            item.rental_id
-        )
-        .fetch_one(&mut *tx)
-        .await?;
-
-        if pending.count.unwrap_or(0) == 0 {
-            sqlx::query!(
-                "UPDATE rentals SET status = 'returned', actual_end_date = CURRENT_DATE, updated_at = NOW() WHERE id = $1",
-                item.rental_id
-            )
+        // 3. Update Asset Status to 'Available'
+        sqlx::query("UPDATE assets SET status = 'Available', updated_at = NOW() WHERE id = $1")
+            .bind(asset_id)
             .execute(&mut *tx)
             .await?;
+
+        // 4. Check if ALL items are returned. If so, update Header to 'returned'
+        let pending_row = sqlx::query("SELECT COUNT(*) FROM rental_items WHERE rental_id = $1 AND status != 'returned'")
+            .bind(rental_id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+        let pending_count: Option<i64> = pending_row.try_get(0).ok();
+
+        if pending_count.unwrap_or(0) == 0 {
+            sqlx::query("UPDATE rentals SET status = 'returned', actual_end_date = CURRENT_DATE, updated_at = NOW() WHERE id = $1")
+                .bind(rental_id)
+                .execute(&mut *tx)
+                .await?;
         }
 
         tx.commit().await
@@ -631,13 +629,15 @@ impl RentalRepository {
     }
 
     pub async fn find_rate_by_id(&self, id: Uuid) -> Result<Option<RentalRate>, sqlx::Error> {
-        sqlx::query_as!(RentalRate, "SELECT * FROM rental_rates WHERE id = $1", id)
+        sqlx::query_as::<_, RentalRate>("SELECT * FROM rental_rates WHERE id = $1")
+            .bind(id)
             .fetch_optional(&self.pool)
             .await
     }
 
     pub async fn delete_rate(&self, id: Uuid) -> Result<(), sqlx::Error> {
-        sqlx::query!("DELETE FROM rental_rates WHERE id = $1", id)
+        sqlx::query("DELETE FROM rental_rates WHERE id = $1")
+            .bind(id)
             .execute(&self.pool)
             .await?;
         Ok(())

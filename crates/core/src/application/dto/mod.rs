@@ -1,3 +1,4 @@
+pub mod analytics_dto;
 pub mod asset_dto;
 pub mod asset_expense_dto;
 pub mod audit_dto;
@@ -12,11 +13,13 @@ pub mod inventory_dto;
 pub mod leave_dto;
 pub mod loan_dto;
 pub mod maintenance_dto;
+pub mod maintenance_team_dto;
 pub mod rental_dto;
 pub mod rental_timesheet_dto;
 pub mod tax_renewal_dto;
 pub mod user_dto;
 
+pub use analytics_dto::*;
 pub use asset_dto::*;
 pub use asset_expense_dto::*;
 pub use audit_dto::*;
@@ -31,6 +34,7 @@ pub use inventory_dto::*;
 pub use leave_dto::*;
 pub use loan_dto::*;
 pub use maintenance_dto::*;
+pub use maintenance_team_dto::*;
 pub use rental_dto::*;
 pub use rental_timesheet_dto::*;
 pub use tax_renewal_dto::*;

@@ -49,7 +49,14 @@ export default function LoginPage() {
             login(token, user);
             navigate('/');
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Login gagal. Periksa kembali email dan password.');
+            const apiMsg = err.response?.data?.error || err.response?.data?.message;
+            if (apiMsg) {
+                setError(apiMsg);
+            } else if (!err.response) {
+                setError('Tidak dapat terhubung ke server backend (Port 8181). Pastikan backend aktif.');
+            } else {
+                setError('Login gagal. Periksa kembali email dan password.');
+            }
         } finally {
             setLoading(false);
         }

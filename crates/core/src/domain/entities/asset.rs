@@ -26,6 +26,7 @@ pub struct Asset {
     pub location_id: Option<Uuid>,
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
+    #[sqlx(default)]
     pub company_id: Option<Uuid>,
     pub assigned_to: Option<Uuid>,
     pub vendor_id: Option<Uuid>,
@@ -50,8 +51,11 @@ pub struct Asset {
     pub specifications: Option<JsonValue>,
 
     // General Details (assets.txt additions)
+    #[sqlx(default)]
     pub description: Option<String>,
+    #[sqlx(default)]
     pub acquisition_method: Option<String>,
+    #[sqlx(default)]
     pub funding_source: Option<String>,
 
     // Financial data
@@ -193,6 +197,10 @@ pub struct AssetSummary {
     pub location_name: Option<String>,
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
+    #[sqlx(default)]
+    pub company_id: Option<Uuid>,
+    #[sqlx(default)]
+    pub company_name: Option<String>,
     pub model: Option<String>,
     pub serial_number: Option<String>,
     pub assigned_to: Option<Uuid>,
@@ -210,6 +218,7 @@ pub struct AssetDetail {
     pub category_name: Option<String>,
     pub location_name: Option<String>,
     pub department_name: Option<String>,
+    pub company_name: Option<String>,
     pub department_manager_name: Option<String>,
     pub assigned_to_name: Option<String>,
     pub vendor_name: Option<String>,

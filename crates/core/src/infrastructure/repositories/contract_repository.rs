@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
 use crate::domain::entities::RentalContract;
@@ -15,8 +15,7 @@ impl ContractRepository {
     }
 
     pub async fn create(&self, contract: &RentalContract) -> DomainResult<RentalContract> {
-        let rec = sqlx::query_as!(
-            RentalContract,
+        let rec = sqlx::query_as::<_, RentalContract>(
             r#"
             INSERT INTO rental_contracts (
                 id, contract_number, client_id, start_date, end_date,
@@ -32,41 +31,37 @@ impl ContractRepository {
                 created_at, created_by, updated_at, updated_by, 
                 submitted_for_approval_at, approved_at, approved_by,
                 terminated_at, terminated_by, termination_reason,
-                current_approval_step as "current_approval_step!", 
-                total_approval_steps as "total_approval_steps!", 
-                template_id,
-                delegated_to
+                current_approval_step, total_approval_steps, template_id, delegated_to
             "#,
-            contract.id,
-            contract.contract_number,
-            contract.client_id,
-            contract.start_date,
-            contract.end_date,
-            contract.auto_renew,
-            contract.renewal_notice_days,
-            contract.payment_terms,
-            contract.price_lock,
-            contract.status,
-            contract.contract_file_url,
-            contract.notes,
-            contract.created_by,
-            contract.submitted_for_approval_at,
-            contract.current_approval_step,
-            contract.total_approval_steps,
-            contract.template_id,
-            contract.delegated_to
         )
+        .bind(contract.id)
+        .bind(&contract.contract_number)
+        .bind(contract.client_id)
+        .bind(contract.start_date)
+        .bind(contract.end_date)
+        .bind(contract.auto_renew)
+        .bind(contract.renewal_notice_days)
+        .bind(&contract.payment_terms)
+        .bind(contract.price_lock)
+        .bind(&contract.status)
+        .bind(&contract.contract_file_url)
+        .bind(&contract.notes)
+        .bind(contract.created_by)
+        .bind(contract.submitted_for_approval_at)
+        .bind(contract.current_approval_step)
+        .bind(contract.total_approval_steps)
+        .bind(contract.template_id)
+        .bind(contract.delegated_to)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
 
     /// Find contract by ID
     pub async fn find_by_id(&self, id: Uuid) -> DomainResult<Option<RentalContract>> {
-        let rec = sqlx::query_as!(
-            RentalContract,
+        let rec = sqlx::query_as::<_, RentalContract>(
             r#"
             SELECT 
                 id, contract_number, client_id, NULL::text as client_name, start_date, end_date,
@@ -74,25 +69,20 @@ impl ContractRepository {
                 status, contract_file_url, notes, 
                 created_at, created_by, updated_at, updated_by, 
                 approved_at, approved_by, submitted_for_approval_at, terminated_at, terminated_by, termination_reason,
-                current_approval_step as "current_approval_step!", 
-                total_approval_steps as "total_approval_steps!", 
-                template_id, 
-                delegated_to
+                current_approval_step, total_approval_steps, template_id, delegated_to
             FROM rental_contracts WHERE id = $1
             "#,
-            id
         )
+        .bind(id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
 
     /// Find all contracts (approximating list w/o pagination for now)
     pub async fn find_all(&self) -> DomainResult<Vec<RentalContract>> {
-        use sqlx::Row;
-
         let rows = sqlx::query(
             r#"
             SELECT 
@@ -107,11 +97,11 @@ impl ContractRepository {
             FROM rental_contracts rc
             LEFT JOIN clients c ON rc.client_id = c.id
             ORDER BY rc.created_at DESC
-            "#
+            "#,
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         let mut contracts = Vec::new();
         for row in rows {
@@ -153,8 +143,7 @@ impl ContractRepository {
 
     /// Find contracts by client ID
     pub async fn find_by_client(&self, client_id: Uuid) -> DomainResult<Vec<RentalContract>> {
-        let recs = sqlx::query_as!(
-            RentalContract,
+        let recs = sqlx::query_as::<_, RentalContract>(
             r#"
             SELECT 
                 id, contract_number, client_id, NULL::text as client_name, start_date, end_date,
@@ -162,25 +151,21 @@ impl ContractRepository {
                 status, contract_file_url, notes, 
                 created_at, created_by, updated_at, updated_by, 
                 approved_at, approved_by, submitted_for_approval_at, terminated_at, terminated_by, termination_reason,
-                current_approval_step as "current_approval_step!", 
-                total_approval_steps as "total_approval_steps!", 
-                template_id, 
-                delegated_to
+                current_approval_step, total_approval_steps, template_id, delegated_to
             FROM rental_contracts WHERE client_id = $1 ORDER BY created_at DESC
             "#,
-            client_id
         )
+        .bind(client_id)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(recs)
     }
 
     /// Find contracts expiring soon (within N days)
     pub async fn find_expiring_soon(&self, days: i32) -> DomainResult<Vec<RentalContract>> {
-        let recs = sqlx::query_as!(
-            RentalContract,
+        let recs = sqlx::query_as::<_, RentalContract>(
             r#"
             SELECT 
                 rc.id, rc.contract_number, rc.client_id, c.name as client_name, rc.start_date, rc.end_date,
@@ -188,10 +173,7 @@ impl ContractRepository {
                 rc.status, rc.contract_file_url, rc.notes, 
                 rc.created_at, rc.created_by, rc.updated_at, rc.updated_by, 
                 rc.approved_at, rc.approved_by, rc.submitted_for_approval_at, rc.terminated_at, rc.terminated_by, rc.termination_reason,
-                rc.current_approval_step as "current_approval_step!", 
-                rc.total_approval_steps as "total_approval_steps!", 
-                rc.template_id, 
-                rc.delegated_to
+                rc.current_approval_step, rc.total_approval_steps, rc.template_id, rc.delegated_to
             FROM rental_contracts rc
             LEFT JOIN clients c ON rc.client_id = c.id
             WHERE rc.status = 'active' 
@@ -199,11 +181,11 @@ impl ContractRepository {
             AND rc.end_date >= CURRENT_DATE
             ORDER BY rc.end_date ASC
             "#,
-            days as f64
         )
+        .bind(days as f64)
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(recs)
     }
@@ -213,7 +195,7 @@ impl ContractRepository {
         &self,
         contract_id: Uuid,
     ) -> DomainResult<(i64, f64, f64, f64)> {
-        let rec = sqlx::query!(
+        let rec = sqlx::query(
             r#"
             SELECT 
                 COUNT(rt.id) as total_sheets,
@@ -224,31 +206,24 @@ impl ContractRepository {
             JOIN rental_timesheets rt ON rt.rental_id = r.id AND rt.status = 'approved'
             WHERE r.contract_id = $1
             "#,
-            contract_id
         )
+        .bind(contract_id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         use rust_decimal::prelude::ToPrimitive;
 
-        let total_op = rec
-            .total_operating
-            .unwrap_or_default()
-            .to_f64()
-            .unwrap_or(0.0);
-        let total_sb = rec
-            .total_standby
-            .unwrap_or_default()
-            .to_f64()
-            .unwrap_or(0.0);
-        let total_bd = rec
-            .total_breakdown
-            .unwrap_or_default()
-            .to_f64()
-            .unwrap_or(0.0);
+        let total_operating: Option<rust_decimal::Decimal> = rec.try_get("total_operating").ok();
+        let total_standby: Option<rust_decimal::Decimal> = rec.try_get("total_standby").ok();
+        let total_breakdown: Option<rust_decimal::Decimal> = rec.try_get("total_breakdown").ok();
+        let total_sheets: Option<i64> = rec.try_get("total_sheets").ok();
 
-        Ok((rec.total_sheets.unwrap_or(0), total_op, total_sb, total_bd))
+        let total_op = total_operating.unwrap_or_default().to_f64().unwrap_or(0.0);
+        let total_sb = total_standby.unwrap_or_default().to_f64().unwrap_or(0.0);
+        let total_bd = total_breakdown.unwrap_or_default().to_f64().unwrap_or(0.0);
+
+        Ok((total_sheets.unwrap_or(0), total_op, total_sb, total_bd))
     }
 
     /// Update contract
@@ -258,8 +233,7 @@ impl ContractRepository {
         contract: &RentalContract,
         updated_by: Uuid,
     ) -> DomainResult<RentalContract> {
-        let rec = sqlx::query_as!(
-            RentalContract,
+        let rec = sqlx::query_as::<_, RentalContract>(
             r#"
             UPDATE rental_contracts
             SET 
@@ -275,28 +249,25 @@ impl ContractRepository {
                 status, contract_file_url, notes, 
                 created_at, created_by, updated_at, updated_by, 
                 approved_at, approved_by, submitted_for_approval_at, terminated_at, terminated_by, termination_reason,
-                current_approval_step as "current_approval_step!", 
-                total_approval_steps as "total_approval_steps!", 
-                template_id, 
-                delegated_to
+                current_approval_step, total_approval_steps, template_id, delegated_to
             "#,
-            contract.start_date,
-            contract.end_date,
-            contract.auto_renew,
-            contract.renewal_notice_days,
-            contract.payment_terms,
-            contract.price_lock,
-            contract.status,
-            contract.contract_file_url,
-            contract.notes,
-            contract.current_approval_step,
-            contract.total_approval_steps,
-            updated_by,
-            id
         )
+        .bind(contract.start_date)
+        .bind(contract.end_date)
+        .bind(contract.auto_renew)
+        .bind(contract.renewal_notice_days)
+        .bind(&contract.payment_terms)
+        .bind(contract.price_lock)
+        .bind(&contract.status)
+        .bind(&contract.contract_file_url)
+        .bind(&contract.notes)
+        .bind(contract.current_approval_step)
+        .bind(contract.total_approval_steps)
+        .bind(updated_by)
+        .bind(id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
@@ -310,7 +281,7 @@ impl ContractRepository {
         ua: Option<rust_decimal::Decimal>,
         eu: Option<rust_decimal::Decimal>,
     ) -> DomainResult<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE rental_contracts
             SET 
@@ -321,49 +292,49 @@ impl ContractRepository {
                 kpi_calculated_at = NOW()
             WHERE id = $5
             "#,
-            ma,
-            pa,
-            ua,
-            eu,
-            id
         )
+        .bind(ma)
+        .bind(pa)
+        .bind(ua)
+        .bind(eu)
+        .bind(id)
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(())
     }
 
     /// Get next sequence for contract number generation
     pub async fn get_next_sequence(&self, year: i32) -> DomainResult<i32> {
-        let count = sqlx::query!(
+        let count: Option<i64> = sqlx::query_scalar(
             r#"
-            SELECT COUNT(*) as count 
+            SELECT COUNT(*) 
             FROM rental_contracts 
             WHERE EXTRACT(YEAR FROM created_at) = $1
             "#,
-            year as f64
         )
+        .bind(year as f64)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
-        Ok((count.count.unwrap_or(0) + 1) as i32)
+        Ok((count.unwrap_or(0) + 1) as i32)
     }
 
     /// Get count of contracts pending approval
     pub async fn count_pending_approvals(&self) -> DomainResult<i64> {
-        let rec = sqlx::query!(
+        let count: Option<i64> = sqlx::query_scalar(
             r#"
-            SELECT COUNT(*) as count 
+            SELECT COUNT(*) 
             FROM rental_contracts 
             WHERE status = 'pending_approval'
-            "#
+            "#,
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
-        Ok(rec.count.unwrap_or(0))
+        Ok(count.unwrap_or(0))
     }
 }

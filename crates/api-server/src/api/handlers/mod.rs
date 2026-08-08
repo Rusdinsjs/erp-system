@@ -31,6 +31,7 @@ pub mod location_handler;
 pub mod lookup_handler;
 pub mod maintenance_handler;
 pub mod maintenance_template_handler;
+pub mod maintenance_team_handler;
 pub mod metadata_handler;
 pub mod mobile_handler;
 pub mod notification_handler;

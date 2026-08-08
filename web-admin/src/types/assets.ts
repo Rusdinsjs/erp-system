@@ -97,6 +97,7 @@ export interface Asset {
     location_id?: string;
     department_id?: string;
     company_id?: string;
+    company_name?: string;
     assigned_to?: string;
     vendor_id?: string;
     status: string;
@@ -135,7 +136,6 @@ export interface Asset {
     location_name?: string;
     department_name?: string;
     department_manager_name?: string;
-    company_name?: string;
     assigned_to_name?: string;
     vendor_name?: string;
     total_maintenance_cost?: number;

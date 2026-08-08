@@ -230,6 +230,7 @@ impl AssetService {
                     category_name: None, // Could fetch if needed, but for dashboard maybe not essential or can join in repo
                     location_name: None,
                     department_name: None,
+                    company_name: None,
                     department_manager_name: None,
                     assigned_to_name: None,
                     vendor_name: None,
@@ -456,6 +457,7 @@ impl AssetService {
         asset.location_id = request.location_id;
         asset.department = request.department;
         asset.department_id = request.department_id;
+        asset.company_id = request.company_id;
         asset.assigned_to = request.assigned_to;
         asset.vendor_id = request.vendor_id;
         asset.is_rental = request.is_rental.unwrap_or(false);
@@ -753,6 +755,9 @@ impl AssetService {
         }
         if let Some(dept) = request.department_id {
             asset.department_id = Some(dept);
+        }
+        if let Some(comp) = request.company_id {
+            asset.company_id = Some(comp);
         }
         if let Some(user) = request.assigned_to {
             asset.assigned_to = Some(user);

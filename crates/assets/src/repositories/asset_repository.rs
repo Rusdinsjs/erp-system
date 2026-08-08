@@ -30,7 +30,7 @@ impl AssetRepository {
         sqlx::query_as::<_, Asset>(
             r#"
             SELECT 
-                id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
+                id, asset_code, name, category_id, location_id, department_id, department, company_id, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
@@ -73,7 +73,7 @@ impl AssetRepository {
         let row = sqlx::query(
             r#"
             SELECT 
-                a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.assigned_to, a.vendor_id,
+                a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.company_id, a.assigned_to, a.vendor_id,
                 a.is_rental, a.is_fuel, a.is_loan, a.asset_class, a.status, a.condition_id,
                 a.serial_number, a.brand, a.model, a.year_manufacture,
                 a.specifications,
@@ -86,12 +86,14 @@ impl AssetRepository {
                 c.name as category_name,
                 l.name as location_name,
                 d.name as department_name,
+                cmp.name as company_name,
                 u.name as assigned_to_name,
                 v.name as vendor_name
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN companies cmp ON a.company_id = cmp.id
             LEFT JOIN users u ON a.assigned_to = u.id
             LEFT JOIN vendors v ON a.vendor_id = v.id
             WHERE a.id = $1
@@ -211,7 +213,7 @@ impl AssetRepository {
         sqlx::query_as::<_, Asset>(
             r#"
             SELECT 
-                id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
+                id, asset_code, name, category_id, location_id, department_id, department, company_id, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
@@ -239,13 +241,15 @@ impl AssetRepository {
         sqlx::query_as::<_, AssetSummary>(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, 
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id,
+                   a.company_id, cmp.name as company_name, a.model, a.serial_number, 
                    a.assigned_to, u.name as assigned_to_name, a.version,
                    (SELECT file_path FROM asset_documents WHERE asset_id = a.id AND (type IN ('FRONT', 'BACK', 'LEFT', 'RIGHT', 'PHOTO', 'main') OR mime_type ILIKE 'image/%') ORDER BY CASE WHEN type = 'FRONT' THEN 1 WHEN type = 'PHOTO' THEN 2 ELSE 3 END, created_at DESC LIMIT 1) as photo_url
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN companies cmp ON a.company_id = cmp.id
             LEFT JOIN users u ON a.assigned_to = u.id
             WHERE a.status != 'archived'
               AND ($3::text IS NULL OR a.department = $3 OR d.name = $3)
@@ -265,7 +269,7 @@ impl AssetRepository {
         sqlx::query_as::<_, Asset>(
             r#"
             SELECT 
-                id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
+                id, asset_code, name, category_id, location_id, department_id, department, company_id, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
@@ -307,6 +311,7 @@ impl AssetRepository {
         exact_match: bool,
         sort_by: Option<&str>,
         sort_order: Option<&str>,
+        asset_group: Option<&str>,
     ) -> Result<Vec<AssetSummary>, sqlx::Error> {
         let order_by = match sort_by.unwrap_or("created_at") {
             "name" => "a.name",
@@ -329,13 +334,15 @@ impl AssetRepository {
         let sql = format!(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, 
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, 
+                   a.company_id, cmp.name as company_name, a.model, a.serial_number, 
                    a.assigned_to, u.name as assigned_to_name, a.version,
                    (SELECT file_path FROM asset_documents WHERE asset_id = a.id AND (type IN ('FRONT', 'BACK', 'LEFT', 'RIGHT', 'PHOTO', 'main') OR mime_type ILIKE 'image/%') ORDER BY CASE WHEN type = 'FRONT' THEN 1 WHEN type = 'PHOTO' THEN 2 ELSE 3 END, created_at DESC LIMIT 1) as photo_url
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN companies cmp ON a.company_id = cmp.id
             LEFT JOIN users u ON a.assigned_to = u.id
             WHERE 
                 (
@@ -358,6 +365,7 @@ impl AssetRepository {
                     ))
                 )
                 AND ($8::boolean IS NULL OR a.is_fuel = $8)
+                AND ($10::text IS NULL OR c.asset_group = $10)
             ORDER BY {} {}
             LIMIT $6 OFFSET $7
             "#,
@@ -374,6 +382,7 @@ impl AssetRepository {
             .bind(offset)
             .bind(is_fuel)
             .bind(exact_match)
+            .bind(asset_group)
             .fetch_all(&self.pool)
             .await
     }
@@ -392,7 +401,7 @@ impl AssetRepository {
         sqlx::query_as::<_, Asset>(
             r#"
             INSERT INTO assets (
-                id, asset_code, name, category_id, location_id, department_id, department, assigned_to, vendor_id,
+                id, asset_code, name, category_id, location_id, department_id, department, company_id, assigned_to, vendor_id,
                 is_rental, is_fuel, is_loan, asset_class, status, condition_id,
                 serial_number, brand, model, year_manufacture,
                 specifications,
@@ -401,7 +410,7 @@ impl AssetRepository {
                 qr_code_url, notes,
                 sale_price, sale_date, sold_to
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
             RETURNING *
             "#,
         )
@@ -412,6 +421,7 @@ impl AssetRepository {
         .bind(asset.location_id)
         .bind(asset.department_id)
         .bind(&asset.department)
+        .bind(asset.company_id)
         .bind(asset.assigned_to)
         .bind(asset.vendor_id)
         .bind(asset.is_rental)
@@ -447,17 +457,17 @@ impl AssetRepository {
             r#"
             UPDATE assets SET
                 asset_code = $2, name = $3, category_id = $4, location_id = $5,
-                department_id = $6, department = $7, assigned_to = $8, vendor_id = $9,
-                is_rental = $10, is_fuel = $11, is_loan = $12, asset_class = $13, status = $14, condition_id = $15,
-                serial_number = $16, brand = $17, model = $18, year_manufacture = $19,
-                specifications = $20,
-                purchase_date = $21, purchase_price = $22, currency_id = $23, unit_id = $24, quantity = $25,
-                residual_value = $26, useful_life_months = $27,
-                qr_code_url = $28, notes = $29,
-                sale_price = $30, sale_date = $31, sold_to = $32,
+                department_id = $6, department = $7, company_id = $8, assigned_to = $9, vendor_id = $10,
+                is_rental = $11, is_fuel = $12, is_loan = $13, asset_class = $14, status = $15, condition_id = $16,
+                serial_number = $17, brand = $18, model = $19, year_manufacture = $20,
+                specifications = $21,
+                purchase_date = $22, purchase_price = $23, currency_id = $24, unit_id = $25, quantity = $26,
+                residual_value = $27, useful_life_months = $28,
+                qr_code_url = $29, notes = $30,
+                sale_price = $31, sale_date = $32, sold_to = $33,
                 updated_at = NOW(),
                 version = version + 1
-            WHERE id = $1 AND version = $33
+            WHERE id = $1 AND version = $34
             RETURNING *
             "#,
         )
@@ -468,6 +478,7 @@ impl AssetRepository {
         .bind(asset.location_id)
         .bind(asset.department_id)
         .bind(&asset.department)
+        .bind(asset.company_id)
         .bind(asset.assigned_to)
         .bind(asset.vendor_id)
         .bind(asset.is_rental)

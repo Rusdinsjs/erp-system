@@ -60,7 +60,7 @@ impl AssetRepository {
         let row = sqlx::query(
             r#"
             SELECT 
-                a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.assigned_to, a.vendor_id,
+                a.id, a.asset_code, a.name, a.category_id, a.location_id, a.department_id, a.department, a.company_id, a.assigned_to, a.vendor_id,
                 a.is_rental, a.is_fuel, a.is_loan, a.asset_class, a.status, a.condition_id,
                 a.serial_number, a.brand, a.model, a.year_manufacture,
                 a.specifications, a.description, a.acquisition_method, a.funding_source,
@@ -74,12 +74,14 @@ impl AssetRepository {
                 c.name as category_name,
                 l.name as location_name,
                 d.name as department_name,
+                cmp.name as company_name,
                 u.name as assigned_to_name,
                 v.name as vendor_name
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN companies cmp ON a.company_id = cmp.id
             LEFT JOIN users u ON a.assigned_to = u.id
             LEFT JOIN vendors v ON a.vendor_id = v.id
             WHERE a.id = $1
@@ -174,6 +176,7 @@ impl AssetRepository {
             let category_name: Option<String> = r.get("category_name");
             let location_name: Option<String> = r.get("location_name");
             let department_name: Option<String> = r.get("department_name");
+            let company_name: Option<String> = r.try_get("company_name").ok();
             let assigned_to_name: Option<String> = r.get("assigned_to_name");
             let vendor_name: Option<String> = r.get("vendor_name");
 
@@ -231,6 +234,7 @@ impl AssetRepository {
                 category_name,
                 location_name,
                 department_name,
+                company_name,
                 department_manager_name: None, // department_manager_name - removed for now
                 assigned_to_name,
                 vendor_name,
@@ -377,13 +381,15 @@ impl AssetRepository {
         let sql = format!(
             r#"
             SELECT a.id, a.asset_code, a.name, a.status, a.asset_class, a.is_rental, a.is_fuel, a.is_loan, a.brand, a.purchase_price, 
-                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, a.model, a.serial_number, 
+                   a.category_id, c.name as category_name, a.location_id, l.name as location_name, COALESCE(d.name, a.department) as department, a.department_id, 
+                   a.company_id, cmp.name as company_name, a.model, a.serial_number, 
                    a.assigned_to, u.name as assigned_to_name, a.version,
                    (SELECT file_path FROM asset_documents WHERE asset_id = a.id AND (type IN ('FRONT', 'BACK', 'LEFT', 'RIGHT', 'PHOTO', 'main') OR mime_type ILIKE 'image/%') ORDER BY CASE WHEN type = 'FRONT' THEN 1 WHEN type = 'PHOTO' THEN 2 ELSE 3 END, created_at DESC LIMIT 1) as photo_url
             FROM assets a
             LEFT JOIN categories c ON a.category_id = c.id
             LEFT JOIN locations l ON a.location_id = l.id
             LEFT JOIN departments d ON a.department_id = d.id
+            LEFT JOIN companies cmp ON a.company_id = cmp.id
             LEFT JOIN users u ON a.assigned_to = u.id
             WHERE 
                 (

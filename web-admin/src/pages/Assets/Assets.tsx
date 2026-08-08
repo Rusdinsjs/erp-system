@@ -579,6 +579,9 @@ export default function Assets() {
                                             <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('location_id')}>
                                                 <div className="flex items-center">Location <SortIcon field="location_id" /></div>
                                             </TableTh>
+                                            <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('company_id')}>
+                                                <div className="flex items-center">Company <SortIcon field="company_id" /></div>
+                                            </TableTh>
                                             <TableTh className="cursor-pointer hover:text-foreground" onClick={() => handleSort('department_id')}>
                                                 <div className="flex items-center">Department <SortIcon field="department_id" /></div>
                                             </TableTh>
@@ -627,6 +630,7 @@ export default function Assets() {
                                                     </div>
                                                 </TableTd>
                                                 <TableTd className="truncate max-w-[120px]">{asset.location_name || '-'}</TableTd>
+                                                <TableTd className="truncate max-w-[120px] font-medium text-blue-400">{asset.company_name || '-'}</TableTd>
                                                 <TableTd className="truncate max-w-[120px]">{asset.department || '-'}</TableTd>
                                                 <TableTd>
                                                     <StatusBadge status={asset.status || 'active'} />
@@ -677,7 +681,7 @@ export default function Assets() {
                                             </TableRow>
                                         ))}
                                         {(!assetsData?.data || assetsData.data.length === 0) && !assetsLoading && (
-                                            <TableEmpty colSpan={9} message="No assets found" />
+                                            <TableEmpty colSpan={10} message="No assets found" />
                                         )}
                                     </TableBody>
                                 </Table>
@@ -727,8 +731,8 @@ export default function Assets() {
                                                                 <p className="text-foreground truncate">{asset.category_name || '-'}</p>
                                                             </div>
                                                             <div>
-                                                                <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Brand/Model</p>
-                                                                <p className="text-foreground truncate">{asset.brand || '-'} {asset.model}</p>
+                                                                <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Company</p>
+                                                                <p className="text-blue-400 font-medium truncate">{asset.company_name || '-'}</p>
                                                             </div>
                                                             <div>
                                                                 <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Location</p>

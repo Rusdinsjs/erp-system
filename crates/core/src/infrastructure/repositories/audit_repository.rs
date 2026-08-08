@@ -15,74 +15,76 @@ impl AuditRepository {
     }
 
     pub async fn create_session(&self, session: &AuditSession) -> DomainResult<AuditSession> {
-        sqlx::query_as!(
-            AuditSession,
+        let rec = sqlx::query_as::<_, AuditSession>(
             r#"
             INSERT INTO audit_sessions (id, user_id, status, notes, created_at)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, user_id, status, notes, created_at, closed_at
             "#,
-            session.id,
-            session.user_id,
-            session.status,
-            session.notes,
-            session.created_at
         )
+        .bind(session.id)
+        .bind(session.user_id)
+        .bind(&session.status)
+        .bind(&session.notes)
+        .bind(session.created_at)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
+
+        Ok(rec)
     }
 
     pub async fn find_active_session(&self) -> DomainResult<Option<AuditSession>> {
-        sqlx::query_as!(
-            AuditSession,
+        let rec = sqlx::query_as::<_, AuditSession>(
             r#"
             SELECT id, user_id, status, notes, created_at, closed_at
             FROM audit_sessions
             WHERE status = 'open'
             LIMIT 1
-            "#
+            "#,
         )
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
+
+        Ok(rec)
     }
 
     pub async fn close_session(&self, session_id: Uuid) -> DomainResult<AuditSession> {
-        sqlx::query_as!(
-            AuditSession,
+        let rec = sqlx::query_as::<_, AuditSession>(
             r#"
             UPDATE audit_sessions
             SET status = 'closed', closed_at = NOW()
             WHERE id = $1
             RETURNING id, user_id, status, notes, created_at, closed_at
             "#,
-            session_id
         )
+        .bind(session_id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
+
+        Ok(rec)
     }
 
     pub async fn add_record(&self, record: &AuditRecord) -> DomainResult<AuditRecord> {
-        let rec = sqlx::query_as!(
-            AuditRecord,
+        let rec = sqlx::query_as::<_, AuditRecord>(
             r#"
             INSERT INTO audit_records (id, session_id, asset_id, status, notes, scanned_at)
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id, session_id, asset_id, status, notes, scanned_at, 
                       NULL::text as asset_code, NULL::text as asset_name
             "#,
-            record.id,
-            record.session_id,
-            record.asset_id,
-            record.status,
-            record.notes,
-            record.scanned_at
         )
+        .bind(record.id)
+        .bind(record.session_id)
+        .bind(record.asset_id)
+        .bind(&record.status)
+        .bind(&record.notes)
+        .bind(record.scanned_at)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
@@ -92,14 +94,14 @@ impl AuditRepository {
             sqlx::query_as("SELECT COUNT(*) FROM assets WHERE status != 'disposed'")
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| DomainError::Database(e.to_string()))?;
+                .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         let audited: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM audit_records WHERE session_id = $1")
                 .bind(session_id)
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| DomainError::Database(e.to_string()))?;
+                .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok((total.0, audited.0))
     }
@@ -114,8 +116,6 @@ impl AuditRepository {
         offset: i64,
         limit: i64,
     ) -> DomainResult<Vec<crate::domain::entities::AuditLogEntry>> {
-        // We join with users to get the user name
-        // We cast JSONB to json value for the struct mapping
         let query = r#"
             SELECT 
                 al.id, 
@@ -145,7 +145,7 @@ impl AuditRepository {
             .bind(offset)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| DomainError::Database(e.to_string()))?;
+            .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(logs)
     }
@@ -175,7 +175,7 @@ impl AuditRepository {
         .bind(entity_id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(count.0)
     }
@@ -188,20 +188,20 @@ impl AuditRepository {
         new_values: serde_json::Value,
         user_id: Option<Uuid>,
     ) -> DomainResult<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO audit_logs (table_name, record_id, action, new_values, user_id)
             VALUES ($1, $2, $3, $4, $5)
             "#,
-            table_name,
-            record_id,
-            action,
-            new_values,
-            user_id
         )
+        .bind(table_name)
+        .bind(record_id)
+        .bind(action)
+        .bind(new_values)
+        .bind(user_id)
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(())
     }

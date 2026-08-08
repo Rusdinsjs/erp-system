@@ -155,14 +155,14 @@ impl TimesheetRepository {
         checker_notes: Option<String>,
     ) -> Result<(), sqlx::Error> {
         let now = Utc::now();
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rental_timesheets 
             SET status = 'submitted', checker_notes = $2, checker_at = $3, updated_at = $3
             WHERE id = $1"#,
-            id,
-            checker_notes,
-            now
         )
+        .bind(id)
+        .bind(checker_notes)
+        .bind(now)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -182,18 +182,18 @@ impl TimesheetRepository {
         } else {
             status
         };
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rental_timesheets 
             SET verifier_id = $2, verifier_at = $3, verifier_status = $4, 
                 verifier_notes = $5, status = $6, updated_at = $3
             WHERE id = $1"#,
-            id,
-            verifier_id,
-            now,
-            status,
-            notes,
-            new_status
         )
+        .bind(id)
+        .bind(verifier_id)
+        .bind(now)
+        .bind(status)
+        .bind(notes)
+        .bind(new_status)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -208,17 +208,17 @@ impl TimesheetRepository {
         notes: Option<String>,
     ) -> Result<(), sqlx::Error> {
         let now = Utc::now();
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rental_timesheets 
             SET client_pic_id = $2, client_approved_at = $3, 
                 client_signature = $4, client_notes = $5, status = 'approved', updated_at = $3
             WHERE id = $1"#,
-            id,
-            client_pic_id,
-            now,
-            signature,
-            notes
         )
+        .bind(id)
+        .bind(client_pic_id)
+        .bind(now)
+        .bind(signature)
+        .bind(notes)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -335,7 +335,7 @@ impl TimesheetRepository {
         calculated_by: Uuid,
     ) -> Result<(), sqlx::Error> {
         let now = Utc::now();
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rental_billing_periods SET
                 total_operating_hours = $2,
                 total_standby_hours = $3,
@@ -374,42 +374,42 @@ impl TimesheetRepository {
                 fuel_surcharge_rate = $34,
                 fuel_surcharge_amount = $35
             WHERE id = $1"#,
-            id,
-            billing.total_operating_hours,
-            billing.total_standby_hours,
-            billing.total_overtime_hours,
-            billing.total_breakdown_hours,
-            billing.total_hm_km_usage,
-            billing.working_days,
-            billing.rate_basis,
-            billing.unit_rate,
-            billing.minimum_hours,
-            billing.overtime_multiplier,
-            billing.standby_multiplier,
-            billing.breakdown_penalty_per_day,
-            billing.billable_hours,
-            billing.shortfall_hours,
-            billing.base_amount,
-            billing.standby_amount,
-            billing.overtime_amount,
-            billing.breakdown_penalty_amount,
-            billing.mobilization_fee,
-            billing.demobilization_fee,
-            billing.other_charges,
-            billing.other_charges_description,
-            billing.subtotal,
-            billing.discount_percentage,
-            billing.discount_amount,
-            billing.tax_percentage,
-            billing.tax_amount,
-            billing.total_amount,
-            calculated_by,
-            now,
-            billing.total_production_volume,
-            billing.total_fuel_consumed,
-            billing.fuel_surcharge_rate,
-            billing.fuel_surcharge_amount
         )
+        .bind(id)
+        .bind(billing.total_operating_hours)
+        .bind(billing.total_standby_hours)
+        .bind(billing.total_overtime_hours)
+        .bind(billing.total_breakdown_hours)
+        .bind(billing.total_hm_km_usage)
+        .bind(billing.working_days)
+        .bind(&billing.rate_basis)
+        .bind(billing.unit_rate)
+        .bind(billing.minimum_hours)
+        .bind(billing.overtime_multiplier)
+        .bind(billing.standby_multiplier)
+        .bind(billing.breakdown_penalty_per_day)
+        .bind(billing.billable_hours)
+        .bind(billing.shortfall_hours)
+        .bind(billing.base_amount)
+        .bind(billing.standby_amount)
+        .bind(billing.overtime_amount)
+        .bind(billing.breakdown_penalty_amount)
+        .bind(billing.mobilization_fee)
+        .bind(billing.demobilization_fee)
+        .bind(billing.other_charges)
+        .bind(&billing.other_charges_description)
+        .bind(billing.subtotal)
+        .bind(billing.discount_percentage)
+        .bind(billing.discount_amount)
+        .bind(billing.tax_percentage)
+        .bind(billing.tax_amount)
+        .bind(billing.total_amount)
+        .bind(calculated_by)
+        .bind(now)
+        .bind(billing.total_production_volume)
+        .bind(billing.total_fuel_consumed)
+        .bind(billing.fuel_surcharge_rate)
+        .bind(billing.fuel_surcharge_amount)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -423,15 +423,15 @@ impl TimesheetRepository {
         notes: Option<String>,
     ) -> Result<(), sqlx::Error> {
         let now = Utc::now();
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rental_billing_periods 
             SET status = 'approved', approved_by = $2, approved_at = $3, notes = $4, updated_at = $3
             WHERE id = $1"#,
-            id,
-            approved_by,
-            now,
-            notes
         )
+        .bind(id)
+        .bind(approved_by)
+        .bind(now)
+        .bind(notes)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -446,16 +446,16 @@ impl TimesheetRepository {
     ) -> Result<(), sqlx::Error> {
         let now = Utc::now();
         let invoice_date = now.date_naive();
-        sqlx::query!(
+        sqlx::query(
             r#"UPDATE rental_billing_periods 
             SET status = 'invoiced', invoice_number = $2, invoice_date = $3, due_date = $4, updated_at = $5
             WHERE id = $1"#,
-            id,
-            invoice_number,
-            invoice_date,
-            due_date,
-            now
         )
+        .bind(id)
+        .bind(invoice_number)
+        .bind(invoice_date)
+        .bind(due_date)
+        .bind(now)
         .execute(&self.pool)
         .await?;
         Ok(())

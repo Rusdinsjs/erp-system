@@ -1,1 +1,1 @@
-error: while executing migrations: error returned from database: permission denied for schema public at line 2843
+error: migration 20260808000001 was previously applied but has been modified

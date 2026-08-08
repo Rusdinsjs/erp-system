@@ -51,7 +51,7 @@ impl UserRepository {
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             LEFT JOIN employees e ON u.id = e.user_id
-            WHERE u.email = $1
+            WHERE LOWER(TRIM(u.email)) = LOWER(TRIM($1))
             "#,
         )
         .bind(email)

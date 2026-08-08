@@ -156,9 +156,10 @@ export default function AssetDetails({ assetId }: { assetId?: string }) {
                         <div className="space-y-6">
                             <Card padding="lg">
                                 <CardHeader>
-                                    <CardTitle>Assignment</CardTitle>
+                                    <CardTitle>Assignment & Entity</CardTitle>
                                 </CardHeader>
                                 <div className="space-y-4">
+                                    <DetailItem icon={<Building2 size={18} />} label="Company / Perusahaan" value={asset.company_name || 'Primary Group'} />
                                     <DetailItem icon={<MapPin size={18} />} label="Current Location" value={asset.location_name || 'Unassigned'} />
                                     <DetailItem icon={<Building2 size={18} />} label="Department" value={asset.department_name || 'No Dept'} />
                                     <DetailItem icon={<Truck size={18} />} label="Assigned To" value={asset.assigned_to_name || '-'} />

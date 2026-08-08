@@ -24,6 +24,7 @@ import { getImageUrl } from '../utils/image';
 import clsx from 'clsx';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '../api/settings';
+import { fetchCompanies } from '../api/companyApi';
 import { Logo } from '../components/ui';
 import { AIChatWidget } from '../components/AI/AIChatWidget';
 import type { LaunchpadModuleConfig, LaunchpadConfig, MenuId } from '../config/launchpadConfig';
@@ -85,6 +86,18 @@ export default function Launchpad() {
         queryFn: settingsApi.getPublic
     });
 
+    // Fetch active companies / organizations
+    const { data: companiesRes } = useQuery({
+        queryKey: ['companies-list'],
+        queryFn: () => fetchCompanies({ status: 'ACTIVE' }),
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const activeOrganization =
+        companiesRes?.data?.[0]?.name ||
+        publicSettings?.company_name ||
+        'SJS GROUP (Headquarters)';
+
     const appName = publicSettings?.app_name || 'Management System';
 
     // Load launchpad config from backend settings, fallback to default
@@ -97,6 +110,9 @@ export default function Launchpad() {
 
                 // Validate shape: must have modules array
                 if (backendConfig && Array.isArray(backendConfig.modules)) {
+                    if (!backendConfig.modules.some((m: any) => m.id === 'organization')) {
+                        backendConfig.modules.unshift(DEFAULT_LAUNCHPAD_CONFIG.modules[0]);
+                    }
                     setLaunchpadConfig(backendConfig as LaunchpadConfig);
                 } else {
                     setLaunchpadConfig(DEFAULT_LAUNCHPAD_CONFIG);
@@ -115,7 +131,7 @@ export default function Launchpad() {
         .filter(card => {
             if (!card.enabled) return false;
             // Super Admin or Level <= 2 sees all cards
-            if (user?.role_level && user.role_level <= 2) return true;
+            if (user?.role === 'super_admin' || user?.role === 'admin' || (user?.role_level && user.role_level <= 2)) return true;
             // For other users, only show cards where they have at least one menu permission
             const hasAnyMenuPermission = card.menuIds.some(menuId => canAccessMenu(menuId));
             return hasAnyMenuPermission;
@@ -188,6 +204,10 @@ export default function Launchpad() {
                 <header className="px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Logo collapsed={false} />
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card/60 border border-border/80 text-xs font-medium text-muted-foreground shadow-sm">
+                            <Building2 className="w-3.5 h-3.5 text-primary" />
+                            <span className="font-semibold text-foreground">{activeOrganization}</span>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -228,9 +248,16 @@ export default function Launchpad() {
                                 src={user?.role === 'admin' || user?.role === 'super_admin' ? '/avatar-admin.png' : '/avatar-user.png'}
                                 alt="Avatar"
                                 className="w-20 h-20 rounded-2xl object-cover ring-4 ring-primary/20 shadow-xl"
-                            />
+                                />
                         )}
                     </div>
+
+                    {/* Organization Badge */}
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold mb-3 backdrop-blur-md shadow-sm">
+                        <Building2 className="w-4 h-4 text-blue-500" />
+                        <span>{activeOrganization}</span>
+                    </div>
+
                     <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                         {getGreeting()}, {user?.name?.split(' ')[0] || 'User'}!
                     </h2>

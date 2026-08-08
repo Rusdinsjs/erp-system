@@ -26,6 +26,7 @@ pub struct Asset {
     pub location_id: Option<Uuid>,
     pub department: Option<String>,
     pub department_id: Option<Uuid>,
+    #[sqlx(default)]
     pub company_id: Option<Uuid>,
     pub assigned_to: Option<Uuid>,
     pub vendor_id: Option<Uuid>,
@@ -50,8 +51,11 @@ pub struct Asset {
     pub specifications: Option<JsonValue>,
 
     // General Details (assets.txt additions)
+    #[sqlx(default)]
     pub description: Option<String>,
+    #[sqlx(default)]
     pub acquisition_method: Option<String>,
+    #[sqlx(default)]
     pub funding_source: Option<String>,
 
     // Financial data

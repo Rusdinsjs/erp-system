@@ -45,13 +45,14 @@ export const useAuthStore = create<AuthState>()(
                 try {
                     const decoded = jwtDecode<JwtClaims>(token);
                     const permissions = decoded.permissions || [];
-                    const role_level = decoded.role_level ?? 5; // Default to Viewer (5)
+                    const isSuperAdminOrAdmin = baseUser.role === 'super_admin' || baseUser.role === 'admin';
+                    const role_level = decoded.role_level ?? (baseUser.role === 'super_admin' ? 1 : baseUser.role === 'admin' ? 2 : 5);
 
                     set({
                         token,
                         user: {
                             ...baseUser,
-                            permissions,
+                            permissions: isSuperAdminOrAdmin && !permissions.includes('*') ? ['*', ...permissions] : permissions,
                             role_level,
                             department: decoded.department,
                             allowed_asset_group: decoded.allowed_asset_group,
@@ -100,23 +101,22 @@ export const useAuthStore = create<AuthState>()(
             hasPermission: (permission: string) => {
                 const user = get().user;
                 if (!user) return false;
-                if (user.role_level <= 2) return true; // Admin and Super Admin bypass
-                if (user.permissions.includes('*')) return true; // Global wildcard bypass
-                if (user.permissions.includes(permission)) return true;
+                if (user.role === 'super_admin' || user.role === 'admin' || (user.role_level && user.role_level <= 2)) return true; // Admin and Super Admin bypass
+                if (user.permissions && user.permissions.includes('*')) return true; // Global wildcard bypass
+                if (user.permissions && user.permissions.includes(permission)) return true;
 
                 // Support wildcard matching e.g. "asset.read" matched if user has "asset.*"
                 const [resource] = permission.split('.');
-                if (resource && user.permissions.includes(`${resource}.*`)) return true;
+                if (resource && user.permissions && user.permissions.includes(`${resource}.*`)) return true;
 
                 return false;
             },
             hasRoleLevel: (level: number) => {
                 const user = get().user;
                 if (!user) return false;
-                // Lower number = Higher privilege.
-                // e.g. Require Level 3 (Supervisor).
-                // User is Level 2 (Manager). 2 <= 3 -> True.
-                return user.role_level <= level;
+                if (user.role === 'super_admin') return true;
+                if (user.role === 'admin' && level >= 2) return true;
+                return (user.role_level ?? 5) <= level;
             },
         }),
         {

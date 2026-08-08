@@ -253,6 +253,25 @@ pub fn create_router(state: AppState) -> Router {
             "/api/maintenance-templates/:id/tasks/:task_id",
             delete(delete_template_task),
         )
+        // Maintenance Teams
+        .route(
+            "/api/maintenance-teams",
+            get(maintenance_team_handler::list_teams).post(maintenance_team_handler::create_team),
+        )
+        .route(
+            "/api/maintenance-teams/:id",
+            get(maintenance_team_handler::get_team)
+                .put(maintenance_team_handler::update_team)
+                .delete(maintenance_team_handler::delete_team),
+        )
+        .route(
+            "/api/maintenance-teams/:id/members",
+            post(maintenance_team_handler::add_team_member),
+        )
+        .route(
+            "/api/maintenance-teams/:id/members/:member_id",
+            delete(maintenance_team_handler::remove_team_member),
+        )
         // Parts
         .route(
             "/api/work-orders/:id/parts",

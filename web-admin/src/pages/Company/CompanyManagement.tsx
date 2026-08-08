@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Building2, Plus, Search, Filter, Globe, Phone, Mail, MapPin, 
-    ChevronRight, ChevronDown, CheckCircle2, AlertCircle, Edit, Trash2, 
-    Layers, GitFork, RefreshCw, X, Shield, ExternalLink, FileText, FileCheck, ScrollText
+    Building2, Plus, Search, Phone, Mail, 
+    ChevronRight, ChevronDown, Edit, Trash2, 
+    Layers, GitFork, RefreshCw, X, FileText, ScrollText
 } from 'lucide-react';
 import { 
     fetchCompanies, fetchCompanyTree, fetchCompanyById, createCompany, updateCompany, deleteCompany
@@ -57,12 +57,15 @@ export const CompanyManagement: React.FC = () => {
         setLoading(true);
         try {
             const [companiesRes, treeRes] = await Promise.all([
-                fetchCompanies({ search, status: statusFilter === 'ALL' ? undefined : statusFilter }),
+                fetchCompanies({ search: search || undefined, status: statusFilter === 'ALL' ? undefined : statusFilter }),
                 fetchCompanyTree()
             ]);
-            setCompanies(companiesRes.data || []);
-            setTreeData(treeRes.data || []);
+            const compList = Array.isArray(companiesRes) ? companiesRes : (companiesRes?.data || []);
+            const treeList = Array.isArray(treeRes) ? treeRes : (treeRes?.data || []);
+            setCompanies(compList);
+            setTreeData(treeList);
         } catch (err: any) {
+            console.error('Error fetching companies:', err);
             showToast(err?.response?.data?.message || 'Gagal memuat data perusahaan', 'error');
         } finally {
             setLoading(false);
@@ -1064,7 +1067,7 @@ export const CompanyManagement: React.FC = () => {
 };
 
 // Tree Node Recursive Card Component
-const TreeNodeCard: React.FC<{ node: CompanyTreeNode; onEdit: (comp: Company) => void }> = ({ node }) => {
+const TreeNodeCard: React.FC<{ node: CompanyTreeNode; onEdit?: (comp: Company) => void }> = ({ node, onEdit }) => {
     const [isOpen, setIsOpen] = useState(true);
 
     return (

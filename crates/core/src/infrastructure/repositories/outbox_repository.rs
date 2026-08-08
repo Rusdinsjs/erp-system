@@ -37,7 +37,7 @@ impl OutboxStore {
         .bind(&entry.last_error)
         .execute(uow.conn())
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(())
     }

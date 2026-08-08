@@ -346,7 +346,7 @@ impl MaintenanceRepository {
         next_date: chrono::NaiveDate,
         last_run: chrono::NaiveDate,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE maintenance_schedules
             SET next_run_date = $1,
@@ -354,10 +354,10 @@ impl MaintenanceRepository {
                 updated_at = NOW()
             WHERE id = $3
             "#,
-            next_date,
-            last_run,
-            id
         )
+        .bind(next_date)
+        .bind(last_run)
+        .bind(id)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -368,13 +368,11 @@ impl MaintenanceRepository {
         id: Uuid,
         is_active: bool,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            "UPDATE maintenance_schedules SET is_active = $1 WHERE id = $2",
-            is_active,
-            id
-        )
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("UPDATE maintenance_schedules SET is_active = $1 WHERE id = $2")
+            .bind(is_active)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 }

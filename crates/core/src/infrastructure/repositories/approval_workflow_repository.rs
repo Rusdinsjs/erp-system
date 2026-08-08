@@ -16,8 +16,7 @@ impl ApprovalWorkflowRepository {
     }
 
     pub async fn create(&self, workflow: &ApprovalWorkflow) -> DomainResult<ApprovalWorkflow> {
-        let rec = sqlx::query_as!(
-            ApprovalWorkflow,
+        let rec = sqlx::query_as::<_, ApprovalWorkflow>(
             r#"
             INSERT INTO approval_workflows (
                 id, workflow_name, entity_type, approval_levels,
@@ -28,43 +27,42 @@ impl ApprovalWorkflowRepository {
             RETURNING 
                 id, workflow_name, entity_type, approval_levels,
                 level_1_role, level_2_role, level_3_role, level_4_role, level_5_role,
-                is_active as "is_active!", created_at, updated_at
+                is_active, created_at, updated_at
             "#,
-            workflow.id,
-            workflow.workflow_name,
-            workflow.entity_type,
-            workflow.approval_levels,
-            workflow.level_1_role,
-            workflow.level_2_role,
-            workflow.level_3_role,
-            workflow.level_4_role,
-            workflow.level_5_role,
-            workflow.is_active,
-            workflow.created_at,
-            workflow.updated_at
         )
+        .bind(workflow.id)
+        .bind(&workflow.workflow_name)
+        .bind(&workflow.entity_type)
+        .bind(workflow.approval_levels)
+        .bind(&workflow.level_1_role)
+        .bind(&workflow.level_2_role)
+        .bind(&workflow.level_3_role)
+        .bind(&workflow.level_4_role)
+        .bind(&workflow.level_5_role)
+        .bind(workflow.is_active)
+        .bind(workflow.created_at)
+        .bind(workflow.updated_at)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> DomainResult<Option<ApprovalWorkflow>> {
-        let rec = sqlx::query_as!(
-            ApprovalWorkflow,
+        let rec = sqlx::query_as::<_, ApprovalWorkflow>(
             r#"
             SELECT 
                 id, workflow_name, entity_type, approval_levels,
                 level_1_role, level_2_role, level_3_role, level_4_role, level_5_role,
-                is_active as "is_active!", created_at, updated_at
+                is_active, created_at, updated_at
             FROM approval_workflows WHERE id = $1
             "#,
-            id
         )
+        .bind(id)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
@@ -73,40 +71,38 @@ impl ApprovalWorkflowRepository {
         &self,
         entity_type: &str,
     ) -> DomainResult<Option<ApprovalWorkflow>> {
-        let rec = sqlx::query_as!(
-            ApprovalWorkflow,
+        let rec = sqlx::query_as::<_, ApprovalWorkflow>(
             r#"
             SELECT 
                 id, workflow_name, entity_type, approval_levels,
                 level_1_role, level_2_role, level_3_role, level_4_role, level_5_role,
-                is_active as "is_active!", created_at, updated_at
+                is_active, created_at, updated_at
             FROM approval_workflows 
             WHERE entity_type = $1 AND is_active = true
             LIMIT 1
             "#,
-            entity_type
         )
+        .bind(entity_type)
         .fetch_optional(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
 
     pub async fn find_all(&self) -> DomainResult<Vec<ApprovalWorkflow>> {
-        let recs = sqlx::query_as!(
-            ApprovalWorkflow,
+        let recs = sqlx::query_as::<_, ApprovalWorkflow>(
             r#"
             SELECT 
                 id, workflow_name, entity_type, approval_levels,
                 level_1_role, level_2_role, level_3_role, level_4_role, level_5_role,
-                is_active as "is_active!", created_at, updated_at
+                is_active, created_at, updated_at
             FROM approval_workflows ORDER BY created_at DESC
-            "#
+            "#,
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(recs)
     }
@@ -116,8 +112,7 @@ impl ApprovalWorkflowRepository {
         id: Uuid,
         workflow: &ApprovalWorkflow,
     ) -> DomainResult<ApprovalWorkflow> {
-        let rec = sqlx::query_as!(
-            ApprovalWorkflow,
+        let rec = sqlx::query_as::<_, ApprovalWorkflow>(
             r#"
             UPDATE approval_workflows
             SET 
@@ -135,37 +130,37 @@ impl ApprovalWorkflowRepository {
             RETURNING 
                 id, workflow_name, entity_type, approval_levels,
                 level_1_role, level_2_role, level_3_role, level_4_role, level_5_role,
-                is_active as "is_active!", created_at, updated_at
+                is_active, created_at, updated_at
             "#,
-            workflow.workflow_name,
-            workflow.entity_type,
-            workflow.approval_levels,
-            workflow.level_1_role,
-            workflow.level_2_role,
-            workflow.level_3_role,
-            workflow.level_4_role,
-            workflow.level_5_role,
-            workflow.is_active,
-            Some(Utc::now()),
-            id
         )
+        .bind(&workflow.workflow_name)
+        .bind(&workflow.entity_type)
+        .bind(workflow.approval_levels)
+        .bind(&workflow.level_1_role)
+        .bind(&workflow.level_2_role)
+        .bind(&workflow.level_3_role)
+        .bind(&workflow.level_4_role)
+        .bind(&workflow.level_5_role)
+        .bind(workflow.is_active)
+        .bind(Utc::now())
+        .bind(id)
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(rec)
     }
 
     pub async fn delete(&self, id: Uuid) -> DomainResult<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             DELETE FROM approval_workflows WHERE id = $1
             "#,
-            id
         )
+        .bind(id)
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?;
 
         Ok(())
     }

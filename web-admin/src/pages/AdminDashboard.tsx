@@ -73,6 +73,7 @@ const PurchaseShipmentsView = lazy(() => import('./Finance/PurchaseShipments'));
 const PurchaseBillsView = lazy(() => import('./Finance/PurchaseBills'));
 const MaintenanceTemplatesView = lazy(() => import('./Maintenance/MaintenanceTemplates'));
 const MaintenanceSchedulesView = lazy(() => import('./Maintenance/MaintenanceSchedules'));
+const MaintenanceTeamsView = lazy(() => import('./Maintenance/MaintenanceTeams'));
 const WorkflowBuilderView = lazy(() => import('./Settings/WorkflowBuilder').then(m => ({ default: m.WorkflowBuilder })));
 
 const SettingsView = lazy(() => import('./Settings'));
@@ -209,7 +210,8 @@ const ALL_NAV_ITEMS: Record<string, NavItem> = {
 
     'work-orders': { id: 'work-orders', icon: ClipboardCheck, label: 'Work Orders', minLevel: 4 },
     'maintenance-schedules': { id: 'maintenance-schedules', icon: CalendarIcon, label: 'PM Schedules', minLevel: 3 },
-    'maintenance-templates': { id: 'maintenance-templates', icon: FileText, label: 'SOP Templates', minLevel: 3 },
+    'maintenance-templates': { id: 'maintenance-templates', icon: FileText, label: 'Maintenance SOP', minLevel: 3 },
+    'maintenance-teams': { id: 'maintenance-teams', icon: Users, label: 'Maintenance Teams', minLevel: 3 },
     'fuel': { id: 'fuel', icon: Fuel, label: 'Fuel Management', minLevel: 4 },
     'tax-renewals': { id: 'tax-renewals', icon: Receipt, label: 'Tax & Documents', minLevel: 3 },
 
@@ -305,6 +307,9 @@ export default function AdminDashboard() {
                     ? JSON.parse(publicSettings.launchpad_config)
                     : publicSettings.launchpad_config;
                 if (backendConfig && Array.isArray(backendConfig.modules)) {
+                    if (!backendConfig.modules.some((m: any) => m.id === 'organization')) {
+                        backendConfig.modules.unshift(DEFAULT_LAUNCHPAD_CONFIG.modules[0]);
+                    }
                     backendConfig.modules = backendConfig.modules.map((m: any) => {
                         if (m.id === 'asset-management') {
                             const ids = m.menuIds || [];
@@ -552,8 +557,8 @@ export default function AdminDashboard() {
                 icon: Building2,
                 minLevel: 2,
                 children: [
-                    ...getGroupItems(organizationIds, ['company', 'departments', 'branch', 'users', 'roles', 'email-account'],
-                        ['company', 'departments', 'branch', 'users', 'roles', 'email-account']),
+                    ...getGroupItems(organizationIds, ['company', 'branch', 'departments', 'users', 'roles', 'email-account', 'approval-workflow-settings'],
+                        ['company', 'branch', 'departments', 'users', 'roles', 'email-account', 'approval-workflow-settings']),
                 ],
             },
             {
@@ -561,7 +566,7 @@ export default function AdminDashboard() {
                 label: 'Assets',
                 icon: Box,
                 minLevel: 5,
-                children: getGroupItems(assetIds, ['assets', 'asset-lifecycle', 'asset-audit'], ['assets', 'asset-lifecycle', 'asset-audit'])
+                children: getGroupItems(assetIds, ['assets', 'categories', 'maintenance-templates', 'asset-lifecycle', 'asset-audit'], ['assets', 'categories', 'maintenance-templates', 'asset-lifecycle', 'asset-audit'])
             },
             {
                 id: 'inventory_group',
@@ -575,7 +580,7 @@ export default function AdminDashboard() {
                 label: 'Field Operations',
                 icon: Wrench,
                 minLevel: 5,
-                children: getGroupItems(fieldOpsIds, ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'], ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'])
+                children: getGroupItems(fieldOpsIds, ['work-orders', 'maintenance-schedules', 'maintenance-teams', 'fuel', 'tax-renewals', 'loans'], ['work-orders', 'maintenance-schedules', 'maintenance-teams', 'fuel', 'tax-renewals', 'loans'])
             },
             {
                 id: 'rental_module',
@@ -619,13 +624,11 @@ export default function AdminDashboard() {
                 minLevel: 2,
                 children: [
                     { type: 'header', label: 'Master Data' },
-                    ...getGroupItems(adminIds, ['categories', 'inventory-categories', 'locations'], ['categories', 'inventory-categories', 'locations']),
+                    ...getGroupItems(adminIds, ['inventory-categories', 'locations'], ['inventory-categories', 'locations']),
                     { type: 'header', label: 'Operational Templates' },
-                    ...getGroupItems(adminIds, ['maintenance-templates', 'contract-templates'], ['maintenance-templates', 'contract-templates']),
-                    { type: 'header', label: 'Access Control & Approvals' },
-                    ...getGroupItems(adminIds, ['approvals', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings'], ['approvals', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings']),
-                    { type: 'header', label: 'System Administration' },
-                    ...getGroupItems(adminIds, ['audit', 'settings'], ['audit', 'settings']),
+                    ...getGroupItems(adminIds, ['contract-templates'], ['contract-templates']),
+                    { type: 'header', label: 'Approvals & Audit' },
+                    ...getGroupItems(adminIds, ['approvals', 'audit', 'settings'], ['approvals', 'audit', 'settings']),
                 ]
             },
         ];
@@ -952,6 +955,7 @@ export default function AdminDashboard() {
                 return <MetadataEditorView />;
             case 'maintenance-templates': return <MaintenanceTemplatesView />;
             case 'maintenance-schedules': return <MaintenanceSchedulesView />;
+            case 'maintenance-teams': return <MaintenanceTeamsView />;
             case 'tax-renewals': return <TaxRenewalsView />;
             case 'purchases': // Fallback or remove if parent doesn't render content
                 return <PurchaseOverviewView />; // Default to overview for the group

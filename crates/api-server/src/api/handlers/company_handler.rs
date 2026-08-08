@@ -162,6 +162,47 @@ pub struct CompanyTreeNode {
 }
 
 /// GET /api/companies - List all companies
+use sqlx::Row;
+
+fn map_company_row(r: &sqlx::postgres::PgRow) -> CompanyRow {
+    CompanyRow {
+        id: r.get("id"),
+        tenant_id: r.get("tenant_id"),
+        code: r.get("code"),
+        name: r.get("name"),
+        legal_name: r.try_get("legal_name").ok(),
+        tax_id: r.try_get("tax_id").ok(),
+        base_currency: r.try_get("base_currency").unwrap_or_else(|_| "IDR".to_string()),
+        country: r.try_get("country").unwrap_or_else(|_| "Indonesia".to_string()),
+        address: r.try_get("address").ok(),
+        phone: r.try_get("phone").ok(),
+        email: r.try_get("email").ok(),
+        logo_url: r.try_get("logo_url").ok(),
+        domain: r.try_get("domain").ok(),
+        website: r.try_get("website").ok(),
+        parent_company_id: r.try_get("parent_company_id").ok(),
+        parent_company_name: r.try_get("parent_company_name").ok(),
+        incorporation_date: r.try_get("incorporation_date").ok(),
+        registration_no: r.try_get("registration_no").ok(),
+        establishment_deed_no: r.try_get("establishment_deed_no").ok(),
+        establishment_deed_date: r.try_get("establishment_deed_date").ok(),
+        establishment_notary_name: r.try_get("establishment_notary_name").ok(),
+        establishment_approval_no: r.try_get("establishment_approval_no").ok(),
+        default_bank_account_id: r.try_get("default_bank_account_id").ok(),
+        default_cash_account_id: r.try_get("default_cash_account_id").ok(),
+        default_income_account_id: r.try_get("default_income_account_id").ok(),
+        default_expense_account_id: r.try_get("default_expense_account_id").ok(),
+        default_receivable_account_id: r.try_get("default_receivable_account_id").ok(),
+        default_payable_account_id: r.try_get("default_payable_account_id").ok(),
+        fiscal_year_start_month: r.try_get("fiscal_year_start_month").ok(),
+        is_group: r.try_get("is_group").unwrap_or(false),
+        status: r.try_get("status").unwrap_or_else(|_| "ACTIVE".to_string()),
+        created_at: r.try_get("created_at").unwrap_or_else(|_| chrono::Utc::now()),
+        updated_at: r.try_get("updated_at").unwrap_or_else(|_| chrono::Utc::now()),
+    }
+}
+
+/// GET /api/companies - List all companies
 pub async fn list_companies(
     State(state): State<AppState>,
     Query(params): Query<CompanyQuery>,
@@ -209,10 +250,12 @@ pub async fn list_companies(
 
     query.push_str(" ORDER BY c.is_group DESC, c.name ASC");
 
-    let rows = sqlx::query_as::<_, CompanyRow>(&query)
+    let raw_rows = sqlx::query(&query)
         .fetch_all(pool)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Database error: {}", e)))?;
+
+    let rows: Vec<CompanyRow> = raw_rows.iter().map(map_company_row).collect();
 
     Ok(Json(serde_json::json!({
         "data": rows,
@@ -226,7 +269,7 @@ pub async fn get_company_tree(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let pool = &state.pool;
 
-    let rows = sqlx::query_as::<_, CompanyRow>(
+    let raw_rows = sqlx::query(
         r#"
         SELECT 
             c.id, c.tenant_id, c.code, c.name, c.legal_name, c.tax_id, c.base_currency, c.country,
@@ -247,6 +290,8 @@ pub async fn get_company_tree(
     .fetch_all(pool)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Database error: {}", e)))?;
+
+    let rows: Vec<CompanyRow> = raw_rows.iter().map(map_company_row).collect();
 
     // Build hierarchy tree
     let root_nodes: Vec<&CompanyRow> = rows.iter().filter(|r| r.parent_company_id.is_none()).collect();
@@ -284,7 +329,7 @@ pub async fn get_company(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let pool = &state.pool;
 
-    let company = sqlx::query_as::<_, CompanyRow>(
+    let company_raw = sqlx::query(
         r#"
         SELECT 
             c.id, c.tenant_id, c.code, c.name, c.legal_name, c.tax_id, c.base_currency, c.country,
@@ -305,6 +350,8 @@ pub async fn get_company(
     .fetch_optional(pool)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Database error: {}", e)))?;
+
+    let company = company_raw.map(|ref r| map_company_row(r));
 
     match company {
         Some(c) => {

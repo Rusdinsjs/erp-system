@@ -7,7 +7,7 @@
 export type MenuId =
     | 'dashboard' | 'analytics' | 'reports'
     | 'assets' | 'asset-lifecycle' | 'categories' | 'locations' | 'asset-audit'
-    | 'work-orders' | 'conversions' | 'maintenance-schedules' | 'maintenance-templates'
+    | 'work-orders' | 'conversions' | 'maintenance-schedules' | 'maintenance-templates' | 'maintenance-teams'
     | 'fuel' | 'loans' | 'tax-renewals'
     | 'rentals' | 'contracts' | 'contract-templates' | 'clients'
     | 'sales-invoices'
@@ -54,7 +54,8 @@ export const MENU_LABELS: Record<MenuId, string> = {
     'work-orders': 'Work Orders',
     'conversions': 'Conversions',
     'maintenance-schedules': 'PM Schedules',
-    'maintenance-templates': 'SOP Templates',
+    'maintenance-templates': 'Maintenance SOP',
+    'maintenance-teams': 'Maintenance Teams',
     'fuel': 'Fuel Management',
     'loans': 'Internal Loans',
     'tax-renewals': 'Tax & Documents',
@@ -102,6 +103,7 @@ export const MENU_TO_RESOURCE: Record<MenuId, string> = {
     'conversions': 'conversion',
     'maintenance-schedules': 'preventive_schedule',
     'maintenance-templates': 'maintenance_template',
+    'maintenance-teams': 'work_order',
     'fuel': 'fuel',
     'loans': 'loan',
     'tax-renewals': 'tax_document',
@@ -147,9 +149,9 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             gradient: 'from-blue-600/20 to-indigo-600/20',
             iconBg: 'bg-gradient-to-br from-blue-600 to-indigo-600',
             defaultRoute: '/company',
-            minLevel: 2,
-            features: ['Company & Legal Entity', 'Department & Branch', 'Users & Access Control'],
-            menuIds: ['company', 'departments', 'branch', 'users', 'roles', 'email-account'],
+            minLevel: 5,
+            features: ['Company & Entity', 'Branch & Departments', 'Users & Access Control'],
+            menuIds: ['company', 'branch', 'departments', 'users', 'roles', 'email-account'],
             order: 1,
             enabled: true,
         },
@@ -176,8 +178,8 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-500',
             defaultRoute: '/assets',
             minLevel: 5,
-            features: ['Asset Registry', 'Lifecycle Tracking', 'Asset Audit'],
-            menuIds: ['assets', 'asset-lifecycle', 'asset-audit'],
+            features: ['Asset Registry', 'Asset Categories', 'Maintenance SOP', 'Lifecycle Tracking', 'Asset Audit'],
+            menuIds: ['assets', 'categories', 'maintenance-templates', 'asset-lifecycle', 'asset-audit'],
             order: 3,
             enabled: true,
         },
@@ -190,8 +192,8 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             iconBg: 'bg-gradient-to-br from-amber-500 to-orange-500',
             defaultRoute: '/work-orders',
             minLevel: 5,
-            features: ['Work Orders', 'PM Schedules', 'Fuel & Tax', 'Internal Loans'],
-            menuIds: ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'],
+            features: ['Work Orders & Teams', 'PM Schedules', 'Fuel & Tax', 'Internal Loans'],
+            menuIds: ['work-orders', 'maintenance-schedules', 'maintenance-teams', 'fuel', 'tax-renewals', 'loans'],
             order: 4,
             enabled: true,
         },
@@ -260,8 +262,8 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             iconBg: 'bg-gradient-to-br from-slate-500 to-gray-500',
             defaultRoute: '/approvals',
             minLevel: 2,
-            features: ['Master Data & Templates', 'Approvals & Workflows', 'System Config'],
-            menuIds: ['categories', 'inventory-categories', 'locations', 'maintenance-templates', 'contract-templates', 'approvals', 'approval-workflow-settings', 'audit', 'settings'],
+            features: ['Master Data & Templates', 'Approvals & Audit', 'System Config'],
+            menuIds: ['inventory-categories', 'locations', 'contract-templates', 'approvals', 'audit', 'settings'],
             order: 9,
             enabled: true,
         },
