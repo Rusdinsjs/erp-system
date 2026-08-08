@@ -171,7 +171,7 @@ pub async fn upload_document(
 
     // Create document record
     let document = ContractDocument::new(
-        management_system_core::domain::entities::CreateContractDocumentRequest {
+        management_system_rental::domain::entities::CreateContractDocumentRequest {
             contract_id,
             document_type,
             file_name,

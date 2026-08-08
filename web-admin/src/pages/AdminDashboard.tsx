@@ -10,7 +10,7 @@ import {
     Calendar as CalendarIcon, ArrowLeftRight, TrendingUp,
     Wallet, ShoppingCart, Receipt, History, Wrench, Fuel, Shield, Layers,
     CheckSquare, Box, Sun, Moon, ShieldAlert,
-    Database
+    Database, Mail
 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { PageLoading, Logo } from '../components/ui';
@@ -85,6 +85,9 @@ const TaxRenewalsView = lazy(() => import('./TaxRenewals/TaxRenewals'));
 const ExpensesView = lazy(() => import('./Finance/Expenses'));
 const AnalyticsDashboardView = lazy(() => import('./AnalyticsDashboard'));
 const MetadataEditorView = lazy(() => import('./Metadata/MetadataEditor'));
+const CompanyManagementView = lazy(() => import('./Company/CompanyManagement').then(m => ({ default: m.CompanyManagement })));
+const BranchView = lazy(() => import('./Organization/Branch'));
+const EmailAccountView = lazy(() => import('./Organization/EmailAccount'));
 
 // Define the available tabs
 type TabId =
@@ -143,6 +146,10 @@ type TabId =
     | 'expenses'
     | 'asset-lifecycle'
     | 'settings'
+    | 'companies'
+    | 'company'
+    | 'branch'
+    | 'email-account'
     | 'metadata-editor'
     | 'analytics'
     | 'profile';
@@ -231,6 +238,10 @@ const ALL_NAV_ITEMS: Record<string, NavItem> = {
     'roles': { id: 'roles', icon: Shield, label: 'Access Rights', minLevel: 1 },
     'approval-workflow-settings': { id: 'approval-workflow-settings', icon: Layers, label: 'Workflows', minLevel: 1 },
     'audit': { id: 'audit', icon: History, label: 'Audit Logs', minLevel: 2 },
+    'companies': { id: 'companies', icon: Building2, label: 'Companies (Entitas)', minLevel: 2 },
+    'company': { id: 'company', icon: Building2, label: 'Company Management', minLevel: 2 },
+    'branch': { id: 'branch', icon: Building2, label: 'Branch Management', minLevel: 2 },
+    'email-account': { id: 'email-account', icon: Mail, label: 'Email Accounts', minLevel: 2 },
     'settings': { id: 'settings', icon: Settings, label: 'App Settings', minLevel: 2 },
     'metadata-editor': { id: 'metadata-editor', icon: Database, label: 'Metadata & Schema', minLevel: 1, adminOnly: true },
     'profile': { id: 'profile', icon: UserCircle, label: 'My Profile', minLevel: 5 },
@@ -510,6 +521,7 @@ export default function AdminDashboard() {
         const hrIds = getModuleMenuIds('hr');
         const adminIds = getModuleMenuIds('admin');
         const insightsIds = getModuleMenuIds('insights');
+        const organizationIds = getModuleMenuIds('organization');
 
         const getGroupItems = (moduleIds: string[], preferredOrder: string[], allowedFilter?: string[]) => {
             const result: NavItem[] = [];
@@ -535,6 +547,16 @@ export default function AdminDashboard() {
             ...(insightsIds.length === 0 || insightsIds.includes('analytics') ? [ALL_NAV_ITEMS['analytics']] : []),
             ...(insightsIds.length === 0 || insightsIds.includes('reports') ? [ALL_NAV_ITEMS['reports']] : []),
             {
+                id: 'organization_group',
+                label: 'Organization',
+                icon: Building2,
+                minLevel: 2,
+                children: [
+                    ...getGroupItems(organizationIds, ['company', 'departments', 'branch', 'users', 'roles', 'email-account'],
+                        ['company', 'departments', 'branch', 'users', 'roles', 'email-account']),
+                ],
+            },
+            {
                 id: 'asset_operations',
                 label: 'Assets',
                 icon: Box,
@@ -553,14 +575,14 @@ export default function AdminDashboard() {
                 label: 'Field Operations',
                 icon: Wrench,
                 minLevel: 5,
-                children: getGroupItems(fieldOpsIds, ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'])
+                children: getGroupItems(fieldOpsIds, ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'], ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'])
             },
             {
                 id: 'rental_module',
                 label: 'Rental & Contracts',
                 icon: Truck,
                 minLevel: 4,
-                children: getGroupItems(commercialIds, ['rentals', 'contracts', 'loans'], ['rentals', 'contracts', 'loans'])
+                children: getGroupItems(commercialIds, ['rentals', 'contracts'], ['rentals', 'contracts'])
             },
             {
                 id: 'procurement_group',
@@ -588,7 +610,7 @@ export default function AdminDashboard() {
                 label: 'Human Resources',
                 icon: Users,
                 minLevel: 3,
-                children: getGroupItems(hrIds, ['employees', 'departments', 'attendance', 'leaves'])
+                children: getGroupItems(hrIds, ['employees', 'attendance', 'leaves'])
             },
             {
                 id: 'settings_group',
@@ -601,7 +623,7 @@ export default function AdminDashboard() {
                     { type: 'header', label: 'Operational Templates' },
                     ...getGroupItems(adminIds, ['maintenance-templates', 'contract-templates'], ['maintenance-templates', 'contract-templates']),
                     { type: 'header', label: 'Access Control & Approvals' },
-                    ...getGroupItems(adminIds, ['users', 'roles', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings'], ['users', 'roles', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings']),
+                    ...getGroupItems(adminIds, ['approvals', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings'], ['approvals', 'approval-workflow-settings', 'metadata-editor', 'audit', 'settings']),
                     { type: 'header', label: 'System Administration' },
                     ...getGroupItems(adminIds, ['audit', 'settings'], ['audit', 'settings']),
                 ]
@@ -895,10 +917,14 @@ export default function AdminDashboard() {
             case 'reports': return <ReportsView />;
             case 'users': return <UsersView />;
             case 'roles': return <RolesView />;
+            case 'departments': return <DepartmentsView />;
+            case 'companies': return <CompanyManagementView />;
+            case 'company': return <CompanyManagementView />;
+            case 'branch': return <BranchView />;
+            case 'email-account': return <EmailAccountView />;
             case 'audit': return <AuditLogsView />;
             case 'asset-audit': return <AuditModeView />;
             case 'system-audit': return <AuditLogsView />;
-            case 'departments': return <DepartmentsView />;
             case 'finance': return <ChartOfAccountsView />;
             case 'journal-entries': return <JournalEntriesView />;
             case 'journal-form': return <JournalEntryFormView />;

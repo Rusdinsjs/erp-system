@@ -5,6 +5,7 @@
 use chrono::{NaiveDate, NaiveTime};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 // =============================================================================
@@ -101,7 +102,7 @@ pub struct TimesheetSummary {
 }
 
 /// Enhanced timesheet response with rental and asset info
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct TimesheetDetailResponse {
     pub id: Uuid,
     pub rental_id: Uuid,

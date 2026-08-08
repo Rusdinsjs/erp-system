@@ -38,6 +38,7 @@ pub mod notification_ws;
 pub mod profile_handler;
 pub mod rbac_handler;
 pub mod role_permission_handler;
+pub mod company_handler;
 pub mod data_import_handler;
 
 pub mod rental_billing_handler;
@@ -56,6 +57,7 @@ pub mod workflow_handler;
 // Standard re-exports for main_router.rs
 pub use asset_handler::*;
 pub use auth_handler::*;
+pub use company_handler::*;
 pub use dashboard_handler::*;
 pub use department_handler::*;
 pub use employee_handler::*;

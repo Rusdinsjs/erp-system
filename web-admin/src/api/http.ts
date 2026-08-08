@@ -7,20 +7,18 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-    const headers = config.headers || {};
     const token = useAuthStore.getState().token;
     if (token) {
-        headers.Authorization = 'Bearer ' + token;
+        config.headers.set('Authorization', 'Bearer ' + token);
     }
 
     const method = config.method?.toUpperCase();
     const isSalesInvoiceCommand =
         config.url?.startsWith('/finance/sales/invoices') && (method === 'POST' || method === 'PUT');
-    if (isSalesInvoiceCommand && !headers['Idempotency-Key']) {
-        headers['Idempotency-Key'] = crypto.randomUUID();
+    if (isSalesInvoiceCommand && !config.headers.get('Idempotency-Key')) {
+        config.headers.set('Idempotency-Key', crypto.randomUUID());
     }
 
-    config.headers = headers;
     return config;
 });
 

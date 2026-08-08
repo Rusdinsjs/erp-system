@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import {
     BarChart3,
     Box,
+    Building2,
     Package,
     TrendingUp,
     ShoppingBag,
@@ -33,6 +34,7 @@ import { DEFAULT_LAUNCHPAD_CONFIG, MENU_LABELS, MENU_TO_RESOURCE } from '../conf
 const ICON_MAP: Record<string, React.ElementType> = {
     BarChart3,
     Box,
+    Building2,
     Package,
     TrendingUp,
     ShoppingBag,

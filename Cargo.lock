@@ -2186,6 +2186,8 @@ dependencies = [
  "async-trait",
  "chrono",
  "management-system-core",
+ "management-system-crm",
+ "management-system-hr",
  "management-system-ops",
  "rust_decimal",
  "serde",

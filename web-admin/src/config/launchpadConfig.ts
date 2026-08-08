@@ -16,6 +16,7 @@ export type MenuId =
     | 'finance' | 'cash-bank' | 'expenses' | 'journal-entries' | 'financial-reports'
     | 'employees' | 'departments' | 'attendance' | 'leaves'
     | 'approvals'
+    | 'company' | 'branch' | 'email-account'
     | 'users' | 'roles' | 'approval-workflow-settings' | 'audit' | 'settings' | 'profile';
 
 // ─── Launchpad Module Config Shape ───────────────────────────────────────────
@@ -76,6 +77,9 @@ export const MENU_LABELS: Record<MenuId, string> = {
     'attendance': 'Attendance',
     'leaves': 'Leaves',
     'approvals': 'Approval Center',
+    'company': 'Company Management',
+    'branch': 'Branch Management',
+    'email-account': 'Email Accounts',
     'users': 'User Operations',
     'roles': 'Access Rights',
     'approval-workflow-settings': 'Workflows',
@@ -120,6 +124,9 @@ export const MENU_TO_RESOURCE: Record<MenuId, string> = {
     'attendance': 'attendance',
     'leaves': 'leave',
     'approvals': 'approval_center',
+    'company': 'company',
+    'branch': 'branch',
+    'email-account': 'email_account',
     'users': 'user',
     'roles': 'role',
     'approval-workflow-settings': 'approval_workflow',
@@ -133,6 +140,20 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
     globalMenuIds: ['profile'],
     modules: [
         {
+            id: 'organization',
+            title: 'Organization',
+            subtitle: 'Entitas & Struktur Organisasi',
+            icon: 'Building2',
+            gradient: 'from-blue-600/20 to-indigo-600/20',
+            iconBg: 'bg-gradient-to-br from-blue-600 to-indigo-600',
+            defaultRoute: '/company',
+            minLevel: 2,
+            features: ['Company & Legal Entity', 'Department & Branch', 'Users & Access Control'],
+            menuIds: ['company', 'departments', 'branch', 'users', 'roles', 'email-account'],
+            order: 1,
+            enabled: true,
+        },
+        {
             id: 'insights',
             title: 'Insights & Reporting',
             subtitle: 'Business Intelligence',
@@ -143,7 +164,7 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             minLevel: 5,
             features: ['Dashboard Overview', 'Analytics', 'Reports'],
             menuIds: ['dashboard', 'analytics', 'reports'],
-            order: 1,
+            order: 2,
             enabled: true,
         },
         {
@@ -157,7 +178,7 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             minLevel: 5,
             features: ['Asset Registry', 'Lifecycle Tracking', 'Asset Audit'],
             menuIds: ['assets', 'asset-lifecycle', 'asset-audit'],
-            order: 2,
+            order: 3,
             enabled: true,
         },
         {
@@ -169,9 +190,9 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             iconBg: 'bg-gradient-to-br from-amber-500 to-orange-500',
             defaultRoute: '/work-orders',
             minLevel: 5,
-            features: ['Work Orders', 'PM Schedules', 'Fuel & Tax'],
-            menuIds: ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals'],
-            order: 3,
+            features: ['Work Orders', 'PM Schedules', 'Fuel & Tax', 'Internal Loans'],
+            menuIds: ['work-orders', 'maintenance-schedules', 'fuel', 'tax-renewals', 'loans'],
+            order: 4,
             enabled: true,
         },
         {
@@ -184,8 +205,8 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             defaultRoute: '/rentals',
             minLevel: 4,
             features: ['Rental Operations', 'Contracts', 'Client Management', 'Procurement & Vendor Bills'],
-            menuIds: ['rentals', 'contracts', 'sales-invoices', 'clients', 'loans', 'purchase-bills'],
-            order: 4,
+            menuIds: ['rentals', 'contracts', 'sales-invoices', 'clients', 'purchase-bills'],
+            order: 5,
             enabled: true,
         },
         {
@@ -199,7 +220,7 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             minLevel: 3,
             features: ['Inventory Control', 'Stock Opname'],
             menuIds: ['inventory-items', 'stock-opname'],
-            order: 5,
+            order: 6,
             enabled: true,
         },
         {
@@ -213,7 +234,7 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             minLevel: 2,
             features: ['Cash & Bank', 'Expenses', 'General Ledger'],
             menuIds: ['finance', 'cash-bank', 'expenses', 'journal-entries', 'financial-reports'],
-            order: 6,
+            order: 7,
             enabled: true,
         },
         {
@@ -226,8 +247,8 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             defaultRoute: '/employees',
             minLevel: 3,
             features: ['Employees', 'Attendance', 'Leave Management'],
-            menuIds: ['employees', 'departments', 'attendance', 'leaves'],
-            order: 7,
+            menuIds: ['employees', 'attendance', 'leaves'],
+            order: 8,
             enabled: true,
         },
         {
@@ -239,9 +260,9 @@ export const DEFAULT_LAUNCHPAD_CONFIG: LaunchpadConfig = {
             iconBg: 'bg-gradient-to-br from-slate-500 to-gray-500',
             defaultRoute: '/approvals',
             minLevel: 2,
-            features: ['Master Data & Templates', 'Users & Roles', 'System Config'],
-            menuIds: ['categories', 'inventory-categories', 'locations', 'maintenance-templates', 'contract-templates', 'approvals', 'users', 'roles', 'approval-workflow-settings', 'audit', 'settings'],
-            order: 8,
+            features: ['Master Data & Templates', 'Approvals & Workflows', 'System Config'],
+            menuIds: ['categories', 'inventory-categories', 'locations', 'maintenance-templates', 'contract-templates', 'approvals', 'approval-workflow-settings', 'audit', 'settings'],
+            order: 9,
             enabled: true,
         },
     ],

@@ -9,13 +9,14 @@ use management_system_core::application::dto::{
 };
 use management_system_core::domain::entities::UserClaims as Claims;
 use management_system_core::shared::errors::AppError;
+use management_system_inventory::{InventoryCategory, InventoryItem, InventoryMovement};
 use uuid::Uuid;
 
 pub async fn create_inventory_category(
     State(state): State<AppState>,
     Json(payload): Json<CreateInventoryCategoryRequest>,
 ) -> Result<
-    Json<ApiResponse<management_system_core::domain::entities::inventory::InventoryCategory>>,
+    Json<ApiResponse<InventoryCategory>>,
     AppError,
 > {
     let category = state.inventory_service.create_category(payload).await?;
@@ -25,7 +26,7 @@ pub async fn create_inventory_category(
 pub async fn list_inventory_categories(
     State(state): State<AppState>,
 ) -> Result<
-    Json<ApiResponse<Vec<management_system_core::domain::entities::inventory::InventoryCategory>>>,
+    Json<ApiResponse<Vec<InventoryCategory>>>,
     AppError,
 > {
     let categories = state.inventory_service.list_categories().await?;
@@ -36,7 +37,7 @@ pub async fn get_inventory_category(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<
-    Json<ApiResponse<management_system_core::domain::entities::inventory::InventoryCategory>>,
+    Json<ApiResponse<InventoryCategory>>,
     AppError,
 > {
     let category = state
@@ -55,7 +56,7 @@ pub async fn update_inventory_category(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateInventoryCategoryRequest>,
 ) -> Result<
-    Json<ApiResponse<management_system_core::domain::entities::inventory::InventoryCategory>>,
+    Json<ApiResponse<InventoryCategory>>,
     AppError,
 > {
     let category = state.inventory_service.update_category(id, payload).await?;
@@ -74,7 +75,7 @@ pub async fn create_item(
     State(state): State<AppState>,
     Json(payload): Json<CreateInventoryItemRequest>,
 ) -> Result<
-    Json<ApiResponse<management_system_core::domain::entities::inventory::InventoryItem>>,
+    Json<ApiResponse<InventoryItem>>,
     AppError,
 > {
     let item = state.inventory_service.create_item(payload).await?;
@@ -85,7 +86,7 @@ pub async fn list_items(
     State(state): State<AppState>,
     Query(query): Query<std::collections::HashMap<String, String>>,
 ) -> Result<
-    Json<ApiResponse<Vec<management_system_core::domain::entities::inventory::InventoryItem>>>,
+    Json<ApiResponse<Vec<InventoryItem>>>,
     AppError,
 > {
     let category_id = query
@@ -103,7 +104,7 @@ pub async fn get_item(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<
-    Json<ApiResponse<management_system_core::domain::entities::inventory::InventoryItem>>,
+    Json<ApiResponse<InventoryItem>>,
     AppError,
 > {
     let item = state
@@ -119,7 +120,7 @@ pub async fn update_item(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateInventoryItemRequest>,
 ) -> Result<
-    Json<ApiResponse<management_system_core::domain::entities::inventory::InventoryItem>>,
+    Json<ApiResponse<InventoryItem>>,
     AppError,
 > {
     let item = state.inventory_service.update_item(id, payload).await?;
@@ -163,7 +164,7 @@ pub async fn list_movements_history(
     State(state): State<AppState>,
     Query(query): Query<std::collections::HashMap<String, String>>,
 ) -> Result<
-    Json<ApiResponse<Vec<management_system_core::domain::entities::inventory::InventoryMovement>>>,
+    Json<ApiResponse<Vec<InventoryMovement>>>,
     AppError,
 > {
     let item_id = query.get("item_id").and_then(|id| Uuid::parse_str(id).ok());

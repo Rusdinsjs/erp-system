@@ -15,3 +15,4 @@ pub use rental::*;
 pub use rental_billing::*;
 pub use rental_contract::*;
 pub use rental_timesheet::*;
+pub use management_system_core::domain::entities::TierConfig;

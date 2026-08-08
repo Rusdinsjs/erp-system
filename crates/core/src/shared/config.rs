@@ -26,7 +26,7 @@ impl AppConfig {
             redis_url: env::var("REDIS_URL").ok(),
             server_host: env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
             server_port: env::var("SERVER_PORT")
-                .unwrap_or_else(|_| "8080".to_string())
+                .unwrap_or_else(|_| env::var("PORT").unwrap_or_else(|_| "8181".to_string()))
                 .parse()
                 .expect("SERVER_PORT must be a number"),
             jwt_secret: env::var("JWT_SECRET")

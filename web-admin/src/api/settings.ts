@@ -42,9 +42,34 @@ export const settingsApi = {
     uploadFile: async (file: File): Promise<{ url: string; id: string }> => {
         const formData = new FormData();
         formData.append('file', file);
-        const response = await api.post<{ url: string; id: string }>('/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+
+        // Gunakan fetch native (bukan axios) agar Content-Type multipart/boundary di-set otomatis
+        // dan tidak ada masalah dengan proxy atau interceptor axios
+        const { useAuthStore } = await import('../store/useAuthStore');
+        const token = useAuthStore.getState().token;
+
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+        // JANGAN set Content-Type — biarkan browser set otomatis dengan boundary yang benar
+
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            headers,
+            body: formData,
+            credentials: 'include',
         });
-        return response.data;
+
+        if (!response.ok) {
+            let msg = 'Gagal mengunggah file';
+            try {
+                const data = await response.json();
+                msg = data?.error || data?.message || msg;
+            } catch { /* */ }
+            throw new Error(msg);
+        }
+
+        return response.json();
     }
 };

@@ -132,16 +132,9 @@ impl AppState {
         let client_repo = ClientRepository::new(pool.clone());
         let rental_repo = RentalRepository::new(pool.clone());
         let timesheet_repo = TimesheetRepository::new(pool.clone());
-        let rental_billing_repo =
-            management_system_core::infrastructure::repositories::RentalBillingRepository::new(
-                pool.clone(),
-            );
+        let rental_billing_repo = RentalBillingRepository::new(pool.clone());
         let settings_repo = Arc::new(SettingsRepository::new(pool.clone()));
-        let contract_template_repo = Arc::new(
-            management_system_core::infrastructure::repositories::ContractTemplateRepository::new(
-                pool.clone(),
-            ),
-        );
+        let contract_template_repo = Arc::new(ContractTemplateRepository::new(pool.clone()));
         let approval_workflow_repo = Arc::new(
             management_system_core::infrastructure::repositories::ApprovalWorkflowRepository::new(
                 pool.clone(),
@@ -204,7 +197,6 @@ impl AppState {
         let auth_service = AuthService::new(
             user_repo.clone(),
             rbac_repo.clone(),
-            employee_repo.clone(),
             jwt_config.clone(),
         );
         let category_service = CategoryService::new(category_repo.clone());
@@ -255,7 +247,7 @@ impl AppState {
         );
 
         let inventory_service = InventoryService::new(
-            inventory_repo.clone(),
+            std::sync::Arc::new(inventory_repo.clone()),
             journal_service.clone(),
             notification_service.clone(),
         );

@@ -705,7 +705,7 @@ export default function Assets() {
                                                     setIsPreviewOpen(true);
                                                 }}>
                                                     {displayUrl ? (
-                                                        <img src={getImageUrl(displayUrl)} alt={asset.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                        <img src={displayUrl} alt={asset.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                     ) : (
                                                         <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex flex-col items-center justify-center text-slate-600 group-hover:text-blue-400 transition-colors">
                                                             <Package size={48} className="mb-2 opacity-50" />

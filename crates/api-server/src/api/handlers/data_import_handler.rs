@@ -105,26 +105,33 @@ pub async fn generate_template(
     if payload.doctype_name.eq_ignore_ascii_case("asset") {
         if let Some(cat_id) = payload.category_id {
             // Fetch Category
-            let category = sqlx::query!(
+            let category = sqlx::query_as::<_, (String, String, Option<serde_json::Value>)>(
                 "SELECT code, name, attributes FROM categories WHERE id = $1",
-                cat_id
             )
+            .bind(cat_id)
             .fetch_optional(&state.pool)
             .await
             .map_err(|e| AppError::Database(e.to_string()))?;
 
-            if let Some(cat) = category {
-                category_code = cat.code.clone();
-                category_name = cat.name.clone();
-                let cat_code_upper = cat.code.to_uppercase();
+            if let Some((cat_code, cat_name, cat_attributes)) = category {
+                category_code = cat_code.clone();
+                category_name = cat_name.clone();
+                let cat_code_upper = cat_code.to_uppercase();
 
                 // Add Polymorphic Hardcoded fields based on top level code
                 if cat_code_upper == "VEHICLE" {
                     let vehicle_fields = vec![
-                        "spec_no_plat", "spec_no_rangka", "spec_no_mesin", "spec_stnk_expiry", "spec_pajak_expiry",
-                        "spec_kir_expiry", "spec_bahan_bakar", "spec_kilometer_awal"
+                        "spec_no_polisi", "spec_nomor_rangka", "spec_nomor_mesin", "spec_merk",
+                        "spec_tipe", "spec_tahun_pembuatan", "spec_warna", "spec_bahan_bakar",
+                        "spec_kapasitas_mesin", "spec_odometer_awal"
                     ];
                     headers.extend(vehicle_fields.into_iter().map(String::from));
+                } else if cat_code_upper == "HEAVY_EQUIPMENT" {
+                    let heavy_fields = vec![
+                        "spec_serial_number", "spec_model", "spec_merk", "spec_tahun_pembuatan",
+                        "spec_no_invoice", "spec_kapasitas_tonase", "spec_jam_kerja_awal", "spec_bahan_bakar"
+                    ];
+                    headers.extend(heavy_fields.into_iter().map(String::from));
                 } else if cat_code_upper == "LAND" {
                     let land_fields = vec![
                         "spec_luas_tanah_m2", "spec_no_sertifikat", "spec_status_hak_tanah"
@@ -143,7 +150,7 @@ pub async fn generate_template(
                 }
 
                 // Add JSON Dynamic Template Attributes
-                if let Some(attr_schema) = cat.attributes {
+                if let Some(attr_schema) = cat_attributes {
                     if let Some(arr) = attr_schema.as_array() {
                         for attr in arr {
                             if let Some(attr_name) = attr.as_str() {

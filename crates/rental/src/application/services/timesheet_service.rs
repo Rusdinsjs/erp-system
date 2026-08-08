@@ -13,7 +13,7 @@ use management_system_core::application::dto::{
     SubmitTimesheetRequest, TimesheetDetailResponse, TimesheetSummary, UpdateTimesheetRequest,
     VerifyTimesheetRequest,
 };
-use management_system_core::domain::entities::ClientContact;
+use crate::domain::entities::ClientContact;
 use crate::domain::entities::{Rental, RentalTimesheet};
 use management_system_core::domain::errors::{DomainError, DomainResult};
 use crate::repositories::{RentalRepository, TimesheetRepository};

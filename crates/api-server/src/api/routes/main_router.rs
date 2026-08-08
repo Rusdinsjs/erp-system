@@ -672,6 +672,7 @@ pub fn create_router(state: AppState) -> Router {
             crate::api::routes::metadata_routes::metadata_routes(),
         )
         .merge(crate::api::routes::tax_renewal_routes::tax_renewal_routes())
+        .merge(crate::api::routes::company_routes::company_routes())
         .route(
             "/api/test/email",
             axum::routing::post(crate::api::handlers::test_handler::send_test_email),

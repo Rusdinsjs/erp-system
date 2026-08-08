@@ -16,9 +16,9 @@ use management_system_core::domain::entities::AssetState;
 use crate::domain::entities::{Rental, RentalItem, RentalRate, RentalStatus};
 use management_system_core::domain::errors::{DomainError, DomainResult};
 use crate::repositories::RentalRepository;
-use management_system_core::infrastructure::repositories::{
-    AssetRepository, ClientRepository, EmployeeRepository,
-};
+use management_system_core::infrastructure::repositories::AssetRepository;
+use management_system_crm::repositories::ClientRepository;
+use management_system_hr::repositories::EmployeeRepository;
 
 #[derive(Clone)]
 pub struct RentalService {

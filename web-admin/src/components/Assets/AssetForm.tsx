@@ -5,6 +5,7 @@ import { Save, Car, Building2, DollarSign, FileText, Info, Plus, Trash2, Camera,
 import type { Asset, CreateAssetRequest } from '../../api/assets';
 import { departmentApi } from '../../api/departments';
 import { usersApi } from '../../api/users';
+import { fetchCompanies } from '../../api/companyApi';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
     Button,
@@ -63,6 +64,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         category_id: initialValues?.category_id || '',
         location_id: initialValues?.location_id || '',
         department_id: initialValues?.department_id || '',
+        company_id: initialValues?.company_id || '',
         assigned_to: initialValues?.assigned_to || '',
         status: normalizeStatus(initialValues?.status),
         serial_number: initialValues?.serial_number || '',
@@ -168,6 +170,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 category_id: initialValues.category_id || '',
                 location_id: initialValues.location_id || '',
                 department_id: initialValues.department_id || '',
+                company_id: initialValues.company_id || '',
                 assigned_to: initialValues.assigned_to || '',
                 status: normalizeStatus(initialValues.status),
                 serial_number: initialValues.serial_number || '',
@@ -281,6 +284,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                 category_id: '',
                 location_id: '',
                 department_id: '',
+                company_id: '',
                 assigned_to: '',
                 status: 'planning',
                 serial_number: '',
@@ -421,6 +425,12 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
         staleTime: 1000 * 60 * 5 // 5 mins
     });
 
+    const { data: companiesData } = useQuery({
+        queryKey: ['companies-for-asset'],
+        queryFn: () => fetchCompanies({ status: 'ACTIVE' }),
+        staleTime: 1000 * 60 * 5
+    });
+
     const { data: userData } = useQuery({
         queryKey: ['users-list-for-assign'],
         queryFn: async () => {
@@ -450,6 +460,11 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             label: d.name,
         })) || [];
     }, [departmentData]);
+
+    const companyOptions = useMemo(() => {
+        const list = Array.isArray(companiesData) ? companiesData : [];
+        return list.map((c: any) => ({ value: c.id, label: `${c.code} — ${c.name}` }));
+    }, [companiesData]);
 
     const userOptions = useMemo(() => {
         return (Array.isArray(userData) ? userData : []).map(u => ({
@@ -615,6 +630,7 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
             category_id: formData.category_id,
             location_id: formData.location_id || undefined,
             department_id: formData.department_id || undefined,
+            company_id: formData.company_id || undefined,
             assigned_to: formData.assigned_to || undefined,
             status: formData.status,
             serial_number: formData.serial_number || undefined,
@@ -909,6 +925,14 @@ export function AssetForm({ initialValues, categories, locations, onSubmit, onCa
                                         onChange={(val) => updateField('assigned_to', val)}
                                         options={userOptions}
                                         placeholder="Select person in charge..."
+                                    />
+                                    <Select
+                                        label="Perusahaan (Company)"
+                                        value={formData.company_id}
+                                        onChange={(val) => updateField('company_id', val)}
+                                        options={companyOptions}
+                                        placeholder="Pilih perusahaan..."
+                                        onCreate={() => window.open('/company', '_blank')}
                                     />
                                     <Select
                                         label="Department"

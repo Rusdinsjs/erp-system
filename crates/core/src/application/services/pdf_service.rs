@@ -24,4 +24,12 @@ impl PDFService {
 
         Ok(pdf_bytes)
     }
+
+    pub async fn generate_rental_invoice(
+        &self,
+        _billing_id: uuid::Uuid,
+        _asset_name: String,
+    ) -> Result<Vec<u8>, String> {
+        Ok(Vec::new())
+    }
 }

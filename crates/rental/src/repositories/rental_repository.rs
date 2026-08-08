@@ -104,6 +104,21 @@ impl RentalRepository {
         Ok(Some(rental))
     }
 
+    /// Alias for find_rental_by_id
+    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Rental>, sqlx::Error> {
+        self.find_rental_by_id(id).await
+    }
+
+    /// Get rentals by contract ID
+    pub async fn find_by_contract_id(&self, contract_id: Uuid) -> Result<Vec<Rental>, sqlx::Error> {
+        sqlx::query_as::<sqlx::Postgres, Rental>(
+            r#"SELECT * FROM rentals WHERE contract_id = $1 ORDER BY created_at DESC"#,
+        )
+        .bind(contract_id)
+        .fetch_all(&self.pool)
+        .await
+    }
+
     /// Get all rentals (with basic filtering)
     pub async fn list_rentals(
         &self,

@@ -20,3 +20,4 @@ pub mod mobile_routes;
 pub mod settings_routes;
 pub mod tax_renewal_routes;
 pub mod metadata_routes;
+pub mod company_routes;
