@@ -135,7 +135,7 @@ pub async fn email_invoice(
     let recipient = payload.email;
     match state
         .email_service
-        .send_invoice(&recipient, pdf, &billing)
+        .send_invoice(&recipient, pdf, billing.invoice_number.as_deref().unwrap_or("DRAFT"))
         .await
     {
         Ok(_) => Json(serde_json::json!({ "message": "Email sent successfully" })).into_response(),

@@ -16,7 +16,8 @@ use management_system_core::application::dto::{
     ClientApproveTimesheetRequest, CreateClientContactRequest, CreateTimesheetRequest,
     SubmitTimesheetRequest, VerifyTimesheetRequest,
 };
-use management_system_core::domain::entities::{ClientContact, RentalTimesheet, UserClaims};
+use management_system_core::domain::entities::UserClaims;
+use management_system_rental::domain::entities::{ClientContact, RentalTimesheet};
 use management_system_core::shared::errors::AppResult;
 
 /// Query parameters for listing timesheets

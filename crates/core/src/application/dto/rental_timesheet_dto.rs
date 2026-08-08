@@ -186,8 +186,8 @@ pub struct GenerateInvoiceRequest {
 }
 
 /// Billing summary response
-#[derive(Debug, Serialize)]
-pub struct BillingSummaryResponse {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BillingSummaryResponse<T = serde_json::Value> {
     pub period: String,
     pub rental_number: String,
     pub client_name: String,
@@ -227,7 +227,7 @@ pub struct BillingSummaryResponse {
 
     pub status: String,
     pub invoice_number: Option<String>,
-    pub timesheets: Vec<crate::domain::entities::RentalTimesheet>,
+    pub timesheets: Vec<T>,
 }
 
 // =============================================================================

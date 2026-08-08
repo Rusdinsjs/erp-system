@@ -1,0 +1,154 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM rental.rentals WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "rental_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "client_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "request_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "expected_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 7,
+        "name": "actual_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "subtotal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "deposit_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "deposit_returned",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "penalty_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "total_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "requested_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "approved_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "approved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "rejection_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "agreement_document",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 18,
+        "name": "invoice_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 19,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 20,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 21,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "contract_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "c4e9f3207d07681bb806e6af49fb279bc45e7a78ddc8a8e9aed3df6a702028fd"
+}

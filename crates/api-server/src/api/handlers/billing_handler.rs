@@ -15,7 +15,8 @@ use management_system_core::application::dto::{
     ApproveBillingRequest, BillingSummaryResponse, CalculateBillingRequest,
     CreateBillingPeriodRequest, GenerateInvoiceRequest,
 };
-use management_system_core::domain::entities::{RentalBillingPeriod, UserClaims};
+use management_system_core::domain::entities::UserClaims;
+use management_system_rental::domain::entities::{RentalBillingPeriod, RentalTimesheet};
 use management_system_core::shared::errors::AppResult;
 
 /// Create billing period
@@ -93,7 +94,7 @@ pub async fn generate_invoice(
 pub async fn get_billing_summary(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
-) -> AppResult<Json<BillingSummaryResponse>> {
+) -> AppResult<Json<BillingSummaryResponse<RentalTimesheet>>> {
     let summary = state.billing_service.get_billing_summary(id).await?;
     Ok(Json(summary))
 }

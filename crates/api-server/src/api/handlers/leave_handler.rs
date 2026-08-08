@@ -13,7 +13,7 @@ pub async fn request_leave(
     State(state): State<AppState>,
     Extension(_claims): Extension<UserClaims>,
     Json(req): Json<CreateLeaveRequest>,
-) -> AppResult<Json<management_system_core::domain::entities::LeaveRequest>> {
+) -> AppResult<Json<management_system_hr::domain::entities::LeaveRequest>> {
     let leave_req = state.leave_service.request_leave(req).await?;
     Ok(Json(leave_req))
 }
@@ -21,7 +21,7 @@ pub async fn request_leave(
 pub async fn my_leaves(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
-) -> AppResult<Json<Vec<management_system_core::domain::entities::LeaveRequest>>> {
+) -> AppResult<Json<Vec<management_system_hr::domain::entities::LeaveRequest>>> {
     // Parse user_id from subject
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID in token".to_string()))?;
@@ -33,7 +33,7 @@ pub async fn my_leaves(
 pub async fn pending_leaves(
     State(state): State<AppState>,
     Extension(_): Extension<UserClaims>,
-) -> AppResult<Json<Vec<management_system_core::domain::entities::LeaveRequest>>> {
+) -> AppResult<Json<Vec<management_system_hr::domain::entities::LeaveRequest>>> {
     let requests = state.leave_service.pending_leaves().await?;
     Ok(Json(requests))
 }
@@ -42,7 +42,7 @@ pub async fn approve_leave(
     State(state): State<AppState>,
     Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
-) -> AppResult<Json<management_system_core::domain::entities::LeaveRequest>> {
+) -> AppResult<Json<management_system_hr::domain::entities::LeaveRequest>> {
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID in token".to_string()))?;
 
@@ -55,7 +55,7 @@ pub async fn reject_leave(
     Extension(claims): Extension<UserClaims>,
     Path(id): Path<Uuid>,
     Json(payload): Json<RejectLeaveRequest>,
-) -> AppResult<Json<management_system_core::domain::entities::LeaveRequest>> {
+) -> AppResult<Json<management_system_hr::domain::entities::LeaveRequest>> {
     let user_id = Uuid::parse_str(&claims.sub)
         .map_err(|_| AppError::BadRequest("Invalid user ID in token".to_string()))?;
 

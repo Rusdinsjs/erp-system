@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::domain::entities::{User, UserClaims, UserRole};
 use crate::domain::errors::{DomainError, DomainResult};
-use crate::infrastructure::repositories::{EmployeeRepository, RbacRepository, UserRepository};
+use crate::infrastructure::repositories::{RbacRepository, UserRepository};
 use crate::shared::utils::crypto::{hash_password, verify_password};
 use crate::shared::utils::jwt::{create_token, JwtConfig};
 
@@ -14,7 +14,6 @@ use crate::shared::utils::jwt::{create_token, JwtConfig};
 pub struct AuthService {
     repository: UserRepository,
     rbac_repository: RbacRepository,
-    employee_repository: EmployeeRepository,
     jwt_config: JwtConfig,
 }
 
@@ -22,13 +21,11 @@ impl AuthService {
     pub fn new(
         repository: UserRepository,
         rbac_repository: RbacRepository,
-        employee_repository: EmployeeRepository,
         jwt_config: JwtConfig,
     ) -> Self {
         Self {
             repository,
             rbac_repository,
-            employee_repository,
             jwt_config,
         }
     }
@@ -100,14 +97,8 @@ impl AuthService {
             permissions
         );
 
-        // Fetch employee ID if linked
-        let employee = self
-            .employee_repository
-            .find_by_user_id(user.id)
-            .await
-            .ok()
-            .flatten();
-        let employee_id = employee.map(|e| e.id);
+        // Use employee_id directly from user record
+        let employee_id = user.employee_id;
 
         // Generate JWT token
         let claims = UserClaims {

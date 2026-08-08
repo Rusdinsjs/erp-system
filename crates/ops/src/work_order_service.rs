@@ -52,7 +52,7 @@ pub struct WorkOrderService {
     notification_service: management_system_core::application::services::NotificationService,
     asset_expense_service: management_system_finance::AssetExpenseService,
     maintenance_template_repo: MaintenanceTemplateRepository,
-    inventory_service: crate::InventoryService,
+    inventory_service: management_system_inventory::InventoryService,
     event_bus: EventBus,
 }
 
@@ -66,7 +66,7 @@ impl WorkOrderService {
         notification_service: management_system_core::application::services::NotificationService,
         asset_expense_service: management_system_finance::AssetExpenseService,
         maintenance_template_repo: MaintenanceTemplateRepository,
-        inventory_service: crate::InventoryService,
+        inventory_service: management_system_inventory::InventoryService,
         event_bus: EventBus,
     ) -> Self {
         Self {

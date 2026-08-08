@@ -1,11 +1,13 @@
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use management_system_core::application::services::approval_service::ModuleApprovalCallback;
-use management_system_core::domain::entities::{TaxRenewal, UpdateTaxRenewalCostRequest, Vendor};
+use management_system_core::domain::entities::{TaxRenewal, UpdateTaxRenewalCostRequest};
+use management_system_crm::domain::entities::Vendor;
 use management_system_core::domain::errors::DomainError;
 use management_system_core::infrastructure::repositories::{
-    AssetRepository, TaxRenewalRepository, VendorRepository,
+    AssetRepository, TaxRenewalRepository,
 };
+use management_system_crm::repositories::VendorRepository;
 use management_system_finance::{CreateBillItemRequest, CreatePurchaseBillRequest, FinanceService};
 use uuid::Uuid;
 
@@ -38,7 +40,7 @@ impl TaxRenewalService {
             .vendor_repository
             .find_by_name(vendor_name)
             .await
-            .map_err(|e| DomainError::Database(e.to_string()))?
+            .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))?
         {
             return Ok(vendor);
         }
@@ -54,7 +56,7 @@ impl TaxRenewalService {
         self.vendor_repository
             .create(&vendor)
             .await
-            .map_err(|e| DomainError::Database(e.to_string()))
+            .map_err(|e: sqlx::Error| DomainError::Database(e.to_string()))
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<TaxRenewal>, DomainError> {

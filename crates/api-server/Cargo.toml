@@ -6,6 +6,10 @@ edition = "2021"
 [dependencies]
 management-system-core = { workspace = true }
 management-system-finance = { workspace = true }
+management-system-hr = { workspace = true }
+management-system-crm = { workspace = true }
+management-system-rental = { workspace = true }
+management-system-inventory = { workspace = true }
 management-system-assets = { workspace = true }
 management-system-ops = { workspace = true }
 

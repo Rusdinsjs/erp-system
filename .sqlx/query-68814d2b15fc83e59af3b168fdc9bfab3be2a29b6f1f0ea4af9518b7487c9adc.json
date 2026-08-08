@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                COUNT(rt.id) as total_sheets,\n                COALESCE(SUM(rt.operating_hours), 0) as total_operating,\n                COALESCE(SUM(rt.standby_hours), 0) as total_standby,\n                COALESCE(SUM(rt.breakdown_hours), 0) as total_breakdown\n            FROM rental.rentals r\n            JOIN rental.rental_timesheets rt ON rt.rental_id = r.id AND rt.status = 'approved'\n            WHERE r.contract_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total_sheets",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_operating",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_standby",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_breakdown",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "68814d2b15fc83e59af3b168fdc9bfab3be2a29b6f1f0ea4af9518b7487c9adc"
+}

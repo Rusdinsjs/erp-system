@@ -6,6 +6,11 @@ members = [
     "crates/assets",
     "crates/ops",
     "crates/api-server",
+    "crates/hr",
+    "crates/crm",
+    "crates/rental",
+    "crates/inventory",
+    "crates/commercial",
 ]
 
 [workspace.dependencies]
@@ -81,6 +86,11 @@ management-system-core = { path = "crates/core" }
 management-system-finance = { path = "crates/finance" }
 management-system-assets = { path = "crates/assets" }
 management-system-ops = { path = "crates/ops" }
+management-system-hr = { path = "crates/hr" }
+management-system-crm = { path = "crates/crm" }
+management-system-rental = { path = "crates/rental" }
+management-system-inventory = { path = "crates/inventory" }
+management-system-commercial = { path = "crates/commercial" }
 
 [profile.dev.package.argon2]
 opt-level = 3
@@ -101,6 +111,3 @@ opt-level = 2
 opt-level = 3
 codegen-units = 16
 lto = "thin"
-
-
-

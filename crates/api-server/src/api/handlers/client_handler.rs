@@ -12,7 +12,7 @@ use crate::api::server::AppState;
 use management_system_core::application::dto::{
     ApiResponse, CreateClientRequest, PaginatedResponse, PaginationParams, UpdateClientRequest,
 };
-use management_system_core::domain::entities::Client;
+use management_system_crm::domain::entities::Client;
 use management_system_core::shared::errors::AppError;
 
 use serde::Deserialize;

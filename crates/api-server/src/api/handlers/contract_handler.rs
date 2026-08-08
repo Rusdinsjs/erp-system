@@ -13,7 +13,8 @@ use management_system_core::application::dto::contract_dto::{
     ApprovalRequest, BulkApprovalRequest, ContractDocumentResponse, CreateContractRequest,
     DelegateApprovalRequest, RenewalRequest, UpdateContractRequest,
 };
-use management_system_core::domain::entities::{ContractDocument, UserClaims};
+use management_system_core::domain::entities::UserClaims;
+use management_system_rental::domain::entities::ContractDocument;
 
 #[derive(Debug, Deserialize)]
 pub struct ListContractsQuery {

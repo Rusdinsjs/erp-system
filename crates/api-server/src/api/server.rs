@@ -9,28 +9,44 @@ use crate::api::routes::create_router;
 use crate::application::services::scheduler_service::SchedulerService;
 use management_system_assets::{CategoryService, CategoryTemplateService};
 use management_system_core::application::services::{
-    AnalyticsService, ApprovalService, AuditService, AuthService, BillingService, ClientService,
-    ContractService, ContractTemplateService, ConversionService, EmployeeService, LifecycleService,
+    AnalyticsService, ApprovalService, AuditService, AuthService, ConversionService, LifecycleService,
     LoanService, LocationService, MaintenanceService, MaintenanceTemplateService,
     NotificationService, RbacService, ReportService, SensorService, SettingsService, UserService,
 };
 use management_system_core::infrastructure::bus::EventBus;
 use management_system_core::infrastructure::cache::{CacheOperations, RedisCache, RedisConfig};
-use management_system_core::infrastructure::repositories::LeaveRepository;
 use management_system_core::infrastructure::repositories::{
     ApprovalRepository, AssetExpenseRepository, AssetRepository, AuditRepository,
-    CategoryRepository, CategoryTemplateRepository, ClientRepository, ContractDocumentRepository,
-    ConversionRepository, EmployeeRepository, FuelRepository, InventoryRepository,
+    CategoryRepository, CategoryTemplateRepository,
+    ConversionRepository, FuelRepository,
     LifecycleRepository, LoanRepository, MaintenanceRepository, MaintenanceTemplateRepository,
-    NotificationRepository, RbacRepository, RentalRepository, SensorRepository, SettingsRepository,
-    TaxRenewalRepository, TimesheetRepository, UserRepository, VendorRepository,
+    NotificationRepository, RbacRepository, SensorRepository, SettingsRepository,
+    TaxRenewalRepository, UserRepository,
     WorkOrderRepository,
 };
+
+use management_system_hr::repositories::{EmployeeRepository, LeaveRepository};
+use management_system_hr::services::{EmployeeService, LeaveService};
+
+use management_system_crm::repositories::{ClientRepository, VendorRepository};
+use management_system_crm::services::ClientService;
+
+use management_system_rental::repositories::{
+    ContractDocumentRepository, ContractTemplateRepository,
+    RentalBillingRepository, RentalRepository, TimesheetRepository,
+};
+use management_system_rental::{
+    BillingService, ContractService, ContractTemplateService, RentalBillingService, RentalService,
+    TimesheetService,
+};
+
+use management_system_inventory::repositories::InventoryRepository;
+use management_system_inventory::InventoryService;
 use management_system_core::infrastructure::storage::FileStorage;
 use management_system_core::shared::utils::jwt::JwtConfig;
 use management_system_finance::repositories::{FinanceRepository, JournalRepository};
 use management_system_finance::{AssetExpenseService, DepreciationService, JournalService};
-use management_system_ops::{FuelService, RentalService, TaxRenewalService, TimesheetService};
+use management_system_ops::{FuelService, TaxRenewalService};
 use std::sync::Arc;
 
 /// Application state shared across handlers
@@ -49,29 +65,29 @@ pub struct AppState {
     pub contract_template_service: ContractTemplateService,
     pub conversion_service: ConversionService,
     pub lifecycle_service: LifecycleService,
-    pub inventory_service: management_system_ops::InventoryService,
+    pub inventory_service: InventoryService,
     pub loan_service: LoanService,
     pub maintenance_service: MaintenanceService,
     pub maintenance_template_service: MaintenanceTemplateService,
     pub work_order_service: management_system_ops::WorkOrderService,
     pub notification_service: NotificationService,
     pub rbac_service: RbacService,
-    pub rental_service: management_system_ops::RentalService,
+    pub rental_service: RentalService,
     pub sensor_service: SensorService,
-    pub timesheet_service: management_system_ops::TimesheetService,
+    pub timesheet_service: TimesheetService,
     pub scheduler_service: SchedulerService,
     pub user_service: UserService,
     pub report_service: ReportService,
     pub analytics_service: AnalyticsService,
     pub employee_service: EmployeeService,
     pub location_service: LocationService,
-    pub leave_service: management_system_ops::LeaveService,
+    pub leave_service: LeaveService,
     pub metadata_service: management_system_core::application::services::MetadataService,
     pub finance_service: management_system_finance::FinanceService,
     pub fuel_service: management_system_ops::FuelService,
     pub journal_service: management_system_finance::JournalService,
     pub settings_service: SettingsService,
-    pub rental_billing_service: management_system_ops::RentalBillingService,
+    pub rental_billing_service: RentalBillingService,
     pub pdf_service: management_system_core::application::services::PDFService,
     pub email_service: management_system_core::application::services::EmailService,
     pub tax_renewal_service: management_system_ops::TaxRenewalService,
@@ -138,7 +154,7 @@ impl AppState {
         );
         let finance_repo = FinanceRepository::new(pool.clone());
         let journal_repo = JournalRepository::new(pool.clone());
-        let inventory_repo = Arc::new(InventoryRepository::new(pool.clone()));
+        let inventory_repo = InventoryRepository::new(pool.clone());
         let tax_renewal_repo = TaxRenewalRepository::new(pool.clone());
         let leave_repo = LeaveRepository::new(pool.clone());
         let vendor_repo = VendorRepository::new(pool.clone());
@@ -230,7 +246,6 @@ impl AppState {
             journal_service.clone(),
             asset_expense_service.clone(),
             asset_repo.clone(),
-            rental_repo.clone(),
             event_bus.clone(),
         );
         let depreciation_service = DepreciationService::new(
@@ -239,7 +254,7 @@ impl AppState {
             journal_service.clone(),
         );
 
-        let inventory_service = management_system_ops::InventoryService::new(
+        let inventory_service = InventoryService::new(
             inventory_repo.clone(),
             journal_service.clone(),
             notification_service.clone(),
@@ -270,16 +285,12 @@ impl AppState {
             asset_repo.clone(),
             employee_repo.clone(),
         );
-        let rental_billing_service = management_system_ops::RentalBillingService::new(
+        let rental_billing_service = RentalBillingService::new(
             rental_billing_repo.clone(),
             rental_repo.clone(),
             event_bus.clone(),
         );
-        let pdf_service = management_system_core::application::services::PDFService::new(
-            rental_billing_repo.clone(),
-            rental_repo.clone(),
-            client_repo.clone(),
-        );
+        let pdf_service = management_system_core::application::services::PDFService::new();
         let tax_renewal_service = TaxRenewalService::new(
             tax_renewal_repo,
             asset_repo.clone(),
@@ -324,7 +335,7 @@ impl AppState {
             );
         let location_service = LocationService::new(location_repo);
 
-        let leave_service = management_system_ops::LeaveService::new(leave_repo, employee_repo);
+        let leave_service = LeaveService::new(leave_repo, employee_repo);
 
         let settings_service = SettingsService::new(settings_repo);
 

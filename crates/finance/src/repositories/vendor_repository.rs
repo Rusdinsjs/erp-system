@@ -3,7 +3,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use management_system_core::domain::entities::{Vendor, VendorSummary};
+use management_system_crm::domain::entities::{Vendor, VendorSummary};
 
 #[derive(Clone)]
 pub struct VendorRepository {

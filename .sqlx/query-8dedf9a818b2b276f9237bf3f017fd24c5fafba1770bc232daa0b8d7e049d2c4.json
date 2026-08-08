@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COUNT(*) as count \n            FROM rental.rental_contracts \n            WHERE EXTRACT(YEAR FROM created_at) = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8dedf9a818b2b276f9237bf3f017fd24c5fafba1770bc232daa0b8d7e049d2c4"
+}

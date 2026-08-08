@@ -16,7 +16,8 @@ use management_system_core::application::dto::{
     DispatchRentalRequest, PaginationParams, RejectRentalRequest, RentalScheduleItem,
     ReturnRentalRequest, UpdateRentalRateRequest,
 };
-use management_system_core::domain::entities::{Rental, RentalHandover, RentalRate, UserClaims};
+use management_system_core::domain::entities::UserClaims;
+use management_system_rental::domain::entities::{Rental, RentalHandover, RentalRate};
 use management_system_core::shared::errors::AppError;
 use serde::Deserialize;
 

@@ -16,8 +16,9 @@ use management_system_core::infrastructure::database::{
     CommandContext, IdempotencyDecision, IdempotencyStore, UnitOfWork,
 };
 use management_system_core::infrastructure::repositories::{
-    AssetRepository, AuditTrailStore, OutboxStore, RentalRepository,
+    AssetRepository, AuditTrailStore, OutboxStore,
 };
+
 
 #[derive(Clone)]
 #[allow(dead_code)] // Fields retained for future use (dependency injection)
@@ -27,7 +28,7 @@ pub struct FinanceService {
     journal_service: JournalService,
     asset_expense_service: AssetExpenseService,
     asset_repo: AssetRepository,
-    rental_repo: RentalRepository,
+
     event_bus: EventBus,
     accounting_engine: Option<crate::posting_engine::AccountingPostingEngine>,
 }
@@ -57,7 +58,7 @@ impl FinanceService {
         journal_service: JournalService,
         asset_expense_service: AssetExpenseService,
         asset_repo: AssetRepository,
-        rental_repo: RentalRepository,
+
         event_bus: EventBus,
     ) -> Self {
         Self {
@@ -66,7 +67,7 @@ impl FinanceService {
             journal_service,
             asset_expense_service,
             asset_repo,
-            rental_repo,
+
             event_bus,
             accounting_engine: None,
         }

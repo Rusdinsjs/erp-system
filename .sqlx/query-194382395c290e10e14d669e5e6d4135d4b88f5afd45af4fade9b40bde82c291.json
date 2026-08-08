@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE rental_items SET returned_by = $1, returned_at = NOW(), actual_end_date = CURRENT_DATE WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "194382395c290e10e14d669e5e6d4135d4b88f5afd45af4fade9b40bde82c291"
+}

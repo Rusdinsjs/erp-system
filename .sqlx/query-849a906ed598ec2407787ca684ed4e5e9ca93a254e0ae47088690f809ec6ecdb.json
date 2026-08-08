@@ -1,0 +1,195 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO rental.rental_contracts (\n                id, contract_number, client_id, start_date, end_date,\n                auto_renew, renewal_notice_days, payment_terms, price_lock,\n                status, contract_file_url, notes, created_by, submitted_for_approval_at,\n                current_approval_step, total_approval_steps, template_id, delegated_to\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)\n            RETURNING \n                id, contract_number, client_id, NULL::text as client_name, start_date, end_date,\n                auto_renew, renewal_notice_days, payment_terms, price_lock,\n                status, contract_file_url, notes, \n                created_at, created_by, updated_at, updated_by, \n                submitted_for_approval_at, approved_at, approved_by,\n                terminated_at, terminated_by, termination_reason,\n                current_approval_step as \"current_approval_step!\", \n                total_approval_steps as \"total_approval_steps!\", \n                template_id,\n                delegated_to\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_number",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "client_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "client_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "auto_renew",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "renewal_notice_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "payment_terms",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "price_lock",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "contract_file_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 17,
+        "name": "submitted_for_approval_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "approved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "approved_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 20,
+        "name": "terminated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 21,
+        "name": "terminated_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 22,
+        "name": "termination_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "current_approval_step!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 24,
+        "name": "total_approval_steps!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 25,
+        "name": "template_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 26,
+        "name": "delegated_to",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Uuid",
+        "Date",
+        "Date",
+        "Bool",
+        "Int4",
+        "Varchar",
+        "Bool",
+        "Varchar",
+        "Text",
+        "Text",
+        "Uuid",
+        "Timestamptz",
+        "Int4",
+        "Int4",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "849a906ed598ec2407787ca684ed4e5e9ca93a254e0ae47088690f809ec6ecdb"
+}

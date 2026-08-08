@@ -1,0 +1,225 @@
+use crate::domain::entities::Employee;
+use management_system_core::shared::errors::AppError;
+use sqlx::PgPool;
+use uuid::Uuid;
+
+#[derive(Clone)]
+pub struct EmployeeRepository {
+    pool: PgPool,
+}
+
+impl EmployeeRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn create(&self, employee: &Employee) -> Result<Employee, AppError> {
+        let employee = sqlx::query_as::<_, Employee>(
+            r#"
+            INSERT INTO hr.employees (
+                id, nik, name, email, phone, department_id, position, 
+                employment_status, user_id, is_active, photo_url,
+                ktp_number, place_of_birth, date_of_birth, gender, marital_status, religion, address,
+                start_date, end_contract_date, is_manager, manager_id,
+                bank_account, bank_name, basic_salary,
+                leave_balance, leave_used,
+                assigned_asset_id, work_area_id, is_account_requested
+            )
+            VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+                $12, $13, $14, $15, $16, $17, $18,
+                $19, $20, $21, $22,
+                $23, $24, $25,
+                $26, $27,
+                $28, $29, $30
+            )
+            RETURNING *
+            "#,
+        )
+        .bind(employee.id)
+        .bind(&employee.nik)
+        .bind(&employee.name)
+        .bind(&employee.email)
+        .bind(&employee.phone)
+        .bind(employee.department_id)
+        .bind(&employee.position)
+        .bind(&employee.employment_status)
+        .bind(employee.user_id)
+        .bind(employee.is_active)
+        .bind(&employee.photo_url)
+        // Bind new fields
+        .bind(&employee.ktp_number)
+        .bind(&employee.place_of_birth)
+        .bind(employee.date_of_birth)
+        .bind(&employee.gender)
+        .bind(&employee.marital_status)
+        .bind(&employee.religion)
+        .bind(&employee.address)
+        .bind(employee.start_date)
+        .bind(employee.end_contract_date)
+        .bind(employee.is_manager)
+        .bind(employee.manager_id)
+        .bind(&employee.bank_account)
+        .bind(&employee.bank_name)
+        .bind(employee.basic_salary)
+        .bind(employee.leave_balance)
+        .bind(employee.leave_used)
+        .bind(employee.assigned_asset_id)
+        .bind(employee.work_area_id)
+        .bind(employee.is_account_requested.unwrap_or(false))
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+        Ok(employee)
+    }
+
+    pub async fn get_by_id(&self, id: Uuid) -> Result<Employee, AppError> {
+        let employee = sqlx::query_as::<_, Employee>(
+            r#"
+            SELECT e.*, d.name as department_name
+            FROM hr.employees e
+            LEFT JOIN public.departments d ON e.department_id = d.id
+            WHERE e.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?
+        .ok_or_else(|| {
+            AppError::Domain(management_system_core::domain::errors::DomainError::not_found(
+                "Employee", id,
+            ))
+        })?;
+
+        Ok(employee)
+    }
+
+    pub async fn get_by_nik(&self, nik: &str) -> Result<Option<Employee>, AppError> {
+        let employee = sqlx::query_as::<_, Employee>("SELECT * FROM hr.employees WHERE nik = $1")
+            .bind(nik)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AppError::Database(e.to_string()))?;
+
+        Ok(employee)
+    }
+
+    pub async fn find_by_user_id(&self, user_id: Uuid) -> Result<Option<Employee>, AppError> {
+        let employee = sqlx::query_as::<_, Employee>("SELECT * FROM hr.employees WHERE user_id = $1")
+            .bind(user_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| AppError::Database(e.to_string()))?;
+
+        Ok(employee)
+    }
+
+    pub async fn list(&self, page: i64, per_page: i64) -> Result<Vec<Employee>, AppError> {
+        let offset = (page - 1) * per_page;
+        let employees = sqlx::query_as::<_, Employee>(
+            r#"
+            SELECT e.*, d.name as department_name
+            FROM hr.employees e
+            LEFT JOIN public.departments d ON e.department_id = d.id
+            ORDER BY e.name ASC
+            LIMIT $1 OFFSET $2
+            "#,
+        )
+        .bind(per_page)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+        Ok(employees)
+    }
+
+    pub async fn update(&self, employee: &Employee) -> Result<Employee, AppError> {
+        let employee = sqlx::query_as::<_, Employee>(
+            r#"
+            WITH updated_emp AS (
+                UPDATE hr.employees
+                SET nik = $2, name = $3, email = $4, phone = $5, 
+                    department_id = $6, position = $7, employment_status = $8, 
+                    user_id = $9, is_active = $10, photo_url = $11,
+                    ktp_number = $12, place_of_birth = $13, date_of_birth = $14, 
+                    gender = $15, marital_status = $16, religion = $17, address = $18, blood_type = $19,
+                    emergency_contact_name = $20, emergency_contact_phone = $21, emergency_contact_relation = $22,
+                    start_date = $23, end_contract_date = $24, is_manager = $25, manager_id = $26,
+                    bank_account = $27, bank_name = $28, npwp = $29, bpjs_kesehatan = $30, bpjs_tenaga_kerja = $31, basic_salary = $32,
+                    education = $33,
+                    leave_balance = $34, leave_used = $35,
+                    assigned_asset_id = $36, work_area_id = $37,
+                    is_account_requested = COALESCE($38, is_account_requested),
+                    updated_at = NOW()
+                WHERE id = $1
+                RETURNING *
+            ),
+            synced_user AS (
+                UPDATE public.users
+                SET email = e.email, updated_at = NOW()
+                FROM updated_emp e
+                WHERE public.users.id = e.user_id
+                RETURNING public.users.*
+            )
+            SELECT * FROM updated_emp
+            "#,
+        )
+        .bind(employee.id)
+        .bind(&employee.nik)
+        .bind(&employee.name)
+        .bind(&employee.email)
+        .bind(&employee.phone)
+        .bind(employee.department_id)
+        .bind(&employee.position)
+        .bind(&employee.employment_status)
+        .bind(employee.user_id)
+        .bind(employee.is_active)
+        .bind(&employee.photo_url)
+        // Bind new fields
+        .bind(&employee.ktp_number)
+        .bind(&employee.place_of_birth)
+        .bind(employee.date_of_birth)
+        .bind(&employee.gender)
+        .bind(&employee.marital_status)
+        .bind(&employee.religion)
+        .bind(&employee.address)
+        .bind(&employee.blood_type)
+        .bind(&employee.emergency_contact_name)
+        .bind(&employee.emergency_contact_phone)
+        .bind(&employee.emergency_contact_relation)
+        .bind(employee.start_date)
+        .bind(employee.end_contract_date)
+        .bind(employee.is_manager)
+        .bind(employee.manager_id)
+        .bind(&employee.bank_account)
+        .bind(&employee.bank_name)
+        .bind(&employee.npwp)
+        .bind(&employee.bpjs_kesehatan)
+        .bind(&employee.bpjs_tenaga_kerja)
+        .bind(employee.basic_salary)
+        .bind(&employee.education)
+        .bind(employee.leave_balance)
+        .bind(employee.leave_used)
+        .bind(employee.assigned_asset_id)
+        .bind(employee.work_area_id)
+        .bind(employee.is_account_requested)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+        Ok(employee)
+    }
+
+    pub async fn delete(&self, id: Uuid) -> Result<(), AppError> {
+        sqlx::query("DELETE FROM hr.employees WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+}

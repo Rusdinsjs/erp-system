@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 management-system-core = { workspace = true }
+management-system-crm = { workspace = true }
 sqlx = { workspace = true }
 serde = { workspace = true }
 chrono = { workspace = true }

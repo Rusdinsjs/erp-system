@@ -106,8 +106,12 @@ dependencies = [
  "image 0.25.10",
  "management-system-assets",
  "management-system-core",
+ "management-system-crm",
  "management-system-finance",
+ "management-system-hr",
+ "management-system-inventory",
  "management-system-ops",
+ "management-system-rental",
  "mime_guess",
  "rust_decimal",
  "serde",
@@ -2038,6 +2042,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "management-system-commercial"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "management-system-core",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tracing",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
 name = "management-system-core"
 version = "0.1.0"
 dependencies = [
@@ -2068,12 +2088,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "management-system-crm"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "management-system-core",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tracing",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
 name = "management-system-finance"
 version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
  "management-system-core",
+ "management-system-crm",
  "rust_decimal",
  "rust_decimal_macros",
  "serde",
@@ -2086,6 +2123,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "management-system-hr"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "chrono-tz",
+ "management-system-core",
+ "management-system-ops",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tracing",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
+name = "management-system-inventory"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "management-system-core",
+ "management-system-finance",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tracing",
+ "utoipa",
+ "uuid",
+]
+
+[[package]]
 name = "management-system-ops"
 version = "0.1.0"
 dependencies = [
@@ -2094,7 +2166,9 @@ dependencies = [
  "chrono-tz",
  "management-system-assets",
  "management-system-core",
+ "management-system-crm",
  "management-system-finance",
+ "management-system-inventory",
  "rust_decimal",
  "rust_decimal_macros",
  "serde",
@@ -2102,6 +2176,23 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "management-system-rental"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "management-system-core",
+ "management-system-ops",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tracing",
+ "utoipa",
  "uuid",
 ]
 

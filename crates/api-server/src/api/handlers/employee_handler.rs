@@ -9,7 +9,7 @@ use crate::api::server::AppState;
 use management_system_core::application::dto::{
     ApiResponse, CreateEmployeeRequest, PaginationParams, UpdateEmployeeRequest,
 };
-use management_system_core::domain::entities::Employee;
+use management_system_hr::domain::entities::Employee;
 use management_system_core::shared::errors::AppError;
 
 pub async fn list_employees(

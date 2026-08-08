@@ -7,7 +7,7 @@ use lettre::message::{Attachment, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 
-use crate::domain::entities::RentalBillingPeriod;
+
 use crate::domain::errors::{DomainError, DomainResult};
 
 use crate::shared::config::AppConfig;
@@ -47,9 +47,9 @@ impl EmailService {
         &self,
         to_email: &str,
         invoice_pdf: Vec<u8>,
-        billing: &RentalBillingPeriod,
+        invoice_number: &str,
     ) -> DomainResult<()> {
-        let invoice_num = billing.invoice_number.as_deref().unwrap_or("DRAFT");
+        let invoice_num = invoice_number;
 
         if self.mailer.is_none() {
             println!("Mock Email Sent to {}: Invoice #{}", to_email, invoice_num);
@@ -59,10 +59,8 @@ impl EmailService {
         let subject = format!("Invoice #{} from Asset Management", invoice_num);
 
         let body = format!(
-            "Dear Client,\n\nPlease find attached the invoice #{} for the rental period {} to {}.\n\nThank you for your business.\n\nRegards,\nAsset Management Team",
-            invoice_num,
-            billing.period_start,
-            billing.period_end
+            "Dear Client,\n\nPlease find attached the invoice #{}.\n\nThank you for your business.\n\nRegards,\nAsset Management Team",
+            invoice_num
         );
 
         let filename = format!("Invoice_{}.pdf", invoice_num);

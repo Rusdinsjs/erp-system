@@ -1,0 +1,183 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO rental_rates (\n                id, name, category_id, asset_id, rate_type, rate_amount, currency,\n                minimum_duration, deposit_percentage, ma_threshold, availability_penalty_multiplier,\n                standby_multiplier, breakdown_penalty_per_day, hours_per_day, days_per_month,\n                rate_basis, minimum_hours, overtime_multiplier, late_fee_per_day, fuel_surcharge_rate,\n                tier_config, is_active, created_at, updated_at\n            ) VALUES (\n                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24\n            ) RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "asset_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "rate_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "rate_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "minimum_duration",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "deposit_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "late_fee_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "rate_basis",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
+        "name": "minimum_hours",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "overtime_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "standby_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 17,
+        "name": "breakdown_penalty_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 18,
+        "name": "hours_per_day",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 19,
+        "name": "days_per_month",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "ma_threshold",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 21,
+        "name": "availability_penalty_multiplier",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 22,
+        "name": "fuel_surcharge_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 23,
+        "name": "tier_config",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Numeric",
+        "Varchar",
+        "Int4",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int4",
+        "Varchar",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Jsonb",
+        "Bool",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a69b923b244199169b5139830874eaa73e99fe99d232c8515ba0f438483df0fd"
+}
